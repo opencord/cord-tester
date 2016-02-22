@@ -1,49 +1,34 @@
 #!/usr/bin/env python
 
 import yaml, pprint, sys, pdb
-#import configFsm
 
 stateHash = {}
-
-header = '''#!python
+header = '''#!/usr/bin/env python
 '''
-
 # ---------------------------- DOT -----------------------------------
 colorList = ['aquamarine4', 'crimson', 'chartreuse4', 'darkolivegreen', 'darkgoldenrod', 'dodgerblue3', 'blue4', 'cyan4']
 rankdict = {}
 # ---------------------------- DOT -----------------------------------
 
-
 if __name__ == '__main__':
 
     usage = ''
-
-    # optparse
     from optparse import OptionParser
-
     parser = OptionParser(usage)
-
     parser.add_option('-p', '--prefix', dest='prefix', type='string', action='store', help='prefix for state table')
     parser.add_option('-f', '--file', dest='file', type='string', action='store', help='input yaml filename')
     parser.add_option('-d', '--dot', dest='dot', default=False, action='store_true', help='output DOT')
-
     (opts, args) = parser.parse_args()
-
     prefix = opts.prefix
-
     f = open(opts.file, 'r')
     y = yaml.load(f)
     f.close()
-
     stateHash = y['States']
-
     eventHash = {}
-
     # GLOBAL DOT DIRECTIVES
     stateRadiate        = y.get('DOT_StateRadiate')
     ignoredIntensity    = abs(int(y.get('DOT_IgnoredIntensity', 100)) - 100)
     eventGroups         = y.get('DOT_EventGroups')
-
     if stateRadiate is not None:
         stateRadiate = str(stateRadiate)
 
@@ -54,22 +39,18 @@ if __name__ == '__main__':
         if events:
             for event in events.keys():
                 eventHash[event] = {}
-            
             actionStr = ''
-
             for ev in events.values():
                 if ev.get('Actions'):
                     actionStr = ','.join(['obj.%s' % action for action in ev['Actions']]) + ','
                     actionStrLen.append(len(actionStr))
             
-
         ievents = v.get('IgnoredEvents')
         if ievents:
             for event in ievents.keys():
                 eventHash[event] = {}
 
         # ---------------------------- DOT -----------------------------------
-
         # rankdict setup
         rank = v.get('DOT_Rank')
         if rank:
@@ -88,7 +69,6 @@ if __name__ == '__main__':
                 color = 'black'
                 
         stateHash[k]['DOT_Color'] = color
-
         # ---------------------------- DOT -----------------------------------        
 
     # ---------------------------- DOT -----------------------------------
@@ -100,38 +80,16 @@ if __name__ == '__main__':
                     eventHash[event][attr] = val
                     print >>sys.stderr, 'assigning event group attr event %s attr %s val %s' % (event, attr, val)
     # ---------------------------- DOT -----------------------------------
-        
-    '''
-    for key in stateHash.keys():
-#        try:
-            print key
-            x = eval('configFsm.cfgSt.%s' % key)
-#        except AttributeError, e:
-            print '%s not in config.cfgSt!' % x
-            
-            
-    for key in eventHash.keys():
-            print key
-#        try:
-            x = eval('configFsm.cfgEv.%s' % key)
-#        except KeyError, e:
-            print '%s not in config.cfgEv!' % x
-    '''        
-
 
     maxStateLen = reduce(max, [len(x) for x in stateHash.keys()]) + 5 + len(prefix) 
     maxEventLen = reduce(max, [len(x) for x in eventHash.keys()]) + 5 + len(prefix)
     maxActionLen = reduce(max, actionStrLen) + 5
 
     if opts.dot:
-
         print 'digraph G {'
         print ' edge  [fontname="Tahoma", fontsize="10", minlen=2];'
         print ' node  [fontname="Tahoma", fontsize="10"];'
         print ' graph [fontname="Tahoma", label="%s"];' % prefix
-
-#        rankdict = {}
-
         print >>sys.stderr, 'stateRadiate:%s\nignoredIntensity:%d' % (stateRadiate, ignoredIntensity)
         
         # emit state declarations
@@ -148,13 +106,11 @@ if __name__ == '__main__':
             print '}'
             
         for state, va in stateHash.iteritems():
-
             # emit ignored events
             if va.get('IgnoredEvents'):
                 for event, v in va['IgnoredEvents'].iteritems():
                     stateStr = state
                     eventStr = event
-                    
                     print '%s -> %s [label="%s/",minlen=1, fontcolor="grey%d", color="grey%d"];' % (stateStr, stateStr, eventStr, ignoredIntensity, ignoredIntensity)
 
             # emit transitions
@@ -166,9 +122,7 @@ if __name__ == '__main__':
                     if v.get('Actions'):
                         actionStr = '\\n'.join([a.strip('_') for a in v['Actions']])
                     nextStr = v['NextState']
-
                     labelStr = '%s/\\n%s' % (eventStr, actionStr)
-
                     if stateRadiate:
                         color = va['DOT_Color']
                     elif len(eventHash[event]):
@@ -177,7 +131,6 @@ if __name__ == '__main__':
                         color = 'black'
 
                     fontColor = color
-
                     styleStr = ''
                     style = eventHash[event].get('Style')
                     if style:
@@ -192,63 +145,6 @@ if __name__ == '__main__':
 
         print '}'
 
-    
-#    pprint.pprint(states)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
     else:
     
 ### emit it
@@ -269,8 +165,6 @@ if __name__ == '__main__':
             print '%s"%s",' % (' '*12, event)
         print '%s))' % (' '*12)
         '''
-
-        
 ### table
 
         fmt = '      (%' + '-%d.%ds' % (maxStateLen, maxStateLen) + '%' + '-%d.%ds' % (maxEventLen, maxEventLen) + '):( %' +' -%d.%ds' % (maxActionLen, maxActionLen) + '%s),' 
