@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 
 def initTlsAuthHolderFsmTable(obj,St,Ev):
     return {

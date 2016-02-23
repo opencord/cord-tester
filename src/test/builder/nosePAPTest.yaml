@@ -1,0 +1,32 @@
+States:
+    ST_EAP_SETUP:
+        Events:
+            EVT_EAP_SETUP:
+                Actions:
+                    - _eapSetup
+                NextState: ST_EAP_START
+    ST_EAP_START:
+        Events:
+            EVT_EAP_START:
+                Actions:
+                    - _eapStart
+                NextState: ST_EAP_ID_REQ
+    ST_EAP_ID_REQ:
+        Events:
+            EVT_EAP_ID_REQ:
+                Actions:
+                    - _eapIdReq
+                NextState: ST_EAP_PAP_USER_REQ
+    ST_EAP_PAP_USER_REQ:
+        Events:
+            EVT_EAP_PAP_USER_REQ:
+                Actions:
+                    - _eapPAPUserReq
+                NextState: ST_EAP_PAP_PASSWD_REQ
+    ST_EAP_PAP_PASSWD_REQ:
+        Events:
+            EVT_EAP_PAP_PASSWD_REQ:
+                Actions:
+                    - _eapPAPPassReq
+                NextState: ST_EAP_PAP_DONE
+        
