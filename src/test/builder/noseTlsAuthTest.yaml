@@ -1,0 +1,32 @@
+States:
+    ST_EAP_SETUP:
+        Events:
+            EVT_EAP_SETUP:
+                Actions:
+                    - _eapSetup
+                NextState: ST_EAP_START
+    ST_EAP_START:
+        Events:
+            EVT_EAP_START:
+                Actions:
+                    - _eapStart
+                NextState: ST_EAP_ID_REQ
+    ST_EAP_ID_REQ:
+        Events:
+            EVT_EAP_ID_REQ:
+                Actions:
+                    - _eapIdReq
+                NextState: ST_EAP_TLS_HELLO_REQ
+    ST_EAP_TLS_HELLO_REQ:
+        Events:
+            EVT_EAP_TLS_HELLO_REQ:
+                Actions:
+                    - _eapTlsHelloReq
+                NextState: ST_EAP_TLS_CERT_REQ
+    ST_EAP_TLS_CERT_REQ:
+        Events:
+            EVT_EAP_TLS_CERT_REQ:
+                Actions:
+                    - _eapTlsCertReq
+                NextState: ST_EAP_TLS_DONE
+        
