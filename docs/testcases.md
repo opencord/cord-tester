@@ -25,18 +25,21 @@ The scope and objective of these test-cases is to run the automated deployment p
 
 Positive test-cases:
 
-* Bring-up and verify basic infrastructure assumptions (maybe just that the head-end is available for remote install)
+* Bring-up and verify basic infrastructure assumptions
+  * Head-end is available, configured correctly, and available for software load
+  * Compute notes are available and configured correctly, and available for software load
 * Execute automated deployment of CORD infrastructure and verify baseline state. Various options needs to be supported:
   * Single head-node setup (no clustering)
-  * Triple-head-node setup
-  * Single data-plane up-link from servers
-  * Dual data-plane up-link from servers  
+  * Triple-head-node setup (clustered)
+  * Single data-plane up-link from servers (no high availability)
+  * Dual data-plane up-link from servers (with high availability)
 
 Negative test-cases:
 
 * Verify that deployment automation detects missing equipment
 * Verify that deployment automation detects missing cable
 * Verify that deployment automation detects mis-cabling of fabric and provides useful feedback to remedy the issue
+* Verify that deployment automation detects mis-cabling of servers and provides useful feedback to remedy the issue
 
 ### Baseline Readiness Tests
 
@@ -62,6 +65,7 @@ Complex test-cases:
 * Measure channel surfing experience
 * Replacing RG for existing subscriber
 * Moving existing subscriber to a new address (same RG, new location)
+* Rate at which new subscribers can be added to / removed from the system
 
 Negative test-cases:
 
@@ -84,7 +88,7 @@ In the following scenarios, in cases of non-HA setups, the system shall at least
 * Power cycling ONU
 * Re-starting RG
 * Power cycling any server (one at a time)
-* Power cycling a fabric switch
+* Power cycling any fabric switch
 * Power cycling any of the VMs
 * Power cycling management switch
 * Replacing a server-to-leaf cable
@@ -123,16 +127,18 @@ Test load input dimensions to track against:
 * Number of NBI API requests
 * Subscriber channel change rate
 * Subscriber aggregate traffic load to Internet
-  
+
 In addition to healthy operation, the following is the list contains what needs to be measured quantitatively, as a function of input load:
 
 * CPU utilization per each server
 * Disk utilization per each server
+* Memory utilization per each server
 * Network utilization at various capture points (fabric ports to start with)
 * Channel change "response time" (how long it takes to start receiving bridge traffic as well as real multicast feed)
 * Internet access round-trip time
-  
-  
+* CPU/DISK/Memory/Network trends in relationship to number of subscribers
+* After removal of all subscribers system should be "identical" to the new install state (or reasonably similar)
+
 ### Security Tests
 
 The purpose of these tests is to detect vulnerabilities across the various surfaces of CORD, including:
@@ -179,12 +185,13 @@ Soak phase (sustained for a preset time period (8h, 24h, 72h, etc.):
 1. Periodically test presence of all processes
 1. Check for stable process ids (rolling id can be a sign of a restarted process)
 1. Periodically capture resource usage, including:
+   * CPU load
    * process memory use
    * file descriptors
    * disk space
    * disk io
    * flow table entries in soft and fabric switches
-   
+
 Final check:
 
 1. Final capture of resource utilization and health report
