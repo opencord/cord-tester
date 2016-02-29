@@ -27,7 +27,7 @@ Positive test-cases:
 
 * Bring-up and verify basic infrastructure assumptions
   * Head-end is available, configured correctly, and available for software load
-  * Compute notes are available and configured correctly, and available for software load
+  * Compute nodes are available and configured correctly, and available for software load
 * Execute automated deployment of CORD infrastructure and verify baseline state. Various options needs to be supported:
   * Single head-node setup (no clustering)
   * Triple-head-node setup (clustered)
@@ -37,6 +37,7 @@ Positive test-cases:
 Negative test-cases:
 
 * Verify that deployment automation detects missing equipment
+* Verify that deployment notifies operator of missing configuration
 * Verify that deployment automation detects missing cable
 * Verify that deployment automation detects mis-cabling of fabric and provides useful feedback to remedy the issue
 * Verify that deployment automation detects mis-cabling of servers and provides useful feedback to remedy the issue
@@ -52,9 +53,10 @@ Positive test-cases:
 
 * Verify that a new OLT can be added to the POD and it is properly initialized
 * Verify that a new ONU can be added to the OLT and it becomes visible in the system
-* Verify that a new RG can authenticate and gets admitted to the system (receives an IP address)
+* Verify that a ONU port going down triggers unprovisioning of service for a subscriber
+* Verify that a new RG can authenticate and gets admitted to the system (receives an IP address, deployment dependent)
 * Verify that the RG can access the Intranet and the Internet
-* Verify that the RG receives periodic IGMP XXX messages
+* Verify that the RG receives periodic IGMP Query messages and forwards to set top boxes.
 * Verify that the RG can join a multicast channel and starts receiving bridge flow
 * Verify that the RG, after joining, starts receiving multicast flow within tolerance interval
 * Verify that the RG can join multiple multicast streams simultaneously
