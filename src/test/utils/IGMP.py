@@ -112,7 +112,7 @@ class IGMP:
     def build_leave_msg(self, group = None):
         return self.build_igmp(msg_type = IGMPV3_REPORT, 
                                group = group, 
-                               record_type = IGMP_INCLUDE, 
+                               record_type = IGMP_EXCLUDE, 
                                src_list = [])
 
     def build_ip_igmp(self, 
