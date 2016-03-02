@@ -13,10 +13,19 @@ import threading
 CORD_TEST_UTILS = 'utils'
 test_root = os.getenv('CORD_TEST_ROOT') or './'
 sys.path.append(test_root + CORD_TEST_UTILS)
-from IGMP import *
+#from IGMP import *
+from IGMP_scapy import *
 from McastTraffic import *
 from Stats import Stats
 log.setLevel('INFO')
+
+IGMP_DST_MAC = "01:00:5e:00:01:01"
+IGMP_SRC_MAC = "5a:e1:ac:ec:4d:a1"
+IP_SRC = '1.2.3.4'
+IP_DST = '224.0.1.1'
+
+igmp_eth = Ether(dst = IGMP_DST_MAC, src = IGMP_SRC_MAC, type = ETH_P_IP)
+igmp_ip = IP(dst = IP_DST, src = IP_SRC)
 
 class IGMPTestState:
 
@@ -62,6 +71,8 @@ class igmp_exchange(unittest.TestCase):
           log.debug('Loading SSM config in file %s to ONOS.' %temp.name)
           os.system('./igmp_ssm_load.sh %s' %temp.name)
           os.unlink(temp.name)
+          ##Wait for ONOS to populate the SSM map before sending join.Huh
+          time.sleep(2)
 
     def igmp_verify_join(self, igmpStateList):
         sendState, recvState = igmpStateList
@@ -113,22 +124,30 @@ class igmp_exchange(unittest.TestCase):
 
     def send_igmp_join(self, groups, src_list = ['1.2.3.4'], iface = 'veth0', delay = 2):
         self.onos_ssm_table_load(groups, src_list)
+        igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
+                      gaddr='224.0.1.1')
         for g in groups:
-            igmp = IGMP(mtype = IGMPV3_REPORT, 
-                        group = g,
-                        rtype = IGMP_INCLUDE,
-                        src_list = src_list)
-            sendp(igmp.scapify(), iface = iface)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+              gr.sources = src_list
+              igmp.grps.append(gr)
+
+        pkt = igmp_eth/igmp_ip/igmp
+        IGMPv3.fixup(pkt)
+        sendp(pkt, iface=iface)
         if delay != 0:
             time.sleep(delay)
 
     def send_igmp_leave(self, groups, src_list = ['1.2.3.4'], iface = 'veth0', delay = 2):
+        igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
+                      gaddr='224.0.1.1')
         for g in groups:
-            igmp = IGMP(mtype = IGMPV3_REPORT, 
-                        group = g,
-                        rtype = IGMP_EXCLUDE,
-                        src_list = src_list)
-            sendp(igmp.scapify(), iface = iface)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
+              gr.sources = src_list
+              igmp.grps.append(gr)
+
+        pkt = igmp_eth/igmp_ip/igmp
+        IGMPv3.fixup(pkt)
+        sendp(pkt, iface = iface)
         if delay != 0:
             time.sleep(delay)
 
@@ -203,7 +222,6 @@ class igmp_exchange(unittest.TestCase):
         self.num_groups = len(self.groups)
         self.MAX_TEST_ITERATIONS = 10
 
-        #self.onos_ssm_table_load(self.groups, self.src_list)
         def igmp_srp_task(v):
               if self.iterations < self.MAX_TEST_ITERATIONS:
                     if v == 1:
@@ -228,13 +246,19 @@ class igmp_exchange(unittest.TestCase):
 
     def igmp_join_task(self, intf, groups, state, src_list = ['1.2.3.4']):
           self.onos_ssm_table_load(groups, src_list)
+          igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
+                        gaddr='224.0.1.1')
           for g in groups:
-                igmp = IGMP(mtype = IGMPV3_REPORT,
-                            group = g,
-                            rtype = IGMP_INCLUDE,
-                            src_list = src_list)
+                gr = IGMPv3gr(rtype = IGMP_V3_GR_TYPE_EXCLUDE, mcaddr = g)
+                gr.sources = src_list
+                igmp.grps.append(gr)
+
+          for g in groups:
                 state.group_map[g][0].update(1, t = monotonic.monotonic())
-                sendp(igmp.scapify(), iface = intf)
+
+          pkt = igmp_eth/igmp_ip/igmp
+          IGMPv3.fixup(pkt)
+          sendp(pkt, iface=intf)
           log.debug('Returning from join task')
 
     def igmp_recv_task(self, intf, groups, join_state):
