@@ -13,8 +13,7 @@ import threading
 CORD_TEST_UTILS = 'utils'
 test_root = os.getenv('CORD_TEST_ROOT') or './'
 sys.path.append(test_root + CORD_TEST_UTILS)
-#from IGMP import *
-from IGMP_scapy import *
+from IGMP import *
 from McastTraffic import *
 from Stats import Stats
 log.setLevel('INFO')
