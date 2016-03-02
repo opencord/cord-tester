@@ -1,7 +1,7 @@
 ####  Authentication parameters
+from scapy.all import *
 from socket import *
 from struct import *
-import scapy
 import sys
 from nose.tools import assert_equal, assert_not_equal, assert_raises, assert_true
 
@@ -31,9 +31,6 @@ EAP_TYPE_TLS = 13
 cCertMsg = '\x0b\x00\x00\x03\x00\x00\x00'
 TLS_LENGTH_INCLUDED = 0x80
 
-def ethernet_header(src, dst, req_type):
-    return dst+src+pack("!H", req_type)
-
 class EapolPacket(object):
     
     def __init__(self, intf = 'veth0'):
@@ -45,7 +42,7 @@ class EapolPacket(object):
         self.s = socket(AF_PACKET, SOCK_RAW, htons(ETHERTYPE_PAE))
         self.s.bind((self.intf, ETHERTYPE_PAE))
         self.mymac = self.s.getsockname()[4]
-        self.llheader = ethernet_header(self.mymac, PAE_GROUP_ADDR, ETHERTYPE_PAE)
+        self.llheader = Ether(dst = PAE_GROUP_ADDR, src = self.mymac, type = ETHERTYPE_PAE)
 
     def cleanup(self):
         if self.s is not None:
@@ -53,13 +50,10 @@ class EapolPacket(object):
             self.s = None
             
     def eapol(self, req_type, payload=""):
-        return pack("!BBH", EAPOL_VERSION, req_type, len(payload))+payload
+        return EAPOL(version = EAPOL_VERSION, type = req_type)/payload
 
     def eap(self, code, pkt_id, req_type=0, data=""):
-        if code in [EAP_SUCCESS, EAP_FAILURE]:
-            return pack("!BBH", code, pkt_id, 4)
-        else:
-            return pack("!BBHB", code, pkt_id, 5+len(data), req_type)+data
+        return EAP(code = code, id = pkt_id, type = req_type)/data
 
     def eapTLS(self, code, pkt_id, flags = TLS_LENGTH_INCLUDED, data=""):
         req_type = EAP_TYPE_TLS
@@ -73,7 +67,7 @@ class EapolPacket(object):
             return pack("!BBHB", code, pkt_id, 5+len(flags_str)+len(data), req_type) + flags_str + data
 
     def eapol_send(self, eapol_type, eap_payload):
-        return self.s.send(self.llheader + self.eapol(eapol_type, eap_payload))
+        return sendp(self.llheader/self.eapol(eapol_type, eap_payload), iface=self.intf)
 
     def eapol_recv(self):
         p = self.s.recv(self.max_payload_size)[14:]
