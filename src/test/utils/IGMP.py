@@ -3,146 +3,232 @@ from struct import *
 from scapy.all import *
 from itertools import *
 
-IGMPV3_REPORT = 0x22
-IGMP_LEAVE = 0x17
-IGMP_EXCLUDE = 0x04
-IGMP_INCLUDE = 0x03
+IGMP_TYPE_MEMBERSHIP_QUERY     = 0x11
+IGMP_TYPE_V3_MEMBERSHIP_REPORT = 0x22
+IGMP_TYPE_V1_MEMBERSHIP_REPORT = 0x12
+IGMP_TYPE_V2_MEMBERSHIP_REPORT = 0x16
+IGMP_TYPE_V2_LEAVE_GROUP       = 0x17
+
+IGMP_V3_GR_TYPE_INCLUDE           = 0x01
+IGMP_V3_GR_TYPE_EXCLUDE           = 0x02
+IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE = 0x03
+IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE = 0x04
+IGMP_V3_GR_TYPE_ALLOW_NEW         = 0x05
+IGMP_V3_GR_TYPE_BLOCK_OLD         = 0x06
+
+"""
 IGMPV3_ALL_ROUTERS = '224.0.0.22'
 IGMPv3 = 3
 IP_SRC = '1.2.3.4'
 ETHERTYPE_IP = 0x0800
 IGMP_DST_MAC = "01:00:5e:00:01:01"
 IGMP_SRC_MAC = "5a:e1:ac:ec:4d:a1"
+"""
 
-class IGMP:
 
-    def __init__(self, mtype = None, group = '', rtype = None, src_list = []):
-        self.version = IGMPv3
-        self.mtype = mtype
-        self.group = group
-        self.src_list= src_list
-        self.rtype = rtype
+class IGMPv3gr(Packet):
+    """IGMPv3 Group Record, used in membership report"""
 
-    def checksum(self, msg):
-        s = 0
-        for i in range(0, len(msg), 2):
-            w = ord(msg[i]) + (ord(msg[i+1]) << 8)
-            c = s + w
-            s = (c & 0xffff) + (c >> 16)
-        return ~s & 0xffff
+    name = "IGMPv3gr"
 
-    def update_igmp_checksum(self, pkt):
-        cs = self.checksum(pkt)
-        #print 'igmp checksum: ' + str(hex(cs))
-        m = []
-        for x in pkt:        
-            m.append(ord(x))
-        higher = (cs >> 8) & 0xff
-        lower = cs & 0xff
-        m[2] = lower
-        m[3] = higher
-        m = pack("%dB" % len(m), *m)
-        return m
+    igmp_v3_gr_types = {
+        IGMP_V3_GR_TYPE_INCLUDE: "Include Mode",
+        IGMP_V3_GR_TYPE_EXCLUDE: "Exclude Mode",
+        IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE: "Change to Include Mode",
+        IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE: "Change to Exclude Mode",
+        IGMP_V3_GR_TYPE_ALLOW_NEW: "Allow New Sources",
+        IGMP_V3_GR_TYPE_BLOCK_OLD: "Block Old Sources"
+    }
 
-    def update_ip_checksum(self, pkt):
-        cs = self.checksum(pkt)
-        #print 'ip hdr checksum: ' + str(hex(cs))
-        m = []
-        for x in pkt:        
-            m.append(ord(x))
-        higher = (cs >> 8) & 0xff
-        lower = cs & 0xff
-        m[10] = lower
-        m[11] = higher
-        m = pack("%dB" % len(m), *m)
-        return m
+    fields_desc = [
+        ByteEnumField("rtype", IGMP_V3_GR_TYPE_INCLUDE, igmp_v3_gr_types),
+        ByteField("aux_data_len", 0),
+        FieldLenField("numsrc", None, count_of="sources"),
+        IPField("mcaddr", "0.0.0.0"),
+        FieldListField("sources", None, IPField("src", "0.0.0.0"), "numsrc")
+    ]
 
-    def build_ip_hdr(self, s, d):
-        ip_ihl_len = 0x46 #8 bits
-        ip_dscp = 0xc0 #8 bits
-        ip_hdr_total_len = 0x0028 #16 bits
-        ip_id = 0x0000 #16 bits
-        ip_flags = 0x4000 #16 bits
-        ip_ttl = 1 #8 bits
-        ip_protocol = 0x02 #8 bits
-        ip_cs = 0x0000 #16 bits (should filled by kernel but seems not???)
-        #ip_src #32 bits
-        #ip_dst #32 bits
-        ip_options = 0x94040000 #32 bits
-        #total len 24 bytes
-        ip_header = pack('!BBHHHBBH4s4sI', ip_ihl_len, ip_dscp, ip_hdr_total_len,
-                         ip_id, ip_flags, ip_ttl, ip_protocol, ip_cs, inet_aton(s),
-                         inet_aton(d), ip_options)
-        return ip_header
-
-    def dump_packet(self, data):
-        i = 0
-        for x in data:
-            if i == 4:
-                print ''
-                i = 0
-            i += 1
-            sys.stdout.write(' %0.2x' % ord(x))
-        print ''
-
-    def build_igmp(self, msg_type = None, group = None, record_type = None, src_list = None):
-        msg_type = self.mtype if msg_type == None else msg_type
-        group = self.group if group == None else group
-        record_type = self.rtype if record_type == None else record_type
-        src_list = self.src_list if src_list == None else src_list
-        if msg_type == IGMP_LEAVE:
-            pkt = pack('!BBH4s', msg_type, 0, 0, inet_aton(group))
-        elif msg_type == IGMPV3_REPORT:
-            pkt = pack('!BBHHHBBH', msg_type, 0x00, 0x0000, 0x0000, 0x0001, record_type,
-                       0x00, len(src_list))
-            pkt += pack('!4s', inet_aton(group))
-            for a in src_list:
-                pkt += pack('!4s', inet_aton(a))
-        else:
-            print 'unsupported report type: ' + str(msg_type)
-            return None
+    def post_build(self, pkt, payload):
+        pkt += payload
+        if self.aux_data_len != 0:
+            print "WARNING: Auxiliary Data Length must be zero (0)"
         return pkt
 
-    def build_join_msg(self, group = None, record_type = None, src_list = None):
-        return self.build_igmp(msg_type = IGMPV3_REPORT, 
-                               group = group, 
-                               record_type = record_type, 
-                               src_list = src_list)
 
-    def build_leave_msg(self, group = None):
-        return self.build_igmp(msg_type = IGMPV3_REPORT, 
-                               group = group, 
-                               record_type = IGMP_INCLUDE, 
-                               src_list = [])
+class IGMPv3(Packet):
 
-    def build_ip_igmp(self, 
-                      src = IP_SRC,
-                      msg_type = None, 
-                      group = None, 
-                      record_type = None, 
-                      src_list = None):
+    name = "IGMPv3"
 
-        igmp = self.build_igmp(msg_type = msg_type,
-                               group = group,
-                               record_type = record_type,
-                               src_list = src_list)
-        igmp = self.update_igmp_checksum(igmp)
-        ip_hdr = self.build_ip_hdr(src, IGMPV3_ALL_ROUTERS)
-        p = ip_hdr + igmp
-        p = self.update_ip_checksum(p)
-        return p
+    igmp_v3_types = {
+        IGMP_TYPE_MEMBERSHIP_QUERY: "Membership Query",
+        IGMP_TYPE_V3_MEMBERSHIP_REPORT: " Version 3 Mebership Report",
+        IGMP_TYPE_V2_MEMBERSHIP_REPORT: " Version 2 Mebership Report",
+        IGMP_TYPE_V1_MEMBERSHIP_REPORT: " Version 1 Mebership Report",
+        IGMP_TYPE_V2_LEAVE_GROUP: "Version 2 Leave Group"
+    }
 
-    def scapify(self, 
-                src = IP_SRC, 
-                msg_type = None,
-                group = None,
-                record_type = None,
-                src_list = None):
+    fields_desc = [
+        ByteEnumField("type", IGMP_TYPE_MEMBERSHIP_QUERY, igmp_v3_types),
+        ByteField("max_resp_code", 0),
+        XShortField("checksum", None),
+        #IPField("group_address", "0.0.0.0"),
 
-        ip_igmp = self.build_ip_igmp(src = src,
-                                     msg_type = msg_type,
-                                     group = group,
-                                     record_type = record_type,
-                                     src_list = src_list)
-        eth = Ether(dst = IGMP_DST_MAC, src = IGMP_SRC_MAC, type = ETHERTYPE_IP)
-        return eth/ip_igmp
+        # membership query fields
+        ConditionalField(IPField("gaddr", "0.0.0.0"), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+        ConditionalField(BitField("resv", 0, 4), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+        ConditionalField(BitField("s", 0, 1), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+        ConditionalField(BitField("qrv", 0, 3), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+        ConditionalField(ByteField("qqic", 0), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+        ConditionalField(FieldLenField("numsrc", None, count_of="srcs"), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+        ConditionalField(FieldListField("srcs", None, IPField("src", "0.0.0.0"), "numsrc"), lambda pkt: pkt.type == IGMP_TYPE_MEMBERSHIP_QUERY),
+
+        # membership report fields
+        ConditionalField(ShortField("resv2", 0), lambda pkt: pkt.type == IGMP_TYPE_V3_MEMBERSHIP_REPORT),
+        ConditionalField(FieldLenField("numgrp", None, count_of="grps"), lambda pkt: pkt.type == IGMP_TYPE_V3_MEMBERSHIP_REPORT),
+        ConditionalField(PacketListField("grps", [], IGMPv3gr), lambda pkt: pkt.type == IGMP_TYPE_V3_MEMBERSHIP_REPORT)
+
+        # TODO: v2 and v3 membership reports?
+
+    ]
+
+    def post_build(self, pkt, payload):
+
+        pkt += payload
+
+        if self.type in [IGMP_TYPE_V3_MEMBERSHIP_REPORT,]: # max_resp_code field is reserved (0)
+            mrc = 0
+        else:
+            mrc = self.encode_float(self.max_resp_code)
+        pkt = pkt[:1] + chr(mrc) + pkt[2:]
+
+        if self.checksum is None:
+            chksum = checksum(pkt)
+            pkt = pkt[:2] + chr(chksum >> 8) + chr(chksum & 0xff) + pkt[4:]
+
+        return pkt
+
+    def encode_float(self, value):
+        """Encode max response time value per RFC 3376."""
+        if value < 128:
+            return value
+        if value > 31743:
+            return 255
+        exp = 0
+        value >>= 3
+        while value > 31:
+            exp += 1
+            value >>= 1
+        return 0x80 | (exp << 4) | (value & 0xf)
+
+
+    def decode_float(self, code):
+        if code < 128:
+            return code
+        mant = code & 0xf
+        exp = (code >> 4) & 0x7
+        return (mant | 0x10) << (exp + 3)
+
+    @staticmethod
+    def is_valid_mcaddr(ip):
+        byte1 = atol(ip) >> 24 & 0xff
+        return (byte1 & 0xf0) == 0xe0
+
+    @staticmethod
+    def fixup(pkt):
+        """Fixes up the underlying IP() and Ether() headers."""
+        assert pkt.haslayer(IGMPv3), "This packet is not an IGMPv4 packet; cannot fix it up"
+
+        igmp = pkt.getlayer(IGMPv3)
+
+        if pkt.haslayer(IP):
+            ip = pkt.getlayer(IP)
+            ip.ttl = 1
+            ip.proto = 2
+            ip.tos = 0xc0
+            ip.options = [IPOption_Router_Alert()]
+
+            if igmp.type == IGMP_TYPE_MEMBERSHIP_QUERY:
+                if igmp.gaddr == "0.0.0.0":
+                    ip.dst = "224.0.0.1"
+                else:
+                    assert IGMPv3.is_valid_mcaddr(igmp.gaddr), "IGMP membership query with invalid mcast address"
+                    ip.dst = igmp.gaddr
+
+            elif igmp.type == IGMP_TYPE_V2_LEAVE_GROUP and IGMPv3.is_valid_mcaddr(igmp.gaddr):
+                ip.dst = "224.0.0.2"
+
+            elif (igmp.type in (IGMP_TYPE_V1_MEMBERSHIP_REPORT, IGMP_TYPE_V2_MEMBERSHIP_REPORT) and
+                  IGMPv3.is_valid_mcaddr(igmp.gaddr)):
+                ip.dst = igmp.gaddr
+
+           # We do not need to fixup the ether layer, it is done by scapy
+           #
+           # if pkt.haslayer(Ether):
+           #     eth = pkt.getlayer(Ether)
+           #     ip_long = atol(ip.dst)
+           #     ether.dst = '01:00:5e:%02x:%02x:%02x' % ( (ip_long >> 16) & 0x7f, (ip_long >> 8) & 0xff, ip_long & 0xff )
+
+
+        return pkt
+
+
+bind_layers(IP,       IGMPv3,   frag=0, proto=2, ttl=1, tos=0xc0)
+bind_layers(IGMPv3,   IGMPv3gr, frag=0, proto=2)
+bind_layers(IGMPv3gr, IGMPv3gr, frag=0, proto=2)
+
+
+if __name__ == "__main__":
+
+    print "test float encoding"
+    from math import log
+    max_expected_error = 1.0 / (2<<3) # four bit precision
+    p = IGMPv3()
+    for v in range(0, 31745):
+        c = p.encode_float(v)
+        d = p.decode_float(c)
+        rel_err = float(v-d)/v if v!=0 else 0.0
+        assert rel_err <= max_expected_error
+
+    print "construct membership query - general query"
+    mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY, max_resp_code=120)
+    hexdump(str(mq))
+
+    print "construct membership query - group-specific query"
+    mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY, max_resp_code=120, gaddr="224.0.0.1")
+    hexdump(str(mq))
+
+    print "construct membership query - group-and-source-specific query"
+    mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY, max_resp_code=120, gaddr="224.0.0.1")
+    mq.srcs = ['1.2.3.4', '5.6.7.8']
+    hexdump(str(mq))
+
+    print "fixup"
+    mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY)
+    mq.srcs = ['1.2.3.4', '5.6.7.8']
+    pkt = Ether() / IP() / mq
+    print "before fixup:"
+    hexdump(str(pkt))
+
+    print "after fixup:"
+    IGMPv3.fixup(pkt)
+    hexdump(str(pkt))
+
+    print "construct v3 membership report - join a single group"
+    mr = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.1")
+    mr.grps = [IGMPv3gr( rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr="229.10.20.30")]
+    hexdump(mr)
+
+    print "construct v3 membership report - join two groups"
+    mr = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.1")
+    mr.grps = [
+        IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr="229.10.20.30"),
+        IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr="229.10.20.31")
+    ]
+    hexdump(mr)
+
+    print "construct v3 membership report - leave a group"
+    mr = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.1")
+    mr.grps = [IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr="229.10.20.30")]
+    hexdump(mr)
+
+    print "all ok"
