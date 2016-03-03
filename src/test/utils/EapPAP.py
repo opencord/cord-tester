@@ -65,20 +65,21 @@ class PAPAuthTest(EapolPacket, CordTester):
         self.nextEvent = self.PAPEventTable.EVT_EAP_PAP_USER_REQ
 
     def _eapPAPUserReq(self):
-        print 'Inside Challenge'
+        print 'UserReq Inside Challenge'
         p = self.eapol_recv()
         code, pkt_id, eaplen = unpack("!BBH", p[0:4])
         print "Code %d, id %d, len %d" %(code, pkt_id, eaplen)
         assert_equal(code, EAP_REQUEST)
         reqtype = unpack("!B", p[4:5])[0]
         reqdata = p[5:4+eaplen]
-        assert_equal(reqtype, EAP_TYPE_MD5)
+        assert_equal(reqtype, EAP_TYPE_TLS)
         print "<====== Send EAP Response with Password = %s ================>" % PAP_PASSWD 
         self.eapol_id_req(pkt_id, PAP_PASSWD)
-        self.nextEvent = self.PAPEventTable.EVT_EAP_PAP_PASSWD_REQ
+        #self.nextEvent = self.PAPEventTable.EVT_EAP_PAP_PASSWD_REQ
+        self.nextEvent = self.PAPEventTable.EVT_EAP_PAP_DONE
  
     def _eapPAPPassReq(self):
-        print 'Inside Challenge'
+        print 'PassReq Inside Challenge'
         p = self.eapol_recv()
         code, pkt_id, eaplen = unpack("!BBH", p[0:4])
         print "Code %d, id %d, len %d" %(code, pkt_id, eaplen)
