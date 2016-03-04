@@ -84,3 +84,26 @@ class EapolPacket(object):
         eap_payload = self.eap(EAP_RESPONSE, pkt_id, EAP_TYPE_ID, user)
         return self.eapol_send(EAPOL_EAPPACKET, eap_payload)
 
+    def eap_md5_challenge_recv(self,rad_pwd):
+        PASS = rad_pwd
+        print 'Inside EAP MD5 Challenge Exchange'
+        p = self.s.recv(self.max_payload_size)[14:]
+        vers,pkt_type,eapollen  = unpack("!BBH",p[:4])
+        print "EAPOL Version %d, type %d, len %d" %(vers, pkt_type, eapollen)
+        code, pkt_id, eaplen = unpack("!BBH", p[4:8])
+        print "EAP Code %d, id %d, len %d" %(code, pkt_id, eaplen)
+        assert_equal(code, EAP_REQUEST)
+        reqtype = unpack("!B", p[8:9])[0]
+        reqdata = p[9:4+eaplen]
+        print 'Request type is %d' %(reqtype)
+        assert_equal(reqtype, EAP_TYPE_MD5)
+        challenge=pack("!B",pkt_id)+PASS+reqdata[1:]
+        print "Generating md5 challenge for %s" % challenge
+        return (challenge,pkt_id)
+
+    def eap_Status(self):
+        print 'Inside EAP Status'
+        p = self.s.recv(self.max_payload_size)[14:]
+        code, id, eaplen = unpack("!BBH", p[4:8])
+        return code
+
