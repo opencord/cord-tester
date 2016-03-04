@@ -12,9 +12,9 @@ python yamlFsm.py -p PAPAuthHolder -f nosePAPTest.yaml > ${odir}/nosePAPAuthHold
 
 
 ##Generate DNS test state machine
-python yamlFsm.py -p DnsHolder -f noseDnsTest.yaml > ${odir}/noseDnsHolder.py
+#python yamlFsm.py -p DnsHolder -f noseDnsTest.yaml > ${odir}/noseDnsHolder.py
 
 #Generate EAP MD5 authentication state machine
-python yamlFsm.py -p Md5AuthHolder -f noseMd5AuthTest.yaml > ${odir}/noseMd5AuthHolder.py
+python yamlFsm.py -p Md5AuthHolder -f noseMD5AuthTest.yaml > ${odir}/noseMd5AuthHolder.py
 
 
