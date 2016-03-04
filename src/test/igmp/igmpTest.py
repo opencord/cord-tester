@@ -6,7 +6,6 @@ from scapy.all import *
 import time, monotonic
 import os, sys
 import tempfile
-import json
 import random
 import threading
 
@@ -16,6 +15,7 @@ sys.path.append(test_root + CORD_TEST_UTILS)
 from IGMP import *
 from McastTraffic import *
 from Stats import Stats
+from OnosCtrl import OnosCtrl
 log.setLevel('INFO')
 
 IGMP_DST_MAC = "01:00:5e:00:01:01"
@@ -52,7 +52,26 @@ class igmp_exchange(unittest.TestCase):
     IGMP_TEST_TIMEOUT = 5
     MCAST_TRAFFIC_TIMEOUT = 10
     max_packets = 100
-    
+    app = 'org.onosproject.igmp'
+
+    def setUp(self):
+        ''' Activate the dhcp app'''
+        self.onos_ctrl = OnosCtrl(self.app)
+        status, _ = self.onos_ctrl.activate()
+        assert_equal(status, True)
+        time.sleep(3)
+
+    def teardown(self):
+        '''Deactivate the dhcp app'''
+        self.onos_ctrl.deactivate()
+
+    def onos_load_config(self, config):
+        status, code = self.onos_ctrl.config(config)
+        if status is False:
+            log.info('JSON request returned status %d' %code)
+            assert_equal(status, True)
+        time.sleep(2)
+          
     def onos_ssm_table_load(self, groups, src_list):
           ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
@@ -62,15 +81,7 @@ class igmp_exchange(unittest.TestCase):
                       d['source'] = s
                       d['group'] = g
                       ssm_xlate_list.append(d)
-          json_dict = json.JSONEncoder().encode(ssm_dict)
-          with tempfile.NamedTemporaryFile(delete=False) as temp:
-                temp.write(json_dict)
-                temp.flush()
-                temp.close()
-          log.debug('Loading SSM config in file %s to ONOS.' %temp.name)
-          os.system('./igmp_ssm_load.sh %s' %temp.name)
-          os.unlink(temp.name)
-          ##Wait for ONOS to populate the SSM map before sending join.Huh
+          self.onos_load_config(ssm_dict)
           time.sleep(2)
 
     def igmp_verify_join(self, igmpStateList):
