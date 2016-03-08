@@ -1,7 +1,4 @@
 import sys, os
-cord_root = os.getenv('CORD_TEST_ROOT') or './'
-CORD_TEST_FSM = 'fsm'
-sys.path.append(cord_root + CORD_TEST_FSM)
 from EapolAAA import *
 from enum import *
 import noseTlsAuthHolder as tlsAuthHolder

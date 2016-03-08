@@ -4,14 +4,9 @@ from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from scapy.all import *
 import time
-import os, sys
 import copy
-CORD_TEST_UTILS = 'utils'
-test_root = os.getenv('CORD_TEST_ROOT') or './'
-sys.path.append(test_root + CORD_TEST_UTILS)
 from DHCP import DHCPTest
 from OnosCtrl import OnosCtrl
-
 log.setLevel('INFO')
 
 class dhcp_exchange(unittest.TestCase):
@@ -59,7 +54,7 @@ class dhcp_exchange(unittest.TestCase):
           self.onos_load_config(dhcp_dict)
 
     def send_recv(self, update_seed = False):
-        cip, sip = self.dhcp.send(update_seed = update_seed)
+        cip, sip = self.dhcp.discover(update_seed = update_seed)
         assert_not_equal(cip, None)
         assert_not_equal(sip, None)
         log.info('Got dhcp client IP %s from server %s for mac %s' %
@@ -87,3 +82,46 @@ class dhcp_exchange(unittest.TestCase):
                 log.info('IP %s given out multiple times' %cip)
                 assert_equal(False, ip_map.has_key(cip))
             ip_map[cip] = sip
+
+    def test_dhcp_1release(self, iface = 'veth0'):
+        config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
+                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.10', iface = iface)
+        cip, sip = self.send_recv()
+        log.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcp.release(cip), True)
+        log.info('Triggering DHCP discover again after release')
+        cip2, sip2 = self.send_recv(update_seed = True)
+        log.info('Verifying released IP was given back on rediscover')
+        assert_equal(cip, cip2)
+        log.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+        assert_equal(self.dhcp.release(cip2), True)
+
+    def test_dhcp_Nrelease(self, iface = 'veth0'):
+        config = {'startip':'192.168.1.20', 'endip':'192.168.1.69', 
+                  'ip':'192.168.1.2', 'mac': "ca:fe:ca:fe:cc:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '192.169.1.10', iface = iface)
+        ip_map = {}
+        for i in range(10):
+            cip, sip = self.send_recv(update_seed = True)
+            if ip_map.has_key(cip):
+                log.info('IP %s given out multiple times' %cip)
+                assert_equal(False, ip_map.has_key(cip))
+            ip_map[cip] = sip
+
+        for ip in ip_map.keys():
+            log.info('Releasing IP %s' %ip)
+            assert_equal(self.dhcp.release(ip), True)
+
+        ip_map2 = {}
+        log.info('Triggering DHCP discover again after release')
+        for i in range(len(ip_map.keys())):
+            cip, sip = self.send_recv(update_seed = True)
+            ip_map2[cip] = sip
+
+        log.info('Verifying released IPs were given back on rediscover')
+        assert_equal(ip_map, ip_map2)

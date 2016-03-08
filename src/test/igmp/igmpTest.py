@@ -8,10 +8,6 @@ import os, sys
 import tempfile
 import random
 import threading
-
-CORD_TEST_UTILS = 'utils'
-test_root = os.getenv('CORD_TEST_ROOT') or './'
-sys.path.append(test_root + CORD_TEST_UTILS)
 from IGMP import *
 from McastTraffic import *
 from Stats import Stats
@@ -50,6 +46,7 @@ class IGMPTestState:
 class igmp_exchange(unittest.TestCase):
 
     IGMP_TEST_TIMEOUT = 5
+    IGMP_QUERY_TIMEOUT = 30
     MCAST_TRAFFIC_TIMEOUT = 10
     max_packets = 100
     app = 'org.onosproject.igmp'
@@ -329,3 +326,40 @@ class igmp_exchange(unittest.TestCase):
           self.group_latency_check(groups)
 
           
+    def test_igmp_join_rover(self):
+          '''Keep sending joins across multicast range of addresses'''
+          '''For now, restricting it to 50/100'''
+          s = (224 << 24) | 1
+          #e = (225 << 24) | (255 << 16) | (255 << 16) | 255
+          e = (224 << 24) | 50
+          for i in xrange(s, e+1):
+                if i&0xff:
+                      ip = '%d.%d.%d.%d'%((i>>24)&0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
+                self.send_igmp_join([ip], delay = 0)
+
+    @deferred(timeout=IGMP_QUERY_TIMEOUT + 10)
+    def test_igmp_query(self):
+        groups = ['224.0.0.1'] ##igmp query group
+        df = defer.Deferred()
+        self.df = df
+        self.recv_socket = L2Socket(iface = 'veth0', type = ETH_P_IP)
+        
+        def igmp_query_timeout():
+
+              def igmp_query_cb(pkt):
+                    if pkt.haslayer(IP):
+                          if pkt[IP].dst == '224.0.0.1':
+                                log.info('Got IGMP query packet from %s' %pkt[IP].src)
+                          else:
+                                assert_equal(pkt[IP].dst, '224.0.0.1')
+                    else:
+                          log.info('Got unknown packet for %s' %pkt[IP].dst)
+                          assert_equal(pkt.haslayer(IP), True)
+              sniff(prn = igmp_query_cb, opened_socket = self.recv_socket)
+              self.recv_socket.close()
+              self.df.callback(0)
+
+        self.send_igmp_join(groups)
+        self.test_timer = reactor.callLater(self.IGMP_QUERY_TIMEOUT, igmp_query_timeout)
+        return df
+

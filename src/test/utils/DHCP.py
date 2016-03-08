@@ -16,7 +16,7 @@ class DHCPTest:
         mcast_octet = (atol(ip) >> 24) & 0xff
         return True if mcast_octet >= 224 and mcast_octet <= 239 else False
 
-    def send(self, mac = None, update_seed = False):
+    def discover(self, mac = None, update_seed = False):
         '''Send a DHCP discover/offer'''
 
         if mac is None:
@@ -57,10 +57,27 @@ class DHCPTest:
         self.mac_inverse_map[srcIP] = (mac, serverIP)
         return (srcIP, serverIP)
 
-    def send_next(self):
+    def discover_next(self):
         '''Send next dhcp discover/request with updated mac'''
+        return self.discover(update_seed = True)
 
-        return self.send(update_seed = True)
+    def release(self, ip):
+        '''Send a DHCP discover/offer'''
+        if ip is None:
+            return False
+        if not self.mac_inverse_map.has_key(ip):
+            return False
+        mac, server_ip = self.mac_inverse_map[ip]
+        chmac = self.macToChaddr(mac)
+        L2 = Ether(dst="ff:ff:ff:ff:ff:ff", src=mac)
+        L3 = IP(src="0.0.0.0", dst="255.255.255.255")
+        L4 = UDP(sport=68, dport=67)
+        L5 = BOOTP(chaddr=chmac, ciaddr = ip)
+        L6 = DHCP(options=[("message-type","release"), ("server_id", server_ip), "end"])
+        sendp(L2/L3/L4/L5/L6, iface = self.iface)
+        del self.mac_map[mac]
+        del self.mac_inverse_map[ip]
+        return True
 
     def macToChaddr(self, mac):
         rv = []
