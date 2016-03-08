@@ -1,0 +1,9 @@
+States:
+    ST_DNS_SND_REC:
+        Events:
+            EVT_DNS_SND_REC:
+                Actions:
+                    - _dns_snd_rec 
+                NextState: ST_DNS_FINAL
+        
+
