@@ -28,6 +28,7 @@ class dhcp_exchange(unittest.TestCase):
 
     def setUp(self):
         ''' Activate the dhcp app'''
+        self.maxDiff = None ##for assert_equal compare outputs on failure
         self.onos_ctrl = OnosCtrl(self.app)
         status, _ = self.onos_ctrl.activate()
         assert_equal(status, True)
@@ -42,7 +43,7 @@ class dhcp_exchange(unittest.TestCase):
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
-        time.sleep(2)
+        time.sleep(3)
 
     def onos_dhcp_table_load(self, config = None):
           dhcp_dict = {'apps' : { 'org.onosproject.dhcp' : { 'dhcp' : copy.copy(self.dhcp_server_config) } } }
@@ -84,11 +85,11 @@ class dhcp_exchange(unittest.TestCase):
             ip_map[cip] = sip
 
     def test_dhcp_1release(self, iface = 'veth0'):
-        config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
-                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
-                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        config = {'startip':'10.10.100.20', 'endip':'10.10.100.21', 
+                  'ip':'10.10.100.2', 'mac': "ca:fe:ca:fe:8a:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'10.10.100.255', 'router':'10.10.100.1'}
         self.onos_dhcp_table_load(config)
-        self.dhcp = DHCPTest(seed_ip = '10.10.10.10', iface = iface)
+        self.dhcp = DHCPTest(seed_ip = '10.10.100.10', iface = iface)
         cip, sip = self.send_recv()
         log.info('Releasing ip %s to server %s' %(cip, sip))
         assert_equal(self.dhcp.release(cip), True)
@@ -100,11 +101,11 @@ class dhcp_exchange(unittest.TestCase):
         assert_equal(self.dhcp.release(cip2), True)
 
     def test_dhcp_Nrelease(self, iface = 'veth0'):
-        config = {'startip':'192.168.1.20', 'endip':'192.168.1.69', 
-                  'ip':'192.168.1.2', 'mac': "ca:fe:ca:fe:cc:fe",
-                  'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
+        config = {'startip':'192.170.1.20', 'endip':'192.170.1.30', 
+                  'ip':'192.170.1.2', 'mac': "ca:fe:ca:fe:9a:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'192.170.1.255', 'router': '192.170.1.1'}
         self.onos_dhcp_table_load(config)
-        self.dhcp = DHCPTest(seed_ip = '192.169.1.10', iface = iface)
+        self.dhcp = DHCPTest(seed_ip = '192.170.1.10', iface = iface)
         ip_map = {}
         for i in range(10):
             cip, sip = self.send_recv(update_seed = True)
@@ -124,4 +125,7 @@ class dhcp_exchange(unittest.TestCase):
             ip_map2[cip] = sip
 
         log.info('Verifying released IPs were given back on rediscover')
+        if ip_map != ip_map2:
+            log.info('Map before release %s' %ip_map)
+            log.info('Map after release %s' %ip_map2)
         assert_equal(ip_map, ip_map2)
