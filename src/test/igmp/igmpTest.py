@@ -347,15 +347,11 @@ class igmp_exchange(unittest.TestCase):
         def igmp_query_timeout():
 
               def igmp_query_cb(pkt):
-                    if pkt.haslayer(IP):
-                          if pkt[IP].dst == '224.0.0.1':
-                                log.info('Got IGMP query packet from %s' %pkt[IP].src)
-                          else:
-                                assert_equal(pkt[IP].dst, '224.0.0.1')
-                    else:
-                          log.info('Got unknown packet for %s' %pkt[IP].dst)
-                          assert_equal(pkt.haslayer(IP), True)
-              sniff(prn = igmp_query_cb, opened_socket = self.recv_socket)
+                    log.info('Got IGMP query packet from %s for %s' %(pkt[IP].src, pkt[IP].dst))
+                    assert_equal(pkt[IP].dst, '224.0.0.1')
+
+              sniff(prn = igmp_query_cb, count=1, lfilter = lambda p: p[IP].dst in groups,
+                    opened_socket = self.recv_socket)
               self.recv_socket.close()
               self.df.callback(0)
 
