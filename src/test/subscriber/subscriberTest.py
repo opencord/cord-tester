@@ -217,3 +217,30 @@ class subscriber_exchange(unittest.TestCase):
           self.subscriber.stop()
           ##Terminate the tests on success
           assert_equal(self.test_status, True)
+
+      def test_subscriber_join_next(self):
+          """Test subscriber join next for channels"""
+          self.test_status = False
+          self.subscriber = Subscriber(10)
+          self.subscriber.start()
+          self.onos_aaa_load()
+          #tls = TLSAuthTest()
+          #tls.runTest()
+          ##Next get dhcp
+          cip, sip = self.dhcp_request(seed_ip = '10.10.150.1', iface = self.subscriber.iface)
+          log.info('Got client ip %s from server %s' %(cip, sip))
+          self.subscriber.src_list = [cip]
+          for i in range(10):
+                if i:
+                      chan = self.subscriber.channel_join_next(delay=0)
+                else:
+                      chan = self.subscriber.channel_join(i, delay=0)
+                log.info('Joined next channel %d' %chan)
+                self.subscriber.channel_receive(chan, cb = self.recv_channel_cb, count=1)
+                log.info('Verified receive for channel %d' %chan)
+                time.sleep(3)
+
+          log.info('Join Next RX stats %s' %self.subscriber.join_rx_stats)
+          self.subscriber.stop()
+          ##Terminate the tests on success
+          assert_equal(self.test_status, True)
