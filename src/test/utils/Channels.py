@@ -29,8 +29,12 @@ class IgmpChannel:
         self.onos_ctrl = OnosCtrl('org.onosproject.igmp')
         self.onos_ctrl.activate()
 
-    def igmp_join(self, groups):
+    def igmp_load_ssm_config(self, groups):
         self.ssm_table_load(groups)
+
+    def igmp_join(self, groups, ssm_load = False):
+        if ssm_load:
+            self.igmp_load_ssm_config(groups)
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
@@ -83,6 +87,9 @@ class Channels(IgmpChannel):
     def __init__(self, num, iface = 'veth0', iface_mcast = 'veth2', mcast_cb = None):
         self.num = num
         self.channels = self.generate(self.num)
+        self.group_channel_map = {}
+        for i in range(self.num):
+            self.group_channel_map[self.channels[i]] = i
         self.state = self.Stopped
         self.streams = None
         self.channel_states = {}
@@ -122,13 +129,16 @@ class Channels(IgmpChannel):
                 chan = 0
 
         if self.get_state(chan) == self.Joined:
-            return chan
+            return chan, 0
 
         groups = [self.channels[chan]]
+        #load the ssm table first
+        self.igmp_load_ssm_config(groups)
+        join_start = monotonic.monotonic()
         self.igmp_join(groups)
         self.set_state(chan, self.Joined)
         self.last_chan = chan
-        return chan
+        return chan, join_start
 
     def leave(self, chan):
         if chan is None:
@@ -170,13 +180,22 @@ class Channels(IgmpChannel):
             s_next = chan
         else:
             s_next = 0
+        if self.num - s_next < 2:
+            s_next = 0
         chan = random.randint(s_next, self.num)
         return self.join(chan)
 
     def gaddr(self, chan):
+        '''Return the group address for a channel'''
         if chan >= self.num:
             return None
         return self.channels[chan]
+
+    def caddr(self, group):
+        '''Return a channel given a group addr'''
+        if self.group_channel_map.has_key(group):
+            return self.group_channel_map[group]
+        return None
 
     def recv_cb(self, pkt):
         '''Default channel receive callback'''

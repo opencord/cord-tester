@@ -9,9 +9,10 @@ class Stats:
             self.max = 0
             self.delta_squares = 0
 
-      def update(self, packets = 0, t = 0):
+      def update(self, packets = 0, t = 0, usecs = False):
             self.count += packets
-            t *= 1000000 ##convert to usecs
+            if usecs == False:
+                  t *= 1000000 ##convert to usecs
             if self.start == 0:
                   self.start = t
             self.delta += t
