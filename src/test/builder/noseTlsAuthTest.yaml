@@ -28,5 +28,17 @@ States:
             EVT_EAP_TLS_CERT_REQ:
                 Actions:
                     - _eapTlsCertReq
+                NextState: ST_EAP_TLS_CHANGE_CIPHER_SPEC
+    ST_EAP_TLS_CHANGE_CIPHER_SPEC:
+        Events:
+            EVT_EAP_TLS_CHANGE_CIPHER_SPEC:
+                Actions:
+                    - _eapTlsChangeCipherSpec
+                NextState: ST_EAP_TLS_FINISHED
+    ST_EAP_TLS_FINISHED:
+        Events:
+            EVT_EAP_TLS_FINISHED:
+                Actions:
+                    - _eapTlsFinished
                 NextState: ST_EAP_TLS_DONE
         
