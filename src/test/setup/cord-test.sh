@@ -118,7 +118,7 @@ while [ $status -ne 0 ]; do
     status=$?
     sleep 1
 done
-sleep 3
+sleep 5
 
 IFS='-' read -r -a tests <<<"${test_type}"
 for t in "${tests[@]}"; do
