@@ -197,7 +197,7 @@ class subscriber_exchange(unittest.TestCase):
       def test_subscriber_join_recv( self, chan = 0):
           """Test 1 subscriber join and receive""" 
           self.test_status = False
-          self.num_subscribers = 2
+          self.num_subscribers = 10
           self.subscriber_load(create = True, num = self.num_subscribers)
           for subscriber in self.subscriber_list:
                 self.subscriber = subscriber
