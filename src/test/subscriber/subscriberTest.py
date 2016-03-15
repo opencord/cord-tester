@@ -13,6 +13,7 @@ from OnosCtrl import OnosCtrl
 from DHCP import DHCPTest
 from EapTLS import TLSAuthTest
 from Channels import Channels
+from subscriberDb import SubscriberDB
 log.setLevel('INFO')
 
 class Subscriber(Channels):
@@ -21,16 +22,28 @@ class Subscriber(Channels):
       STATS_TX = 1
       STATS_JOIN = 2
       STATS_LEAVE = 3
-
-      def __init__(self, num = 1, iface = 'veth0', userId = 'sub1', iface_mcast = 'veth2', 
+      SUBSCRIBER_SERVICES = 'DHCP IGMP TLS'
+      def __init__(self, name = 'sub', service = SUBSCRIBER_SERVICES, num = 1, iface = 'veth0', iface_mcast = 'veth2', 
                    mcast_cb = None, loginType = 'wireless'):
             Channels.__init__(self, num, iface = iface, iface_mcast = iface_mcast, mcast_cb = mcast_cb)
-            self.userId = userId
+            self.name = name
+            self.service = service
+            self.service_map = {}
+            services = self.service.strip().split(' ')
+            for s in services:
+                  self.service_map[s] = True
             self.loginType = loginType
             ##start streaming channels
             self.join_map = {}
             ##accumulated join recv stats
             self.join_rx_stats = Stats()
+
+      def has_service(self, service):
+            if self.service_map.has_key(service):
+                  return self.service_map[service]
+            if self.service_map.has_key(service.upper()):
+                  return self.service_map[service.upper()]
+            return False
 
       def channel_join_update(self, chan, join_time):
             self.join_map[chan] = ( Stats(), Stats(), Stats(), Stats() )
@@ -118,6 +131,11 @@ class subscriber_exchange(unittest.TestCase):
                                                                        'radiusIp': '172.17.0.2' } } } }
             radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
             aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
+            onos_ctrl = OnosCtrl('org.onosproject.aaa')
+            onos_ctrl.deactivate()
+            time.sleep(2)
+            onos_ctrl.activate()
+            time.sleep(2)
             self.onos_load_config('org.onosproject.aaa', aaa_dict)
 
       def onos_dhcp_table_load(self, config = None):
@@ -166,30 +184,46 @@ class subscriber_exchange(unittest.TestCase):
             log.info('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
             self.test_status = True
 
+      def subscriber_load(self, create = True, num = 10):
+            '''Load the subscriber from the database'''
+            self.subscriber_db = SubscriberDB(create = create)
+            if create is True:
+                  self.subscriber_db.generate(num)
+            self.subscriber_info = self.subscriber_db.read(num)
+            self.subscriber_list = []
+            for info in self.subscriber_info:
+                  self.subscriber_list.append(Subscriber(info['Name'], info['Service']))
+
       def test_subscriber_join_recv( self, chan = 0):
           """Test 1 subscriber join and receive""" 
           self.test_status = False
-          self.subscriber = Subscriber()
-          self.subscriber.start()
-          self.onos_aaa_load()
-
-          #tls = TLSAuthTest()
-          #tls.runTest()
-
-          ##Next get dhcp
-          cip, sip = self.dhcp_request(iface = self.subscriber.iface)
-          log.info('Got client ip %s from server %s' %(cip, sip))
-          self.subscriber.src_list = [cip]
-          for i in range(5):
-                log.info('Joining channel %d' %chan)
-                self.subscriber.channel_join(chan, delay = 0)
-                self.subscriber.channel_receive(chan, cb = self.recv_channel_cb, count = 1)
-                log.info('Leaving channel %d' %chan)
-                self.subscriber.channel_leave(chan)
-                time.sleep(3)
-
-          log.info('Join RX stats %s' %self.subscriber.join_rx_stats)
-          self.subscriber.stop()
+          self.num_subscribers = 2
+          self.subscriber_load(create = True, num = self.num_subscribers)
+          for subscriber in self.subscriber_list:
+                self.subscriber = subscriber
+                self.subscriber.start()
+                log.info('Testing subscriber %s for %s' %(subscriber.name, subscriber.service))
+                if self.subscriber.has_service('TLS'):
+                      self.onos_aaa_load()
+                      time.sleep(2)
+                      tls = TLSAuthTest()
+                      tls.runTest()
+                      self.test_status = True
+                if self.subscriber.has_service('DHCP'):
+                      cip, sip = self.dhcp_request(iface = self.subscriber.iface)
+                      log.info('Got client ip %s from server %s' %(cip, sip))
+                      self.subscriber.src_list = [cip]
+                      self.test_status = True
+                if self.subscriber.has_service('IGMP'):
+                      for i in range(5):
+                            log.info('Joining channel %d' %chan)
+                            self.subscriber.channel_join(chan, delay = 0)
+                            self.subscriber.channel_receive(chan, cb = self.recv_channel_cb, count = 1)
+                            log.info('Leaving channel %d' %chan)
+                            self.subscriber.channel_leave(chan)
+                            time.sleep(3)
+                      log.info('Join RX stats %s' %self.subscriber.join_rx_stats)
+                self.subscriber.stop()
           ##Terminate the tests on success
           assert_equal(self.test_status, True)
 
