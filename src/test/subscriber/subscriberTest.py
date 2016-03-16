@@ -194,12 +194,12 @@ class subscriber_exchange(unittest.TestCase):
           self.test_status = False
           self.num_subscribers = 5
           self.subscriber_load(create = True, num = self.num_subscribers)
+          self.onos_aaa_load()
           for subscriber in self.subscriber_list:
                 self.subscriber = subscriber
                 self.subscriber.start()
                 log.info('Testing subscriber %s for %s' %(subscriber.name, subscriber.service))
                 if self.subscriber.has_service('TLS'):
-                      self.onos_aaa_load()
                       time.sleep(2)
                       tls = TLSAuthTest()
                       tls.runTest()
