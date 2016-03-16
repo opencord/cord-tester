@@ -131,11 +131,6 @@ class subscriber_exchange(unittest.TestCase):
                                                                        'radiusIp': '172.17.0.2' } } } }
             radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
             aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
-            onos_ctrl = OnosCtrl('org.onosproject.aaa')
-            onos_ctrl.deactivate()
-            time.sleep(2)
-            onos_ctrl.activate()
-            time.sleep(2)
             self.onos_load_config('org.onosproject.aaa', aaa_dict)
 
       def onos_dhcp_table_load(self, config = None):
@@ -197,7 +192,7 @@ class subscriber_exchange(unittest.TestCase):
       def test_subscriber_join_recv( self, chan = 0):
           """Test 1 subscriber join and receive""" 
           self.test_status = False
-          self.num_subscribers = 10
+          self.num_subscribers = 5
           self.subscriber_load(create = True, num = self.num_subscribers)
           for subscriber in self.subscriber_list:
                 self.subscriber = subscriber
