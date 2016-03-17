@@ -331,7 +331,7 @@ class igmp_exchange(unittest.TestCase):
           '''For now, restricting it to 50/100'''
           s = (224 << 24) | 1
           #e = (225 << 24) | (255 << 16) | (255 << 16) | 255
-          e = (224 << 24) | 50
+          e = (224 << 24) | 25
           for i in xrange(s, e+1):
                 if i&0xff:
                       ip = '%d.%d.%d.%d'%((i>>24)&0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)

@@ -21,20 +21,22 @@ class IgmpChannel:
     IP_DST = '224.0.1.1'
     igmp_eth = Ether(dst = IGMP_DST_MAC, src = IGMP_SRC_MAC, type = ETH_P_IP)
     igmp_ip = IP(dst = IP_DST, src = IP_SRC)
+    ssm_list = [] 
 
-    def __init__(self, iface = 'veth0', src_list = ['1.2.3.4'], delay = 2):
+    def __init__(self, iface = 'veth0', ssm_list = [], src_list = ['1.2.3.4'], delay = 2):
         self.iface = iface
+        self.ssm_list += ssm_list
         self.src_list = src_list
         self.delay = delay
         self.onos_ctrl = OnosCtrl('org.onosproject.igmp')
         self.onos_ctrl.activate()
+    
+    def igmp_load_ssm_config(self, ssm_list = []):
+        if not ssm_list:
+            ssm_list = self.ssm_list
+        self.ssm_table_load(ssm_list)
 
-    def igmp_load_ssm_config(self, groups):
-        self.ssm_table_load(groups)
-
-    def igmp_join(self, groups, ssm_load = False):
-        if ssm_load:
-            self.igmp_load_ssm_config(groups)
+    def igmp_join(self, groups):
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
@@ -84,10 +86,12 @@ class Channels(IgmpChannel):
     Started = 1
     Idle = 0
     Joined = 1
-    def __init__(self, num, iface = 'veth0', iface_mcast = 'veth2', mcast_cb = None):
+    def __init__(self, num, channel_start = 0, iface = 'veth0', iface_mcast = 'veth2', mcast_cb = None):
         self.num = num
-        self.channels = self.generate(self.num)
+        self.channel_start = channel_start
+        self.channels = self.generate(self.num, self.channel_start)
         self.group_channel_map = {}
+        #assert_equal(len(self.channels), self.num)
         for i in range(self.num):
             self.group_channel_map[self.channels[i]] = i
         self.state = self.Stopped
@@ -99,18 +103,24 @@ class Channels(IgmpChannel):
         self.mcast_cb = mcast_cb
         for c in range(self.num):
             self.channel_states[c] = [self.Idle]
-
-        IgmpChannel.__init__(self, iface=iface)
-
-    def generate(self, num):
-        start = (224 << 24) | 1
-        end = start + num + num/256 
+        IgmpChannel.__init__(self, ssm_list = self.channels, iface=iface)
+        
+    def generate(self, num, channel_start = 0):
+        start = (224 << 24) | ( ( (channel_start >> 16) & 0xff) << 16 ) | \
+            ( ( (channel_start >> 8) & 0xff ) << 8 ) | (channel_start) & 0xff
+        start += channel_start/256 + 1
+        end = start + num
         group_addrs = []
-        for i in range(start, end):
-            if i&255:
-                g = '%s.%s.%s.%s' %((i>>24) &0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
-                log.debug('Adding group %s' %g)
-                group_addrs.append(g)
+        count = 0
+        while count != num:
+            for i in range(start, end):
+                if i&255:
+                    g = '%s.%s.%s.%s' %((i>>24) &0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
+                    log.debug('Adding group %s' %g)
+                    group_addrs.append(g)
+                    count += 1
+            start = end
+            end = start + 1
         return group_addrs
 
     def start(self):
@@ -132,8 +142,6 @@ class Channels(IgmpChannel):
             return chan, 0
 
         groups = [self.channels[chan]]
-        #load the ssm table first
-        self.igmp_load_ssm_config(groups)
         join_start = monotonic.monotonic()
         self.igmp_join(groups)
         self.set_state(chan, self.Joined)
@@ -228,8 +236,15 @@ class Channels(IgmpChannel):
         self.channel_states[chan][0] = state
 
 if __name__ == '__main__':
-    num = 2
-    channels = Channels(num)
+    num = 5
+    start = 0
+    ssm_list = []
+    for i in xrange(2):
+        channels = Channels(num, start)
+        ssm_list += channels.channels
+        start += num
+    igmpChannel = IgmpChannel()
+    igmpChannel.igmp_load_ssm_config(ssm_list)
     channels.start()
     for i in range(num):
         channels.join(i)

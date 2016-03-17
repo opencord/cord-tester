@@ -11,8 +11,6 @@ class eap_auth_exchange(unittest.TestCase):
 
       def setUp(self):
             self.onos_ctrl = OnosCtrl(self.app)
-            self.onos_ctrl.deactivate()
-            time.sleep(2)
             self.onos_aaa_config()
 
       def onos_aaa_config(self):

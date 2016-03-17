@@ -40,6 +40,7 @@ class DHCPTest:
             print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             return (None, None)
 
+        subnet_mask = "0.0.0.0"
         for x in resp.lastlayer().options:
             if(x == 'end'):
                 break
@@ -52,7 +53,7 @@ class DHCPTest:
         L5 = BOOTP(chaddr=chmac, yiaddr=srcIP)
         L6 = DHCP(options=[("message-type","request"), ("server_id",server_id), 
                            ("subnet_mask",subnet_mask), ("requested_addr",srcIP), "end"])
-        srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=5, iface=self.iface)
+        srp(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=5, iface=self.iface)
         self.mac_map[mac] = (srcIP, serverIP)
         self.mac_inverse_map[srcIP] = (mac, serverIP)
         return (srcIP, serverIP)
