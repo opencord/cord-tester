@@ -1,8 +1,6 @@
 import unittest
 import os,sys
-CORD_TEST_UTILS = 'utils'
-test_root = os.getenv('CORD_TEST_ROOT') or './'
-sys.path.append(test_root + CORD_TEST_UTILS)
+from nose.tools import assert_equal
 from EapPAP import PAPAuthTest
 
 class eap_auth_exchange(unittest.TestCase):

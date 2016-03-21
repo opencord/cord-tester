@@ -9,7 +9,7 @@ import scapy
 from nose.tools import *
 from CordTestBase import CordTester
 import re
-log.setLevel('DEBUG')
+log.setLevel('INFO')
 class TLSAuthTest(EapolPacket, CordTester):
 
     tlsStateTable = Enumeration("TLSStateTable", ("ST_EAP_SETUP",
@@ -51,23 +51,22 @@ class TLSAuthTest(EapolPacket, CordTester):
         self.nextEvent = self.tlsEventTable.EVT_EAP_ID_REQ
 
     def _eapIdReq(self):
-        p = self.eapol_recv()
-        code, pkt_id, eaplen = unpack("!BBH", p[0:4])
-        assert_equal(code, EAP_REQUEST)
-        reqtype = unpack("!B", p[4:5])[0]
-        reqdata = p[5:4+eaplen]
-        assert_equal(reqtype, EAP_TYPE_ID)
-        log.debug("<====== Send EAP Response with identity = %s ================>" % USER)
-        self.eapol_id_req(pkt_id, USER)
+        log.info( 'Inside EAP ID Req' )
+        def eapol_cb(pkt):
+                log.info('Got EAPOL packet with type id and code request')
+                log.info('Packet code: %d, type: %d, id: %d', pkt[EAP].code, pkt[EAP].type, pkt[EAP].id)
+                log.info("<====== Send EAP Response with identity = %s ================>" % USER)
+                self.eapol_id_req(pkt[EAP].id, USER)
+
+        self.eapol_scapy_recv(cb = eapol_cb,
+                              lfilter = lambda pkt: pkt[EAP].type == EAP.TYPE_ID and pkt[EAP].code == EAP.REQUEST)
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_HELLO_REQ
 
     def _eapTlsHelloReq(self):
-        p = self.eapol_recv()
-        code, pkt_id, eaplen = unpack("!BBH", p[0:4])
-        assert_equal(code, EAP_REQUEST)
-        reqtype = unpack("!B", p[4:5])[0]
-        assert_equal(reqtype, EAP_TYPE_TLS)
-        reqdata = TLSRecord(version="TLS_1_0")/TLSHandshake()/TLSClientHello(version="TLS_1_0",
+
+        def eapol_cb(pkt):
+                log.info('Got hello request for id %d', pkt[EAP].id)
+                reqdata = TLSRecord(version="TLS_1_0")/TLSHandshake()/TLSClientHello(version="TLS_1_0",
                                                                              gmt_unix_time=1234,
                                                                              random_bytes="A" * 28,
                                                                              session_id='',
@@ -75,20 +74,21 @@ class TLSAuthTest(EapolPacket, CordTester):
                                                                              cipher_suites=[TLSCipherSuite.RSA_WITH_AES_128_CBC_SHA]
                                                                              )
 
-        #reqdata.show()
-        log.debug("------> Sending Client Hello TLS payload of len %d ----------->" %len(reqdata))
-        eap_payload = self.eapTLS(EAP_RESPONSE, pkt_id, TLS_LENGTH_INCLUDED, str(reqdata))
-        self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+                #reqdata.show()
+                log.debug("Sending Client Hello TLS payload of len %d, id %d" %(len(reqdata),pkt[EAP].id))
+                eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
+                self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+
+        self.eapol_scapy_recv(cb = eapol_cb,
+                              lfilter = lambda pkt: pkt[EAP].type == EAP_TYPE_TLS and pkt[EAP].code == EAP.REQUEST)
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_CERT_REQ
 
     def _eapTlsCertReq(self):
-        p = self.eapol_recv()
-        code, pkt_id, eaplen = unpack("!BBH", p[0:4])
-        assert_equal(code, EAP_REQUEST)
-        reqtype = unpack("!B", p[4:5])[0]
-        assert_equal(reqtype, EAP_TYPE_TLS)
-        rex_pem = re.compile(r'\-+BEGIN[^\-]+\-+(.*?)\-+END[^\-]+\-+', re.DOTALL)
-        self.pem_cert = """-----BEGIN CERTIFICATE-----
+
+        def eapol_cb(pkt):
+                log.info('Got cert request')
+                rex_pem = re.compile(r'\-+BEGIN[^\-]+\-+(.*?)\-+END[^\-]+\-+', re.DOTALL)
+                self.pem_cert = """-----BEGIN CERTIFICATE-----
 MIIDvTCCAqWgAwIBAgIBAjANBgkqhkiG9w0BAQUFADCBizELMAkGA1UEBhMCVVMx
 CzAJBgNVBAgTAkNBMRIwEAYDVQQHEwlTb21ld2hlcmUxEzARBgNVBAoTCkNpZW5h
 IEluYy4xHjAcBgkqhkiG9w0BCQEWD2FkbWluQGNpZW5hLmNvbTEmMCQGA1UEAxMd
@@ -111,32 +111,34 @@ dmtYwfY0DbvwxHtA495frLyPcastDiT/zre7NL51MyUDPjjYjghNQEwvu66IKbQ3
 T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
 yg==
 -----END CERTIFICATE-----"""
-        self.der_cert = rex_pem.findall(self.pem_cert)[0].decode("base64")
-        reqdata = TLSRecord(version="TLS_1_0")/TLSHandshake()/TLSCertificateList(
-            certificates=[TLSCertificate(data=x509.X509Cert(self.der_cert))])
-        #reqdata.show()
-        log.info("------> Sending Client Hello TLS Certificate payload of len %d ----------->" %len(reqdata))
-        eap_payload = self.eapTLS(EAP_RESPONSE, pkt_id, TLS_LENGTH_INCLUDED, str(reqdata))
-        self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+                self.der_cert = rex_pem.findall(self.pem_cert)[0].decode("base64")
+                reqdata = TLSRecord(version="TLS_1_0")/TLSHandshake()/TLSCertificateList(
+                    certificates=[TLSCertificate(data=x509.X509Cert(self.der_cert))])
+                #reqdata.show()
+                log.info("------> Sending Client Hello TLS Certificate payload of len %d ----------->" %len(reqdata))
+                eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
+                self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+
+        self.eapol_scapy_recv(cb = eapol_cb,
+                              lfilter = lambda pkt: pkt[EAP].type == EAP_TYPE_TLS and pkt[EAP].code == EAP.REQUEST)
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_CHANGE_CIPHER_SPEC
 
     def _eapTlsChangeCipherSpec(self):
-        p = self.eapol_recv()
-        code, pkt_id, eaplen = unpack("!BBH", p[0:4])
-        assert_equal(code, EAP_REQUEST)
-        reqtype = unpack("!B", p[4:5])[0]
-        assert_equal(reqtype, EAP_TYPE_TLS)
-        reqdata = TLSFinished(data="")
-        eap_payload = self.eapTLS(EAP_RESPONSE, pkt_id, TLS_LENGTH_INCLUDED, str(reqdata))
-        self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+        def eapol_cb(pkt):
+                log.info('Got change cipher request')
+                reqdata = TLSFinished(data="")
+                eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
+                self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+
+        self.eapol_scapy_recv(cb = eapol_cb,
+                              lfilter = lambda pkt: pkt[EAP].type == EAP_TYPE_TLS and pkt[EAP].code == EAP.REQUEST)
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_FINISHED
 
     def _eapTlsFinished(self):
-        p = self.eapol_recv()
-        code, pkt_id, eaplen = unpack("!BBH", p[0:4])
-        log.debug("Code %d, id %d, len %d" %(code, pkt_id, eaplen))
-        assert_equal(code, EAP_REQUEST)
-        reqtype = unpack("!B", p[4:5])[0]
-        assert_equal(reqtype, EAP_TYPE_TLS)
+        def eapol_cb(pkt):
+                log.info('Got tls finished request')
+
+        self.eapol_scapy_recv(cb = eapol_cb,
+                              lfilter = lambda pkt: pkt[EAP].type == EAP_TYPE_TLS and pkt[EAP].code == EAP.REQUEST)
         #We stop here as certification validation success implies auth success
         self.nextEvent = None
