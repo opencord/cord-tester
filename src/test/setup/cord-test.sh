@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function show_help {
-    echo "Usage: ${0#*/} -h | this help -n <onos_ip> -r <radius_ip> -o <onos cnt image> -a <radius cnt image> -t <test type> -c | cleanup test containers -C <cleanup container list> -k | kill the test container -b <test cnt image> | build test container docker image"
+    echo "Usage: ${0#*/} -h | this help -n <onos_ip> -r <radius_ip> -o <onos cnt image> -a < onos app file> -d <radius cnt image> -t <test type> -c | cleanup test containers -C <cleanup container list> -k | kill the test container -b <test cnt image> | build test container docker image"
     exit 1
 }
 
@@ -13,8 +13,21 @@ function cnt_ipaddr {
     echo $ipaddr
 }
 
+function onos_start {
+    local image="${1}"
+    local port_str=""
+    for p in 8181 8101 9876 6653 6633; do
+        port_str="$port_str -p $p:$p/tcp"
+    done
+    ONOS_APPS="drivers,openflow,proxyarp,mobility,fwd,aaa,igmp"
+    local cnt=`docker run -itd $port_str -e ONOS_APPS=${ONOS_APPS} $image /bin/bash`
+    local ipaddr
+    ipaddr=`docker inspect -f '{{.NetworkSettings.IPAddress}}' $cnt`
+    echo $ipaddr
+}
+
 test_type=dhcp
-onos_cnt_image=onos:igmp-test
+onos_cnt_image=onosproject/onos
 radius_cnt_image=radius-server:dev
 onos_ip=
 radius_ip=
@@ -24,8 +37,10 @@ cleanup=0
 kill_test_cnt=0
 build_cnt_image=
 cleanup_cnt_list=
+app_version=1.0-SNAPSHOT
+onos_app_file=$PWD/../apps/ciena-cordigmp-$app_version.oar
 
-while getopts "h?n:r:o:a:t:cC:kb:" opt; do 
+while getopts "h?a:n:r:o:d:t:cC:kb:" opt; do 
     case "$opt" in
         h|\?)
             show_help
@@ -43,8 +58,11 @@ while getopts "h?n:r:o:a:t:cC:kb:" opt; do
         o)
             onos_cnt_image=$OPTARG
             ;;
-        a)
+        d)
             radius_cnt_image=$OPTARG
+            ;;
+        a)
+            onos_app_file=$OPTARG
             ;;
         c)
             cleanup=1
@@ -87,7 +105,23 @@ if [ $cleanup -eq 1 ]; then
 fi
 
 if [ x"$onos_ip" = "x" ]; then
+    ##First try fetching the existing ip for onos container
     onos_ip=$(cnt_ipaddr $onos_cnt_image)
+    ##If we find no onos running, then spawn the container if we can
+    if [ x"$onos_ip" = "x" ]; then
+        ##If the container image is from onosproject, we can try starting it
+        if [[ "$onos_cnt_image" =~ "onosproject/" ]]; then
+            echo "Starting ONOS container $onos_cnt_image"
+            onos_ip=$(onos_start $onos_cnt_image)
+            echo "Waiting 60 seconds for ONOS to fully boot up"
+            sleep 60
+        fi
+    fi
+fi
+
+if [ x"$onos_ip" = "x" ]; then
+    echo "ONOS not running or container name is invalid"
+    exit 127
 fi
 
 if [ x"$radius_ip" = "x" ]; then
@@ -104,6 +138,18 @@ if [ x"$build_cnt_image" != "x" ]; then
     echo "Done building docker image $build_cnt_image"
     nose_cnt_image=$build_cnt_image
 fi
+
+function install_onos_app {
+    local app=$1
+    local onos_url="http://$onos_ip:8181/onos/v1/applications"
+    local curl="curl -sS --user karaf:karaf"
+    $curl -X POST -HContent-Type:application/octet-stream $onos_url?activate=true --data-binary @$app
+}
+
+echo "Installing and activating onos app $onos_app_file"
+
+install_onos_app $onos_app_file
+
 echo "Starting test container $nose_cnt_image"
 
 test_cnt=`docker run -itd --privileged -v $HOME/nose_exp:/root/test -v /lib/modules:/lib/modules -e ONOS_CONTROLLER_IP=$onos_ip -e ONOS_AAA_IP=$radius_ip $nose_cnt_image /bin/bash`
