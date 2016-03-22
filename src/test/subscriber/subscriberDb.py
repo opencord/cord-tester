@@ -7,7 +7,7 @@ class SubscriberDB:
         self.con = sqlite3.connect(db)
         self.con.row_factory = sqlite3.Row
         self.cur = self.con.cursor()
-        self.services = [ 'TLS', 'DHCP', 'IGMP' ]
+        self.services = [ 'DHCP', 'IGMP' ]
         self.create = create
         if create == True:
             self.cur.execute("DROP TABLE IF EXISTS Subscriber")
