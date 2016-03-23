@@ -198,7 +198,7 @@ class subscriber_exchange(unittest.TestCase):
             return cip,sip
 
       def dhcp_request(self, subscriber, seed_ip = '10.10.10.1', update_seed = False):
-            config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
+            config = {'startip':'10.10.10.20', 'endip':'10.10.10.200',
                       'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
                       'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
             self.onos_dhcp_table_load(config)
