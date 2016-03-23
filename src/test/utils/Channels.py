@@ -67,7 +67,7 @@ class IgmpChannel:
     def onos_load_config(self, config):
         status, code = self.onos_ctrl.config(config)
         if status is False:
-            log.info('JSON config request for app %s returned status %d' %code)
+            log.info('JSON config request returned status %d' %code)
         time.sleep(2)
 
     def ssm_table_load(self, groups):
@@ -80,6 +80,17 @@ class IgmpChannel:
                       d['group'] = g
                       ssm_xlate_list.append(d)
           self.onos_load_config(ssm_dict)
+
+    def cord_port_table_load(self, cord_port_map):
+          cord_group_dict = {'apps' : { 'org.ciena.cordigmp' : { 'cordIgmpTranslate' : [] } } }
+          cord_group_xlate_list = cord_group_dict['apps']['org.ciena.cordigmp']['cordIgmpTranslate']
+          for group, ports in cord_port_map.items():
+              d = {}
+              d['group'] = group
+              d['inputPort'] = ports[0]
+              d['outputPort'] = ports[1]
+              cord_group_xlate_list.append(d)
+          self.onos_load_config(cord_group_dict)
 
 class Channels(IgmpChannel):
     Stopped = 0

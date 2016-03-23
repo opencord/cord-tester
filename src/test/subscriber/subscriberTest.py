@@ -15,6 +15,8 @@ from EapTLS import TLSAuthTest
 from Channels import Channels, IgmpChannel
 from subscriberDb import SubscriberDB
 from threadPool import ThreadPool
+from portmaps import g_subscriber_port_map 
+from portmaps import g_subscriber_reverse_port_map
 log.setLevel('INFO')
 
 class Subscriber(Channels):
@@ -25,10 +27,15 @@ class Subscriber(Channels):
       STATS_LEAVE = 3
       SUBSCRIBER_SERVICES = 'DHCP IGMP TLS'
       def __init__(self, name = 'sub', service = SUBSCRIBER_SERVICES, num = 1, channel_start = 0, 
+                   tx_port = 2, rx_port = 1,
                    iface = 'veth0', iface_mcast = 'veth2', 
                    mcast_cb = None, loginType = 'wireless'):
+            self.tx_port = tx_port
+            self.rx_port = rx_port
+            self.tx_intf = g_subscriber_port_map[tx_port]
+            self.rx_intf = g_subscriber_port_map[rx_port]
             Channels.__init__(self, num, channel_start = channel_start, 
-                              iface = iface, iface_mcast = iface_mcast, mcast_cb = mcast_cb)
+                              iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
             self.name = name
             self.service = service
             self.service_map = {}
@@ -182,21 +189,21 @@ class subscriber_exchange(unittest.TestCase):
              assert_equal(status, True)
           time.sleep(2)
 
-      def dhcp_sndrcv(self, update_seed = False):
-            cip, sip = self.dhcp.discover(update_seed = update_seed)
+      def dhcp_sndrcv(self, dhcp, update_seed = False):
+            cip, sip = dhcp.discover(update_seed = update_seed)
             assert_not_equal(cip, None)
             assert_not_equal(sip, None)
             log.info('Got dhcp client IP %s from server %s for mac %s' %
-                     (cip, sip, self.dhcp.get_mac(cip)[0]))
+                     (cip, sip, dhcp.get_mac(cip)[0]))
             return cip,sip
 
-      def dhcp_request(self, seed_ip = '10.10.10.1', iface = 'veth0', update_seed = False):
+      def dhcp_request(self, subscriber, seed_ip = '10.10.10.1', update_seed = False):
             config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
                       'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
                       'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
             self.onos_dhcp_table_load(config)
-            self.dhcp = DHCPTest(seed_ip = seed_ip, iface = iface)
-            cip, sip = self.dhcp_sndrcv(update_seed = update_seed)
+            dhcp = DHCPTest(seed_ip = seed_ip, iface = subscriber.iface)
+            cip, sip = self.dhcp_sndrcv(dhcp, update_seed = update_seed)
             return cip, sip
 
       def recv_channel_cb(self, pkt):
@@ -220,19 +227,19 @@ class subscriber_exchange(unittest.TestCase):
                   self.test_status = True
 
       def dhcp_verify(self, subscriber):
-            cip, sip = self.dhcp_request(iface = subscriber.iface, update_seed = True)
+            cip, sip = self.dhcp_request(subscriber, update_seed = True)
             log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
             subscriber.src_list = [cip]
             self.test_status = True
 
       def dhcp_jump_verify(self, subscriber):
-          cip, sip = self.dhcp_request(seed_ip = '10.10.200.1', iface = subscriber.iface)
+          cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.200.1')
           log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
           subscriber.src_list = [cip]
           self.test_status = True
 
       def dhcp_next_verify(self, subscriber):
-          cip, sip = self.dhcp_request(seed_ip = '10.10.150.1', iface = subscriber.iface)
+          cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.150.1')
           log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
           subscriber.src_list = [cip]
           self.test_status = True
@@ -247,7 +254,7 @@ class subscriber_exchange(unittest.TestCase):
                         log.info('Leaving channel %d for subscriber %s' %(chan, subscriber.name))
                         subscriber.channel_leave(chan)
                         time.sleep(3)
-                        log.info('Join RX stats for subscriber %s, %s' %(subscriber.name,subscriber.join_rx_stats))
+                        log.info('Interface %s Join RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name,subscriber.join_rx_stats))
                   self.test_status = True
 
       def igmp_jump_verify(self, subscriber):
@@ -258,7 +265,7 @@ class subscriber_exchange(unittest.TestCase):
                         subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1)
                         log.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
                         time.sleep(3)
-                  log.info('Join RX stats for subscriber %s, %s' %(subscriber.name, subscriber.join_rx_stats))
+                  log.info('Interface %s Jump RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
                   self.test_status = True
 
       def igmp_next_verify(self, subscriber):
@@ -272,35 +279,57 @@ class subscriber_exchange(unittest.TestCase):
                         subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count=1)
                         log.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
                         time.sleep(3)
-                  log.info('Join Next RX stats for subscriber %s, %s' %(subscriber.name, subscriber.join_rx_stats))
+                  log.info('Interface %s Join Next RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
                   self.test_status = True
 
-      def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0):
+      def generate_port_list(self, num):
+            port_list = []
+            for i in xrange(num):
+                  rx_port = 2*i+1
+                  tx_port = 2*i+2
+                  port_list.append((tx_port, rx_port))
+            return port_list
+
+      def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0, port_list = []):
             '''Load the subscriber from the database'''
             self.subscriber_db = SubscriberDB(create = create)
             if create is True:
                   self.subscriber_db.generate(num)
             self.subscriber_info = self.subscriber_db.read(num)
             self.subscriber_list = []
+            if not port_list:
+                  port_list = self.generate_port_list(num)
+
+            index = 0
             for info in self.subscriber_info:
                   self.subscriber_list.append(Subscriber(name=info['Name'], 
                                                          service=info['Service'],
                                                          num=num_channels,
-                                                         channel_start = channel_start))
+                                                         channel_start = channel_start,
+                                                         tx_port = port_list[index][0],
+                                                         rx_port = port_list[index][1]))
                   channel_start += num_channels
-            
+                  index += 1
+
             #load the ssm list for all subscriber channels
             igmpChannel = IgmpChannel()
             ssm_groups = map(lambda sub: sub.channels, self.subscriber_list)
             ssm_list = reduce(lambda ssm1, ssm2: ssm1+ssm2, ssm_groups)
             igmpChannel.igmp_load_ssm_config(ssm_list)
+            #load the subscriber to mcast port map for cord
+            cord_port_map = {}
+            for sub in self.subscriber_list:
+                  for chan in sub.channels:
+                        cord_port_map[chan] = (sub.tx_port, sub.rx_port)
+
+            igmpChannel.cord_port_table_load(cord_port_map)
 
       def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1, 
-                                  channel_start = 0, cbs = None):
+                                  channel_start = 0, cbs = None, port_list = []):
           self.test_status = False
           self.num_subscribers = num_subscribers
           self.subscriber_load(create = True, num = self.num_subscribers, 
-                               num_channels = num_channels, channel_start = channel_start)
+                               num_channels = num_channels, channel_start = channel_start, port_list = port_list)
           self.onos_aaa_load()
           self.thread_pool = ThreadPool(min(100, self.num_subscribers), queue_size=1, wait_timeout=1)
           if cbs is None:
@@ -315,20 +344,26 @@ class subscriber_exchange(unittest.TestCase):
           return self.test_status
 
       def test_subscriber_join_recv(self):
-          """Test subscriber join and receive""" 
-          test_status = self.subscriber_join_verify(num_subscribers = 50, num_channels = 1)
+          """Test subscriber join and receive"""
+          num_subscribers = 50
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
+                                                    num_channels = 1, port_list = self.generate_port_list(num_subscribers))
           assert_equal(test_status, True)
 
       def test_subscriber_join_jump(self):
           """Test subscriber join and receive for channel surfing""" 
-          test_status = self.subscriber_join_verify(num_subscribers = 5, 
+          num_subscribers = 5
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
                                                     num_channels = 50,
-                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify))
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers))
           assert_equal(test_status, True)
 
       def test_subscriber_join_next(self):
           """Test subscriber join next for channels"""
-          test_status = self.subscriber_join_verify(num_subscribers = 5, 
+          num_subscribers = 5
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
                                                     num_channels = 50,
-                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify))
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers))
           assert_equal(test_status, True)
