@@ -19,7 +19,7 @@ function onos_start {
     for p in 8181 8101 9876 6653 6633; do
         port_str="$port_str -p $p:$p/tcp"
     done
-    ONOS_APPS="drivers,openflow,proxyarp,mobility,fwd,aaa,igmp"
+    ONOS_APPS="drivers,openflow,proxyarp,aaa,igmp"
     local cnt=`docker run -itd $port_str -e ONOS_APPS=${ONOS_APPS} $image /bin/bash`
     local ipaddr
     ipaddr=`docker inspect -f '{{.NetworkSettings.IPAddress}}' $cnt`

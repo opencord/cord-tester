@@ -8,7 +8,7 @@ if [ x"$controller" = "x" ]; then
   controller="%%CONTROLLER%%"
 fi
 service openvswitch-switch restart
-num_ports=8
+num_ports=200
 ports=$(($num_ports-1))
 for vports in $(seq 0 2 $ports); do
    echo "Deleting veth$vports"
@@ -22,7 +22,7 @@ done
 echo "Configuring ovs bridge $bridge"
 ovs-vsctl del-br $bridge
 ovs-vsctl add-br $bridge
-for i in $(seq 1 2 7); do
+for i in $(seq 1 2 $ports); do
   ovs-vsctl add-port $bridge veth$i
 done
 my_ip=`ifconfig eth0 | grep "inet addr" | tr -s ' ' | cut -d":" -f2 |cut -d" " -f1`
