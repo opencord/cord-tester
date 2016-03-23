@@ -32,7 +32,7 @@ class DHCPTest:
         L4 = UDP(sport=68, dport=67)
         L5 = BOOTP(chaddr=chmac)
         L6 = DHCP(options=[("message-type","discover"),"end"])
-        resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=5, iface=self.iface)
+        resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
         try:
             srcIP = resp.yiaddr
             serverIP = resp.siaddr
@@ -53,7 +53,7 @@ class DHCPTest:
         L5 = BOOTP(chaddr=chmac, yiaddr=srcIP)
         L6 = DHCP(options=[("message-type","request"), ("server_id",server_id), 
                            ("subnet_mask",subnet_mask), ("requested_addr",srcIP), "end"])
-        srp(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=5, iface=self.iface)
+        srp(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
         self.mac_map[mac] = (srcIP, serverIP)
         self.mac_inverse_map[srcIP] = (mac, serverIP)
         return (srcIP, serverIP)
