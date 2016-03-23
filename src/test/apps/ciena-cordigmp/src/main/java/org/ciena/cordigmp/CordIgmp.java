@@ -81,6 +81,7 @@ import java.io.IOException;
 import java.util.Dictionary;
 import java.util.List;
 import java.util.Map;
+import java.util.Collection;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -144,6 +145,9 @@ public class CordIgmp {
     //TODO: move this to a ec map
     private Map<IpAddress, Integer> groups = Maps.newConcurrentMap();
 
+    //Map of IGMP groups to port
+    private Map<IpAddress, IgmpPortPair> cordIgmpTranslateTable = Maps.newConcurrentMap();
+
     //TODO: move this to distributed atomic long
     private AtomicInteger channels = new AtomicInteger(0);
 
@@ -187,17 +191,18 @@ public class CordIgmp {
 
     private Map<DeviceId, Boolean> deviceAvailability = new ConcurrentHashMap<>();
 
-    private static final Class<AccessDeviceConfig> CONFIG_CLASS =
-            AccessDeviceConfig.class;
+    private static final Class<CordIgmpTranslateConfig> CORD_IGMP_TRANSLATE_CONFIG_CLASS =
+            CordIgmpTranslateConfig.class;
 
-    private ConfigFactory<DeviceId, AccessDeviceConfig> configFactory =
-            new ConfigFactory<DeviceId, AccessDeviceConfig>(
-                    SubjectFactories.DEVICE_SUBJECT_FACTORY, CONFIG_CLASS, "accessDevice") {
+    private ConfigFactory<ApplicationId, CordIgmpTranslateConfig> cordIgmpTranslateConfigFactory =
+            new ConfigFactory<ApplicationId, CordIgmpTranslateConfig>(
+                    SubjectFactories.APP_SUBJECT_FACTORY, CORD_IGMP_TRANSLATE_CONFIG_CLASS, "cordIgmpTranslate") {
                 @Override
-                public AccessDeviceConfig createConfig() {
-                    return new AccessDeviceConfig();
+                public CordIgmpTranslateConfig createConfig() {
+                    return new CordIgmpTranslateConfig();
                 }
             };
+
 
     @Activate
     public void activate(ComponentContext context) {
@@ -208,7 +213,7 @@ public class CordIgmp {
 
         clearRemoteRoutes();
 
-        networkConfig.registerConfigFactory(configFactory);
+        networkConfig.registerConfigFactory(cordIgmpTranslateConfigFactory);
         networkConfig.addListener(configListener);
 
         networkConfig.getSubjects(DeviceId.class, AccessDeviceConfig.class).forEach(
@@ -221,6 +226,15 @@ public class CordIgmp {
                 }
         );
 
+        CordIgmpTranslateConfig cordIgmpTranslateConfig = networkConfig.getConfig(appId, CordIgmpTranslateConfig.class);
+
+        if(cordIgmpTranslateConfig != null) {
+            Collection<McastPorts> translations = cordIgmpTranslateConfig.getCordIgmpTranslations();
+            for(McastPorts port: translations) {
+                cordIgmpTranslateTable.put(port.group(), 
+                                           port.portPair());
+            }
+        }
 
         mcastService.addListener(listener);
 
@@ -240,7 +254,7 @@ public class CordIgmp {
         componentConfigService.unregisterProperties(getClass(), false);
         deviceService.removeListener(deviceListener);
         mcastService.removeListener(listener);
-        networkConfig.unregisterConfigFactory(configFactory);
+        networkConfig.unregisterConfigFactory(cordIgmpTranslateConfigFactory);
         networkConfig.removeListener(configListener);
         deviceAvailability.clear();
         log.info("Stopped");
@@ -401,8 +415,13 @@ public class CordIgmp {
             return;
         }
         log.warn("Unknown OLT device for unprovisioning. Assuming OVS {}", loc.deviceId());
-        final PortNumber inPort = PortNumber.portNumber(inputPort);
-        final PortNumber outPort = PortNumber.portNumber(outputPort);
+        final IgmpPortPair portPair = cordIgmpTranslateTable.get(info.route().group());
+        if(portPair == null) {
+            log.warn("Ignoring unprovisioning for group " + info.route().group() + " with no port map");
+            return;
+        }
+        final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
+        final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
         TrafficSelector.Builder mcast = DefaultTrafficSelector.builder()
             .matchInPort(inPort)
             .matchEthType(Ethernet.TYPE_IPV4)
@@ -432,10 +451,14 @@ public class CordIgmp {
             log.warn("Ignoring provisioning mcast route for OLT device: " + sink.deviceId());
             return;
         } 
-
+        final IgmpPortPair portPair = cordIgmpTranslateTable.get(route.group());
+        if(portPair == null) {
+            log.warn("Ports for Group " + route.group() + " not found in cord igmp map. Skipping provisioning.");
+            return;
+        }
         Integer ret = groups.computeIfAbsent(route.group(), (g) -> {
-            final PortNumber inPort = PortNumber.portNumber(inputPort);
-            final PortNumber outPort = PortNumber.portNumber(outputPort);
+            final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
+            final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
             TrafficSelector.Builder mcast = DefaultTrafficSelector.builder()
                     .matchInPort(inPort)
                     .matchEthType(Ethernet.TYPE_IPV4)
@@ -550,18 +573,20 @@ public class CordIgmp {
 
                 case CONFIG_ADDED:
                 case CONFIG_UPDATED:
-                    AccessDeviceConfig config =
-                            networkConfig.getConfig((DeviceId) event.subject(), CONFIG_CLASS);
-                    if (config != null) {
-                        oltData.put(config.getOlt().deviceId(), config.getOlt());
+                    if (event.configClass().equals(CORD_IGMP_TRANSLATE_CONFIG_CLASS)) {
+                        CordIgmpTranslateConfig config =
+                                networkConfig.getConfig((ApplicationId) event.subject(),
+                                        CORD_IGMP_TRANSLATE_CONFIG_CLASS);
+                        if (config != null) {
+                            cordIgmpTranslateTable.clear();
+                            config.getCordIgmpTranslations().forEach(
+                                                                     mcastPorts -> cordIgmpTranslateTable.put(mcastPorts.group(), mcastPorts.portPair()));
+                        }
                     }
-
                     break;
                 case CONFIG_REGISTERED:
                 case CONFIG_UNREGISTERED:
-                    break;
                 case CONFIG_REMOVED:
-                    oltData.remove(event.subject());
                     break;
                 default:
                     break;
@@ -570,7 +595,7 @@ public class CordIgmp {
 
         @Override
         public boolean isRelevant(NetworkConfigEvent event) {
-            return event.configClass().equals(CONFIG_CLASS);
+            return event.configClass().equals(CORD_IGMP_TRANSLATE_CONFIG_CLASS);
         }
 
 
