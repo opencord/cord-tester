@@ -196,7 +196,7 @@ public class CordIgmp {
 
     private ConfigFactory<ApplicationId, CordIgmpTranslateConfig> cordIgmpTranslateConfigFactory =
             new ConfigFactory<ApplicationId, CordIgmpTranslateConfig>(
-                    SubjectFactories.APP_SUBJECT_FACTORY, CORD_IGMP_TRANSLATE_CONFIG_CLASS, "cordIgmpTranslate") {
+                    SubjectFactories.APP_SUBJECT_FACTORY, CORD_IGMP_TRANSLATE_CONFIG_CLASS, "cordIgmpTranslate", true) {
                 @Override
                 public CordIgmpTranslateConfig createConfig() {
                     return new CordIgmpTranslateConfig();
@@ -414,7 +414,6 @@ public class CordIgmp {
             log.warn("Ignoring deprovisioning mcast route for OLT device: " + loc.deviceId());
             return;
         }
-        log.warn("Unknown OLT device for unprovisioning. Assuming OVS {}", loc.deviceId());
         final IgmpPortPair portPair = cordIgmpTranslateTable.get(info.route().group());
         if(portPair == null) {
             log.warn("Ignoring unprovisioning for group " + info.route().group() + " with no port map");
