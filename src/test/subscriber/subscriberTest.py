@@ -41,8 +41,8 @@ class Subscriber(Channels):
                   self.tx_intf = self.port_map[tx_port]
                   self.rx_intf = self.port_map[rx_port]
             except:
-                  self.tx_intf = self.port_map[PORT_TX_DEFAULT]
-                  self.rx_intf = self.port_map[PORT_RX_DEFAULT]
+                  self.tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+                  self.rx_intf = self.port_map[self.PORT_RX_DEFAULT]
 
             Channels.__init__(self, num, channel_start = channel_start, 
                               iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
@@ -299,11 +299,15 @@ class subscriber_exchange(unittest.TestCase):
                   log.info('Interface %s Join Next RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
                   self.test_status = True
 
-      def generate_port_list(self, num):
+      def generate_port_list(self, subscribers, channels):
             port_list = []
-            for i in xrange(num):
-                  rx_port = 2*i+1
-                  tx_port = 2*i+2
+            for i in xrange(subscribers):
+                  if channels > 1:
+                        rx_port = 2*i+1
+                        tx_port = 2*i+2
+                  else:
+                        rx_port = Subscriber.PORT_RX_DEFAULT
+                        tx_port = Subscriber.PORT_TX_DEFAULT
                   port_list.append((tx_port, rx_port))
             return port_list
 
@@ -315,7 +319,7 @@ class subscriber_exchange(unittest.TestCase):
             self.subscriber_info = self.subscriber_db.read(num)
             self.subscriber_list = []
             if not port_list:
-                  port_list = self.generate_port_list(num)
+                  port_list = self.generate_port_list(num, num_channels)
 
             index = 0
             for info in self.subscriber_info:
@@ -326,7 +330,8 @@ class subscriber_exchange(unittest.TestCase):
                                                          channel_start = channel_start,
                                                          tx_port = port_list[index][0],
                                                          rx_port = port_list[index][1]))
-                  channel_start += num_channels
+                  if num_channels > 1:
+                        channel_start += num_channels
                   index += 1
 
             #load the ssm list for all subscriber channels
@@ -364,24 +369,28 @@ class subscriber_exchange(unittest.TestCase):
       def test_subscriber_join_recv(self):
           """Test subscriber join and receive"""
           num_subscribers = 50
+          num_channels = 1
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
-                                                    num_channels = 1, port_list = self.generate_port_list(num_subscribers))
+                                                    num_channels = num_channels,
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels))
           assert_equal(test_status, True)
 
       def test_subscriber_join_jump(self):
           """Test subscriber join and receive for channel surfing""" 
           num_subscribers = 5
+          num_channels = 50
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
-                                                    num_channels = 50,
+                                                    num_channels = num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
-                                                    port_list = self.generate_port_list(num_subscribers))
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels))
           assert_equal(test_status, True)
 
       def test_subscriber_join_next(self):
           """Test subscriber join next for channels"""
           num_subscribers = 5
+          num_channels = 50
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
-                                                    num_channels = 50,
+                                                    num_channels = num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
-                                                    port_list = self.generate_port_list(num_subscribers))
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels))
           assert_equal(test_status, True)

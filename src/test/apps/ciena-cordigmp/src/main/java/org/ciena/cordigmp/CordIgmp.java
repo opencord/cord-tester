@@ -20,6 +20,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
+import com.google.common.collect.ConcurrentHashMultiset;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.WebResource;
@@ -142,12 +144,12 @@ public class CordIgmp {
             new InternalNetworkConfigListener();
     private DeviceListener deviceListener = new InternalDeviceListener();
 
-    //TODO: move this to a ec map
-    private Map<IpAddress, Integer> groups = Maps.newConcurrentMap();
-
     //Map of IGMP groups to port
     private Map<IpAddress, IgmpPortPair> cordIgmpTranslateTable = Maps.newConcurrentMap();
 
+    //Count of group joins
+    private Multiset<IpAddress> cordIgmpCountTable = ConcurrentHashMultiset.create();
+    
     //TODO: move this to distributed atomic long
     private AtomicInteger channels = new AtomicInteger(0);
 
@@ -400,10 +402,6 @@ public class CordIgmp {
     }
 
     private void unprovisionGroup(McastRouteInfo info) {
-        if (info.sinks().isEmpty()) {
-            removeRemoteRoute(info.route());
-        }
-
         if (!info.sink().isPresent()) {
             log.warn("No sink given after sink removed event: {}", info);
             return;
@@ -419,25 +417,27 @@ public class CordIgmp {
             log.warn("Ignoring unprovisioning for group " + info.route().group() + " with no port map");
             return;
         }
-        final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
-        final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
-        TrafficSelector.Builder mcast = DefaultTrafficSelector.builder()
-            .matchInPort(inPort)
-            .matchEthType(Ethernet.TYPE_IPV4)
-            .matchIPDst(info.route().group().toIpPrefix());
-        TrafficTreatment.Builder treatment = DefaultTrafficTreatment.builder();
-        FlowEntry.Builder flowEntry = DefaultFlowEntry.builder();
-        treatment.add(Instructions.createOutput(outPort));
-        flowEntry.forDevice(loc.deviceId());
-        flowEntry.withPriority(priority);
-        flowEntry.withSelector(mcast.build());
-        flowEntry.withTreatment(treatment.build());
-        flowEntry.fromApp(appId);
-        flowEntry.makePermanent();
-        flowRuleService.removeFlowRules(flowEntry.build());
-        groups.remove(info.route().group());
-        log.warn("Flow rule removed for for device id " + loc.deviceId());
-        return;
+        if(cordIgmpCountTable.remove(info.route().group(), 1) <= 1) {
+            //Remove flow for last channel leave
+            final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
+            final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
+            TrafficSelector.Builder mcast = DefaultTrafficSelector.builder()
+                .matchInPort(inPort)
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(info.route().group().toIpPrefix());
+            TrafficTreatment.Builder treatment = DefaultTrafficTreatment.builder();
+            FlowEntry.Builder flowEntry = DefaultFlowEntry.builder();
+            treatment.add(Instructions.createOutput(outPort));
+            flowEntry.forDevice(loc.deviceId());
+            flowEntry.withPriority(priority);
+            flowEntry.withSelector(mcast.build());
+            flowEntry.withTreatment(treatment.build());
+            flowEntry.fromApp(appId);
+            flowEntry.makePermanent();
+            flowRuleService.removeFlowRules(flowEntry.build());
+            removeRemoteRoute(info.route());
+            log.warn("Flow rule removed for for device id " + loc.deviceId());
+        }
     }
 
     private void provisionGroup(McastRoute route, ConnectPoint sink) {
@@ -445,7 +445,6 @@ public class CordIgmp {
         checkNotNull(sink, "Sink cannot be null");
 
         AccessDeviceData oltInfo = oltData.get(sink.deviceId());
-        final AtomicBoolean sync = new AtomicBoolean(false);
         if(oltInfo != null) {
             log.warn("Ignoring provisioning mcast route for OLT device: " + sink.deviceId());
             return;
@@ -455,13 +454,14 @@ public class CordIgmp {
             log.warn("Ports for Group " + route.group() + " not found in cord igmp map. Skipping provisioning.");
             return;
         }
-        Integer ret = groups.computeIfAbsent(route.group(), (g) -> {
+        if(cordIgmpCountTable.count(route.group()) == 0) {
+            //First group entry. Provision the flows
             final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
             final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
             TrafficSelector.Builder mcast = DefaultTrafficSelector.builder()
                     .matchInPort(inPort)
                     .matchEthType(Ethernet.TYPE_IPV4)
-                    .matchIPDst(g.toIpPrefix());
+                    .matchIPDst(route.group().toIpPrefix());
             TrafficTreatment.Builder treatment = DefaultTrafficTreatment.builder();
             FlowEntry.Builder flowEntry = DefaultFlowEntry.builder();
             treatment.add(Instructions.createOutput(outPort));
@@ -473,11 +473,9 @@ public class CordIgmp {
             flowEntry.makePermanent();
             flowRuleService.applyFlowRules(flowEntry.build());
             log.warn("Flow rules applied for device id " + sink.deviceId());
-            return 0;
-        });
-        if (ret == 0) {
             addRemoteRoute(route);
         }
+        cordIgmpCountTable.add(route.group());
     }
 
     private void addRemoteRoute(McastRoute route) {
@@ -578,6 +576,7 @@ public class CordIgmp {
                                         CORD_IGMP_TRANSLATE_CONFIG_CLASS);
                         if (config != null) {
                             cordIgmpTranslateTable.clear();
+                            cordIgmpCountTable.clear();
                             config.getCordIgmpTranslations().forEach(
                                                                      mcastPorts -> cordIgmpTranslateTable.put(mcastPorts.group(), mcastPorts.portPair()));
                         }
