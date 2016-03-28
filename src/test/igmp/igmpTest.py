@@ -12,6 +12,7 @@ from IGMP import *
 from McastTraffic import *
 from Stats import Stats
 from OnosCtrl import OnosCtrl
+from Channels import IgmpChannel
 log.setLevel('INFO')
 
 IGMP_DST_MAC = "01:00:5e:00:01:01"
@@ -48,6 +49,8 @@ class igmp_exchange(unittest.TestCase):
     IGMP_TEST_TIMEOUT = 5
     IGMP_QUERY_TIMEOUT = 30
     MCAST_TRAFFIC_TIMEOUT = 10
+    PORT_TX_DEFAULT = 2
+    PORT_RX_DEFAULT = 1
     max_packets = 100
     app = 'org.onosproject.igmp'
 
@@ -57,6 +60,7 @@ class igmp_exchange(unittest.TestCase):
         status, _ = self.onos_ctrl.activate()
         assert_equal(status, True)
         time.sleep(3)
+        self.igmp_channel = IgmpChannel()
 
     def teardown(self):
         '''Deactivate the dhcp app'''
@@ -79,6 +83,10 @@ class igmp_exchange(unittest.TestCase):
                       d['group'] = g
                       ssm_xlate_list.append(d)
           self.onos_load_config(ssm_dict)
+          cord_port_map = {}
+          for g in groups:
+                cord_port_map[g] = (self.PORT_TX_DEFAULT, self.PORT_RX_DEFAULT)
+          self.igmp_channel.cord_port_table_load(cord_port_map)
           time.sleep(2)
 
     def igmp_verify_join(self, igmpStateList):
