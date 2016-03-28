@@ -4,11 +4,10 @@ import sys
 header = '''###This file is auto-generated. Do not EDIT###'''
 def generate_port_map(num = 100):
     print("g_subscriber_port_map = {}")
-    print("g_subscriber_reverse_port_map = {}")
     for i in xrange(1, num+1):
         intf = 'veth' + str(2*i-2)
         print("g_subscriber_port_map[%d]='%s'" %(i, intf))
-        print("g_subscriber_reverse_port_map['%s']=%d" %(intf, i))
+        print("g_subscriber_port_map['%s']=%d" %(intf, i))
 
 if __name__ == '__main__':
     num = 100

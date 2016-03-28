@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function show_help {
-    echo "Usage: ${0#*/} -h | this help -n <onos_ip> -r <radius_ip> -o <onos cnt image> -a < onos app file> -d <radius cnt image> -t <test type> -c | cleanup test containers -C <cleanup container list> -k | kill the test container -b <test cnt image> | build test container docker image"
+    echo "Usage: ${0#*/} -h | this help -n <onos_ip> -O | use olt config | -r <radius_ip> -o <onos cnt image> -a < onos app file> -d <radius cnt image> -t <test type> -c | cleanup test containers -C <cleanup container list> -k | kill the test container -b <test cnt image> | build test container docker image"
     exit 1
 }
 
@@ -39,12 +39,16 @@ build_cnt_image=
 cleanup_cnt_list=
 app_version=1.0-SNAPSHOT
 onos_app_file=$PWD/../apps/ciena-cordigmp-$app_version.oar
+olt_config=0
 
-while getopts "h?a:n:r:o:d:t:cC:kb:" opt; do 
+while getopts "h?a:n:r:o:d:t:cC:kOb:" opt; do
     case "$opt" in
         h|\?)
             show_help
             exit 1
+            ;;
+        O)
+            olt_config=1
             ;;
         t)
             test_type=$OPTARG
@@ -150,9 +154,17 @@ echo "Installing and activating onos app $onos_app_file"
 
 install_onos_app $onos_app_file
 
+if [ $olt_config -eq 1 ]; then
+    olt_conf_loc="$PWD/olt_config.json"
+    olt_conf_test_loc="/root/test"${olt_conf_loc#$HOME\/nose_exp}
+    olt_env="OLT_CONFIG=$olt_conf_test_loc"
+    echo -e "\nTest running on OLT switch with olt env ${olt_env}"
+else
+    olt_env="OLT_CONFIG="
+    echo -e "\nTest running on OVS"
+fi
 echo "Starting test container $nose_cnt_image"
-
-test_cnt=`docker run -itd --privileged -v $HOME/nose_exp:/root/test -v /lib/modules:/lib/modules -e ONOS_CONTROLLER_IP=$onos_ip -e ONOS_AAA_IP=$radius_ip $nose_cnt_image /bin/bash`
+test_cnt=`docker run -itd --privileged -v $HOME/nose_exp:/root/test -v /lib/modules:/lib/modules -e ONOS_CONTROLLER_IP=$onos_ip -e ONOS_AAA_IP=$radius_ip -e ${olt_env} $nose_cnt_image /bin/bash`
 echo "Setting up test container $test_cnt"
 docker exec $test_cnt pip install monotonic
 echo "Starting up the OVS switch on the test container $test_cnt"

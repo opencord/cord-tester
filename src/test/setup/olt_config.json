@@ -1,0 +1,2 @@
+{ "olt" : false , "ports" : { "tx" : "veth2", "rx" : "veth0" } }
+  

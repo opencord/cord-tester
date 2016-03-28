@@ -16,24 +16,34 @@ from Channels import Channels, IgmpChannel
 from subscriberDb import SubscriberDB
 from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map 
-from portmaps import g_subscriber_reverse_port_map
+from OltConfig import *
 log.setLevel('INFO')
 
 class Subscriber(Channels):
-
+      PORT_TX_DEFAULT = 2
+      PORT_RX_DEFAULT = 1
+      INTF_TX_DEFAULT = 'veth2'
+      INTF_RX_DEFAULT = 'veth0'
       STATS_RX = 0
       STATS_TX = 1
       STATS_JOIN = 2
       STATS_LEAVE = 3
       SUBSCRIBER_SERVICES = 'DHCP IGMP TLS'
-      def __init__(self, name = 'sub', service = SUBSCRIBER_SERVICES, num = 1, channel_start = 0, 
-                   tx_port = 2, rx_port = 1,
-                   iface = 'veth0', iface_mcast = 'veth2', 
+      def __init__(self, name = 'sub', service = SUBSCRIBER_SERVICES, port_map = None,
+                   num = 1, channel_start = 0,
+                   tx_port = PORT_TX_DEFAULT, rx_port = PORT_RX_DEFAULT,
+                   iface = INTF_RX_DEFAULT, iface_mcast = INTF_TX_DEFAULT,
                    mcast_cb = None, loginType = 'wireless'):
             self.tx_port = tx_port
             self.rx_port = rx_port
-            self.tx_intf = g_subscriber_port_map[tx_port]
-            self.rx_intf = g_subscriber_port_map[rx_port]
+            self.port_map = port_map or g_subscriber_port_map
+            try:
+                  self.tx_intf = self.port_map[tx_port]
+                  self.rx_intf = self.port_map[rx_port]
+            except:
+                  self.tx_intf = self.port_map[PORT_TX_DEFAULT]
+                  self.rx_intf = self.port_map[PORT_RX_DEFAULT]
+
             Channels.__init__(self, num, channel_start = channel_start, 
                               iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
             self.name = name
@@ -149,7 +159,14 @@ class subscriber_exchange(unittest.TestCase):
       aaa_loaded = False
 
       def setUp(self):
-          ''' Activate the dhcp and igmp apps'''
+          '''Load the OLT config and activate relevant apps'''
+          self.olt = OltConfig()
+          self.port_map = self.olt.olt_port_map()
+          ##if no olt config, fall back to ovs port map
+          if not self.port_map:
+                self.port_map = g_subscriber_port_map
+          else:
+                log.info('Using OLT Port configuration for test setup')
           for app in self.apps:
               onos_ctrl = OnosCtrl(app)
               status, _ = onos_ctrl.activate()
@@ -304,6 +321,7 @@ class subscriber_exchange(unittest.TestCase):
             for info in self.subscriber_info:
                   self.subscriber_list.append(Subscriber(name=info['Name'], 
                                                          service=info['Service'],
+                                                         port_map = self.port_map,
                                                          num=num_channels,
                                                          channel_start = channel_start,
                                                          tx_port = port_list[index][0],
@@ -328,7 +346,7 @@ class subscriber_exchange(unittest.TestCase):
                                   channel_start = 0, cbs = None, port_list = []):
           self.test_status = False
           self.num_subscribers = num_subscribers
-          self.subscriber_load(create = True, num = self.num_subscribers, 
+          self.subscriber_load(create = True, num = num_subscribers,
                                num_channels = num_channels, channel_start = channel_start, port_list = port_list)
           self.onos_aaa_load()
           self.thread_pool = ThreadPool(min(100, self.num_subscribers), queue_size=1, wait_timeout=1)
