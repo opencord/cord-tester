@@ -82,11 +82,6 @@
             <version>5.0.0</version>
         </dependency>
         <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-client</artifactId>
-            <version>1.19</version>
-        </dependency>
-        <dependency>
             <groupId>org.onosproject</groupId>
             <artifactId>onos-app-olt-api</artifactId>
             <version>1.6.0-SNAPSHOT</version>

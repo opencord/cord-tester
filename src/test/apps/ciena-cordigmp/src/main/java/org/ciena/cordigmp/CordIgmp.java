@@ -22,10 +22,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.ConcurrentHashMultiset;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
@@ -38,7 +34,6 @@ import org.onlab.packet.Ethernet;
 import org.onlab.packet.IpAddress;
 import org.onosproject.cfg.ComponentConfigService;
 import org.onosproject.codec.CodecService;
-import org.onosproject.codec.JsonCodec;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.net.ConnectPoint;
@@ -78,7 +73,6 @@ import org.onosproject.net.PortNumber;
 import org.onlab.packet.IPv4;
 import org.slf4j.Logger;
 
-import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.Dictionary;
 import java.util.List;
@@ -91,7 +85,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static com.google.common.net.MediaType.JSON_UTF_8;
 import static org.onlab.util.Tools.get;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -212,8 +205,6 @@ public class CordIgmp {
         modified(context);
 
         appId = coreService.registerApplication("org.ciena.cordigmp");
-
-        clearRemoteRoutes();
 
         networkConfig.registerConfigFactory(cordIgmpTranslateConfigFactory);
         networkConfig.addListener(configListener);
@@ -435,7 +426,6 @@ public class CordIgmp {
             flowEntry.fromApp(appId);
             flowEntry.makePermanent();
             flowRuleService.removeFlowRules(flowEntry.build());
-            removeRemoteRoute(info.route());
             log.warn("Flow rule removed for for device id " + loc.deviceId());
         }
     }
@@ -473,94 +463,8 @@ public class CordIgmp {
             flowEntry.makePermanent();
             flowRuleService.applyFlowRules(flowEntry.build());
             log.warn("Flow rules applied for device id " + sink.deviceId());
-            addRemoteRoute(route);
         }
         cordIgmpCountTable.add(route.group());
-    }
-
-    private void addRemoteRoute(McastRoute route) {
-        checkNotNull(route);
-        if (syncHost == null) {
-            log.warn("No host configured for synchronization; route will be dropped");
-            return;
-        }
-
-        log.warn("Sending routes {} to other ONOS {}", route, fabricOnosUrl);
-
-        WebResource.Builder builder = getClientBuilder(fabricOnosUrl);
-
-        ObjectNode json = codecService.getCodec(McastRoute.class)
-                .encode(route, new AbstractWebResource());
-
-        try {
-            builder.post(json.toString());
-        } catch (ClientHandlerException e) {
-            log.warn("Unable to send route to remote controller: {}", e.getMessage());
-        }
-    }
-
-    private void removeRemoteRoute(McastRoute route) {
-        if (syncHost == null) {
-            log.warn("No host configured for synchronization; route will be dropped");
-            return;
-        }
-
-        log.debug("Removing route {} from other ONOS {}", route, fabricOnosUrl);
-
-        WebResource.Builder builder = getClientBuilder(fabricOnosUrl);
-
-        ObjectNode json = codecService.getCodec(McastRoute.class)
-                .encode(route, new AbstractWebResource());
-        try {
-            builder.delete(json.toString());
-        } catch (ClientHandlerException e) {
-            log.warn("Unable to delete route from remote controller: {}", e.getMessage());
-        }
-    }
-
-    private void clearRemoteRoutes() {
-        if (syncHost == null) {
-            log.warn("No host configured for synchronization");
-            return;
-        }
-
-        log.debug("Clearing remote multicast routes from {}", fabricOnosUrl);
-
-        WebResource.Builder builder = getClientBuilder(fabricOnosUrl);
-        List<McastRoute> mcastRoutes = Lists.newArrayList();
-
-        try {
-            String response = builder
-                    .accept(MediaType.APPLICATION_JSON_TYPE)
-                    .get(String.class);
-
-            JsonCodec<McastRoute> routeCodec = codecService.getCodec(McastRoute.class);
-            ObjectMapper mapper = new ObjectMapper();
-
-
-            ObjectNode node = (ObjectNode) mapper.readTree(response);
-            ArrayNode list = (ArrayNode) node.path("routes");
-
-            list.forEach(n -> mcastRoutes.add(
-                    routeCodec.decode((ObjectNode) n, new AbstractWebResource())));
-
-        } catch (ClientHandlerException e) {
-            log.warn("Unable to clear routes from remote controller: {}", e.getMessage());
-        } catch (IOException e) {
-            log.warn("Error clearing remote routes", e);
-        }
-
-        mcastRoutes.forEach(this::removeRemoteRoute);
-    }
-
-    private WebResource.Builder getClientBuilder(String uri) {
-        Client client = Client.create();
-        client.setConnectTimeout(DEFAULT_REST_TIMEOUT_MS);
-        client.setReadTimeout(DEFAULT_REST_TIMEOUT_MS);
-        client.addFilter(new HTTPBasicAuthFilter(user, password));
-        WebResource resource = client.resource(uri);
-        return resource.accept(JSON_UTF_8.toString())
-                .type(JSON_UTF_8.toString());
     }
 
     private class InternalNetworkConfigListener implements NetworkConfigListener {
@@ -591,10 +495,10 @@ public class CordIgmp {
             }
         }
 
-        @Override
-        public boolean isRelevant(NetworkConfigEvent event) {
-            return event.configClass().equals(CORD_IGMP_TRANSLATE_CONFIG_CLASS);
-        }
+        //@Override
+        //public boolean isRelevant(NetworkConfigEvent event) {
+        //    return event.configClass().equals(CORD_IGMP_TRANSLATE_CONFIG_CLASS);
+        //}
 
 
     }
