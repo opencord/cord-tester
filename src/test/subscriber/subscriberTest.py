@@ -142,7 +142,7 @@ class subscriber_pool:
 class subscriber_exchange(unittest.TestCase):
 
       apps = [ 'org.onosproject.aaa', 'org.onosproject.dhcp' ]
-
+      olt_apps = [ 'org.onosproject.igmp', 'org.onosproject.cordmcast' ]
       dhcp_server_config = {
         "ip": "10.1.11.50",
         "mac": "ca:fe:ca:fe:ca:fe",
@@ -167,17 +167,24 @@ class subscriber_exchange(unittest.TestCase):
                 self.port_map = g_subscriber_port_map
           else:
                 log.info('Using OLT Port configuration for test setup')
-          for app in self.apps:
-              onos_ctrl = OnosCtrl(app)
-              status, _ = onos_ctrl.activate()
-              assert_equal(status, True)
-              time.sleep(2)
+                log.info('Configuring CORD OLT access device information')
+                OnosCtrl.cord_olt_config(self.olt.olt_device_data())
+                self.activate_apps(self.olt_apps)
+
+          self.activate_apps(self.apps)
 
       def teardown(self):
           '''Deactivate the dhcp app'''
           for app in self.apps:
               onos_ctrl = OnosCtrl(app)
               onos_ctrl.deactivate()
+
+      def activate_apps(self, apps):
+            for app in self.olt_apps:
+                  onos_ctrl = OnosCtrl(app)
+                  status, _ = onos_ctrl.activate()
+                  assert_equal(status, True)
+                  time.sleep(2)
 
       def onos_aaa_load(self):
             if self.aaa_loaded:
@@ -199,8 +206,7 @@ class subscriber_exchange(unittest.TestCase):
           self.onos_load_config('org.onosproject.dhcp', dhcp_dict)
 
       def onos_load_config(self, app, config):
-          onos_ctrl = OnosCtrl(app)
-          status, code = onos_ctrl.config(config)
+          status, code = OnosCtrl.config(config)
           if status is False:
              log.info('JSON config request for app %s returned status %d' %(app, code))
              assert_equal(status, True)

@@ -30,3 +30,11 @@ class OltConfig:
             return port_map
         else:
             return None
+
+    def olt_device_data(self):
+        if self.on_olt():
+            accessDeviceDict = {}
+            accessDeviceDict['uplink'] = str(self.olt_conf['uplink'])
+            accessDeviceDict['vlan'] = str(self.olt_conf['vlan'])
+            return accessDeviceDict
+        return None

@@ -71,7 +71,7 @@ class igmp_exchange(unittest.TestCase):
         self.onos_ctrl.deactivate()
 
     def onos_load_config(self, config):
-        status, code = self.onos_ctrl.config(config)
+        status, code = OnosCtrl.config(config)
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)

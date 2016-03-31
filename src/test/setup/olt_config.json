@@ -1,2 +1,2 @@
-{ "olt" : false , "ports" : { "tx" : "veth2", "rx" : "veth0" } }
+{ "olt" : false , "ports" : { "tx" : "veth2", "rx" : "veth0" }, "uplink" : 2, "vlan" : 0 }
   

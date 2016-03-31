@@ -65,7 +65,7 @@ class IgmpChannel:
             time.sleep(self.delay)
 
     def onos_load_config(self, config):
-        status, code = self.onos_ctrl.config(config)
+        status, code = OnosCtrl.config(config)
         if status is False:
             log.info('JSON config request returned status %d' %code)
         time.sleep(2)

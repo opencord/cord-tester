@@ -23,7 +23,7 @@ class eap_auth_exchange(unittest.TestCase):
             self.onos_load_config(aaa_dict)
 
       def onos_load_config(self, config):
-            status, code = self.onos_ctrl.config(config)
+            status, code = OnosCtrl.config(config)
             if status is False:
                   log.info('Configure request for AAA returned status %d' %code)
                   assert_equal(status, True)
