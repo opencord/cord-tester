@@ -1,8 +1,5 @@
-FROM ubuntu
+FROM ubuntu:14.04
 MAINTAINER chetan@ciena.com
-
-LABEL RUN docker pull ubuntu:14.04
-LABEL RUN docker run -it --name nosetest ubuntu:14.04
 
 RUN apt-get update 
 RUN apt-get -y install git python python-pip python-setuptools python-scapy tcpdump doxygen doxypy

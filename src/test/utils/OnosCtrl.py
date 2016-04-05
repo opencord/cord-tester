@@ -7,6 +7,7 @@ class OnosCtrl:
     auth = ('karaf', 'karaf')
     controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
     cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
+    applications_url = 'http://%s:8181/onos/v1/applications' %(controller)
 
     def __init__(self, app, controller = None):
         self.app = app
@@ -68,3 +69,13 @@ class OnosCtrl:
 
         ##configure the device list with access information
         return cls.config(config)
+
+    @classmethod
+    def install_app(cls, app_file):
+        params = {'activate':'true'}
+        headers = {'content-type':'application/octet-stream'}
+        with open(app_file, 'rb') as payload:
+            result = requests.post(cls.applications_url, auth = cls.auth,
+                                   params = params, headers = headers,
+                                   data = payload)
+        return result.ok, result.status_code
