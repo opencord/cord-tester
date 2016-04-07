@@ -8,7 +8,8 @@ from itertools import chain
 from nsenter import Namespace
 from docker import Client
 from shutil import copy
-sys.path.append('../utils')
+utils_dir = os.path.join( os.path.dirname(os.path.realpath(sys.argv[0])), '../utils')
+sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
 
 class docker_netns(object):
@@ -87,6 +88,12 @@ class Container(object):
             print('Cleaning container %s' %cnt['Id'])
             cls.dckr.kill(cnt['Id'])
             cls.dckr.remove_container(cnt['Id'], force=True)
+
+    @classmethod
+    def remove_container(cls, name, force=True):
+        try:
+            cls.dckr.remove_container(name, force = force)
+        except: pass
 
     def exists(self):
         return '/{0}'.format(self.name) in list(flatten(n['Names'] for n in self.dckr.containers()))
@@ -173,6 +180,7 @@ class Onos(Container):
     def __init__(self, name = 'cord-onos', image = 'onosproject/onos', tag = 'latest', boot_delay = 60):
         super(Onos, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
         if not self.exists():
+            self.remove_container(name, force=True)
             host_config = self.create_host_config(port_list = self.ports)
             print('Starting ONOS container %s' %self.name)
             self.start(ports = self.ports, environment = self.env, 
@@ -196,6 +204,7 @@ class Radius(Container):
     def __init__(self, name = 'cord-radius', image = 'freeradius', tag = 'podd'):
         super(Radius, self).__init__(name, image, tag = tag, command = self.start_command)
         if not self.exists():
+            self.remove_container(name, force=True)
             host_config = self.create_host_config(port_list = self.ports,
                                                   host_guest_map = self.host_guest_map)
             volumes = []
@@ -208,7 +217,10 @@ class Radius(Container):
 class CordTester(Container):
 
     sandbox = '/root/test'
-    sandbox_host = os.path.join(os.getenv('HOME'), 'nose_exp')
+    sandbox_setup = '/root/test/src/test/setup'
+    tester_paths = os.path.realpath(sys.argv[0]).split(os.path.sep)
+    tester_path_index = tester_paths.index('cord-tester')
+    sandbox_host = os.path.sep.join(tester_paths[:tester_path_index+1])
 
     host_guest_map = ( (sandbox_host, sandbox),
                       ('/lib/modules', '/lib/modules')
@@ -216,7 +228,6 @@ class CordTester(Container):
     basename = 'cord-tester'
 
     def __init__(self, image = 'cord-test/nose', tag = 'latest', env = None, rm = False, boot_delay=2):
-        copy('of-bridge.sh', self.sandbox_host)
         self.rm = rm
         self.name = self.get_name()
         super(CordTester, self).__init__(self.name, image = image, tag = tag)
@@ -224,10 +235,12 @@ class CordTester(Container):
         volumes = []
         for h, g in self.host_guest_map:
             volumes.append(g)
+        ##Remove test container if any
+        self.remove_container(self.name, force=True)
         print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
         self.start(rm = False, volumes = volumes, environment = env, 
                    host_config = host_config, tty = True)
-        ovs_cmd = os.path.join(self.sandbox, 'of-bridge.sh') + ' br0'
+        ovs_cmd = os.path.join(self.sandbox_setup, 'of-bridge.sh') + ' br0'
         print('Starting OVS on test container %s' %self.name)
         self.execute(ovs_cmd)
         status = 1
@@ -305,7 +318,7 @@ CMD ["/bin/bash"]
                 test_case = test_file + ':' + t.split(':')[1]
             else:
                 test_case = test_file
-            cmd = 'nosetests -v {0}/git/cord-tester/src/test/{1}/{2}'.format(self.sandbox, test, test_case)
+            cmd = 'nosetests -v {0}/src/test/{1}/{2}'.format(self.sandbox, test, test_case)
             status = self.execute(cmd, shell = True)
             print('Test %s %s' %(test_case, 'Success' if status == 0 else 'Failure'))
         print('Done running tests')
@@ -319,7 +332,8 @@ onos_image_default='onosproject/onos:latest'
 nose_image_default='cord-test/nose:latest'
 test_type_default='dhcp'
 onos_app_version = '1.0-SNAPSHOT'
-onos_app_file = os.path.abspath('../apps/ciena-cordigmp-' + onos_app_version + '.oar')
+onos_tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
+onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(onos_tester_base) + onos_app_version + '.oar')
 zebra_quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.1', 'mask': 16 }
 
 def runTest(args):
@@ -371,8 +385,7 @@ def runTest(args):
                      'ONOS_AAA_IP' : radius_ip,
                    }
     if args.olt:
-        olt_conf_loc = os.path.abspath('.')
-        olt_conf_test_loc=olt_conf_loc.replace(os.getenv('HOME'), CordTester.sandbox)
+        olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
     test_cnt = CordTester(image = nose_cnt['image'], tag = nose_cnt['tag'],
