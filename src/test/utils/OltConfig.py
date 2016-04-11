@@ -11,6 +11,7 @@ class OltConfig:
         try:
             self.olt_handle = open(self.olt_conf_file, 'r')
             self.olt_conf = json.load(self.olt_handle)
+            self.olt_conf['olt'] = True
         except:
             self.olt_handle = None
             self.olt_conf = {}

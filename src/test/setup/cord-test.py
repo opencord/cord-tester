@@ -11,6 +11,7 @@ from shutil import copy
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(sys.argv[0])), '../utils')
 sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
+from OltConfig import OltConfig
 
 class docker_netns(object):
 
@@ -218,6 +219,7 @@ class CordTester(Container):
 
     sandbox = '/root/test'
     sandbox_setup = '/root/test/src/test/setup'
+    tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
     tester_paths = os.path.realpath(sys.argv[0]).split(os.path.sep)
     tester_path_index = tester_paths.index('cord-tester')
     sandbox_host = os.path.sep.join(tester_paths[:tester_path_index+1])
@@ -227,7 +229,8 @@ class CordTester(Container):
                        )
     basename = 'cord-tester'
 
-    def __init__(self, image = 'cord-test/nose', tag = 'latest', env = None, rm = False, boot_delay=2):
+    def __init__(self, ctlr_ip = None, image = 'cord-test/nose', tag = 'latest', env = None, rm = False):
+        self.ctlr_ip = ctlr_ip
         self.rm = rm
         self.name = self.get_name()
         super(CordTester, self).__init__(self.name, image = image, tag = tag)
@@ -237,18 +240,37 @@ class CordTester(Container):
             volumes.append(g)
         ##Remove test container if any
         self.remove_container(self.name, force=True)
+        if env is not None and env.has_key('OLT_CONFIG'):
+            self.olt = True
+        else:
+            self.olt = False
+        self.intf_ports = (1, 2)
         print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
         self.start(rm = False, volumes = volumes, environment = env, 
                    host_config = host_config, tty = True)
-        ovs_cmd = os.path.join(self.sandbox_setup, 'of-bridge.sh') + ' br0'
-        print('Starting OVS on test container %s' %self.name)
-        self.execute(ovs_cmd)
+
+    def execute_switch(self, cmd, shell = False):
+        if self.olt:
+            return os.system(cmd)
+        return self.execute(cmd, shell = shell)
+
+    def start_switch(self, bridge = 'ovsbr0', boot_delay = 2):
+        """Start OVS"""
+        ##Determine if OVS has to be started locally or not
+        s_file,s_sandbox = ('of-bridge-local.sh',self.tester_base) if self.olt else ('of-bridge.sh',self.sandbox_setup)
+        ovs_cmd = os.path.join(s_sandbox, '{0}'.format(s_file)) + ' {0}'.format(bridge)
+        if self.olt:
+            ovs_cmd += ' {0}'.format(self.ctlr_ip)
+            print('Starting OVS on the host')
+        else:
+            print('Starting OVS on test container %s' %self.name)
+        self.execute_switch(ovs_cmd)
         status = 1
         ## Wait for the LLDP flows to be added to the switch
         tries = 0
         while status != 0 and tries < 100:
-            cmd = 'ovs-ofctl dump-flows br0 | grep \"type=0x8942\"'
-            status = self.execute(cmd, shell = True)
+            cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(bridge)
+            status = self.execute_switch(cmd, shell = True)
             tries += 1
             if tries % 10 == 0:
                 print('Waiting for test switch to be connected to ONOS controller ...')
@@ -260,7 +282,28 @@ class CordTester(Container):
                 self.kill()
             sys.exit(1)
 
-        time.sleep(boot_delay)
+        if boot_delay:
+            time.sleep(boot_delay)
+
+        return self.setup_intfs(bridge)
+
+    def setup_intfs(self, bridge = 'ovsbr0'):
+        if not self.olt:
+            return 0
+        olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
+        olt_config = OltConfig(olt_conf_file)
+        port_map = olt_config.olt_port_map()
+        tester_intf_subnet = '192.168.100'
+        res = 0
+        for port in self.intf_ports:
+            guest_if = port_map[port]
+            local_if = guest_if
+            guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, str(port))
+            ##Use pipeworks to configure container interfaces on OVS bridge
+            pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(bridge, guest_if, local_if, self.name, guest_ip)
+            res += os.system(pipework_cmd)
+
+        return res
 
     @classmethod
     def get_name(cls):
@@ -332,8 +375,8 @@ onos_image_default='onosproject/onos:latest'
 nose_image_default='cord-test/nose:latest'
 test_type_default='dhcp'
 onos_app_version = '1.0-SNAPSHOT'
-onos_tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
-onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(onos_tester_base) + onos_app_version + '.oar')
+cord_tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
+onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 zebra_quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.1', 'mask': 16 }
 
 def runTest(args):
@@ -388,9 +431,11 @@ def runTest(args):
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
-    test_cnt = CordTester(image = nose_cnt['image'], tag = nose_cnt['tag'],
+    test_cnt = CordTester(ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
                           env = test_cnt_env,
                           rm = args.kill)
+    if args.start_switch or not args.olt:
+        test_cnt.start_switch()
     tests = args.test_type.split('-')
     test_cnt.run_tests(tests)
 
@@ -404,6 +449,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
     parser.add_argument('-k', '--kill', action='store_true', help='Remove test container after tests')
     parser.add_argument('-b', '--build', default='', type=str)
+    parser.add_argument('-s', '--start-switch', action='store_true', help='Start OVS')
     parser.set_defaults(func=runTest)
     args = parser.parse_args()
     args.func(args)
