@@ -337,10 +337,11 @@ RUN wget http://openvswitch.org/releases/openvswitch-2.4.0.tar.gz -O /root/ovs/o
  cd openvswitch-2.4.0 && \
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
-RUN apt-get -y install python-twisted python-sqlite sqlite3
+RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect
 RUN pip install scapy-ssl_tls
 RUN pip install -U scapy
 RUN pip install monotonic
+RUN pip install configObj
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 CMD ["/bin/bash"]
