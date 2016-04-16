@@ -54,12 +54,13 @@ class dhcp_exchange(unittest.TestCase):
                       dhcp_config[k] = config[k]
           self.onos_load_config(dhcp_dict)
 
-    def send_recv(self, update_seed = False):
-        cip, sip = self.dhcp.discover(update_seed = update_seed)
-        assert_not_equal(cip, None)
-        assert_not_equal(sip, None)
-        log.info('Got dhcp client IP %s from server %s for mac %s' %
-                 (cip, sip, self.dhcp.get_mac(cip)[0]))
+    def send_recv(self, mac = None, update_seed = False, validate = True):
+        cip, sip = self.dhcp.discover(mac = mac, update_seed = update_seed)
+        if validate:
+            assert_not_equal(cip, None)
+            assert_not_equal(sip, None)
+            log.info('Got dhcp client IP %s from server %s for mac %s' %
+                     (cip, sip, self.dhcp.get_mac(cip)[0]))
         return cip,sip
 
     def test_dhcp_1request(self, iface = 'veth0'):
@@ -129,3 +130,35 @@ class dhcp_exchange(unittest.TestCase):
             log.info('Map before release %s' %ip_map)
             log.info('Map after release %s' %ip_map2)
         assert_equal(ip_map, ip_map2)
+
+
+    def test_dhcp_starvation(self, iface = 'veth0'):
+        config = {'startip':'193.170.1.20', 'endip':'193.170.1.69', 
+                  'ip':'193.170.1.2', 'mac': "ca:fe:c2:fe:cc:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '192.169.1.1', iface = iface)
+        ip_map = {}
+        for i in range(10):
+            cip, sip = self.send_recv(update_seed = True)
+            if ip_map.has_key(cip):
+                log.info('IP %s given out multiple times' %cip)
+                assert_equal(False, ip_map.has_key(cip))
+            ip_map[cip] = sip
+
+
+    def test_dhcp_starvation(self, iface = 'veth0'):
+        '''DHCP starve'''
+        config = {'startip':'182.17.0.20', 'endip':'182.17.0.69', 
+                  'ip':'182.17.0.2', 'mac': "ca:fe:c3:fe:ca:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = iface)
+        log.info('Verifying 1 ')
+        for x in xrange(50):
+            mac = RandMAC()._fix()
+            self.send_recv(mac = mac)
+        log.info('Verifying 2 ')
+        cip, sip = self.send_recv(update_seed = True, validate = False)
+        assert_equal(cip, None)
+        assert_equal(sip, None)
