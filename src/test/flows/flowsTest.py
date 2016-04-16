@@ -38,7 +38,7 @@ class flows_exchange(unittest.TestCase):
         cls.port_map = cls.olt.olt_port_map()
         if not cls.port_map:
             cls.port_map = cls.default_port_map
-        cls.device_id = get_mac() ##match against our device id
+        cls.device_id = 'of:' + get_mac() ##match against our device id
 
     def test_flow_mac(self):
         '''Add and verify flows with MAC selectors'''
