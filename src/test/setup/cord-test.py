@@ -152,8 +152,8 @@ class Container(object):
             with Namespace(pid, 'net'):
                 ip = IPRoute()
                 ip.link('set', index=guest, ifname='eth1')
-                ip.link('set', index=guest, state='up')
                 ip.addr('add', index=guest, address=self.ipaddress, mask=self.mask)
+                ip.link('set', index=guest, state='up')
 
     def execute(self, cmd, tty = True, stream = False, shell = False):
         res = 0
@@ -167,7 +167,7 @@ class Container(object):
             return res
         for c in cmds:
             i = self.dckr.exec_create(container=self.name, cmd=c, tty = tty, privileged = True)
-            self.dckr.exec_start(i['Id'], stream = stream)
+            self.dckr.exec_start(i['Id'], stream = stream, detach=True)
             result = self.dckr.exec_inspect(i['Id'])
             res += 0 if result['ExitCode'] == None else result['ExitCode']
         return res
@@ -209,7 +209,7 @@ class Radius(Container):
             host_config = self.create_host_config(port_list = self.ports,
                                                   host_guest_map = self.host_guest_map)
             volumes = []
-            for h,g in self.host_guest_map:
+            for _,g in self.host_guest_map:
                 volumes.append(g)
             self.start(ports = self.ports, environment = self.env, 
                        volumes = volumes, 
@@ -237,8 +237,10 @@ class CordTester(Container):
         super(CordTester, self).__init__(self.name, image = image, tag = tag)
         host_config = self.create_host_config(host_guest_map = self.host_guest_map, privileged = True)
         volumes = []
-        for h, g in self.host_guest_map:
+        for _, g in self.host_guest_map:
             volumes.append(g)
+        if not self.img_exists():
+            self.build_image(image)
         ##Remove test container if any
         self.remove_container(self.name, force=True)
         if env is not None and env.has_key('OLT_CONFIG'):
@@ -376,6 +378,51 @@ CMD ["/bin/bash"]
             print('Removing test container %s' %self.name)
             self.kill(remove=True)
 
+class Quagga(Container):
+
+    quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }
+    ports = [ 179, 2601, 2602, 2603, 2604, 2605, 2606 ]
+    host_quagga_config = os.path.join(CordTester.tester_base, 'quagga-config')
+    guest_quagga_config = '/root/config'
+    host_guest_map = ( (host_quagga_config, guest_quagga_config), )
+
+    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest', boot_delay = 60):
+        super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
+        if not self.img_exists():
+            self.build_image(image)
+        if not self.exists():
+            self.remove_container(name, force=True)
+            host_config = self.create_host_config(port_list = self.ports, 
+                                                  host_guest_map = self.host_guest_map, 
+                                                  privileged = True)
+            volumes = []
+            for _,g in self.host_guest_map:
+                volumes.append(g)
+            self.start(ports = self.ports,
+                       host_config = host_config, 
+                       volumes = volumes, tty = True)
+            print('Starting Quagga on container %s' %self.name)
+            self.execute('{}/start.sh'.format(self.guest_quagga_config))
+
+    @classmethod
+    def build_image(cls, image):
+        onos_quagga_ip = Onos.quagga_config['ip']
+        print('Building Quagga image %s' %image)
+        dockerfile = '''
+FROM ubuntu:latest
+WORKDIR /root
+RUN useradd -M quagga
+RUN mkdir /var/log/quagga && chown quagga:quagga /var/log/quagga
+RUN mkdir /var/run/quagga && chown quagga:quagga /var/run/quagga
+RUN apt-get update && apt-get install -qy git autoconf libtool gawk make telnet libreadline6-dev
+RUN git clone git://git.sv.gnu.org/quagga.git quagga && \
+(cd quagga && git checkout HEAD && ./bootstrap.sh && \
+sed -i -r 's,htonl.*?\(INADDR_LOOPBACK\),inet_addr\("{0}"\),g' zebra/zebra_fpm.c && \
+./configure --enable-fpm --disable-doc --localstatedir=/var/run/quagga && make && make install)
+RUN ldconfig
+'''.format(onos_quagga_ip)
+        super(Quagga, cls).build_image(dockerfile, image)
+        print('Done building image %s' %image)
 
 ##default onos/radius/test container images and names
 onos_image_default='onosproject/onos:latest'
@@ -384,7 +431,6 @@ test_type_default='dhcp'
 onos_app_version = '1.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
-zebra_quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.1', 'mask': 16 }
 
 def runTest(args):
     onos_cnt = {'tag':'latest'}
@@ -431,14 +477,11 @@ def runTest(args):
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
     print('Installing ONOS app %s' %onos_app_file)
     OnosCtrl.install_app(args.app, onos_ip = onos_ip)
-
-    build_cnt_image = args.build.strip()
-    if build_cnt_image:
-        CordTester.build_image(build_cnt_image)
-        nose_cnt['image']= build_cnt_image.split(':')[0]
-        if build_cnt_image.find(':') >= 0:
-            nose_cnt['tag'] = build_cnt_image.split(':')[1]
-
+    
+    if args.quagga == True:
+        #Start quagga. Builds container if required
+        quagga = Quagga()
+        
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
                      'ONOS_AAA_IP' : radius_ip,
                    }
@@ -460,13 +503,13 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--test-type', default=test_type_default, type=str)
     parser.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
     parser.add_argument('-r', '--radius',default='',type=str, help='Radius container image')
+    parser.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
     parser.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
     parser.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
     parser.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server.'
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
     parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
     parser.add_argument('-k', '--kill', action='store_true', help='Remove test container after tests')
-    parser.add_argument('-b', '--build', default='', type=str)
     parser.add_argument('-s', '--start-switch', action='store_true', help='Start OVS')
     parser.set_defaults(func=runTest)
     args = parser.parse_args()
