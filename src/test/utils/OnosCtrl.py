@@ -71,11 +71,12 @@ class OnosCtrl:
         return cls.config(config)
 
     @classmethod
-    def install_app(cls, app_file):
+    def install_app(cls, app_file, onos_ip = None):
         params = {'activate':'true'}
         headers = {'content-type':'application/octet-stream'}
+        url = cls.applications_url if onos_ip is None else 'http://{0}:8181/onos/v1/applications'.format(onos_ip)
         with open(app_file, 'rb') as payload:
-            result = requests.post(cls.applications_url, auth = cls.auth,
+            result = requests.post(url, auth = cls.auth,
                                    params = params, headers = headers,
                                    data = payload)
         return result.ok, result.status_code

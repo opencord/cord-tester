@@ -229,7 +229,8 @@ class CordTester(Container):
                        )
     basename = 'cord-tester'
 
-    def __init__(self, ctlr_ip = None, image = 'cord-test/nose', tag = 'latest', env = None, rm = False):
+    def __init__(self, ctlr_ip = None, image = 'cord-test/nose', tag = 'latest',
+                 env = None, rm = False):
         self.ctlr_ip = ctlr_ip
         self.rm = rm
         self.name = self.get_name()
@@ -242,9 +243,12 @@ class CordTester(Container):
         self.remove_container(self.name, force=True)
         if env is not None and env.has_key('OLT_CONFIG'):
             self.olt = True
+            olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
+            olt_config = OltConfig(olt_conf_file)
+            self.port_map = olt_config.olt_port_map()
         else:
             self.olt = False
-        self.intf_ports = (1, 2)
+            self.port_map = None
         print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
         self.start(rm = False, volumes = volumes, environment = env, 
                    host_config = host_config, tty = True)
@@ -285,23 +289,25 @@ class CordTester(Container):
         if boot_delay:
             time.sleep(boot_delay)
 
-        return self.setup_intfs(bridge)
-
-    def setup_intfs(self, bridge = 'ovsbr0'):
+    def setup_intfs(self):
         if not self.olt:
             return 0
-        olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
-        olt_config = OltConfig(olt_conf_file)
-        port_map = olt_config.olt_port_map()
         tester_intf_subnet = '192.168.100'
         res = 0
-        for port in self.intf_ports:
-            guest_if = port_map[port]
+        port_num = 0
+        host_intf = self.port_map['host']
+        start_vlan = self.port_map['start_vlan']
+        for port in self.port_map['ports']:
+            guest_if = port
             local_if = guest_if
-            guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, str(port))
-            ##Use pipeworks to configure container interfaces on OVS bridge
-            pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(bridge, guest_if, local_if, self.name, guest_ip)
+            guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, str(port_num+1))
+            ##Use pipeworks to configure container interfaces on host/bridge interfaces
+            pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if, local_if, self.name, guest_ip)
+            if start_vlan != 0:
+                pipework_cmd += ' @{}'.format(str(start_vlan + port_num))
+                
             res += os.system(pipework_cmd)
+            port_num += 1
 
         return res
 
@@ -384,7 +390,7 @@ def runTest(args):
     onos_cnt = {'tag':'latest'}
     radius_cnt = {'tag':'latest'}
     nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
-
+    radius_ip = None
     #print('Test type %s, onos %s, radius %s, app %s, olt %s, cleanup %s, kill flag %s, build image %s'
     #      %(args.test_type, args.onos, args.radius, args.app, args.olt, args.cleanup, args.kill, args.build))
     if args.cleanup:
@@ -395,28 +401,36 @@ def runTest(args):
         Container.cleanup(cleanup_container)
         sys.exit(0)
 
-    onos_cnt['image'] = args.onos.split(':')[0]
-    if args.onos.find(':') >= 0:
-        onos_cnt['tag'] = args.onos.split(':')[1]
-
-    onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
-    onos_ip = onos.ip()
-
-    ##Start Radius container if specified
-    if args.radius:
-        radius_cnt['image'] = args.radius.split(':')[0]
-        if args.radius.find(':') >= 0:
-            radius_cnt['tag'] = args.radius.split(':')[1]
-        radius = Radius(image = radius_cnt['image'], tag = radius_cnt['tag'])
-        radius_ip = radius.ip()
-        print('Started Radius server with IP %s' %radius_ip)
+    #don't spawn onos if the user has specified external test controller with test interface config
+    if args.test_controller:
+        ips = args.test_controller.split('/')
+        onos_ip = ips[0]
+        if len(ips) > 1:
+            radius_ip = ips[1]
+        else:
+            radius_ip = None
     else:
-        radius_ip = None
+        onos_cnt['image'] = args.onos.split(':')[0]
+        if args.onos.find(':') >= 0:
+            onos_cnt['tag'] = args.onos.split(':')[1]
 
+        onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
+        onos_ip = onos.ip()
+
+        ##Start Radius container if specified
+        if args.radius:
+            radius_cnt['image'] = args.radius.split(':')[0]
+            if args.radius.find(':') >= 0:
+                radius_cnt['tag'] = args.radius.split(':')[1]
+            radius = Radius(image = radius_cnt['image'], tag = radius_cnt['tag'])
+            radius_ip = radius.ip()
+            print('Started Radius server with IP %s' %radius_ip)
+        else:
+            radius_ip = None
+            
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
     print('Installing ONOS app %s' %onos_app_file)
-
-    OnosCtrl.install_app(args.app)
+    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
 
     build_cnt_image = args.build.strip()
     if build_cnt_image:
@@ -437,6 +451,7 @@ def runTest(args):
                           rm = args.kill)
     if args.start_switch or not args.olt:
         test_cnt.start_switch()
+    test_cnt.setup_intfs()
     tests = args.test_type.split('-')
     test_cnt.run_tests(tests)
 
@@ -447,6 +462,8 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--radius',default='',type=str, help='Radius container image')
     parser.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
     parser.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
+    parser.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server.'
+                        'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
     parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
     parser.add_argument('-k', '--kill', action='store_true', help='Remove test container after tests')
     parser.add_argument('-b', '--build', default='', type=str)

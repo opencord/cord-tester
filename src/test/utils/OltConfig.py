@@ -21,11 +21,20 @@ class OltConfig:
         return self.olt_conf['olt'] is True
 
     def olt_port_map(self):
-        if self.on_olt() and self.olt_conf.has_key('ports'):
+        if self.on_olt() and self.olt_conf.has_key('port_map'):
             port_map = {}
+            port_map['ports'] = self.olt_conf['port_map']['ports']
+            port_map['start_vlan'] = 0
+            if self.olt_conf['port_map'].has_key('host'):
+                port_map['host'] = self.olt_conf['port_map']['host']
+            else:
+                port_map['host'] = 'ovsbr0'
+            if self.olt_conf['port_map'].has_key('start_vlan'):
+                port_map['start_vlan'] = int(self.olt_conf['port_map']['start_vlan'])
+                
             ##Build a rx/tx port number to interface map
-            port_map[1] = self.olt_conf['ports']['rx']
-            port_map[2] = self.olt_conf['ports']['tx']
+            port_map[1] = self.olt_conf['port_map']['rx']
+            port_map[2] = self.olt_conf['port_map']['tx']
             port_map[port_map[1]] = 1
             port_map[port_map[2]] = 2
             return port_map
