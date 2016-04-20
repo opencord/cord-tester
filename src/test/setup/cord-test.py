@@ -345,11 +345,16 @@ RUN wget http://openvswitch.org/releases/openvswitch-2.4.0.tar.gz -O /root/ovs/o
  cd openvswitch-2.4.0 && \
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
-RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect
+RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect telnet
 RUN pip install scapy-ssl_tls
 RUN pip install -U scapy
 RUN pip install monotonic
 RUN pip install configObj
+RUN pip install -U docker-py
+RUN pip install -U pyyaml
+RUN pip install -U nsenter
+RUN pip install -U pyroute2
+RUN pip install -U netaddr
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 CMD ["/bin/bash"]
@@ -437,6 +442,7 @@ def runTest(args):
     radius_cnt = {'tag':'latest'}
     nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
     radius_ip = None
+    quagga_ip = None
     #print('Test type %s, onos %s, radius %s, app %s, olt %s, cleanup %s, kill flag %s, build image %s'
     #      %(args.test_type, args.onos, args.radius, args.app, args.olt, args.cleanup, args.kill, args.build))
     if args.cleanup:
@@ -481,9 +487,11 @@ def runTest(args):
     if args.quagga == True:
         #Start quagga. Builds container if required
         quagga = Quagga()
+        quagga_ip = quagga.ip()
         
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
-                     'ONOS_AAA_IP' : radius_ip,
+                     'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
+                     'QUAGGA_IP': quagga_ip if quagga_ip is not None else '',
                    }
     if args.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
