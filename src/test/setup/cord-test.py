@@ -225,12 +225,13 @@ class CordTester(Container):
     sandbox_host = os.path.sep.join(tester_paths[:tester_path_index+1])
 
     host_guest_map = ( (sandbox_host, sandbox),
-                      ('/lib/modules', '/lib/modules')
+                       ('/lib/modules', '/lib/modules'),
+                       ('/var/run/docker.sock', '/var/run/docker.sock')
                        )
     basename = 'cord-tester'
 
     def __init__(self, ctlr_ip = None, image = 'cord-test/nose', tag = 'latest',
-                 env = None, rm = False):
+                 env = None, rm = False, update = False):
         self.ctlr_ip = ctlr_ip
         self.rm = rm
         self.name = self.get_name()
@@ -239,7 +240,7 @@ class CordTester(Container):
         volumes = []
         for _, g in self.host_guest_map:
             volumes.append(g)
-        if not self.img_exists():
+        if update is True or not self.img_exists():
             self.build_image(image)
         ##Remove test container if any
         self.remove_container(self.name, force=True)
@@ -499,7 +500,8 @@ def runTest(args):
 
     test_cnt = CordTester(ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
                           env = test_cnt_env,
-                          rm = args.kill)
+                          rm = args.kill,
+                          update = args.update)
     if args.start_switch or not args.olt:
         test_cnt.start_switch()
     test_cnt.setup_intfs()
@@ -519,6 +521,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
     parser.add_argument('-k', '--kill', action='store_true', help='Remove test container after tests')
     parser.add_argument('-s', '--start-switch', action='store_true', help='Start OVS')
+    parser.add_argument('-u', '--update', action='store_true', help='Update test container image')
     parser.set_defaults(func=runTest)
     args = parser.parse_args()
     args.func(args)
