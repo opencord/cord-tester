@@ -2,7 +2,7 @@
 bridge="$1"
 controller="$2"
 if [ x"$bridge" = "x" ]; then
-  bridge="br0"
+  bridge="ovsbr0"
 fi
 if [ x"$controller" = "x" ]; then
   controller=$ONOS_CONTROLLER_IP
@@ -22,6 +22,7 @@ done
 echo "Configuring ovs bridge $bridge"
 ovs-vsctl del-br $bridge
 ovs-vsctl add-br $bridge
+#ovs-vsctl set bridge $bridge other-config:hwaddr=00:11:22:33:44:55
 for i in $(seq 1 2 $ports); do
   ovs-vsctl add-port $bridge veth$i
 done

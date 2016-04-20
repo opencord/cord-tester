@@ -2,7 +2,7 @@
 bridge="$1"
 controller="$2"
 if [ x"$bridge" = "x" ]; then
-  bridge="br0"
+  bridge="ovsbr0"
 fi
 if [ x"$controller" = "x" ]; then
   controller=$ONOS_CONTROLLER_IP
