@@ -239,8 +239,6 @@ def runTest(args):
     nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
     radius_ip = None
     quagga_ip = None
-    #print('Test type %s, onos %s, radius %s, app %s, olt %s, cleanup %s, kill flag %s, build image %s'
-    #      %(args.test_type, args.onos, args.radius, args.app, args.olt, args.cleanup, args.kill, args.build))
     if args.cleanup:
         cleanup_container = args.cleanup
         if cleanup_container.find(':') < 0:
@@ -295,7 +293,7 @@ def runTest(args):
 
     test_cnt = CordTester(ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
                           env = test_cnt_env,
-                          rm = args.kill,
+                          rm = False if args.keep else True,
                           update = args.update)
     if args.start_switch or not args.olt:
         test_cnt.start_switch()
@@ -305,7 +303,7 @@ def runTest(args):
     cord_test_server_stop(test_server)
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description='Cord Tester for ONOS')
+    parser = ArgumentParser(description='Cord Tester')
     parser.add_argument('-t', '--test-type', default=test_type_default, type=str)
     parser.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
     parser.add_argument('-r', '--radius',default='',type=str, help='Radius container image')
@@ -315,8 +313,8 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server.'
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
     parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
-    parser.add_argument('-k', '--kill', action='store_true', help='Remove test container after tests')
-    parser.add_argument('-s', '--start-switch', action='store_true', help='Start OVS')
+    parser.add_argument('-k', '--keep', action='store_true', help='Keep test container after tests')
+    parser.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
     parser.add_argument('-u', '--update', action='store_true', help='Update test container image')
     parser.set_defaults(func=runTest)
     args = parser.parse_args()
