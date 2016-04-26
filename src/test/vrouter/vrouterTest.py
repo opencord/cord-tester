@@ -207,9 +207,9 @@ line vty
     def vrouter_configure(cls, networks = 4):
         ##Deactivate vrouter
         vrouter_configs = cls.vrouter_config_get(networks = networks)
-        #cls.start_onos(network_cfg = vrouter_configs)
+        cls.start_onos(network_cfg = vrouter_configs)
         ##Start quagga with 4 networks
-        #cls.start_quagga(networks = networks, stop = True, gateway = cls.GATEWAY)
+        cls.start_quagga(networks = networks, stop = True, gateway = cls.GATEWAY)
         return vrouter_configs
     
     def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip):
