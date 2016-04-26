@@ -233,3 +233,53 @@ class Radius(Container):
                        volumes = volumes, 
                        host_config = host_config, tty = True)
 
+class Quagga(Container):
+    quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }
+    ports = [ 179, 2601, 2602, 2603, 2604, 2605, 2606 ]
+    host_quagga_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/quagga-config')
+    guest_quagga_config = '/root/config'
+    quagga_config_file = os.path.join(guest_quagga_config, 'testrib.conf')
+    host_guest_map = ( (host_quagga_config, guest_quagga_config), )
+    
+    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest', 
+                 boot_delay = 15, restart = False, config_file = quagga_config_file):
+        super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
+        if not self.img_exists():
+            self.build_image(image)
+        if restart is True and self.exists():
+            self.kill()
+        if not self.exists():
+            self.remove_container(name, force=True)
+            host_config = self.create_host_config(port_list = self.ports, 
+                                                  host_guest_map = self.host_guest_map, 
+                                                  privileged = True)
+            volumes = []
+            for _,g in self.host_guest_map:
+                volumes.append(g)
+            self.start(ports = self.ports,
+                       host_config = host_config, 
+                       volumes = volumes, tty = True)
+            print('Starting Quagga on container %s' %self.name)
+            self.execute('{0}/start.sh {1}'.format(self.guest_quagga_config, config_file))
+            time.sleep(boot_delay)
+
+    @classmethod
+    def build_image(cls, image):
+        onos_quagga_ip = Onos.quagga_config['ip']
+        print('Building Quagga image %s' %image)
+        dockerfile = '''
+FROM ubuntu:latest
+WORKDIR /root
+RUN useradd -M quagga
+RUN mkdir /var/log/quagga && chown quagga:quagga /var/log/quagga
+RUN mkdir /var/run/quagga && chown quagga:quagga /var/run/quagga
+RUN apt-get update && apt-get install -qy git autoconf libtool gawk make telnet libreadline6-dev
+RUN git clone git://git.sv.gnu.org/quagga.git quagga && \
+(cd quagga && git checkout HEAD && ./bootstrap.sh && \
+sed -i -r 's,htonl.*?\(INADDR_LOOPBACK\),inet_addr\("{0}"\),g' zebra/zebra_fpm.c && \
+./configure --enable-fpm --disable-doc --localstatedir=/var/run/quagga && make && make install)
+RUN ldconfig
+'''.format(onos_quagga_ip)
+        super(Quagga, cls).build_image(dockerfile, image)
+        print('Done building image %s' %image)
+

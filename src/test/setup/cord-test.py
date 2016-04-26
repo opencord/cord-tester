@@ -179,51 +179,6 @@ CMD ["/bin/bash"]
             print('Removing test container %s' %self.name)
             self.kill(remove=True)
 
-class Quagga(Container):
-    quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }
-    ports = [ 179, 2601, 2602, 2603, 2604, 2605, 2606 ]
-    host_quagga_config = os.path.join(CordTester.tester_base, 'quagga-config')
-    guest_quagga_config = '/root/config'
-    host_guest_map = ( (host_quagga_config, guest_quagga_config), )
-
-    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest', boot_delay = 60):
-        super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
-        if not self.img_exists():
-            self.build_image(image)
-        if not self.exists():
-            self.remove_container(name, force=True)
-            host_config = self.create_host_config(port_list = self.ports, 
-                                                  host_guest_map = self.host_guest_map, 
-                                                  privileged = True)
-            volumes = []
-            for _,g in self.host_guest_map:
-                volumes.append(g)
-            self.start(ports = self.ports,
-                       host_config = host_config, 
-                       volumes = volumes, tty = True)
-            print('Starting Quagga on container %s' %self.name)
-            self.execute('{}/start.sh'.format(self.guest_quagga_config))
-
-    @classmethod
-    def build_image(cls, image):
-        onos_quagga_ip = Onos.quagga_config['ip']
-        print('Building Quagga image %s' %image)
-        dockerfile = '''
-FROM ubuntu:latest
-WORKDIR /root
-RUN useradd -M quagga
-RUN mkdir /var/log/quagga && chown quagga:quagga /var/log/quagga
-RUN mkdir /var/run/quagga && chown quagga:quagga /var/run/quagga
-RUN apt-get update && apt-get install -qy git autoconf libtool gawk make telnet libreadline6-dev
-RUN git clone git://git.sv.gnu.org/quagga.git quagga && \
-(cd quagga && git checkout HEAD && ./bootstrap.sh && \
-sed -i -r 's,htonl.*?\(INADDR_LOOPBACK\),inet_addr\("{0}"\),g' zebra/zebra_fpm.c && \
-./configure --enable-fpm --disable-doc --localstatedir=/var/run/quagga && make && make install)
-RUN ldconfig
-'''.format(onos_quagga_ip)
-        super(Quagga, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
 ##default onos/radius/test container images and names
 onos_image_default='onosproject/onos:latest'
 nose_image_default='cord-test/nose:latest'

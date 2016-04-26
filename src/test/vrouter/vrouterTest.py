@@ -5,8 +5,8 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl, get_mac
 from onosclidriver import OnosCliDriver
-from CordContainer import Container, Onos
-from CordTestServer import cord_test_onos_restart
+from CordContainer import Container, Onos, Quagga
+from CordTestServer import cord_test_onos_restart, cord_test_quagga_restart
 from portmaps import g_subscriber_port_map
 import threading
 import time
@@ -14,13 +14,6 @@ import os
 import json
 log.setLevel('INFO')
 
-class Quagga(Container):
-    quagga_config = '/root/config'
-    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest'):
-        super(Quagga, self).__init__(name, image, tag = tag)
-        if not self.exists():
-            raise Exception('Quagga container was not started by cord-test')
-        
 class vrouter_exchange(unittest.TestCase):
 
     apps = ('org.onosproject.vrouter', 'org.onosproject.fwd')
@@ -128,16 +121,14 @@ line vty
         return cord_test_onos_restart()
 
     @classmethod
-    def start_quagga(cls, stop = True, networks = 4, gateway = GATEWAY):
-        quagga = Quagga()
-        log.info('Starting Quagga on container %s with %d networks' %(quagga.name, networks))
-        if stop is True:
-            quagga.execute('{}/stop.sh'.format(Quagga.quagga_config))
+    def start_quagga(cls, networks = 4, gateway = GATEWAY):
+        log.info('Restarting Quagga container with configuration for %d networks' %(networks))
         config = cls.generate_conf(networks = networks, gateway = gateway)
-        with open('{}/testrib_gen.conf'.format(cls.quagga_config_path), 'w') as f:
+        host_config_file = '{}/testrib_gen.conf'.format(Quagga.host_quagga_config)
+        guest_config_file = os.path.join(Quagga.guest_quagga_config, 'testrib_gen.conf')
+        with open(host_config_file, 'w') as f:
             f.write(config)
-        quagga.execute('{0}/start.sh {1}/testrib_gen.conf'.format(Quagga.quagga_config, Quagga.quagga_config))
-        time.sleep(10)
+        cord_test_quagga_restart(config_file = guest_config_file)
 
     @classmethod
     def generate_vrouter_conf(cls, networks = 4):
@@ -209,7 +200,7 @@ line vty
         vrouter_configs = cls.vrouter_config_get(networks = networks)
         cls.start_onos(network_cfg = vrouter_configs)
         ##Start quagga
-        cls.start_quagga(networks = networks, stop = True, gateway = cls.GATEWAY)
+        cls.start_quagga(networks = networks, gateway = cls.GATEWAY)
         return vrouter_configs
     
     def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip):
@@ -255,7 +246,7 @@ line vty
         log.info('Discovered hosts: %s' %hosts)
         routes = json.loads(self.cli.routes(jsonFormat = True))
         log.info('Routes: %s' %routes)
-        #assert_equal(len(routes['routes4']), networks)
+        assert_equal(len(routes['routes4']), networks)
         flows = json.loads(self.cli.flows(jsonFormat = True))
         flows = filter(lambda f: f['flows'], flows)
         #log.info('Flows: %s' %flows)
@@ -270,7 +261,7 @@ line vty
         assert_equal(res, True)
 
     def test_vrouter_2(self):
-        '''Test vrouter with 20 routes'''
+        '''Test vrouter with 50 routes'''
         res = self.__vrouter_network_verify(50)
         assert_equal(res, True)
 
@@ -280,6 +271,30 @@ line vty
         assert_equal(res, True)
 
     def test_vrouter_4(self):
-        '''Test vrouter with 200 routes'''
+        '''Test vrouter with 300 routes'''
         res = self.__vrouter_network_verify(300)
+        assert_equal(res, True)
+
+    @nottest
+    def test_vrouter_5(self):
+        '''Test vrouter with 1000 routes'''
+        res = self.__vrouter_network_verify(1000)
+        assert_equal(res, True)
+    
+    @nottest
+    def test_vrouter_6(self):
+        '''Test vrouter with 10000 routes'''
+        res = self.__vrouter_network_verify(10000)
+        assert_equal(res, True)
+
+    @nottest
+    def test_vrouter_7(self):
+        '''Test vrouter with 100000 routes'''
+        res = self.__vrouter_network_verify(100000)
+        assert_equal(res, True)
+
+    @nottest
+    def test_vrouter_8(self):
+        '''Test vrouter with 1000000 routes'''
+        res = self.__vrouter_network_verify(1000000)
         assert_equal(res, True)

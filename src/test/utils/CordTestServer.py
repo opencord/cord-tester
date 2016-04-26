@@ -1,7 +1,7 @@
 import SocketServer as socketserver
 import threading
 import socket
-from CordContainer import Onos
+from CordContainer import Onos, Quagga
 from nose.tools import nottest
 
 ##Server to handle container restart requests from test container.
@@ -12,12 +12,32 @@ CORD_TEST_PORT = 25000
 
 class CordTestServer(socketserver.BaseRequestHandler):
 
+    def restart_onos(self, args):
+        print('Restarting ONOS')
+        onos = Onos(restart = True)
+        self.request.sendall('DONE')
+
+    def restart_quagga(self, args):
+        if args is None:
+            args = Quagga.quagga_config_file
+        print('Restarting QUAGGA with config file %s'%args)
+        quagga = Quagga(restart = True, config_file = args)
+        self.request.sendall('DONE')
+
+    callback_table = { 'RESTART_ONOS' : restart_onos,
+                       'RESTART_QUAGGA' : restart_quagga,
+                     }
+
     def handle(self):
         data = self.request.recv(1024).strip()
-        if data == 'RESTART_ONOS':
-            print('Restarting ONOS')
-            onos = Onos(restart = True)
-            self.request.sendall('DONE')
+        cmd = data.split()[0]
+        try:
+            args = ' '.join(data.split()[1:])
+        except:
+            args = None
+
+        if self.callback_table.has_key(cmd):
+            self.callback_table[cmd](self, args)
 
 class ThreadedTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
@@ -43,6 +63,21 @@ def cord_test_onos_restart():
     s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
     s.sendall('RESTART_ONOS\n')
     data = s.recv(1024).strip()
+    s.close()
+    if data == 'DONE':
+        return True
+    return False
+
+@nottest
+def cord_test_quagga_restart(config_file = None):
+    '''Send QUAGGA restart to server'''
+    if config_file is None:
+        config_file = Quagga.quagga_config_file
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
+    s.sendall('RESTART_QUAGGA {}\n'.format(config_file))
+    data = s.recv(1024).strip()
+    s.close()
     if data == 'DONE':
         return True
     return False
