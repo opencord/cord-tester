@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
 import os,sys,time
-utils_dir = os.path.join( os.path.dirname(os.path.realpath(sys.argv[0])), '../utils')
+utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
 sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
@@ -13,8 +13,8 @@ test_server = cord_test_server_start()
 class CordTester(Container):
     sandbox = '/root/test'
     sandbox_setup = '/root/test/src/test/setup'
-    tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
-    tester_paths = os.path.realpath(sys.argv[0]).split(os.path.sep)
+    tester_base = os.path.dirname(os.path.realpath(__file__))
+    tester_paths = os.path.realpath(__file__).split(os.path.sep)
     tester_path_index = tester_paths.index('cord-tester')
     sandbox_host = os.path.sep.join(tester_paths[:tester_path_index+1])
 
@@ -229,7 +229,7 @@ onos_image_default='onosproject/onos:latest'
 nose_image_default='cord-test/nose:latest'
 test_type_default='dhcp'
 onos_app_version = '1.0-SNAPSHOT'
-cord_tester_base = os.path.dirname(os.path.realpath(sys.argv[0]))
+cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 
 def runTest(args):
