@@ -242,7 +242,7 @@ class Quagga(Container):
     host_guest_map = ( (host_quagga_config, guest_quagga_config), )
     
     def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest', 
-                 boot_delay = 15, restart = False, config_file = quagga_config_file):
+                 boot_delay = 30, restart = False, config_file = quagga_config_file):
         super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
         if not self.img_exists():
             self.build_image(image)
