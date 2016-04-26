@@ -41,6 +41,7 @@ class OnosCliDriver( CLI ):
 
     def connect_cli(self):
         options = { 'name' : 'onoscli', 'onosIp': '{0}'.format(self.controller) }
+        main.log.info('Connecting to controller at %s' %self.controller)
         self.connect(name = options['name'], user_name = 'onos', pwd = 'rocks',
                      ip_address = self.controller, port = '8101', options = options)
 
@@ -4575,7 +4576,7 @@ class OnosCliDriver( CLI ):
             main.exit()
 
 if __name__ == '__main__':
-  onos_cli = OnosCliDriver()
+  onos_cli = OnosCliDriver(connect = False)
   name = 'onos_cli'
   user = 'onos'
   passwd = 'rocks'

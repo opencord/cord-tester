@@ -6,16 +6,10 @@ from scapy.all import *
 import time
 import json
 import threading
-import fcntl, socket, struct
 from OnosCtrl import OnosCtrl
-from OnosFlowCtrl import OnosFlowCtrl
+from OnosFlowCtrl import OnosFlowCtrl, get_mac
 from OltConfig import OltConfig
 log.setLevel('INFO')
-
-def get_mac(iface = 'ovsbr0', pad = 4):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', iface[:15]))
-    return '0'*pad + ''.join(['%02x' %ord(char) for char in info[18:24]])
 
 class flows_exchange(unittest.TestCase):
 
@@ -94,7 +88,7 @@ class flows_exchange(unittest.TestCase):
                 log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
                 self.success = True
             sniff(count=2, timeout=5, 
-                  lfilter = lambda p: p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip'],
+                  lfilter = lambda p: IP in p and p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip'],
                   prn = recv_cb, iface = self.port_map[egress])
 
         t = threading.Thread(target = mac_recv_task)

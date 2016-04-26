@@ -52,7 +52,7 @@ class CLI( Component ):
         if self.port:
             ssh_hosts_file = os.path.join(os.getenv('HOME'), '.ssh', 'known_hosts')
             cmd_host_remove = 'ssh-keygen -f "%s" -R [%s]:8101' %(ssh_hosts_file, self.ip_address)
-            #os.system(cmd_host_remove)
+            os.system(cmd_host_remove)
             #main.log.info('SSH host remove cmd: %s' %cmd_host_remove)
             main.log.info('Spawning pexpect for ip %s' %self.ip_address)
             self.handle = pexpect.spawn(
