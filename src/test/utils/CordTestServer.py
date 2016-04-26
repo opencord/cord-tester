@@ -20,7 +20,7 @@ class CordTestServer(socketserver.BaseRequestHandler):
             self.request.sendall('DONE')
 
 class ThreadedTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    pass
+    allow_reuse_address = True
 
 @nottest
 def cord_test_server_start():

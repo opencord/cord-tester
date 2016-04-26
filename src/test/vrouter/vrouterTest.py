@@ -208,7 +208,7 @@ line vty
         ##Deactivate vrouter
         vrouter_configs = cls.vrouter_config_get(networks = networks)
         cls.start_onos(network_cfg = vrouter_configs)
-        ##Start quagga with 4 networks
+        ##Start quagga
         cls.start_quagga(networks = networks, stop = True, gateway = cls.GATEWAY)
         return vrouter_configs
     
