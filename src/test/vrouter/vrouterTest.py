@@ -44,7 +44,11 @@ line vty
     quagga_config_path = os.path.join(test_path, '..', 'setup/quagga-config')
     onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     GATEWAY = '172.17.0.50'
+    INGRESS_PORT = 1
+    EGRESS_PORT = 2
     MAX_PORTS = 100
+    peer_list = ['172.17.0.50', '172.17.0.51']
+    network_list = []
 
     @classmethod
     def setUpClass(cls):
@@ -53,13 +57,13 @@ line vty
         cls.port_map = cls.olt.olt_port_map()
         if not cls.port_map:
             cls.port_map = g_subscriber_port_map
-        cls.vrouter_host_load(host = cls.GATEWAY)
+        #cls.vrouter_host_load(host = cls.GATEWAY)
         time.sleep(3)
         
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the vrouter apps'''
-        cls.vrouter_host_unload()
+        #cls.vrouter_host_unload()
 
     def cliEnter(self):
         retries = 0
@@ -82,8 +86,8 @@ line vty
             assert_equal(status, True)
 
     @classmethod
-    def vrouter_config_get(cls, networks = 4):
-        vrouter_configs = cls.generate_vrouter_conf(networks = networks)
+    def vrouter_config_get(cls, networks = 4, peers = 1):
+        vrouter_configs = cls.generate_vrouter_conf(networks = networks, peers = peers)
         return vrouter_configs
         ##ONOS router does not support dynamic reconfigurations
         #for config in vrouter_configs:
@@ -91,18 +95,26 @@ line vty
         #    time.sleep(5)
 
     @classmethod
-    def vrouter_host_load(cls, host=GATEWAY, iface = 'veth0'):
-        config_cmds = ( 'ifconfig {0} {1}'.format(iface, host),
-                        'arping -I {0} {1} -c 2'.format(iface, host),
-                        )
-        for cmd in config_cmds:
-            os.system(cmd)
+    def vrouter_host_load(cls):
+        index = 1
+        for host in cls.peer_list:
+            iface = cls.port_map[index]
+            index += 1
+            config_cmds = ( 'ifconfig {0} {1}'.format(iface, host),
+                            'arping -I {0} {1} -c 2'.format(iface, host),
+                            )
+            for cmd in config_cmds:
+                os.system(cmd)
 
     @classmethod
-    def vrouter_host_unload(cls, iface='veth0'):
-        config_cmds = ('ifconfig {} 0'.format(iface), )
-        for cmd in config_cmds:
-            os.system(cmd)
+    def vrouter_host_unload(cls):
+        index = 1
+        for host in cls.peer_list:
+            iface = cls.port_map[index]
+            index += 1
+            config_cmds = ('ifconfig {} 0'.format(iface), )
+            for cmd in config_cmds:
+                os.system(cmd)
 
     @classmethod
     def start_onos(cls, network_cfg = None):
@@ -121,9 +133,9 @@ line vty
         return cord_test_onos_restart()
 
     @classmethod
-    def start_quagga(cls, networks = 4, gateway = GATEWAY):
+    def start_quagga(cls, networks = 4):
         log.info('Restarting Quagga container with configuration for %d networks' %(networks))
-        config = cls.generate_conf(networks = networks, gateway = gateway)
+        config = cls.generate_conf(networks = networks)
         host_config_file = '{}/testrib_gen.conf'.format(Quagga.host_quagga_config)
         guest_config_file = os.path.join(Quagga.guest_quagga_config, 'testrib_gen.conf')
         with open(host_config_file, 'w') as f:
@@ -131,7 +143,7 @@ line vty
         cord_test_quagga_restart(config_file = guest_config_file)
 
     @classmethod
-    def generate_vrouter_conf(cls, networks = 4):
+    def zgenerate_vrouter_conf(cls, networks = 4):
         num = 0
         start_network = ( 11 << 24) | ( 0 << 16) | ( 0 << 8) | 0
         end_network =   ( 200 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
@@ -167,19 +179,71 @@ line vty
         return (cls.vrouter_device_dict, ports_dict, quagga_dict)
 
     @classmethod
-    def generate_conf(cls, networks = 4, gateway = GATEWAY):
+    def generate_vrouter_conf(cls, networks = 4, peers = 1):
         num = 0
-        start_network = ( 11 << 24) | ( 0 << 16) | ( 0 << 8) | 0
-        end_network =   ( 200 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
+        start_peer = ( 172 << 24) | ( 17 << 16)  |  (0 << 8) | 100
+        end_peer =   ( 172 << 24 ) | (17 << 16)  |  (0 << 8) | 150
+        local_network = end_peer + 1
+        ports_dict = { 'ports' : {} }
+        interface_list = []
+        peer_list = []
+        for n in xrange(start_peer, end_peer):
+            port_map = ports_dict['ports']
+            port = num + 1 if num < cls.MAX_PORTS - 1 else cls.MAX_PORTS - 1
+            device_port_key = '{0}/{1}'.format(cls.device_id, port)
+            try:
+                interfaces = port_map[device_port_key]['interfaces']
+            except:
+                port_map[device_port_key] = { 'interfaces' : [] }
+                interfaces = port_map[device_port_key]['interfaces']
+            ip = local_network + num
+            ips = '%d.%d.%d.%d/24'%( (ip >> 24) & 0xff, ( (ip >> 16) & 0xff ), ( (ip >> 8 ) & 0xff ), ip & 0xff)
+            peer = '%d.%d.%d.%d' % ( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ), n & 0xff )
+            peer_list.append(peer)
+            if num < cls.MAX_PORTS - 1:
+                interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [ips], 'mac' : '00:00:00:00:00:01' }
+                interfaces.append(interface_dict)
+                interface_list.append(interface_dict['name'])
+            else:
+                interfaces[0]['ips'].append(ips)
+            num += 1
+            if num == peers:
+                break
+        quagga_dict = { 'apps': { 'org.onosproject.router' : { 'router' : {}, 'bgp' : { 'bgpSpeakers' : [] } } } }
+        quagga_router_dict = quagga_dict['apps']['org.onosproject.router']['router']
+        quagga_router_dict['ospfEnabled'] = True
+        quagga_router_dict['interfaces'] = interface_list
+        quagga_router_dict['controlPlaneConnectPoint'] = '{0}/{1}'.format(cls.device_id, peers + 1)
+
+        #bgp_speaker_dict = { 'apps': { 'org.onosproject.router' : { 'bgp' : { 'bgpSpeakers' : [] } } } }
+        bgp_speakers_list = quagga_dict['apps']['org.onosproject.router']['bgp']['bgpSpeakers']
+        speaker_dict = {}
+        speaker_dict['name'] = 'bgp{}'.format(peers+1)
+        speaker_dict['connectPoint'] = '{0}/{1}'.format(cls.device_id, peers + 1)
+        speaker_dict['peers'] = peer_list
+        bgp_speakers_list.append(speaker_dict)
+        cls.peer_list = peer_list
+        return (cls.vrouter_device_dict, ports_dict, quagga_dict)
+
+    @classmethod
+    def generate_conf(cls, networks = 4):
+        num = 0
+        start_network = ( 11 << 24) | ( 10 << 16) | ( 10 << 8) | 0
+        end_network =   ( 172 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
         net_list = []
+        peer_list = cls.peer_list
+        network_list = []
         for n in xrange(start_network, end_network):
             if n & 255 == 0:
                 net = '%d.%d.%d.0'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
+                network_list.append(net)
+                gateway = peer_list[num % len(peer_list)]
                 net_route = 'ip route {0}/24 {1}'.format(net, gateway)
                 net_list.append(net_route)
                 num += 1
             if num == networks:
                 break
+        cls.network_list = network_list
         zebra_routes = '\n'.join(net_list)
         log.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
         return cls.zebra_conf + zebra_routes
@@ -195,17 +259,18 @@ line vty
         time.sleep(3)
 
     @classmethod
-    def vrouter_configure(cls, networks = 4):
+    def vrouter_configure(cls, networks = 4, peers = 1):
         ##Deactivate vrouter
-        vrouter_configs = cls.vrouter_config_get(networks = networks)
+        vrouter_configs = cls.vrouter_config_get(networks = networks, peers = peers)
         cls.start_onos(network_cfg = vrouter_configs)
+        cls.vrouter_host_load()
         ##Start quagga
-        cls.start_quagga(networks = networks, gateway = cls.GATEWAY)
+        cls.start_quagga(networks = networks)
         return vrouter_configs
     
     def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip):
         src_mac = '00:00:00:00:00:02'
-        src_ip = '172.17.0.100'
+        src_ip = '1.1.1.1'
         self.success = False
         def recv_task():
             def recv_cb(pkt):
@@ -213,7 +278,7 @@ line vty
                 self.success = True
             sniff(count=2, timeout=5, 
                   lfilter = lambda p: IP in p and p[IP].dst == dst_ip and p[IP].src == src_ip,
-                  prn = recv_cb, iface = self.port_map[egress])
+                  prn = recv_cb, iface = self.port_map[ingress])
 
         t = threading.Thread(target = recv_task)
         t.start()
@@ -221,38 +286,45 @@ line vty
         L3 = IP(src = src_ip, dst = dst_ip)
         pkt = L2/L3
         log.info('Sending a packet with dst ip %s, dst mac %s on port %s to verify if flows are correct' %
-                 (dst_ip, dst_mac, self.port_map[ingress]))
-        sendp(pkt, count=50, iface = self.port_map[ingress])
+                 (dst_ip, dst_mac, self.port_map[egress]))
+        sendp(pkt, count=50, iface = self.port_map[egress])
         t.join()
         assert_equal(self.success, True)
 
-    def vrouter_traffic_verify(self, ports_dict, egress_dict):
-        egress = int(egress_dict['apps']['org.onosproject.router']['router']['controlPlaneConnectPoint'].split('/')[1])
-        for dev in ports_dict['ports'].keys():
-            for intf in ports_dict['ports'][dev]['interfaces']:
-                for ip in intf['ips']:
-                    dst_ip = ip.split('/')[0]
-                    dst_mac = intf['mac']
-                    port = intf['name']
-                    ingress = int(port.split('-')[1])
-                    ##Verify if flows are setup by sending traffic across
-                    self.vrouter_port_send_recv(ingress, egress, dst_mac, dst_ip)
-
-    def __vrouter_network_verify(self, networks):
-        _, ports_map, egress_map = self.vrouter_configure(networks = networks)
+    def vrouter_traffic_verify(self):
+        peers = len(self.peer_list)
+        egress = peers + 1
+        num = 0
+        for network in self.network_list:
+            num_ips = 5
+            octets = network.split('.')
+            for i in xrange(num_ips):
+                octets[-1] = str(int(octets[-1]) + 1)
+                dst_ip = '.'.join(octets)
+                dst_mac = '00:00:00:00:00:01'
+                port = (num % peers)
+                ingress = port + 1
+                #Since peers are on the same network
+                ##Verify if flows are setup by sending traffic across
+                self.vrouter_port_send_recv(ingress, egress, dst_mac, dst_ip)
+            num += 1
+    
+    def __vrouter_network_verify(self, networks, peers = 1):
+        _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers)
         self.cliEnter()
         ##Now verify
         hosts = json.loads(self.cli.hosts(jsonFormat = True))
         log.info('Discovered hosts: %s' %hosts)
         routes = json.loads(self.cli.routes(jsonFormat = True))
-        log.info('Routes: %s' %routes)
+        #log.info('Routes: %s' %routes)
         assert_equal(len(routes['routes4']), networks)
         flows = json.loads(self.cli.flows(jsonFormat = True))
         flows = filter(lambda f: f['flows'], flows)
         #log.info('Flows: %s' %flows)
         assert_not_equal(len(flows), 0)
-        self.vrouter_traffic_verify(ports_map, egress_map)
+        self.vrouter_traffic_verify()
         self.cliExit()
+        self.vrouter_host_unload()
         return True
 
     def test_vrouter_1(self):
@@ -275,18 +347,16 @@ line vty
         res = self.__vrouter_network_verify(300)
         assert_equal(res, True)
 
-    @nottest
     def test_vrouter_5(self):
         '''Test vrouter with 1000 routes'''
         res = self.__vrouter_network_verify(1000)
         assert_equal(res, True)
     
-    @nottest
     def test_vrouter_6(self):
         '''Test vrouter with 10000 routes'''
         res = self.__vrouter_network_verify(10000)
         assert_equal(res, True)
-
+    
     @nottest
     def test_vrouter_7(self):
         '''Test vrouter with 100000 routes'''
