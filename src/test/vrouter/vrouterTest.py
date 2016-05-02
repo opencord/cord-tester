@@ -43,11 +43,11 @@ line vty
     test_path = os.path.dirname(os.path.realpath(__file__))
     quagga_config_path = os.path.join(test_path, '..', 'setup/quagga-config')
     onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
-    GATEWAY = '172.17.0.50'
+    GATEWAY = '192.168.10.50'
     INGRESS_PORT = 1
     EGRESS_PORT = 2
     MAX_PORTS = 100
-    peer_list = ['172.17.0.50', '172.17.0.51']
+    peer_list = [ ('192.168.10.1', '00:00:00:00:00:01'), ('192.168.11.1', '00:00:00:00:02:01'), ]
     network_list = []
 
     @classmethod
@@ -97,7 +97,7 @@ line vty
     @classmethod
     def vrouter_host_load(cls):
         index = 1
-        for host in cls.peer_list:
+        for host,_ in cls.peer_list:
             iface = cls.port_map[index]
             index += 1
             config_cmds = ( 'ifconfig {0} {1}'.format(iface, host),
@@ -109,7 +109,7 @@ line vty
     @classmethod
     def vrouter_host_unload(cls):
         index = 1
-        for host in cls.peer_list:
+        for host,_ in cls.peer_list:
             iface = cls.port_map[index]
             index += 1
             config_cmds = ('ifconfig {} 0'.format(iface), )
@@ -181,13 +181,13 @@ line vty
     @classmethod
     def generate_vrouter_conf(cls, networks = 4, peers = 1):
         num = 0
-        start_peer = ( 172 << 24) | ( 17 << 16)  |  (0 << 8) | 100
-        end_peer =   ( 172 << 24 ) | (17 << 16)  |  (0 << 8) | 150
+        start_peer = ( 192 << 24) | ( 168 << 16)  |  (10 << 8) | 0
+        end_peer =   ( 200 << 24 ) | (168 << 16)  |  (10 << 8) | 0
         local_network = end_peer + 1
         ports_dict = { 'ports' : {} }
         interface_list = []
         peer_list = []
-        for n in xrange(start_peer, end_peer):
+        for n in xrange(start_peer, end_peer, 256):
             port_map = ports_dict['ports']
             port = num + 1 if num < cls.MAX_PORTS - 1 else cls.MAX_PORTS - 1
             device_port_key = '{0}/{1}'.format(cls.device_id, port)
@@ -196,12 +196,14 @@ line vty
             except:
                 port_map[device_port_key] = { 'interfaces' : [] }
                 interfaces = port_map[device_port_key]['interfaces']
-            ip = local_network + num
+            ip = n + 2
+            peer_ip = n + 1
             ips = '%d.%d.%d.%d/24'%( (ip >> 24) & 0xff, ( (ip >> 16) & 0xff ), ( (ip >> 8 ) & 0xff ), ip & 0xff)
-            peer = '%d.%d.%d.%d' % ( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ), n & 0xff )
-            peer_list.append(peer)
+            peer = '%d.%d.%d.%d' % ( (peer_ip >> 24) & 0xff, ( ( peer_ip >> 16) & 0xff ), ( (peer_ip >> 8 ) & 0xff ), peer_ip & 0xff )
+            mac = RandMAC()._fix()
+            peer_list.append((peer, mac))
             if num < cls.MAX_PORTS - 1:
-                interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [ips], 'mac' : '00:00:00:00:00:01' }
+                interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [ips], 'mac' : mac }
                 interfaces.append(interface_dict)
                 interface_list.append(interface_dict['name'])
             else:
@@ -233,14 +235,13 @@ line vty
         net_list = []
         peer_list = cls.peer_list
         network_list = []
-        for n in xrange(start_network, end_network):
-            if n & 255 == 0:
-                net = '%d.%d.%d.0'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
-                network_list.append(net)
-                gateway = peer_list[num % len(peer_list)]
-                net_route = 'ip route {0}/24 {1}'.format(net, gateway)
-                net_list.append(net_route)
-                num += 1
+        for n in xrange(start_network, end_network, 256):
+            net = '%d.%d.%d.0'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
+            network_list.append(net)
+            gateway = peer_list[num % len(peer_list)][0]
+            net_route = 'ip route {0}/24 {1}'.format(net, gateway)
+            net_list.append(net_route)
+            num += 1
             if num == networks:
                 break
         cls.network_list = network_list
@@ -301,7 +302,7 @@ line vty
             for i in xrange(num_ips):
                 octets[-1] = str(int(octets[-1]) + 1)
                 dst_ip = '.'.join(octets)
-                dst_mac = '00:00:00:00:00:01'
+                dst_mac = self.peer_list[ num % peers ] [1] #'00:00:00:00:00:01'
                 port = (num % peers)
                 ingress = port + 1
                 #Since peers are on the same network
@@ -329,42 +330,62 @@ line vty
 
     def test_vrouter_1(self):
         '''Test vrouter with 5 routes'''
-        res = self.__vrouter_network_verify(5)
+        res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
 
     def test_vrouter_2(self):
-        '''Test vrouter with 50 routes'''
-        res = self.__vrouter_network_verify(50)
+        '''Test vrouter with 5 routes with 2 peers'''
+        res = self.__vrouter_network_verify(5, peers = 2)
         assert_equal(res, True)
 
     def test_vrouter_3(self):
-        '''Test vrouter with 100 routes'''
-        res = self.__vrouter_network_verify(100)
+        '''Test vrouter with 6 routes with 3 peers'''
+        res = self.__vrouter_network_verify(6, peers = 3)
         assert_equal(res, True)
 
     def test_vrouter_4(self):
-        '''Test vrouter with 300 routes'''
-        res = self.__vrouter_network_verify(300)
+        '''Test vrouter with 50 routes'''
+        res = self.__vrouter_network_verify(50, peers = 1)
         assert_equal(res, True)
 
     def test_vrouter_5(self):
+        '''Test vrouter with 50 routes and 5 peers'''
+        res = self.__vrouter_network_verify(50, peers = 5)
+        assert_equal(res, True)
+
+    def test_vrouter_6(self):
+        '''Test vrouter with 100 routes'''
+        res = self.__vrouter_network_verify(100, peers = 1)
+        assert_equal(res, True)
+
+    def test_vrouter_7(self):
+        '''Test vrouter with 100 routes and 10 peers'''
+        res = self.__vrouter_network_verify(100, peers = 10)
+        assert_equal(res, True)
+
+    def test_vrouter_8(self):
+        '''Test vrouter with 300 routes'''
+        res = self.__vrouter_network_verify(300, peers = 1)
+        assert_equal(res, True)
+
+    def test_vrouter_9(self):
         '''Test vrouter with 1000 routes'''
-        res = self.__vrouter_network_verify(1000)
+        res = self.__vrouter_network_verify(1000, peers = 1)
         assert_equal(res, True)
     
-    def test_vrouter_6(self):
+    def test_vrouter_10(self):
         '''Test vrouter with 10000 routes'''
-        res = self.__vrouter_network_verify(10000)
+        res = self.__vrouter_network_verify(10000, peers = 1)
         assert_equal(res, True)
     
     @nottest
-    def test_vrouter_7(self):
+    def test_vrouter_11(self):
         '''Test vrouter with 100000 routes'''
-        res = self.__vrouter_network_verify(100000)
+        res = self.__vrouter_network_verify(100000, peers = 1)
         assert_equal(res, True)
 
     @nottest
-    def test_vrouter_8(self):
+    def test_vrouter_12(self):
         '''Test vrouter with 1000000 routes'''
-        res = self.__vrouter_network_verify(1000000)
+        res = self.__vrouter_network_verify(1000000, peers = 1)
         assert_equal(res, True)

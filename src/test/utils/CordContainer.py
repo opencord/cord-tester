@@ -38,14 +38,7 @@ class Container(object):
         self.image_name = image + ':' + tag
         self.id = None
         self.command = command
-        if quagga_config is not None:
-            self.bridge = quagga_config['bridge']
-            self.ipaddress = quagga_config['ip']
-            self.mask = quagga_config['mask']
-        else:
-            self.bridge = None
-            self.ipaddress = None
-            self.mask = None
+        self.quagga_config = quagga_config
 
     @classmethod
     def build_image(cls, dockerfile, tag, force=True, nocache=False):
@@ -118,36 +111,39 @@ class Container(object):
                                          volumes = volumes, 
                                          host_config = host_config, stdin_open=stdin_open, tty = tty)
         self.dckr.start(container=self.name)
-        if self.bridge:
+        if self.quagga_config:
             self.connect_to_br()
         self.id = ctn['Id']
         return ctn
 
     def connect_to_br(self):
+        index = 0
         with docker_netns(self.name) as pid:
-            ip = IPRoute()
-            br = ip.link_lookup(ifname=self.bridge)
-            if len(br) == 0:
-                ip.link_create(ifname=self.bridge, kind='bridge')
-                br = ip.link_lookup(ifname=self.bridge)
-            br = br[0]
-            ip.link('set', index=br, state='up')
-
-            ifs = ip.link_lookup(ifname=self.name)
-            if len(ifs) > 0:
-               ip.link_remove(ifs[0])
-
-            ip.link_create(ifname=self.name, kind='veth', peer=pid)
-            host = ip.link_lookup(ifname=self.name)[0]
-            ip.link('set', index=host, master=br)
-            ip.link('set', index=host, state='up')
-            guest = ip.link_lookup(ifname=pid)[0]
-            ip.link('set', index=guest, net_ns_fd=pid)
-            with Namespace(pid, 'net'):
+            for quagga_config in self.quagga_config:
                 ip = IPRoute()
-                ip.link('set', index=guest, ifname='eth1')
-                ip.addr('add', index=guest, address=self.ipaddress, mask=self.mask)
-                ip.link('set', index=guest, state='up')
+                br = ip.link_lookup(ifname=quagga_config['bridge'])
+                if len(br) == 0:
+                    ip.link_create(ifname=quagga_config['bridge'], kind='bridge')
+                    br = ip.link_lookup(ifname=quagga_config['bridge'])
+                br = br[0]
+                ip.link('set', index=br, state='up')
+                ifname = '{0}-{1}'.format(self.name, index)
+                ifs = ip.link_lookup(ifname=ifname)
+                if len(ifs) > 0:
+                   ip.link_remove(ifs[0])
+                peer_ifname = '{0}-{1}'.format(pid, index)
+                ip.link_create(ifname=ifname, kind='veth', peer=peer_ifname)
+                host = ip.link_lookup(ifname=ifname)[0]
+                ip.link('set', index=host, master=br)
+                ip.link('set', index=host, state='up')
+                guest = ip.link_lookup(ifname=peer_ifname)[0]
+                ip.link('set', index=guest, net_ns_fd=pid)
+                with Namespace(pid, 'net'):
+                    ip = IPRoute()
+                    ip.link('set', index=guest, ifname='eth{}'.format(index+1))
+                    ip.addr('add', index=guest, address=quagga_config['ip'], mask=quagga_config['mask'])
+                    ip.link('set', index=guest, state='up')
+                index += 1
 
     def execute(self, cmd, tty = True, stream = False, shell = False):
         res = 0
@@ -168,7 +164,7 @@ class Container(object):
 
 class Onos(Container):
 
-    quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }
+    quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,aaa,igmp,vrouter' }
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
     host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
@@ -234,7 +230,9 @@ class Radius(Container):
                        host_config = host_config, tty = True)
 
 class Quagga(Container):
-    quagga_config = { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }
+    quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }, 
+                      { 'bridge' : 'quagga-br', 'ip': '192.168.10.3', 'mask': 16 },
+                      )
     ports = [ 179, 2601, 2602, 2603, 2604, 2605, 2606 ]
     host_quagga_config = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/quagga-config')
     guest_quagga_config = '/root/config'
