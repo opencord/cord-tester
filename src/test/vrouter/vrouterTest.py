@@ -14,6 +14,13 @@ import os
 import json
 log.setLevel('INFO')
 
+class QuaggaStopWrapper(Container):
+
+    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest'):
+        super(QuaggaStopWrapper, self).__init__(name, image, tag = tag)
+        if self.exists():
+            self.kill()
+
 class vrouter_exchange(unittest.TestCase):
 
     apps = ('org.onosproject.vrouter', 'org.onosproject.fwd')
@@ -269,15 +276,17 @@ line vty
         cls.start_quagga(networks = networks)
         return vrouter_configs
     
-    def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip):
+    def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip, positive_test = True):
         src_mac = '00:00:00:00:00:02'
         src_ip = '1.1.1.1'
-        self.success = False
+        self.success = False if positive_test else True
+        timeout = 5 if positive_test else 1
+        count = 2 if positive_test else 1
         def recv_task():
             def recv_cb(pkt):
                 log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
-                self.success = True
-            sniff(count=2, timeout=5, 
+                self.success = True if positive_test else False
+            sniff(count=count, timeout=timeout,
                   lfilter = lambda p: IP in p and p[IP].dst == dst_ip and p[IP].src == src_ip,
                   prn = recv_cb, iface = self.port_map[ingress])
 
@@ -292,25 +301,26 @@ line vty
         t.join()
         assert_equal(self.success, True)
 
-    def vrouter_traffic_verify(self):
+    def vrouter_traffic_verify(self, positive_test = True):
         peers = len(self.peer_list)
         egress = peers + 1
         num = 0
+        num_hosts = 5 if positive_test else 1
         for network in self.network_list:
-            num_ips = 5
+            num_ips = num_hosts
             octets = network.split('.')
             for i in xrange(num_ips):
                 octets[-1] = str(int(octets[-1]) + 1)
                 dst_ip = '.'.join(octets)
-                dst_mac = self.peer_list[ num % peers ] [1] #'00:00:00:00:00:01'
+                dst_mac = self.peer_list[ num % peers ] [1]
                 port = (num % peers)
                 ingress = port + 1
                 #Since peers are on the same network
                 ##Verify if flows are setup by sending traffic across
-                self.vrouter_port_send_recv(ingress, egress, dst_mac, dst_ip)
+                self.vrouter_port_send_recv(ingress, egress, dst_mac, dst_ip, positive_test = positive_test)
             num += 1
     
-    def __vrouter_network_verify(self, networks, peers = 1):
+    def __vrouter_network_verify(self, networks, peers = 1, positive_test = True):
         _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers)
         self.cliEnter()
         ##Now verify
@@ -324,9 +334,29 @@ line vty
         #log.info('Flows: %s' %flows)
         assert_not_equal(len(flows), 0)
         self.vrouter_traffic_verify()
+        if positive_test is False:
+            self.__vrouter_network_verify_negative(networks, peers = peers)
         self.cliExit()
         self.vrouter_host_unload()
         return True
+
+    def __vrouter_network_verify_negative(self, networks, peers = 1):
+        ##Stop quagga. Test traffic again to see if flows were removed
+        log.info('Stopping Quagga container')
+        quaggaStop = QuaggaStopWrapper()
+        time.sleep(2)
+        routes = json.loads(self.cli.routes(jsonFormat = True))
+        #Verify routes have been removed
+        if routes and routes.has_key('routes4'):
+            assert_equal(len(routes['routes4']), 0)
+        self.vrouter_traffic_verify(positive_test = False)
+        log.info('OVS flows have been removed successfully after Quagga was stopped')
+        self.start_quagga(networks = networks)
+        ##Verify the flows again after restarting quagga back
+        routes = json.loads(self.cli.routes(jsonFormat = True))
+        assert_equal(len(routes['routes4']), networks)
+        self.vrouter_traffic_verify()
+        log.info('OVS flows have been successfully reinstalled after Quagga was restarted')
 
     def test_vrouter_1(self):
         '''Test vrouter with 5 routes'''
@@ -389,3 +419,11 @@ line vty
         '''Test vrouter with 1000000 routes'''
         res = self.__vrouter_network_verify(1000000, peers = 1)
         assert_equal(res, True)
+
+    def test_vrouter_13(self):
+        '''Test vrouter by installing 5 routes, removing Quagga and re-starting Quagga back'''
+        res = self.__vrouter_network_verify(5, peers = 1, positive_test = False)
+
+    def test_vrouter_14(self):
+        '''Test vrouter by installing 50 routes, removing Quagga and re-starting Quagga back'''
+        res = self.__vrouter_network_verify(50, peers = 1, positive_test = False)

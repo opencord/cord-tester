@@ -126,6 +126,8 @@ class CordTester(Container):
     @classmethod
     def build_image(cls, image):
         print('Building test container docker image %s' %image)
+        ovs_version = '2.5.0'
+        image_format = (ovs_version,)*4
         dockerfile = '''
 FROM ubuntu:14.04
 MAINTAINER chetan@ciena.com
@@ -135,9 +137,9 @@ RUN easy_install nose
 RUN apt-get -y install openvswitch-common openvswitch-switch
 RUN mkdir -p /root/ovs
 WORKDIR /root
-RUN wget http://openvswitch.org/releases/openvswitch-2.4.0.tar.gz -O /root/ovs/openvswitch-2.4.0.tar.gz && \
-(cd /root/ovs && tar zxpvf openvswitch-2.4.0.tar.gz && \
- cd openvswitch-2.4.0 && \
+RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/openvswitch-{}.tar.gz && \
+(cd /root/ovs && tar zxpvf openvswitch-{}.tar.gz && \
+ cd openvswitch-{} && \
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
 RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect telnet
@@ -154,7 +156,7 @@ RUN apt-get -y install arping
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 CMD ["/bin/bash"]
-'''
+'''.format(*image_format)
         super(CordTester, cls).build_image(dockerfile, image)
         print('Done building docker image %s' %image)
 
