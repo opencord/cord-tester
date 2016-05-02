@@ -45,6 +45,7 @@ class igmp_exchange(unittest.TestCase):
     MMACGROUP1 = "01:00:5e:01:02:03"
     MMACGROUP2 = "01:00:5e:02:02:03"
     MINVALIDGROUP1 = "255.255.255.255"
+    MINVALIDGROUP2 = "255.255.255.255"
     IGMP_DST_MAC = "01:00:5e:00:01:01"
     IGMP_SRC_MAC = "5a:e1:ac:ec:4d:a1"
     IP_SRC = '1.2.3.4'
@@ -779,7 +780,7 @@ class igmp_exchange(unittest.TestCase):
         join_state1 = IGMPTestState(groups = groups2)
         target1 = self.igmp_not_recv_task(self.V_INF1, groups2, join_state1)
         assert target1==1, 'EXPECTED FAILURE'
-        log.info('Interface is not receiving from multicast groups %s when we sent invalid join packet ' %groups2)
+        log.info('Interface is not receiving data from multicast groups %s when we sent invalid join packet ' %groups2)
         mcastTraffic1.stop()
         self.onos_ctrl.deactivate()
 
@@ -835,7 +836,7 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_join_data_receiving_during_subscriber_link_down_up_functionality(self):
-        '''This test is sending join with source list A,B,C and exclude D,F,G with valid multicast group during receiving data shutdown the data receiving port  '''
+        '''This test is sending join with source list A,B,C and exclude D,F,G with valid multicast group during receiving data, shutdown the data receiving port  '''
         df = defer.Deferred()
         def igmp_join_data_receiving_during_subscriber_link_down_up_functionality():
             self.igmp_join_data_receiving_during_subscriber_link_down_up_functionality(df = df)
@@ -865,7 +866,7 @@ class igmp_exchange(unittest.TestCase):
         join_state1 = IGMPTestState(groups = groups2)
         target1 = self.igmp_not_recv_task(self.V_INF1, groups2, join_state1)
         assert target1==1, 'EXPECTED FAILURE'
-        log.info('Interface is not receiving from multicast groups %s when we sent invalid join packet ' %groups2)
+        log.info('Interface is not receiving data from multicast groups %s when we send invalid join packet ' %groups2)
         mcastTraffic1.stop()
         self.onos_ctrl.deactivate()
 
@@ -900,7 +901,7 @@ class igmp_exchange(unittest.TestCase):
         join_state1 = IGMPTestState(groups = groups2)
         target1 = self.igmp_not_recv_task(self.V_INF1, groups2, join_state1)
         assert target1==1, 'EXPECTED FAILURE'
-        log.info('Interface is not receiving from multicast groups %s when we sent invalid join packet ' %groups2)
+        log.info('Interface is not receiving data from multicast groups %s when we send invalid join packet ' %groups2)
         mcastTraffic1.stop()
         self.onos_ctrl.deactivate()
 
@@ -913,3 +914,21 @@ class igmp_exchange(unittest.TestCase):
             df.callback(0)
         reactor.callLater(0, igmp_invalidClassDIP_as_srclistIP_join_packet_functionality)
         return df 
+
+    def send_igmp_join_listeningQuery(self, groups, src_list = ['1.2.3.4'], ip_pkt = None, iface = 'veth0', delay = 2):
+         self.onos_ssm_table_load(groups, src_list)
+         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, 
+                       max_resp_code=30,
+                       gaddr=self.IP_DST)
+         for g in groups:
+               gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+               gr.sources = src_list
+               igmp.grps.append(gr)
+         if ip_pkt is None:
+               ip_pkt = self.igmp_eth/self.igmp_ip
+         pkt = ip_pkt/igmp
+         IGMPv3.fixup(pkt)
+         resp = srp1(pkt, iface=iface)
+         resp[0].summary()
+         if delay != 0:
+             time.sleep(delay)

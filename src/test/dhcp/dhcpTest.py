@@ -162,3 +162,93 @@ class dhcp_exchange(unittest.TestCase):
         cip, sip = self.send_recv(update_seed = True, validate = False)
         assert_equal(cip, None)
         assert_equal(sip, None)
+
+
+    def test_dhcp_same_client_multiple_discover(self, iface = 'veth0'):
+	''' DHCP Client sending multiple discover . '''
+	config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
+                 'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %  
+		  (cip, sip, mac) )
+	log.info('Triggering DHCP discover again.')
+	new_cip, new_sip, new_mac = self.dhcp.only_discover()
+	if cip == new_cip:
+		log.info('Got same ip for 2nd DHCP discover for client IP %s from server %s for mac %s. Triggering DHCP Request. '
+			  % (new_cip, new_sip, new_mac) )
+	elif cip != new_cip:
+		log.info('Ip after 1st discover %s' %cip)
+                log.info('Map after 2nd discover %s' %new_cip)
+		assert_equal(cip, new_cip)
+
+
+    def test_dhcp_same_client_multiple_request(self, iface = 'veth0'):
+	''' DHCP Client sending multiple repeat DHCP requests. '''
+	config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
+                 'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+	log.info('Sending DHCP discover and DHCP request.')
+	cip, sip = self.send_recv()
+	mac = self.dhcp.get_mac(cip)[0]
+	log.info("Sending DHCP request again.")
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	if (new_cip,new_sip) == (cip,sip):
+		
+		log.info('Got same ip for 2nd DHCP Request for client IP %s from server %s for mac %s.'
+			  % (new_cip, new_sip, mac) )
+	elif (new_cip,new_sip):
+		
+		log.info('No DHCP ACK')
+		assert_equal(new_cip, None)
+		assert_equal(new_sip, None)
+	else:
+		print "Something went wrong."	
+    
+    def test_dhcp_client_desired_address(self, iface = 'veth0'):
+	'''DHCP Client asking for desired IP address.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.31', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover(desired = True)
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+	if cip == self.dhcp.seed_ip:
+		log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %  
+		  (cip, sip, mac) )
+	elif cip != self.dhcp.seed_ip:
+		log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+		log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
+		assert_equal(cip, self.dhcp.seed_ip)
+		
+		
+    def test_dhcp_client_desired_address_out_of_pool(self, iface = 'veth0'):
+	'''DHCP Client asking for desired IP address from out of pool.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover(desired = True)
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+	if cip == self.dhcp.seed_ip:
+		log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %  
+		  (cip, sip, mac) )
+	elif cip != self.dhcp.seed_ip:
+		log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+		log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
+		assert_equal(cip, self.dhcp.seed_ip)
+	elif cip == None:
+		log.info('Got DHCP NAK')
+	
+			
+
