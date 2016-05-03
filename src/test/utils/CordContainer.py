@@ -263,7 +263,7 @@ class Quagga(Container):
 
     @classmethod
     def build_image(cls, image):
-        onos_quagga_ip = Onos.quagga_config['ip']
+        onos_quagga_ip = Onos.quagga_config[0]['ip']
         print('Building Quagga image %s' %image)
         dockerfile = '''
 FROM ubuntu:latest
