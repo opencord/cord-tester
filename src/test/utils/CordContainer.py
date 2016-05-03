@@ -171,6 +171,7 @@ def get_mem():
                 mem += int(m.split(':')[1].strip().split()[0])
 
         mem = max(mem/1024/1024, 1)
+        mem = min(mem, 16)
         return str(mem) + 'G'
 
 class Onos(Container):
