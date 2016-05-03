@@ -162,10 +162,22 @@ class Container(object):
             res += 0 if result['ExitCode'] == None else result['ExitCode']
         return res
 
+def get_mem():
+    with open('/proc/meminfo', 'r') as fd:
+        meminfo = fd.readlines()
+        mem = 0
+        for m in meminfo:
+            if m.startswith('MemTotal:') or m.startswith('SwapTotal:'):
+                mem += int(m.split(':')[1].strip().split()[0])
+
+        mem = max(mem/1024/1024, 1)
+        return str(mem) + 'G'
+
 class Onos(Container):
 
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
-    JAVA_OPTS = '-Xms8G -Xmx8G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
+    SYSTEM_MEMORY = (get_mem(),) * 2
+    JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,aaa,igmp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
     host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
