@@ -38,9 +38,9 @@ password zebra
 log stdout
 service advanced-vty
 !
-debug zebra rib
-debug zebra kernel
-debug zebra fpm
+!debug zebra rib
+!debug zebra kernel
+!debug zebra fpm
 !
 !interface eth1
 ! ip address 10.10.0.3/16
@@ -147,7 +147,11 @@ line vty
         guest_config_file = os.path.join(Quagga.guest_quagga_config, 'testrib_gen.conf')
         with open(host_config_file, 'w') as f:
             f.write(config)
-        cord_test_quagga_restart(config_file = guest_config_file)
+        if networks <= 10000:
+            boot_delay = 25
+        else:
+            boot_delay = 75
+        cord_test_quagga_restart(config_file = guest_config_file, boot_delay = boot_delay)
 
     @classmethod
     def zgenerate_vrouter_conf(cls, networks = 4):

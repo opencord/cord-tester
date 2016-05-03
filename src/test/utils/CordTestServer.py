@@ -12,16 +12,20 @@ CORD_TEST_PORT = 25000
 
 class CordTestServer(socketserver.BaseRequestHandler):
 
-    def restart_onos(self, args):
+    def restart_onos(self, *args):
         print('Restarting ONOS')
         onos = Onos(restart = True)
         self.request.sendall('DONE')
 
-    def restart_quagga(self, args):
-        if args is None:
-            args = Quagga.quagga_config_file
-        print('Restarting QUAGGA with config file %s'%args)
-        quagga = Quagga(restart = True, config_file = args)
+    def restart_quagga(self, *args):
+        config_file = Quagga.quagga_config_file
+        boot_delay = 15
+        if args:
+            config_file = args[0]
+            if len(args) > 1:
+                boot_delay = int(args[1])
+        print('Restarting QUAGGA with config file %s, delay %d secs'%(config_file, boot_delay))
+        quagga = Quagga(restart = True, config_file = config_file, boot_delay = boot_delay)
         self.request.sendall('DONE')
 
     callback_table = { 'RESTART_ONOS' : restart_onos,
@@ -32,12 +36,13 @@ class CordTestServer(socketserver.BaseRequestHandler):
         data = self.request.recv(1024).strip()
         cmd = data.split()[0]
         try:
-            args = ' '.join(data.split()[1:])
+            #args = ' '.join(data.split()[1:])
+            args = data.split()[1:]
         except:
             args = None
 
         if self.callback_table.has_key(cmd):
-            self.callback_table[cmd](self, args)
+            self.callback_table[cmd](self, *args)
 
 class ThreadedTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
@@ -69,13 +74,13 @@ def cord_test_onos_restart():
     return False
 
 @nottest
-def cord_test_quagga_restart(config_file = None):
+def cord_test_quagga_restart(config_file = None, boot_delay = 30):
     '''Send QUAGGA restart to server'''
     if config_file is None:
         config_file = Quagga.quagga_config_file
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
-    s.sendall('RESTART_QUAGGA {}\n'.format(config_file))
+    s.sendall('RESTART_QUAGGA {0} {1}\n'.format(config_file, boot_delay))
     data = s.recv(1024).strip()
     s.close()
     if data == 'DONE':
