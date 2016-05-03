@@ -165,7 +165,8 @@ class Container(object):
 class Onos(Container):
 
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
-    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,aaa,igmp,vrouter' }
+    JAVA_OPTS = '-Xms8G -Xmx8G -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
+    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,aaa,igmp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
     host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
     guest_config_dir = '/root/onos/config'

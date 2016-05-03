@@ -253,7 +253,7 @@ line vty
                 break
         cls.network_list = network_list
         zebra_routes = '\n'.join(net_list)
-        log.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
+        #log.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
         return cls.zebra_conf + zebra_routes
     
     @classmethod
@@ -280,8 +280,9 @@ line vty
         src_mac = '00:00:00:00:00:02'
         src_ip = '1.1.1.1'
         self.success = False if positive_test else True
-        timeout = 5 if positive_test else 1
+        timeout = 10 if positive_test else 1
         count = 2 if positive_test else 1
+        self.start_sending = True
         def recv_task():
             def recv_cb(pkt):
                 log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
@@ -289,6 +290,7 @@ line vty
             sniff(count=count, timeout=timeout,
                   lfilter = lambda p: IP in p and p[IP].dst == dst_ip and p[IP].src == src_ip,
                   prn = recv_cb, iface = self.port_map[ingress])
+            self.start_sending = False
 
         t = threading.Thread(target = recv_task)
         t.start()
@@ -297,7 +299,8 @@ line vty
         pkt = L2/L3
         log.info('Sending a packet with dst ip %s, dst mac %s on port %s to verify if flows are correct' %
                  (dst_ip, dst_mac, self.port_map[egress]))
-        sendp(pkt, count=50, iface = self.port_map[egress])
+        while self.start_sending is True:
+            sendp(pkt, count=50, iface = self.port_map[egress])
         t.join()
         assert_equal(self.success, True)
 
@@ -326,13 +329,15 @@ line vty
         ##Now verify
         hosts = json.loads(self.cli.hosts(jsonFormat = True))
         log.info('Discovered hosts: %s' %hosts)
-        routes = json.loads(self.cli.routes(jsonFormat = True))
-        #log.info('Routes: %s' %routes)
-        assert_equal(len(routes['routes4']), networks)
-        flows = json.loads(self.cli.flows(jsonFormat = True))
-        flows = filter(lambda f: f['flows'], flows)
-        #log.info('Flows: %s' %flows)
-        assert_not_equal(len(flows), 0)
+        ##We read from cli if we expect less number of routes to avoid cli timeouts
+        if networks <= 10000:
+            routes = json.loads(self.cli.routes(jsonFormat = True))
+            #log.info('Routes: %s' %routes)
+            assert_equal(len(routes['routes4']), networks)
+            flows = json.loads(self.cli.flows(jsonFormat = True))
+            flows = filter(lambda f: f['flows'], flows)
+            #log.info('Flows: %s' %flows)
+            assert_not_equal(len(flows), 0)
         self.vrouter_traffic_verify()
         if positive_test is False:
             self.__vrouter_network_verify_negative(networks, peers = peers)
@@ -345,16 +350,18 @@ line vty
         log.info('Stopping Quagga container')
         quaggaStop = QuaggaStopWrapper()
         time.sleep(2)
-        routes = json.loads(self.cli.routes(jsonFormat = True))
-        #Verify routes have been removed
-        if routes and routes.has_key('routes4'):
-            assert_equal(len(routes['routes4']), 0)
+        if networks <= 10000:
+            routes = json.loads(self.cli.routes(jsonFormat = True))
+            #Verify routes have been removed
+            if routes and routes.has_key('routes4'):
+                assert_equal(len(routes['routes4']), 0)
         self.vrouter_traffic_verify(positive_test = False)
         log.info('OVS flows have been removed successfully after Quagga was stopped')
         self.start_quagga(networks = networks)
         ##Verify the flows again after restarting quagga back
-        routes = json.loads(self.cli.routes(jsonFormat = True))
-        assert_equal(len(routes['routes4']), networks)
+        if networks <= 10000:
+            routes = json.loads(self.cli.routes(jsonFormat = True))
+            assert_equal(len(routes['routes4']), networks)
         self.vrouter_traffic_verify()
         log.info('OVS flows have been successfully reinstalled after Quagga was restarted')
 
