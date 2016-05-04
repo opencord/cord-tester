@@ -69,7 +69,7 @@ class CordTester(Container):
         status = 1
         ## Wait for the LLDP flows to be added to the switch
         tries = 0
-        while status != 0 and tries < 100:
+        while status != 0 and tries < 150:
             cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(bridge)
             status = self.execute_switch(cmd, shell = True)
             tries += 1
