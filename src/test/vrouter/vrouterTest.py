@@ -150,10 +150,9 @@ line vty
         if networks <= 10000:
             boot_delay = 25
         else:
-            if networks < 500000:
-                boot_delay = 75
-            else:
-                boot_delay = 300
+            delay_map = [60, 100, 150, 200, 300, 450, 600, 800, 1000, 1200]
+            n = min(networks/100000, len(delay_map)-1)
+            boot_delay = delay_map[n]
         cord_test_quagga_restart(config_file = guest_config_file, boot_delay = boot_delay)
 
     @classmethod
