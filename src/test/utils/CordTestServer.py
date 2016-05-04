@@ -28,8 +28,14 @@ class CordTestServer(socketserver.BaseRequestHandler):
         quagga = Quagga(restart = True, config_file = config_file, boot_delay = boot_delay)
         self.request.sendall('DONE')
 
+    def restart_radius(self, *args):
+        print('Restarting RADIUS Server')
+        radius = Radius(restart = True)
+        self.request.sendall('DONE')
+
     callback_table = { 'RESTART_ONOS' : restart_onos,
                        'RESTART_QUAGGA' : restart_quagga,
+                       'RESTART_RADIUS' : restart_radius,
                      }
 
     def handle(self):
@@ -81,6 +87,18 @@ def cord_test_quagga_restart(config_file = None, boot_delay = 30):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
     s.sendall('RESTART_QUAGGA {0} {1}\n'.format(config_file, boot_delay))
+    data = s.recv(1024).strip()
+    s.close()
+    if data == 'DONE':
+        return True
+    return False
+
+@nottest
+def cord_test_radius_restart():
+    '''Send Radius server restart to server'''
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
+    s.sendall('RESTART_RADIUS\n')
     data = s.recv(1024).strip()
     s.close()
     if data == 'DONE':

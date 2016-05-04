@@ -192,7 +192,6 @@ onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester
 def runTest(args):
     global test_server
     onos_cnt = {'tag':'latest'}
-    radius_cnt = {'tag':'latest'}
     nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
     radius_ip = None
     quagga_ip = None
@@ -221,13 +220,10 @@ def runTest(args):
         onos_ip = onos.ip()
 
         ##Start Radius container if specified
-        if args.radius:
-            radius_cnt['image'] = args.radius.split(':')[0]
-            if args.radius.find(':') >= 0:
-                radius_cnt['tag'] = args.radius.split(':')[1]
-            radius = Radius(image = radius_cnt['image'], tag = radius_cnt['tag'])
+        if args.radius == True:
+            radius = Radius()
             radius_ip = radius.ip()
-            print('Started Radius server with IP %s' %radius_ip)
+            print('Radius server running with IP %s' %radius_ip)
         else:
             radius_ip = None
             
@@ -263,7 +259,7 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Cord Tester')
     parser.add_argument('-t', '--test-type', default=test_type_default, type=str)
     parser.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
-    parser.add_argument('-r', '--radius',default='',type=str, help='Radius container image')
+    parser.add_argument('-r', '--radius',action='store_true', help='Start Radius service')
     parser.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
     parser.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
     parser.add_argument('-l', '--olt', action='store_true', help='Use OLT config')

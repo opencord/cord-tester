@@ -222,16 +222,21 @@ class Radius(Container):
     env = {'TIMEZONE':'America/Los_Angeles', 
            'DEBUG': 'true', 'cert_password':'whatever', 'primary_shared_secret':'radius_password'
            }
-    host_db_dir = os.path.join(os.getenv('HOME'), 'services', 'radius', 'data', 'db')
+    host_db_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/radius-config/db')
     guest_db_dir = os.path.join(os.path.sep, 'opt', 'db')
-    host_config_dir = os.path.join(os.getenv('HOME'), 'services', 'radius', 'freeradius')
+    host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/radius-config/freeradius')
     guest_config_dir = os.path.join(os.path.sep, 'etc', 'freeradius')
-    start_command = '/root/start-radius.py'
+    start_command = os.path.join(guest_config_dir, 'start-radius.py')
     host_guest_map = ( (host_db_dir, guest_db_dir),
                        (host_config_dir, guest_config_dir)
                        )
-    def __init__(self, name = 'cord-radius', image = 'freeradius', tag = 'podd'):
+    def __init__(self, name = 'cord-radius', image = 'cord-test/radius', tag = 'latest',
+                 boot_delay = 10, restart = False):
         super(Radius, self).__init__(name, image, tag = tag, command = self.start_command)
+        if not self.img_exists():
+            self.build_image(image)
+        if restart is True and self.exists():
+            self.kill()
         if not self.exists():
             self.remove_container(name, force=True)
             host_config = self.create_host_config(port_list = self.ports,
@@ -242,6 +247,23 @@ class Radius(Container):
             self.start(ports = self.ports, environment = self.env, 
                        volumes = volumes, 
                        host_config = host_config, tty = True)
+            time.sleep(boot_delay)
+
+    @classmethod
+    def build_image(cls, image):
+        print('Building Radius image %s' %image)
+        dockerfile = '''
+FROM hbouvier/docker-radius
+MAINTAINER chetan@ciena.com
+LABEL RUN docker pull hbouvier/docker-radius
+LABEL RUN docker run -it --name cord-radius hbouvier/docker-radius
+RUN apt-get update
+RUN apt-get -y install python python-pexpect strace
+WORKDIR /root
+CMD ["/etc/freeradius/start-radius.py"]
+'''
+        super(Radius, cls).build_image(dockerfile, image)
+        print('Done building image %s' %image)
 
 class Quagga(Container):
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }, 
