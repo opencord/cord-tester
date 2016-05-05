@@ -170,7 +170,7 @@ def get_mem():
             if m.startswith('MemTotal:') or m.startswith('SwapTotal:'):
                 mem += int(m.split(':')[1].strip().split()[0])
 
-        mem = max(mem/1024/1024, 1)
+        mem = max(mem/1024/1024/2, 1)
         mem = min(mem, 16)
         return str(mem) + 'G'
 
