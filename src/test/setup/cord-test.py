@@ -181,6 +181,17 @@ CMD ["/bin/bash"]
             print('Removing test container %s' %self.name)
             self.kill(remove=True)
 
+    @classmethod
+    def list_tests(cls, tests):
+        print('Listing test cases')
+        for test in tests:
+            if test == 'tls':
+                test_file = test + 'AuthTest.py'
+            else:
+                test_file = test + 'Test.py'
+            cmd = 'nosetests -v --collect-only {0}/../{1}/{2}'.format(cls.tester_base, test, test_file)
+            os.system(cmd)
+
 ##default onos/radius/test container images and names
 onos_image_default='onosproject/onos:latest'
 nose_image_default='cord-test/nose:latest'
@@ -191,6 +202,7 @@ onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester
 
 def runTest(args):
     global test_server
+    tests = args.test_type.split('-')
     onos_cnt = {'tag':'latest'}
     nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
     radius_ip = None
@@ -201,6 +213,10 @@ def runTest(args):
             cleanup_container += ':latest'
         print('Cleaning up containers %s' %cleanup_container)
         Container.cleanup(cleanup_container)
+        sys.exit(0)
+
+    if args.list:
+        CordTester.list_tests(tests)
         sys.exit(0)
 
     #don't spawn onos if the user has specified external test controller with test interface config
@@ -251,7 +267,6 @@ def runTest(args):
     if args.start_switch or not args.olt:
         test_cnt.start_switch()
     test_cnt.setup_intfs()
-    tests = args.test_type.split('-')
     test_cnt.run_tests(tests)
     cord_test_server_stop(test_server)
 
@@ -262,7 +277,8 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--radius',action='store_true', help='Start Radius service')
     parser.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
     parser.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
-    parser.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
+    parser.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
+    parser.add_argument('-l', '--list', action='store_true', help='List test cases')
     parser.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server.'
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
     parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
