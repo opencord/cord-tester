@@ -17,7 +17,7 @@ docker run hello-world || exit 127
 echo "Pulling ONOS latest and 1.5"
 docker pull onosproject/onos:latest || exit 127
 docker pull onosproject/onos:1.5 || exit 127
-apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy tcpdump arping
+apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect tcpdump arping
 easy_install nose
 apt-get -y install openvswitch-common openvswitch-switch
 pip install -U scapy
