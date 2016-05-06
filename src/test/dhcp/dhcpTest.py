@@ -242,13 +242,159 @@ class dhcp_exchange(unittest.TestCase):
 	if cip == self.dhcp.seed_ip:
 		log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %  
 		  (cip, sip, mac) )
+		assert_equal(cip, self.dhcp.seed_ip) #Negative Test Case
+
 	elif cip != self.dhcp.seed_ip:
 		log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 		log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
-		assert_equal(cip, self.dhcp.seed_ip)
+		assert_not_equal(cip, self.dhcp.seed_ip)
+
 	elif cip == None:
 		log.info('Got DHCP NAK')
 	
 			
+    def test_dhcp_server_nak_packet(self, iface = 'veth0'):
+	''' Client sends DHCP Request for ip that is different from DHCP offer packet.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+	
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None)
+	else:
+		new_cip, new_sip = self.dhcp.only_request('20.20.20.31', mac)
+		if new_cip == None:
+			
+			log.info("Got DHCP server NAK.")
+			assert_equal(new_cip, None)  #Negative Test Case
+		
+	
+    def test_dhcp_lease_packet(self, iface = 'veth0'):
+	''' Client sends DHCP Discover packet for particular lease time.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	log.info('Sending DHCP discover with lease time of 700')
+	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True)
+
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None)
+	elif lval != 700:
+		log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %  
+		 	 (cip, sip, mac, lval) )
+		assert_not_equal(lval, 700)
+
+    def test_dhcp_client_request_after_reboot(self, iface = 'veth0'):
+	#''' Client sends DHCP Request after reboot.'''
+	
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+	
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None)
+		
+	else:
+		new_cip, new_sip = self.dhcp.only_request(cip, mac)
+		if new_cip == None:
+			log.info("Got DHCP server NAK.")
+		os.system('ifconfig '+iface+' down')
+		log.info('Client goes down.')
+		log.info('Delay for 5 seconds.')
+		
+		time.sleep(5)
+		
+		os.system('ifconfig '+iface+' up')
+		log.info('Client is up now.')
+		
+		new_cip, new_sip = self.dhcp.only_request(cip, mac)
+		if new_cip == None:
+			log.info("Got DHCP server NAK.")
+			assert_not_equal(new_cip, None)
+		elif new_cip != None:
+			log.info("Got DHCP ACK.")
+    
+	
+     
+    def test_dhcp_server_after_reboot(self, iface = 'veth0'):
+	''' DHCP server goes down.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+	
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None)
+		
+	else:
+		new_cip, new_sip = self.dhcp.only_request(cip, mac)
+		if new_cip == None:
+			log.info("Got DHCP server NAK.")
+			assert_not_equal(new_cip, None)
+		log.info('Getting DHCP server Down.')
+        	
+		self.onos_ctrl.deactivate()
+
+		for i in range (0,4):
+			log.info('Checking DHCP request')
+			log.info('')
+
+			cip, sip = self.dhcp.only_request(new_cip, mac)
+
+			if cip == None and sip == None:
+				log.info('')
+				log.info('DHCP request timed out. DHCP server is down')
+			elif cip != None:
+				break
+		
+		log.info('Getting DHCP server Up.')
+        
+		status, _ = self.onos_ctrl.activate()
+        	assert_equal(status, True)
+        	time.sleep(3)
+		
+		log.info('DHCP server is Up.')
+
+		for i in range (0,4):
+			log.info('Checking DHCP request')
+			log.info('')
+
+			cip, sip, mac = self.dhcp.only_discover()
+
+			if cip == None and sip == None and mac == None:
+				log.info('')
+				log.info('DHCP request timed out.')
+			elif cip != None:
+				log.info('Got reply from DHCP server. DHCP server is down')
+				break
+
+	
+ 
 
