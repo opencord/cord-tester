@@ -148,8 +148,12 @@ class igmp_exchange(unittest.TestCase):
     ##Runs in the context of twisted reactor thread
     def igmp_recv(self, igmpState, iface = 'veth0'):
         p = self.recv_socket.recv()
-        send_time = float(p.payload.load)
-        recv_time = monotonic.monotonic()
+        try:
+              send_time = float(p.payload.load)
+              recv_time = monotonic.monotonic()
+        except:
+              log.info('Unexpected Payload received: %s' %p.payload.load)
+              return 0
         #log.info( 'Recv in %.6f secs' %(recv_time - send_time))
         igmpState.update(p.dst, rx = 1, t = recv_time - send_time)
         return 0
