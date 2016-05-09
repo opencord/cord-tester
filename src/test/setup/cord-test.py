@@ -8,8 +8,6 @@ from OltConfig import OltConfig
 from CordContainer import *
 from CordTestServer import cord_test_server_start, cord_test_server_stop
 
-test_server = cord_test_server_start()
-
 class CordTester(Container):
     sandbox = '/root/test'
     sandbox_setup = '/root/test/src/test/setup'
@@ -201,7 +199,8 @@ cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 
 def runTest(args):
-    global test_server
+    #Start the cord test tcp server
+    test_server = cord_test_server_start()
     tests = args.test_type.split('-')
     onos_cnt = {'tag':'latest'}
     nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
