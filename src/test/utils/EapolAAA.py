@@ -43,6 +43,7 @@ class EapolPacket(object):
         self.s.bind((self.intf, ETHERTYPE_PAE))
         self.mymac = self.s.getsockname()[4]
         self.llheader = Ether(dst = PAE_GROUP_ADDR, src = self.mymac, type = ETHERTYPE_PAE)
+        self.recv_sock = L2Socket(iface = self.intf, type = ETHERTYPE_PAE)
 
     def cleanup(self):
         if self.s is not None:
@@ -75,6 +76,12 @@ class EapolPacket(object):
         print "Version %d, type %d, len %d" %(vers, pkt_type, eapollen)
         assert_equal(pkt_type, EAPOL_EAPPACKET)
         return p[4:]
+
+    def eapol_scapy_recv(self, cb = None, lfilter = None, count = 1):
+        def eapol_default_cb(pkt): pass
+        if cb is None:
+            cb = eapol_default_cb
+        sniff(prn = cb, lfilter = lfilter, count = count, opened_socket = self.recv_sock)
 
     def eapol_start(self):
         eap_payload = self.eap(EAPOL_START, 2)

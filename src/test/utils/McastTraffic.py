@@ -6,16 +6,20 @@ import monotonic
 from scapy.all import *
 
 class McastTraffic(threading.Thread):
-
-    dst_mac = '01:00:5e:00:01:01'
-    src_mac = '02:88:b4:e4:90:77'
-    src_ip = '1.2.3.4'
+    DST_MAC_DEFAULT = '01:00:5e:00:01:01'
+    SRC_MAC_DEFAULT = '02:88:b4:e4:90:77'
+    SRC_IP_DEFAULT = '1.2.3.4'
     SEND_STATE = 1
     RECV_STATE = 2
-    def __init__(self, addrs, iface = 'eth0', cb = None, arg = None):
+
+    def __init__(self, addrs, iface = 'eth0', dst_mac = DST_MAC_DEFAULT, src_mac = SRC_MAC_DEFAULT,
+                 src_ip = SRC_IP_DEFAULT, cb = None, arg = None):
         threading.Thread.__init__(self)
         self.addrs = addrs
         self.iface = iface
+        self.dst_mac = dst_mac
+        self.src_mac = src_mac
+        self.src_ip = src_ip
         self.cb = cb
         self.arg = arg
         self.state = self.SEND_STATE | self.RECV_STATE
@@ -46,4 +50,3 @@ class McastTraffic(threading.Thread):
     def isSendStopped(self):
         return False if self.state & self.SEND_STATE else True
 
-    

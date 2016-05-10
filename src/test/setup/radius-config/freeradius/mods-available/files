@@ -1,0 +1,30 @@
+# -*- text -*-
+#
+#  $Id: c14992f05c13983fa0c0f9bcead4c1cf0c1bb801 $
+
+# Livingston-style 'users' file
+#
+# See "man users" for more information.
+#
+files {
+	# Search for files in a subdirectory of mods-config which
+	# matches this instance of the files module.
+	moddir = ${modconfdir}/${.:instance}
+
+	# The default key attribute to use for matches.  The content
+	# of this attribute is used to match the "name" of the
+	# entry.
+	#key = "%{%{Stripped-User-Name}:-%{User-Name}}"
+
+	#  The old "users" style file is now located here.
+	filename = ${moddir}/authorize
+
+	#  This is accepted for backwards compatibility
+	#  It will be removed in a future release.
+	usersfile = ${moddir}/authorize
+
+	#  These are accepted for backwards compatibility.
+	#  They will be renamed in a future release.
+	acctusersfile = ${moddir}/accounting
+	preproxy_usersfile = ${moddir}/pre-proxy
+}

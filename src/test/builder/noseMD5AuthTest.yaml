@@ -1,0 +1,32 @@
+States:
+    ST_EAP_SETUP:
+        Events:
+            EVT_EAP_SETUP:
+                Actions:
+                    - _eapSetup
+                NextState: ST_EAP_START
+    ST_EAP_START:
+        Events:
+            EVT_EAP_START:
+                Actions:
+                    - _eapStart
+                NextState: ST_EAP_ID_REQ
+    ST_EAP_ID_REQ:
+        Events:
+            EVT_EAP_ID_REQ:
+                Actions:
+                    - _eapIdReq
+                NextState: ST_EAP_MD5_CHALLENGE
+    ST_EAP_MD5_CHALLENGE:
+        Events:
+            EVT_EAP_MD5_CHALLENGE:
+                Actions:
+                    - _eapMd5Challenge 
+                NextState: ST_EAP_STATUS
+    ST_EAP_STATUS:
+        Events:
+            EVT_EAP_STATUS:
+                Actions:
+                    - _eapStatus
+                NextState: ST_EAP_MD5_DONE
+
