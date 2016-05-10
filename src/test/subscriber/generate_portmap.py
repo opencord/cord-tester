@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # 
 # Copyright 2016-present Ciena Corporation
 #
@@ -13,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#!/usr/bin/env python
 ##Generate a port map for 100 subscribers based on veth pairs
 import sys
 header = '''###This file is auto-generated. Do not EDIT###'''
