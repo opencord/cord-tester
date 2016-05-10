@@ -139,7 +139,7 @@ class Container(object):
                 ip = IPRoute()
                 br = ip.link_lookup(ifname=quagga_config['bridge'])
                 if len(br) == 0:
-                    ip.link_create(ifname=quagga_config['bridge'], kind='bridge')
+                    ip.link('add', ifname=quagga_config['bridge'], kind='bridge')
                     br = ip.link_lookup(ifname=quagga_config['bridge'])
                 br = br[0]
                 ip.link('set', index=br, state='up')
@@ -148,7 +148,7 @@ class Container(object):
                 if len(ifs) > 0:
                    ip.link_remove(ifs[0])
                 peer_ifname = '{0}-{1}'.format(pid, index)
-                ip.link_create(ifname=ifname, kind='veth', peer=peer_ifname)
+                ip.link('add', ifname=ifname, kind='veth', peer=peer_ifname)
                 host = ip.link_lookup(ifname=ifname)[0]
                 ip.link('set', index=host, master=br)
                 ip.link('set', index=host, state='up')
