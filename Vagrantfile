@@ -19,15 +19,6 @@ Vagrant.configure(2) do |config|
     end
   end
 
-  config.vm.define "prod" do |d|
-    d.vm.box = "ubuntu/trusty64"
-    d.vm.hostname = "prod"
-    d.vm.network "private_network", ip: "10.100.198.203"
-    d.vm.provider "virtualbox" do |v|
-      v.memory = 2048
-    end
-  end
-
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.scope = :box
   end
