@@ -195,7 +195,7 @@ class subscriber_exchange(unittest.TestCase):
               onos_ctrl.deactivate()
 
       def activate_apps(self, apps):
-            for app in self.olt_apps:
+            for app in apps:
                   onos_ctrl = OnosCtrl(app)
                   status, _ = onos_ctrl.activate()
                   assert_equal(status, True)
