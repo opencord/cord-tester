@@ -13,7 +13,8 @@ echo "Installing Docker"
 apt-get -y install docker-engine
 service docker start
 echo "Verifying Docker installation"
-docker run hello-world || exit 127
+docker run --rm hello-world || exit 127
+docker rmi hello-world
 echo "Pulling ONOS latest and 1.5"
 docker pull onosproject/onos:latest || exit 127
 docker pull onosproject/onos:1.5 || exit 127
