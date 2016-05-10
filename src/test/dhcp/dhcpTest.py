@@ -361,18 +361,17 @@ class dhcp_exchange(unittest.TestCase):
 		log.info('Getting DHCP server Down.')
         	
 		self.onos_ctrl.deactivate()
-
-		for i in range (0,4):
-			log.info('Checking DHCP request')
+			
+		for i in range(0,4):
+			log.info("Sending DHCP Request.")
 			log.info('')
-
-			cip, sip = self.dhcp.only_request(new_cip, mac)
-
-			if cip == None and sip == None:
+			new_cip, new_sip = self.dhcp.only_request(cip, mac)
+			if new_cip == None and new_sip == None:
 				log.info('')
-				log.info('DHCP request timed out. DHCP server is down')
-			elif cip != None:
-				break
+				log.info("DHCP Request timed out.")
+			elif new_cip and new_sip:
+				log.info("Got Reply from DHCP server.")
+				assert_equal(new_cip,None) #Neagtive Test Case
 		
 		log.info('Getting DHCP server Up.')
         
@@ -380,20 +379,17 @@ class dhcp_exchange(unittest.TestCase):
         	assert_equal(status, True)
         	time.sleep(3)
 		
-		log.info('DHCP server is Up.')
-
-		for i in range (0,4):
-			log.info('Checking DHCP request')
+		for i in range(0,4):
+			log.info("Sending DHCP Request after DHCP server is up.")
 			log.info('')
-
-			cip, sip, mac = self.dhcp.only_discover()
-
-			if cip == None and sip == None and mac == None:
+			new_cip, new_sip = self.dhcp.only_request(cip, mac)
+			if new_cip == None and new_sip == None:
 				log.info('')
-				log.info('DHCP request timed out.')
-			elif cip != None:
-				log.info('Got reply from DHCP server. DHCP server is down')
-				break
+				log.info("DHCP Request timed out.")
+			elif new_cip and new_sip:
+				log.info("Got Reply from DHCP server.")
+				assert_equal(new_cip,None) #Neagtive Test Case
+		
 
 	
  
