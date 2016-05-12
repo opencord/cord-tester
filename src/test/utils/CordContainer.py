@@ -86,10 +86,11 @@ class Container(object):
 
     @classmethod
     def cleanup(cls, image):
-        cnt_list = filter(lambda c: c['Image'] == image, cls.dckr.containers())
+        cnt_list = filter(lambda c: c['Image'] == image, cls.dckr.containers(all=True))
         for cnt in cnt_list:
             print('Cleaning container %s' %cnt['Id'])
-            cls.dckr.kill(cnt['Id'])
+            if cnt['State'] == 'running':
+                cls.dckr.kill(cnt['Id'])
             cls.dckr.remove_container(cnt['Id'], force=True)
 
     @classmethod
