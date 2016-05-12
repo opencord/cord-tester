@@ -9,7 +9,7 @@ docker kill cord-quagga || true
 echo "Running TLS authentication test"
 $cord_tester -r -t tls
 echo "Running DHCP request test"
-$cord_tester -q -t dhcp:dhcp_exchange.test_dhcp_1request
+$cord_tester -q -t dhcp
 docker kill cord-onos || true
 echo "Running IGMP join verify test"
 $cord_tester -q -o $ONOS_IGMP -t igmp:igmp_exchange.test_igmp_join_verify_traffic
