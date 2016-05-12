@@ -342,7 +342,7 @@ class dhcp_exchange(unittest.TestCase):
 		os.system('ifconfig '+iface+' up')
 		log.info('Client is up now.')
 		
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
+		new_cip, new_sip = self.dhcp.only_request(cip, mac, cl_reboot = True)
 		if new_cip == None:
 			log.info("Got DHCP server NAK.")
 			assert_not_equal(new_cip, None)
@@ -406,6 +406,144 @@ class dhcp_exchange(unittest.TestCase):
 				assert_equal(new_cip,None) #Neagtive Test Case
 		
 
+    def test_dhcp_specific_lease_packet(self, iface = 'veth0'):
+	''' Client sends DHCP Discover packet for particular lease time.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	log.info('Sending DHCP discover with lease time of 700')
+	cip, sip, mac = self.dhcp.only_discover(lease_time = True)
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None) 
+	elif cip and sip and mac:
+		
+		log.info("Triggering DHCP Request.")
+		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True)
+		log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %  
+		 	 (new_cip, new_sip, mac, lval) )
+		assert_not_equal(lval, 700) #Negative Test Case
+
+
+		
+    def test_dhcp_lease_packet(self, iface = 'veth0'):
+	''' Client checks lease time is 600 secs/10 mins or not.'''
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None) 
 	
- 
+	elif cip and sip and mac:
+		
+		log.info("Triggering DHCP Request.")
+		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True)
+		if lval == 600:
+			log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s.' %  
+		 		 (new_cip, new_sip, mac, lval) ) 
+		else:
+			log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s.' %  
+		 		 (new_cip, new_sip, mac, lval) ) 
+			log.info('The lease time suppossed to be 600 secs or 10 mins.')
+			assert_equal(lval, 600)
+			
+    def test_dhcp_client_renew_time(self, iface = 'veth0'):
+	
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None) 
+	
+	elif cip and sip and mac:
+		
+		log.info("Triggering DHCP Request.")
+		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
+	
+		if new_cip and new_sip and lval:
+
+			log.info("Clinet 's Renewal time is :%s",lval)
+			log.info("Generating delay till renewal time.")
+			time.sleep(lval)
+
+			log.info("Client Sending Unicast DHCP request.")
+			latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac, unicast = True)
+
+			if latest_cip and latest_sip:
+				log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
+						(latest_cip, mac, latest_sip) )
+		
+			elif latest_cip == None:
+				log.info("Got DHCP NAK. Lease not renewed.")
+				
+		elif new_cip == None or new_sip == None or lval == None:
+
+			log.info("Got DHCP NAK.")
+
+			
+		
+    def test_dhcp_client_rebind_time(self, iface = 'veth0'):
+	
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	cip, sip, mac = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None) 
+	
+	elif cip and sip and mac:
+		
+		log.info("Triggering DHCP Request.")
+		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, rebind_time = True)
+	
+		if new_cip and new_sip and lval:
+
+			log.info("Clinet 's Rebind time is :%s",lval)
+			log.info("Generating delay till rebind time.")
+			time.sleep(lval)
+
+			log.info("Client Sending broadcast DHCP requests for renewing lease or for getting new ip.")
+	
+			for i in range(0,4):
+				latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac)
+
+				if latest_cip and latest_sip:
+					log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
+							(latest_cip, mac, latest_sip) )
+		
+				elif latest_cip == None:
+					log.info("Got DHCP NAK. Lease not renewed.")
+			assert_not_equal(latest_cip, None)
+		elif new_cip == None or new_sip == None or lval == None:
+
+			log.info("Got DHCP NAK.Lease not Renewed.")
 

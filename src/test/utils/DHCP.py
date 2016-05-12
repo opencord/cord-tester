@@ -28,6 +28,9 @@ class DHCPTest:
         self.mac_inverse_map = {}
 	self.bootpmac = None
 	self.dhcpresp = None
+	self.servermac = None
+	self.after_T2 = False
+	
 
     def is_mcast(self, ip):
         mcast_octet = (atol(ip) >> 24) & 0xff
@@ -92,17 +95,16 @@ class DHCPTest:
 	if desired:
 		L6 = DHCP(options=[("message-type","discover"),("requested_addr",self.seed_ip),"end"])
 	
-	elif time:
+	elif lease_time:
 		L6 = DHCP(options=[("message-type","discover"),("lease_time",700),"end"])
 		
-	elif lease_time:
-        	L6 = DHCP(options=[("message-type","discover"),"end"])
-
+	else:
+	        L6 = DHCP(options=[("message-type","discover"),"end"])
 		
 
         resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
 	if resp == None:
-        	return (None, None, None)
+        	return (None, None, mac)
 		
 	self.dhcpresp = resp
         for x in resp.lastlayer().options:
@@ -120,23 +122,16 @@ class DHCPTest:
            			print "In Attribute error."
             		 	print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             		 	return (None, None, None)
-			
-			if lease_time == True:
-				for x in resp.lastlayer().options:
-            				if(x == 'end'):
-                				break
-            				op,val = x
-            				if(op == "lease_time"):
-						return (srcIP, serverIP, mac, val)
-			else:
-				return (srcIP, serverIP, mac)
-	
+
+				
+			return (srcIP, serverIP, mac)
+		
 		elif(val == 6):
 		
 			return (None, None, mac)
 
 	
-    def only_request(self, cip, mac):
+    def only_request(self, cip, mac, cl_reboot = False, lease_time = False, renew_time = False, rebind_time = False, unicast = False):
         '''Send a DHCP offer'''
         
 	subnet_mask = "0.0.0.0"
@@ -149,12 +144,29 @@ class DHCPTest:
             	elif(op == 'server_id'):
                 	server_id = val
 
-        L2 = Ether(dst="ff:ff:ff:ff:ff:ff", src=mac)
-        L3 = IP(src="0.0.0.0", dst="255.255.255.255")
+	if unicast and self.servermac:
+        	L2 = Ether(dst=self.servermac, src=mac)
+	        L3 = IP(src=cip, dst=server_id)
+	else:	
+	        L2 = Ether(dst="ff:ff:ff:ff:ff:ff", src=mac)
+		if self.after_T2:
+	        	L3 = IP(src=cip, dst="255.255.255.255")
+		else:
+		        L3 = IP(src="0.0.0.0", dst="255.255.255.255")
         L4 = UDP(sport=68, dport=67)
-        L5 = BOOTP(chaddr=self.bootpmac, yiaddr=cip)
-        L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
-                           ("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
+	
+	if self.after_T2 == True:
+        	L5 = BOOTP(chaddr=self.bootpmac, ciaddr = cip)
+	else:
+
+	        L5 = BOOTP(chaddr=self.bootpmac, yiaddr=cip)
+	
+	if cl_reboot or self.after_T2:
+        	L6 = DHCP(options=[("message-type","request"),("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])		
+	else:
+       		L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
+                           	("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
+
 	resp=srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
 	if resp == None:
         	return (None, None)
@@ -174,11 +186,32 @@ class DHCPTest:
            				print "In Attribute error."
             				print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             				return (None, None)
-	        		self.mac_map[mac] = (srcIP, serverIP)
-        			self.mac_inverse_map[srcIP] = (mac, serverIP)
-
-				return (srcIP, serverIP)
-	
+        		
+				if lease_time or renew_time or rebind_time:
+					for x in resp.lastlayer().options:
+            					if(x == 'end'):
+                					break
+	            				op,val = x
+				
+        	    				if op == "lease_time":
+							if lease_time == True:
+								self.mac_map[mac] = (srcIP, serverIP)
+			        				self.mac_inverse_map[srcIP] = (mac, serverIP)
+								return (srcIP, serverIP, val)
+	            				elif op == "renewal_time":
+							if renew_time == True:
+								self.mac_map[mac] = (srcIP, serverIP)
+				        			self.mac_inverse_map[srcIP] = (mac, serverIP)
+								return (srcIP, serverIP, val)
+            					elif op == "rebinding_time":
+							if rebind_time == True:
+								self.mac_map[mac] = (srcIP, serverIP)
+			        				self.mac_inverse_map[srcIP] = (mac, serverIP)
+								return (srcIP, serverIP, val)
+				else:
+					self.mac_map[mac] = (srcIP, serverIP)
+					self.mac_inverse_map[srcIP] = (mac, serverIP)
+					return (srcIP, serverIP)
 			elif(val == 6):
 		
 				return (None, None)
