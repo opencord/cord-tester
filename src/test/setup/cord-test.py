@@ -179,13 +179,9 @@ CMD ["/bin/bash"]
         '''Run the list of tests'''
         for t in tests:
             test = t.split(':')[0]
-            if test == 'tls':
-                test_file = test + 'AuthTest.py'
-            else:
-                test_file = test + 'Test.py'
-
+            test_file = '{}Test.py'.format(test)
             if t.find(':') >= 0:
-                test_case = test_file + ':' + t.split(':')[1]
+                test_case = '{0}:{1}'.format(test_file, t.split(':')[1])
             else:
                 test_case = test_file
             cmd = 'nosetests -v {0}/src/test/{1}/{2}'.format(self.sandbox, test, test_case)
@@ -200,10 +196,7 @@ CMD ["/bin/bash"]
     def list_tests(cls, tests):
         print('Listing test cases')
         for test in tests:
-            if test == 'tls':
-                test_file = test + 'AuthTest.py'
-            else:
-                test_file = test + 'Test.py'
+            test_file = '{}Test.py'.format(test)
             cmd = 'nosetests -v --collect-only {0}/../{1}/{2}'.format(cls.tester_base, test, test_file)
             os.system(cmd)
 
