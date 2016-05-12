@@ -36,8 +36,10 @@ class CordTester(Container):
                        ('/var/run/docker.sock', '/var/run/docker.sock')
                        )
     basename = 'cord-tester'
+    IMAGE = 'cord-test/nose'
+    ALL_TESTS = ('tls', 'dhcp', 'igmp', 'subscriber', 'vrouter', 'flows')
 
-    def __init__(self, ctlr_ip = None, image = 'cord-test/nose', tag = 'latest',
+    def __init__(self, ctlr_ip = None, image = IMAGE, tag = 'latest',
                  env = None, rm = False, update = False):
         self.ctlr_ip = ctlr_ip
         self.rm = rm
@@ -207,7 +209,7 @@ CMD ["/bin/bash"]
 
 ##default onos/radius/test container images and names
 onos_image_default='onosproject/onos:latest'
-nose_image_default='cord-test/nose:latest'
+nose_image_default= '{}:latest'.format(CordTester.IMAGE)
 test_type_default='dhcp'
 onos_app_version = '1.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(__file__))
@@ -216,22 +218,24 @@ onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester
 def runTest(args):
     #Start the cord test tcp server
     test_server = cord_test_server_start()
-    tests = args.test_type.split('-')
+    if args.test_type.lower() == 'all':
+        tests = CordTester.ALL_TESTS
+        args.radius = True
+        args.quagga = True
+    else:
+        tests = args.test_type.lower().split('-')
+
     onos_cnt = {'tag':'latest'}
-    nose_cnt = {'image': 'cord-test/nose','tag': 'latest'}
+    nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
+    update_map = { 'quagga' : False, 'test' : False, 'radius' : False }
+    update_map[args.update.lower()] = True
+    
+    if args.update.lower() == 'all':
+       for c in update_map.keys():
+           update_map[c] = True
+    
     radius_ip = None
     quagga_ip = None
-    if args.cleanup:
-        cleanup_container = args.cleanup
-        if cleanup_container.find(':') < 0:
-            cleanup_container += ':latest'
-        print('Cleaning up containers %s' %cleanup_container)
-        Container.cleanup(cleanup_container)
-        sys.exit(0)
-
-    if args.list:
-        CordTester.list_tests(tests)
-        sys.exit(0)
 
     #don't spawn onos if the user has specified external test controller with test interface config
     if args.test_controller:
@@ -251,7 +255,7 @@ def runTest(args):
 
         ##Start Radius container if specified
         if args.radius == True:
-            radius = Radius()
+            radius = Radius( update = update_map['radius'])
             radius_ip = radius.ip()
             print('Radius server running with IP %s' %radius_ip)
         else:
@@ -263,7 +267,7 @@ def runTest(args):
     
     if args.quagga == True:
         #Start quagga. Builds container if required
-        quagga = Quagga()
+        quagga = Quagga(update = update_map['quagga'])
         quagga_ip = quagga.ip()
         
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
@@ -277,28 +281,69 @@ def runTest(args):
     test_cnt = CordTester(ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
                           env = test_cnt_env,
                           rm = False if args.keep else True,
-                          update = args.update)
+                          update = update_map['test'])
     if args.start_switch or not args.olt:
         test_cnt.start_switch()
     test_cnt.setup_intfs()
     test_cnt.run_tests(tests)
     cord_test_server_stop(test_server)
 
+def cleanupTests(args):
+    test_container = '{}:latest'.format(CordTester.IMAGE)
+    print('Cleaning up Test containers ...')
+    Container.cleanup(test_container)
+
+def listTests(args):
+    if args.test == 'all':
+        tests = CordTester.ALL_TESTS
+    else:
+        tests = args.test.lower().split('-')
+    CordTester.list_tests(tests)
+
+def buildImages(args):
+    if args.image == 'all' or args.image == 'quagga':
+        Quagga.build_image(Quagga.IMAGE)
+    
+    if args.image == 'all' or args.image == 'radius':
+        Radius.build_image(Radius.IMAGE)
+
+    if args.image == 'all' or args.image == 'test':
+        CordTester.build_image(CordTester.IMAGE)
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='Cord Tester')
-    parser.add_argument('-t', '--test-type', default=test_type_default, type=str)
-    parser.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
-    parser.add_argument('-r', '--radius',action='store_true', help='Start Radius service')
-    parser.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
-    parser.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
-    parser.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
-    parser.add_argument('-l', '--list', action='store_true', help='List test cases')
-    parser.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server.'
+    subparser = parser.add_subparsers()
+    parser_run = subparser.add_parser('run', help='Run cord tester')
+    parser_run.add_argument('-t', '--test-type', default=test_type_default, help='Specify test type or test case to run')
+    parser_run.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
+    parser_run.add_argument('-r', '--radius',action='store_true', help='Start Radius service')
+    parser_run.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
+    parser_run.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
+    parser_run.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
+    parser_run.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server. '
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
-    parser.add_argument('-c', '--cleanup', default='', type=str, help='Cleanup test containers')
-    parser.add_argument('-k', '--keep', action='store_true', help='Keep test container after tests')
-    parser.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
-    parser.add_argument('-u', '--update', action='store_true', help='Update test container image')
-    parser.set_defaults(func=runTest)
+    parser_run.add_argument('-k', '--keep', action='store_true', help='Keep test container after tests')
+    parser_run.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
+    parser_run.add_argument('-u', '--update', default='none', choices=['test','quagga','radius', 'all'], type=str, help='Update cord tester container images. '
+                        'Eg: --update=quagga to rebuild quagga image.'
+                        '    --update=radius to rebuild radius server image.'
+                        '    --update=test to rebuild cord test image.(Default)'
+                        '    --update=all to rebuild all cord tester images.')
+    parser_run.set_defaults(func=runTest)
+
+    parser_list = subparser.add_parser('list', help='List test cases')
+    parser_list.add_argument('-t', '--test', default='all', help='Specify test type to list test cases. '
+                             'Eg: -t tls to list tls test cases.'
+                             '    -t tls-dhcp-vrouter to list tls,dhcp and vrouter test cases.'
+                             '    -t all to list all test cases.')
+    parser_list.set_defaults(func=listTests)
+
+    parser_build = subparser.add_parser('build', help='Build cord test container images')
+    parser_build.add_argument('image', choices=['quagga', 'radius', 'test', 'all'])
+    parser_build.set_defaults(func=buildImages)
+
+    parser_cleanup = subparser.add_parser('cleanup', help='Cleanup test containers')
+    parser_cleanup.set_defaults(func=cleanupTests)
+
     args = parser.parse_args()
     args.func(args)
