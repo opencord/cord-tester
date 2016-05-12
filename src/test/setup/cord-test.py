@@ -216,7 +216,7 @@ def runTest(args):
         args.radius = True
         args.quagga = True
     else:
-        tests = args.test_type.lower().split('-')
+        tests = args.test_type.split('-')
 
     onos_cnt = {'tag':'latest'}
     nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
@@ -290,7 +290,7 @@ def listTests(args):
     if args.test == 'all':
         tests = CordTester.ALL_TESTS
     else:
-        tests = args.test.lower().split('-')
+        tests = args.test.split('-')
     CordTester.list_tests(tests)
 
 def buildImages(args):
