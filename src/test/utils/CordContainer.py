@@ -199,8 +199,9 @@ class Onos(Container):
     host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
     guest_config_dir = '/root/onos/config'
     host_guest_map = ( (host_config_dir, guest_config_dir), )
+    NAME = 'cord-onos'
 
-    def __init__(self, name = 'cord-onos', image = 'onosproject/onos', tag = 'latest', 
+    def __init__(self, name = NAME, image = 'onosproject/onos', tag = 'latest', 
                  boot_delay = 60, restart = False, network_cfg = None):
         if restart is True:
             ##Find the right image to restart
@@ -245,10 +246,13 @@ class Radius(Container):
     host_guest_map = ( (host_db_dir, guest_db_dir),
                        (host_config_dir, guest_config_dir)
                        )
-    def __init__(self, name = 'cord-radius', image = 'cord-test/radius', tag = 'latest',
-                 boot_delay = 10, restart = False):
+    IMAGE = 'cord-test/radius'
+    NAME = 'cord-radius'
+
+    def __init__(self, name = NAME, image = IMAGE, tag = 'latest',
+                 boot_delay = 10, restart = False, update = False):
         super(Radius, self).__init__(name, image, tag = tag, command = self.start_command)
-        if not self.img_exists():
+        if update is True or not self.img_exists():
             self.build_image(image)
         if restart is True and self.exists():
             self.kill()
@@ -289,11 +293,13 @@ class Quagga(Container):
     guest_quagga_config = '/root/config'
     quagga_config_file = os.path.join(guest_quagga_config, 'testrib.conf')
     host_guest_map = ( (host_quagga_config, guest_quagga_config), )
-    
-    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest', 
-                 boot_delay = 15, restart = False, config_file = quagga_config_file):
+    IMAGE = 'cord-test/quagga'
+    NAME = 'cord-quagga'
+
+    def __init__(self, name = NAME, image = IMAGE, tag = 'latest', 
+                 boot_delay = 15, restart = False, config_file = quagga_config_file, update = False):
         super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
-        if not self.img_exists():
+        if update is True or not self.img_exists():
             self.build_image(image)
         if restart is True and self.exists():
             self.kill()
