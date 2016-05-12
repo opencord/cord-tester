@@ -27,9 +27,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <onos.version>1.5.0</onos.version>
+        <onos.version>1.6.0-SNAPSHOT</onos.version>
         <onos.app.name>org.ciena.cordigmp</onos.app.name>
-        <onos.app.requires>org.onosproject.olt</onos.app.requires>
         <onos.app.title>Ciena IGMP for OVS</onos.app.title>
         <onos.app.origin>Ciena Inc.</onos.app.origin>
         <onos.app.category>default</onos.app.category>
@@ -47,6 +46,12 @@
         <dependency>
             <groupId>org.onosproject</groupId>
             <artifactId>onlab-osgi</artifactId>
+            <version>${onos.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.onosproject</groupId>
+            <artifactId>onos-cord-config</artifactId>
             <version>${onos.version}</version>
         </dependency>
 

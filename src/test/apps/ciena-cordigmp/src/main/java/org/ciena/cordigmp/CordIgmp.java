@@ -15,9 +15,6 @@
  */
 package org.ciena.cordigmp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
@@ -33,7 +30,6 @@ import org.apache.felix.scr.annotations.ReferenceCardinality;
 import org.onlab.packet.Ethernet;
 import org.onlab.packet.IpAddress;
 import org.onosproject.cfg.ComponentConfigService;
-import org.onosproject.codec.CodecService;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.net.ConnectPoint;
@@ -65,9 +61,8 @@ import org.onosproject.net.mcast.McastListener;
 import org.onosproject.net.mcast.McastRoute;
 import org.onosproject.net.mcast.McastRouteInfo;
 import org.onosproject.net.mcast.MulticastRouteService;
-import org.onosproject.olt.AccessDeviceConfig;
-import org.onosproject.olt.AccessDeviceData;
-import org.onosproject.rest.AbstractWebResource;
+import org.onosproject.cordconfig.access.AccessDeviceConfig;
+import org.onosproject.cordconfig.access.AccessDeviceData;
 import org.osgi.service.component.ComponentContext;
 import org.onosproject.net.PortNumber;
 import org.onlab.packet.IPv4;
@@ -97,13 +92,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class CordIgmp {
 
 
-    private static final int DEFAULT_REST_TIMEOUT_MS = 2000;
     private static final int DEFAULT_PRIORITY = 500;
     private static final short DEFAULT_MCAST_VLAN = 4000;
-    private static final String DEFAULT_SYNC_HOST = "localhost:8181";
-    private static final String DEFAULT_USER = "karaf";
-    private static final String DEFAULT_PASSWORD = "karaf";
-    private static final boolean DEFAULT_VLAN_ENABLED = true;
+    private static final boolean DEFAULT_VLAN_ENABLED = false;
     private static final short DEFAULT_INPUT_PORT = 2;
     private static final short DEFAULT_OUTPUT_PORT = 1;
     private final Logger log = getLogger(getClass());
@@ -116,9 +107,6 @@ public class CordIgmp {
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected CoreService coreService;
-
-    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
-    protected CodecService codecService;
 
     @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY)
     protected ComponentConfigService componentConfigService;
@@ -160,18 +148,6 @@ public class CordIgmp {
             label = "Priority for multicast rules")
     private int priority = DEFAULT_PRIORITY;
 
-    @Property(name = "syncHost", value = DEFAULT_SYNC_HOST,
-            label = "host:port to synchronize routes to")
-    private String syncHost = DEFAULT_SYNC_HOST;
-
-    @Property(name = "username", value = DEFAULT_USER,
-            label = "Username for REST password authentication")
-    private String user = DEFAULT_USER;
-
-    @Property(name = "password", value = DEFAULT_PASSWORD,
-            label = "Password for REST authentication")
-    private String password = DEFAULT_PASSWORD;
-
     @Property(name = "inputPort", intValue = DEFAULT_INPUT_PORT,
               label = "Input port for OVS multicast traffic")
     private int inputPort = DEFAULT_INPUT_PORT;
@@ -179,8 +155,6 @@ public class CordIgmp {
     @Property(name = "outputPort", intValue = DEFAULT_OUTPUT_PORT,
               label = "Output port for OVS multicast traffic")
     private int outputPort = DEFAULT_OUTPUT_PORT;
-
-    private String fabricOnosUrl;
 
     private Map<DeviceId, AccessDeviceData> oltData = new ConcurrentHashMap<>();
 
@@ -258,13 +232,7 @@ public class CordIgmp {
         Dictionary<?, ?> properties = context != null ? context.getProperties() : new Properties();
 
         try {
-            String s = get(properties, "username");
-            user = isNullOrEmpty(s) ? DEFAULT_USER : s.trim();
-
-            s = get(properties, "password");
-            password = isNullOrEmpty(s) ? DEFAULT_PASSWORD : s.trim();
-
-            s = get(properties, "mcastVlan");
+            String s = get(properties, "mcastVlan");
             mcastVlan = isNullOrEmpty(s) ? DEFAULT_MCAST_VLAN : Short.parseShort(s.trim());
 
             s = get(properties, "vlanEnabled");
@@ -273,10 +241,6 @@ public class CordIgmp {
             s = get(properties, "priority");
             priority = isNullOrEmpty(s) ? DEFAULT_PRIORITY : Integer.parseInt(s.trim());
 
-            s = get(properties, "syncHost");
-            syncHost = isNullOrEmpty(s) ? DEFAULT_SYNC_HOST : s.trim();
-            log.warn("Sync Host = " + syncHost);
-
             s = get(properties, "inputPort");
             inputPort = isNullOrEmpty(s) ? DEFAULT_INPUT_PORT : Short.parseShort(s.trim());
 
@@ -284,20 +248,12 @@ public class CordIgmp {
             outputPort = isNullOrEmpty(s) ? DEFAULT_OUTPUT_PORT : Short.parseShort(s.trim());
 
         } catch (Exception e) {
-            user = DEFAULT_USER;
-            password = DEFAULT_PASSWORD;
-            syncHost = DEFAULT_SYNC_HOST;
             mcastVlan = DEFAULT_MCAST_VLAN;
             vlanEnabled = false;
             priority = DEFAULT_PRIORITY;
             inputPort = DEFAULT_INPUT_PORT;
             outputPort = DEFAULT_OUTPUT_PORT;
         }
-        fabricOnosUrl = createRemoteUrl(syncHost);
-    }
-
-    private static String createRemoteUrl(String remoteHost) {
-        return "http://" + remoteHost + "/onos/v1/mcast";
     }
 
     private class InternalMulticastListener implements McastListener {
