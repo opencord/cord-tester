@@ -178,7 +178,7 @@ class igmp_exchange(unittest.TestCase):
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr=self.IP_DST)
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
               gr.sources = src_list
               igmp.grps.append(gr)
         if ip_pkt is None:
@@ -194,7 +194,7 @@ class igmp_exchange(unittest.TestCase):
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr=self.IP_DST)
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
               gr.sources = src_list
               gr.sources = src_list
               igmp.grps.append(gr)
@@ -218,7 +218,7 @@ class igmp_exchange(unittest.TestCase):
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr=self.IP_DST)
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
               gr.sources = src_list
               igmp.grps.append(gr)
         if ip_pkt is None:
@@ -233,7 +233,7 @@ class igmp_exchange(unittest.TestCase):
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr=self.IP_DST)
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
               gr.sources = src_list
               igmp.grps.append(gr)
         if ip_pkt is None:
@@ -345,7 +345,7 @@ class igmp_exchange(unittest.TestCase):
           igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                         gaddr=self.IP_DST)
           for g in groups:
-                gr = IGMPv3gr(rtype = IGMP_V3_GR_TYPE_EXCLUDE, mcaddr = g)
+                gr = IGMPv3gr(rtype = IGMP_V3_GR_TYPE_INCLUDE, mcaddr = g)
                 gr.sources = src_list
                 igmp.grps.append(gr)
 
@@ -397,7 +397,7 @@ class igmp_exchange(unittest.TestCase):
                 log.info('Multicast packet %s received for left groups %s' %(pkt[IP].dst, groups))
                 global NEGATIVE_TRAFFIC_STATUS
                 NEGATIVE_TRAFFIC_STATUS = 2
-          sniff(prn = igmp_recv_cb, count = 1, lfilter = lambda p: p[IP].dst in groups,
+          sniff(prn = igmp_recv_cb, count = 1, lfilter = lambda p: IP in p and p[IP].dst in groups,
                 timeout = 3, opened_socket = recv_socket)
           recv_socket.close()
           return NEGATIVE_TRAFFIC_STATUS 

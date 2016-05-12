@@ -55,7 +55,7 @@ class IgmpChannel:
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
               gr.sources = self.src_list
               igmp.grps.append(gr)
 
@@ -69,7 +69,7 @@ class IgmpChannel:
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
               gr.sources = self.src_list
               igmp.grps.append(gr)
 
@@ -132,7 +132,7 @@ class Channels(IgmpChannel):
         IgmpChannel.__init__(self, ssm_list = self.channels, iface=iface)
         
     def generate(self, num, channel_start = 0):
-        start = (224 << 24) | ( ( (channel_start >> 16) & 0xff) << 16 ) | \
+        start = (225 << 24) | ( ( (channel_start >> 16) & 0xff) << 16 ) | \
             ( ( (channel_start >> 8) & 0xff ) << 8 ) | (channel_start) & 0xff
         start += channel_start/256 + 1
         end = start + num
@@ -248,7 +248,7 @@ class Channels(IgmpChannel):
             groups = (self.gaddr(chan),)
         if cb is None:
             cb = self.recv_cb
-        sniff(prn = cb, count=count, lfilter = lambda p: p[IP].dst in groups, opened_socket = self.recv_sock)
+        sniff(prn = cb, count=count, lfilter = lambda p: IP in p and p[IP].dst in groups, opened_socket = self.recv_sock)
 
     def stop(self):
         if self.streams:
