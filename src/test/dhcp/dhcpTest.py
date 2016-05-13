@@ -163,7 +163,6 @@ class dhcp_exchange(unittest.TestCase):
 
 
     def test_dhcp_starvation(self, iface = 'veth0'):
-        '''DHCP starve'''
         config = {'startip':'182.17.0.20', 'endip':'182.17.0.69', 
                   'ip':'182.17.0.2', 'mac': "ca:fe:c3:fe:ca:fe",
                   'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
@@ -180,7 +179,6 @@ class dhcp_exchange(unittest.TestCase):
 
 
     def test_dhcp_same_client_multiple_discover(self, iface = 'veth0'):
-	''' DHCP Client sending multiple discover . '''
 	config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
@@ -201,7 +199,6 @@ class dhcp_exchange(unittest.TestCase):
 
 
     def test_dhcp_same_client_multiple_request(self, iface = 'veth0'):
-	''' DHCP Client sending multiple repeat DHCP requests. '''
 	config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
@@ -225,7 +222,6 @@ class dhcp_exchange(unittest.TestCase):
 		print "Something went wrong."	
     
     def test_dhcp_client_desired_address(self, iface = 'veth0'):
-	'''DHCP Client asking for desired IP address.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -245,7 +241,6 @@ class dhcp_exchange(unittest.TestCase):
 		
 		
     def test_dhcp_client_desired_address_out_of_pool(self, iface = 'veth0'):
-	'''DHCP Client asking for desired IP address from out of pool.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -270,7 +265,6 @@ class dhcp_exchange(unittest.TestCase):
 	
 			
     def test_dhcp_server_nak_packet(self, iface = 'veth0'):
-	''' Client sends DHCP Request for ip that is different from DHCP offer packet.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -293,7 +287,6 @@ class dhcp_exchange(unittest.TestCase):
 		
 	
     def test_dhcp_lease_packet(self, iface = 'veth0'):
-	''' Client sends DHCP Discover packet for particular lease time.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -312,7 +305,6 @@ class dhcp_exchange(unittest.TestCase):
 		assert_not_equal(lval, 700)
 
     def test_dhcp_client_request_after_reboot(self, iface = 'veth0'):
-	#''' Client sends DHCP Request after reboot.'''
 	
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -352,7 +344,6 @@ class dhcp_exchange(unittest.TestCase):
 	
      
     def test_dhcp_server_after_reboot(self, iface = 'veth0'):
-	''' DHCP server goes down.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -407,7 +398,6 @@ class dhcp_exchange(unittest.TestCase):
 		
 
     def test_dhcp_specific_lease_packet(self, iface = 'veth0'):
-	''' Client sends DHCP Discover packet for particular lease time.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -433,7 +423,6 @@ class dhcp_exchange(unittest.TestCase):
 
 		
     def test_dhcp_lease_packet(self, iface = 'veth0'):
-	''' Client checks lease time is 600 secs/10 mins or not.'''
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
