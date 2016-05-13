@@ -8,7 +8,7 @@ The CORD Automated Tester Suite is an extensible end-to-end system test suite ta
 
 * Python 2.7 or later
 * Docker
-* vagrant
+* vagrant(Optional)
 
 ##  <a name="how_to_install">How to install
 
@@ -17,7 +17,7 @@ $ git clone https://github.cyanoptics.com/cord-lab/cord-tester.git
 $ cd cord-tester
 $ vagrant up
 $ vagrant ssh cordtest
-$ cd src/test/setup/
+$ cd /cord-tester/src/test/setup/
 $ sudo ./cord-test.py -h
 usage: cord-test.py [-h] {run,list,build,cleanup} ...
 
@@ -81,7 +81,7 @@ optional arguments:
 ```
 $ git clone https://github.cyanoptics.com/cord-lab/cord-tester.git
 $ cd cord-tester/src/test/setup/
-$ prerequisites.sh
+$ sudo ./prerequisites.sh
 ```
 * Then follow the same instructions as mentioned in above section.
 
@@ -89,7 +89,7 @@ $ prerequisites.sh
 ## <a name="how_to_use">How to use
 * eval.sh will run all the test cases for you.
 ```
-$ ./eval.sh
+$ sudo ./eval.sh
 ```
 * Running all test cases in a module (for e.g DHCP)
 ```
@@ -97,15 +97,27 @@ $ sudo ./cord-test.py run -t dhcp
 ```
 * Running single test case in a module 
 ```
-$ sudo ./cord-test.py  -t dhcp:dhcp_exchange.test_dhcp_1request
+$ sudo ./cord-test.py  run -t dhcp:dhcp_exchange.test_dhcp_1request
 ```
-* If you want to check a list of test cases
+* Running all test cases 
+```
+$ sudo ./cord-test.py  run -t all
+```
+* Check list of test cases
 ```
 $ sudo ./cord-test.py list
 ```
-* IF you want to clean up all 
+* Check list of specific module 
 ```
-$ sudo ./cord-test.py clean
+$ sudo ./cord-test.py list -t dhcp
+```
+* Cleanup all test containers
+```
+$ sudo ./cord-test.py cleanup
+```
+* Build all required test container images
+```
+$ sudo ./cord-test.py build all
 ```
 
 * For other options, run with -h option.
