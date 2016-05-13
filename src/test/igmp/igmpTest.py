@@ -385,22 +385,20 @@ class igmp_exchange(unittest.TestCase):
           log.debug('Returning from recv task')
 
     def igmp_not_recv_task(self, intf, groups, join_state):
-          global NEGATIVE_TRAFFIC_STATUS
           recv_socket = L2Socket(iface = intf, type = ETH_P_IP)
           group_map = {}
           for g in groups:
                 group_map[g] = [0,0]
 
           log.info('Verifying join interface should not receive any multicast data')
-          NEGATIVE_TRAFFIC_STATUS = 1
+          self.NEGATIVE_TRAFFIC_STATUS = 1
           def igmp_recv_cb(pkt):
                 log.info('Multicast packet %s received for left groups %s' %(pkt[IP].dst, groups))
-                global NEGATIVE_TRAFFIC_STATUS
-                NEGATIVE_TRAFFIC_STATUS = 2
+                self.NEGATIVE_TRAFFIC_STATUS = 2
           sniff(prn = igmp_recv_cb, count = 1, lfilter = lambda p: IP in p and p[IP].dst in groups,
                 timeout = 3, opened_socket = recv_socket)
           recv_socket.close()
-          return NEGATIVE_TRAFFIC_STATUS 
+          return self.NEGATIVE_TRAFFIC_STATUS 
 
     def group_latency_check(self, groups):
           tasks = []
@@ -435,8 +433,6 @@ class igmp_exchange(unittest.TestCase):
 
           
     def test_igmp_join_rover(self):
-          '''Keep sending joins across multicast range of addresses'''
-          '''For now, restricting it to 50/100'''
           s = (224 << 24) | 1
           #e = (225 << 24) | (255 << 16) | (255 << 16) | 255
           e = (224 << 24) | 10
@@ -480,6 +476,7 @@ class igmp_exchange(unittest.TestCase):
         ip = IP(dst = g2, src = src_ip)
         log.info('Sending join message for group %s' %g2)
         self.send_igmp_join((g2,), src_list = sourcelist2, ip_pkt = eth/ip, iface = intf, delay = 2)
+        log.info('Done with igmp_send_joins_different_groups_srclist')
 
     def igmp_send_joins_different_groups_srclist_wait_query_packets(self, groups, sources, intf = V_INF1, delay = 2, ip_src = None, query_group1 = None, query_group2 = None):
         g1 = groups[0]
@@ -560,7 +557,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_2joins_1leave_functionality(self):
-        ## '''This test is subscribing to two channels and sending leave for one channel'''
         df = defer.Deferred()
         def test_igmp_2joins_1leave():
               self.igmp_joins_leave_functionality(again_join = False, df = df)
@@ -570,7 +566,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+25)
     def test_igmp_2joins_1leave_again_joins_functionality(self):
-        ## '''This test is subscribing to two channels and sending leave for one channel,again join to the same group'''
         df = defer.Deferred()
         def test_igmp_2joins_1leave_join_again():
               self.igmp_joins_leave_functionality(again_join = True, df = df)
@@ -579,7 +574,6 @@ class igmp_exchange(unittest.TestCase):
         return df
 
     def igmp_not_in_src_list_functionality(self, df = None):
-        ## '''This test is sending multicast data from source 6.6.6.6 which is not in joins report '''
         groups1 = (self.MGROUP1,)
         groups2 = (self.MGROUP2,)
         self.igmp_send_joins_different_groups_srclist(groups1 + groups2,
@@ -597,14 +591,13 @@ class igmp_exchange(unittest.TestCase):
         join_state1 = IGMPTestState(groups = groups1)
         log.info('Interface should not receive from multicast groups %s from an interface, which is expected' %groups1)
         target1 = self.igmp_not_recv_task(self.V_INF1, groups1, join_state1)
-        assert target1 == 1, 'EXPECTED FAILURE'
+        assert target1 == 2, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s, working as expected' %groups1)
         mcastTraffic1.stop()
         self.onos_ctrl.deactivate()
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_not_in_src_list_functionality(self):
-        ## '''This test is sending multicast data from source 6.6.6.6 which is not in joins report '''
         df = defer.Deferred()
         def igmp_not_in_src_list_functionality():
               self.igmp_not_in_src_list_functionality(df = df)
@@ -631,14 +624,13 @@ class igmp_exchange(unittest.TestCase):
         target1 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         self.send_igmp_leave(groups = groups1, src_list = ['2.2.2.2'], iface = self.V_INF1, delay =2)
         target2 = self.igmp_not_recv_task(self.V_INF1, groups1, join_state1)
-        assert target2 == 1, 'EXPECTED FAILURE'
+        assert target2 == 2, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s after sending CHANGE_TO_EXCLUDE' %groups1)
         mcastTraffic1.stop()
         self.onos_ctrl.deactivate()
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_change_to_exclude_src_list_functionality(self):
-        ## '''This test is checking that change to exclude source list functionality '''
         df = defer.Deferred()
         def igmp_change_to_exclude_src_list_functionality():
               self.igmp_change_to_exclude_src_list_functionality(df = df)
@@ -672,7 +664,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+30)
     def test_igmp_include_to_allow_src_list_functionality(self):
-        '''Verify join INCLUDE (A) and Allow(B) from both A and B source list should receive multicast traffic. '''
         df = defer.Deferred()
         def igmp_include_to_allow_src_list_functionality():
               self.igmp_include_to_allow_src_list_functionality(df = df)
@@ -706,7 +697,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+30)
     def test_igmp_include_to_block_src_list_functionality(self):
-        '''Verify join INCLUDE (A) and Block(B) from A source list, should receive multicast traffic.'''
         df = defer.Deferred()
         def igmp_include_to_block_src_list_functionality():
               self.igmp_include_to_block_src_list_functionality(df = df)
@@ -744,7 +734,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_change_to_include_src_list_functionality(self):
-        ## '''This test is checking that change to include source list functionality '''
         df = defer.Deferred()
         def igmp_change_to_include_src_list_functionality():
               self.igmp_change_to_include_src_list_functionality(df = df)
@@ -782,7 +771,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_exclude_to_allow_src_list_functionality(self):
-        '''Verify join EXCLUDE(A) and Allow(B) from both A and B source list, should receive multicast traffic. '''
         df = defer.Deferred()
         def igmp_exclude_to_allow_src_list_functionality():
               self.igmp_exclude_to_allow_src_list_functionality(df = df)
@@ -819,7 +807,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_exclude_to_block_src_list_functionality(self):
-        ''' Verify join EXCLUDE (A) and Block(B) from A source list, should receive multicast traffic. '''
         df = defer.Deferred()
         def igmp_exclude_to_block_src_list_functionality():
               self.igmp_exclude_to_block_src_list_functionality(df = df)
@@ -856,7 +843,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_new_src_list_functionality(self):
-        ## '''This test is checking that adding new source list to existing source list functionality '''
         df = defer.Deferred()
         def igmp_new_src_list_functionality():
               self.igmp_new_src_list_functionality(df = df)
@@ -887,14 +873,13 @@ class igmp_exchange(unittest.TestCase):
                                                       (['6.6.6.6', '3.3.3.3', '4.4.4.4'], ['2.2.2.2', '7.7.7.7']),
                                                       intf = self.V_INF1, delay = 2)
         target2 = self.igmp_not_recv_task(self.V_INF1, groups2, join_state1)
-        assert target2 == 1, 'EXPECTED FAILURE'
+        assert target2 == 2, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s after sending join with block old source list' %groups2)
         mcastTraffic1.stop()
         self.onos_ctrl.deactivate()
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_block_old_src_list_functionality(self):
-        ## '''This test is checking that block old source list from existing source list functionality '''
         df = defer.Deferred()
         def igmp_block_old_src_list_functionality():
               self.igmp_block_old_src_list_functionality(df = df)
@@ -927,7 +912,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def ztest_igmp_include_empty_src_list_functionality(self):
-        ## '''This test is checking that multicast functionality by sending empty source list to include  '''
         ## '''Disabling this test as scapy IGMP doesn't work with empty source lists'''
         df = defer.Deferred()
         def igmp_include_empty_src_list_functionality():
@@ -958,8 +942,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def ztest_igmp_exclude_empty_src_list_functionality(self):
-        ## '''This test is checking that multicast functionality by sending empty source list to exclude  '''
-        ## '''Disabling this test case since scapy IGMP doesn't work with empty src list'''
         df = defer.Deferred()
         def igmp_exclude_empty_src_list_functionality():
               self.igmp_exclude_empty_src_list_functionality()
@@ -993,7 +975,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_join_sourceip_0_0_0_0_functionality(self):
-        ## '''This test is sending join with source list A,B,C and exclude D,F,G with source IP as 0.0.0.0'''
         df = defer.Deferred()
         def igmp_join_sourceip_0_0_0_0_functionality():
               self.igmp_join_sourceip_0_0_0_0_functionality(df = df)
@@ -1029,7 +1010,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_invalid_join_packet_functionality(self):
-        ## '''This test is sending invalid join with source list A,B,C and exclude D,F,G with multicast group as 255.255.255.255'''
         df = defer.Deferred()
         def igmp_invalid_join_packet_functionality():
               self.igmp_invalid_join_packet_functionality(df = df)
@@ -1072,7 +1052,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_join_data_receiving_during_subscriber_link_up_down_functionality(self):
-        ## '''This test is sending join with source list A,B,C and exclude D,F,G with valid multicast group during receiving data, shutdown on data receiving port'''
         df = defer.Deferred()
         def igmp_join_data_receiving_during_subscriber_link_up_down_functionality():
               self.igmp_join_data_receiving_during_subscriber_link_down_up_functionality(df = df)
@@ -1136,8 +1115,7 @@ class igmp_exchange(unittest.TestCase):
     ##  This test case is failing to receive traffic from multicast data from defferent channel interfaces TO-DO
     ###### TO DO scenario #######
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+60)
-    def ztest_igmp_join_data_receiving_during_channel_distributor_link_down_up_functionality(self):
-        ## '''This test is sending join with source list A,B,C with valid multicast group during receiving data, shutdown the data sending port'''
+    def test_igmp_join_data_receiving_during_channel_distributor_link_down_up_functionality(self):
         df = defer.Deferred()
         def igmp_join_data_receiving_during_channel_distributor_link_down_up_functionality():
               self.igmp_join_data_receiving_during_channel_distributor_link_down_up_functionality(df = df)
@@ -1172,7 +1150,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_invalidClassD_IP_join_packet_functionality(self):
-        ## '''This test is sending invalid join with source list A,B,C with multicast group as 239.255.255.255'''
         df = defer.Deferred()
         def igmp_invalidClass_D_IP_join_packet_functionality():
               self.igmp_invalidClass_D_IP_join_packet_functionality(df = df)
@@ -1207,7 +1184,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_invalidClassD_IP_as_srclistIP_join_packet_functionality(self):
-        ## '''This test is sending invalid join with source list A,B,C and exclude D,F,G with source list as  239.5.5.5'''
         df = defer.Deferred()
         def igmp_invalidClassD_IP_as_srclistIP_join_packet_functionality():
               self.igmp_invalidClassD_IP_as_srclistIP_join_packet_functionality(df = df)
@@ -1260,7 +1236,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+250)
     def test_igmp_general_query_recv_packet_traffic_functionality(self):
-        ## '''This test is verifying whether multicast data is stopped after 180 sec time if we dont respond to query packet which will generated by a querier router'''
         df = defer.Deferred()
         def igmp_general_query_recv_packet_functionality():
               self.igmp_general_query_recv_packet_functionality(df = df)
@@ -1270,7 +1245,6 @@ class igmp_exchange(unittest.TestCase):
     
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+80)
     def test_igmp_query_packet_received_on_joining_interface(self):
-        ## '''This test is verifying whether joining interface is receiving general membership query packet from querier router '''
         groups = ['224.0.1.10', '225.0.0.10']
         leave_groups = ['224.0.1.10']
         df = defer.Deferred()
@@ -1304,7 +1278,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+190)
     def test_igmp_periodic_query_packet_received_on_joining_interface(self):
-        ## '''This test is verifying whether joining interface is receiving periodic general membership query packets from querier router '''
         groups = ['224.0.1.10', '225.0.0.10']
         leave_groups = ['224.0.1.10']
         df = defer.Deferred()
@@ -1333,7 +1306,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+190)
     def test_igmp_periodic_query_packet_received_and_checking_entry_deleted(self):
-        ## '''This test is verifying whether joining interface is receiving periodic general membership query packets from querier router, checking expire membership interval and traffic should not receive'''
         groups = ['224.0.1.10', '225.0.0.10']
         leave_groups = ['224.0.1.10']
         df = defer.Deferred()
@@ -1367,7 +1339,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+190)
     def test_igmp_member_query_interval_expire_re_joining_interface(self):
-        ## '''This test is verifying whether joining interface is receiving multicast data even after group menership interval expire by sending again joining to that multicast data group'''
         groups = ['224.0.1.10', '225.0.0.10']
         leave_groups = ['224.0.1.10']
         df = defer.Deferred()
@@ -1401,7 +1372,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+50)
     def test_igmp_leave_verify_received_group_source_specific_query(self):
-        ## '''This test is verfying when we send leave message we should get group-source specific query '''
         groups = ['224.0.1.10', '225.0.0.10']
         leave_groups = ['224.0.1.10']
         df = defer.Deferred()
@@ -1456,8 +1426,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+60)
     def test_igmp_change_to_exclude_src_list_check_for_group_source_specific_query(self):
-        '''Verify join INCLUDE (A) and TO_EX(B) for a multicast group, 
-           we should receive group source specific membership query packet to A*B source list interface'''
         df = defer.Deferred()
         def igmp_change_to_exclude_src_list_check_for_group_source_specific_query():
               self.igmp_change_to_exclude_src_list_check_for_group_source_specific_query(df = df)
@@ -1494,8 +1462,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+80)
     def test_igmp_change_to_include_src_list_check_for_general_query(self):
-        '''Verify join EXCLUDE (A) and TO_IN(B) for a multicast group, 
-        we should receive general membership query packet. '''
         df = defer.Deferred()
         def igmp_change_to_include_src_list_check_for_general_query():
               self.igmp_change_to_include_src_list_check_for_general_query(df = df)
@@ -1531,8 +1497,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+80)
     def test_igmp_allow_new_src_list_check_for_general_query(self):
-        '''Verify join INCLUDE (A) and ALLOW(B) for a multicast group, we 
-           should receive general membership query packet. '''
         df = defer.Deferred()
         def igmp_allow_new_src_list_check_for_general_query():
               self.igmp_allow_new_src_list_check_for_general_query(df = df)
@@ -1570,8 +1534,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+90)
     def test_igmp_block_old_src_list_check_for_group_source_specific_query(self):
-        """ Verify when we send join INCLUDE (A) and BLOCK(B) for a multicast group, we should receive 
-            group source specific membership query packet to A*B source list interface""" 
         df = defer.Deferred()
         def igmp_block_old_src_list_check_for_group_source_specific_query():
               self.igmp_block_old_src_list_check_for_group_source_specific_query(df = df)
@@ -1603,7 +1565,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+40)
     def test_igmp_include_to_allow_src_list_check_for_general_query(self):
-        '''Verify join INCLUDE (A) and Allow(B) ,should receive general membership query packet '''
         df = defer.Deferred()
         def igmp_include_to_allow_src_list_check_for_general_query():
               self.igmp_include_to_allow_src_list_check_for_general_query(df = df)
@@ -1636,7 +1597,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+40)
     def test_igmp_include_to_block_src_list_check_for_group_source_specific_query(self):
-        '''Verify join INCLUDE (A) and Block(B) ,should receive group source specific membership query packet. '''
         df = defer.Deferred()
         def igmp_include_to_block_src_list_check_for_group_source_specific_query():
               self.igmp_include_to_block_src_list_check_for_group_source_specific_query(df = df)
@@ -1673,7 +1633,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+90)
     def test_igmp_exclude_to_allow_src_list_check_for_general_query(self):
-        '''Verify join EXCLUDE(A) and Allow(B) ,should receive general membership query packet. '''
         df = defer.Deferred()
         def igmp_exclude_to_allow_src_list_check_for_general_query():
               self.igmp_exclude_to_allow_src_list_check_for_general_query(df = df)
@@ -1711,7 +1670,6 @@ class igmp_exchange(unittest.TestCase):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+40)
     def test_igmp_exclude_to_block_src_list_check_for_group_source_specific_query(self):
-        '''Verify join EXCLUDE (A) and Block(B) ,should receive group source specific membership query packet.'''
         df = defer.Deferred()
         def igmp_exclude_to_block_src_list_check_for_group_source_specific_query():
               self.igmp_exclude_to_block_src_list_check_for_group_source_specific_query(df = df)
