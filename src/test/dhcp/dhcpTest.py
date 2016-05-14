@@ -536,3 +536,34 @@ class dhcp_exchange(unittest.TestCase):
 
 			log.info("Got DHCP NAK.Lease not Renewed.")
 
+
+    def test_dhcp_client_expected_subnet_mask(self, iface = 'veth0'):
+	
+	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
+                 'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                 'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+	expected_subnet = '255.255.255.0'
+	self.dhcp.return_subnet = True
+	
+	cip, sip, mac, subnet_value = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
+		  (cip, sip, mac) )
+
+	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+	if (cip == None and mac != None):
+		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+		assert_not_equal(cip, None) 
+	
+	elif cip and sip and mac:
+		
+		if expected_subnet == subnet_value:
+			log.info("Got same subnet as passed in DHCP server configuration.")
+	
+		elif expected_subnet != subnet_value:
+			log.info("Not got same subnet as passed in DHCP server configuration.")
+			assert_equal(expected_subnet, subnet_value)
+
+
+

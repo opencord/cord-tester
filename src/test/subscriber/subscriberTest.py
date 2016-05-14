@@ -389,7 +389,7 @@ class subscriber_exchange(unittest.TestCase):
 
       def test_subscriber_join_recv(self):
           """Test subscriber join and receive"""
-          num_subscribers = 50
+          num_subscribers = 10
           num_channels = 1
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
                                                     num_channels = num_channels,

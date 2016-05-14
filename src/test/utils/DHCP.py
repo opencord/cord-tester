@@ -30,7 +30,8 @@ class DHCPTest:
 	self.dhcpresp = None
 	self.servermac = None
 	self.after_T2 = False
-	
+	self.return_lease = False
+	self.return_subnet = False
 
     def is_mcast(self, ip):
         mcast_octet = (atol(ip) >> 24) & 0xff
@@ -122,6 +123,21 @@ class DHCPTest:
            			print "In Attribute error."
             		 	print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             		 	return (None, None, None)
+			if self.return_lease or self.return_subnet:
+				for x in resp.lastlayer().options:
+        	    			if(x == 'end'):
+                				break
+	            			op,val = x
+		
+	        	    		if op == "lease_time":
+						if self.return_lease:
+							return (srcIP, serverIP, mac, val)
+
+	        	    		elif op == "subnet_mask":
+						log.info("Got Field Subnet mask.")
+						if self.return_subnet:
+							log.info("Subnet Mask Returned.")
+							return (srcIP, serverIP, mac, val)		
 
 				
 			return (srcIP, serverIP, mac)
