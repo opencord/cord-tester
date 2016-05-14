@@ -682,7 +682,7 @@ class igmp_exchange(unittest.TestCase):
         self.send_igmp_leave(groups = groups1, src_list = ['6.6.6.6','7.7.7.7'],
                              iface = self.V_INF1, delay = 2)
         target1 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
-        log.info('Interface is still receiving from old multicast group data %s even after we send bolck list' %groups1)
+        log.info('Interface is still receiving from old multicast group data %s even after we send block list' %groups1)
         mcastTraffic1.stop()
         
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+30)
