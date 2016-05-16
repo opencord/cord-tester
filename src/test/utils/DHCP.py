@@ -29,9 +29,9 @@ class DHCPTest:
 	self.bootpmac = None
 	self.dhcpresp = None
 	self.servermac = None
+	self.return_option = None
 	self.after_T2 = False
-	self.return_lease = False
-	self.return_subnet = False
+	self.send_different_option = None
 
     def is_mcast(self, ip):
         mcast_octet = (atol(ip) >> 24) & 0xff
@@ -123,25 +123,33 @@ class DHCPTest:
            			print "In Attribute error."
             		 	print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             		 	return (None, None, None)
-			if self.return_lease or self.return_subnet:
+
+			if self.return_option:
 				for x in resp.lastlayer().options:
         	    			if(x == 'end'):
                 				break
 	            			op,val = x
 		
 	        	    		if op == "lease_time":
-						if self.return_lease:
+						if self.return_option == 'lease':
 							return (srcIP, serverIP, mac, val)
 
 	        	    		elif op == "subnet_mask":
-						log.info("Got Field Subnet mask.")
-						if self.return_subnet:
-							log.info("Subnet Mask Returned.")
+						if self.return_option == 'subnet':
+							return (srcIP, serverIP, mac, val)		
+					elif op == "router":
+						if self.return_option == 'router':
+							return (srcIP, serverIP, mac, val)		
+					elif op == "broadcast_address":
+						if self.return_option == 'broadcast_address':
+							return (srcIP, serverIP, mac, val)		
+					elif op == "name_server":
+						if self.return_option == 'dns':
 							return (srcIP, serverIP, mac, val)		
 
 				
-			return (srcIP, serverIP, mac)
-		
+			else:
+				return (srcIP, serverIP, mac)
 		elif(val == 6):
 		
 			return (None, None, mac)
@@ -179,6 +187,21 @@ class DHCPTest:
 	
 	if cl_reboot or self.after_T2:
         	L6 = DHCP(options=[("message-type","request"),("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])		
+	elif self.send_different_option:
+		if self.send_different_option == 'subnet':
+	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
+        	                   	("subnet_mask",'255.255.252.0'), ("requested_addr",cip), "end"])
+		elif self.send_different_option == 'router':
+	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
+        	                   	("subnet_mask",subnet_mask), ("router",'1.1.1.1'), ("requested_addr",cip), "end"])
+		elif self.send_different_option == 'broadcast_address':
+	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
+        	                   	("subnet_mask",subnet_mask), ("broadcast_address",'1.1.1.1'), ("requested_addr",cip), "end"])
+
+		elif self.send_different_option == 'dns':
+	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
+        	                   	("subnet_mask",subnet_mask), ("name_server",'1.1.1.1'), ("requested_addr",cip), "end"])
+		
 	else:
        		L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
                            	("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
@@ -186,7 +209,10 @@ class DHCPTest:
 	resp=srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
 	if resp == None:
         	return (None, None)
-        
+
+
+	self.servermac = resp.getlayer(Ether).src
+
 	for x in resp.lastlayer().options:
             	if(x == 'end'):
                 	break
@@ -194,7 +220,6 @@ class DHCPTest:
             	if(op == "message-type"):
 	
 			if(val == 5):
-        	
 				try:
             				srcIP = resp.yiaddr
             				serverIP = resp.siaddr
@@ -230,6 +255,7 @@ class DHCPTest:
 					return (srcIP, serverIP)
 			elif(val == 6):
 		
+				log.info("Got DHCP NAK.")
 				return (None, None)
 	
 		
