@@ -95,3 +95,12 @@ class OnosCtrl:
                                    params = params, headers = headers,
                                    data = payload)
         return result.ok, result.status_code
+
+    @classmethod
+    def uninstall_app(cls, app_name, onos_ip = None):
+        params = {'activate':'true'}
+        headers = {'content-type':'application/octet-stream'}
+        url = cls.applications_url if onos_ip is None else 'http://{0}:8181/onos/v1/applications'.format(onos_ip)
+        app_url = '{}/{}'.format(url, app_name)
+        resp = requests.delete(app_url, auth = cls.auth)
+        return resp.ok, resp.status_code
