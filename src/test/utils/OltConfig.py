@@ -56,6 +56,40 @@ class OltConfig:
         else:
             return None
 
+    def olt_port_map_multi(self):
+        if self.on_olt() and self.olt_conf.has_key('port_map'):
+            port_map = {}
+            if self.olt_conf['port_map'].has_key('ports'):
+                port_map['ports'] = self.olt_conf['port_map']['ports']
+            else:
+                port_map['ports'] = []
+                num_ports = int(self.olt_conf['port_map']['num_ports'])
+                port_map['port'] = self.olt_conf['port_map']['port']
+                for port in xrange(0, num_ports, 2):
+                    port_map['ports'].append('veth{}'.format(port))
+            port_num = 1
+            port_map['uplink'] = int(self.olt_conf['uplink'])
+            port_list = []
+            ##build the port map and inverse port map
+            for port in port_map['ports']:
+                port_map[port_num] = port
+                port_map[port] = port_num
+                if port_num != port_map['uplink']:
+                    ##create tx,rx map
+                    port_list.append( (port_map['uplink'], port_num ) )
+                port_num += 1
+            port_map['start_vlan'] = 0
+            if self.olt_conf['port_map'].has_key('host'):
+                port_map['host'] = self.olt_conf['port_map']['host']
+            else:
+                port_map['host'] = 'ovsbr0'
+            if self.olt_conf['port_map'].has_key('start_vlan'):
+                port_map['start_vlan'] = int(self.olt_conf['port_map']['start_vlan'])
+
+            return port_map, port_list
+        else:
+            return None, None
+
     def olt_device_data(self):
         if self.on_olt():
             accessDeviceDict = {}

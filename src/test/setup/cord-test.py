@@ -28,7 +28,7 @@ class CordTester(Container):
     sandbox_setup = '/root/test/src/test/setup'
     tester_base = os.path.dirname(os.path.realpath(__file__))
     tester_paths = os.path.realpath(__file__).split(os.path.sep)
-    tester_path_index = tester_paths.index('cord-tester')
+    tester_path_index = tester_paths.index('src') - 1
     sandbox_host = os.path.sep.join(tester_paths[:tester_path_index+1])
 
     host_guest_map = ( (sandbox_host, sandbox),
@@ -170,6 +170,26 @@ RUN pip install -U netaddr
 RUN apt-get -y install arping
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
+RUN apt-get install -y git-core autoconf automake autotools-dev pkg-config \
+                        make gcc g++ libtool libc6-dev cmake libpcap-dev libxerces-c2-dev  \
+                        unzip libpcre3-dev flex bison libboost-dev
+WORKDIR /root
+RUN wget -nc http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/bison_2.5.dfsg-2.1_amd64.deb \
+         http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/libbison-dev_2.5.dfsg-2.1_amd64.deb
+RUN sudo dpkg -i bison_2.5.dfsg-2.1_amd64.deb libbison-dev_2.5.dfsg-2.1_amd64.deb
+RUN rm bison_2.5.dfsg-2.1_amd64.deb libbison-dev_2.5.dfsg-2.1_amd64.deb
+RUN wget -nc http://www.nbee.org/download/nbeesrc-jan-10-2013.zip && \
+    unzip nbeesrc-jan-10-2013.zip && \
+    cd nbeesrc-jan-10-2013/src && cmake . && make && \
+    cp ../bin/libn*.so /usr/local/lib && ldconfig && \
+    cp -R ../include/* /usr/include/
+WORKDIR /root
+RUN git clone https://github.com/CPqD/ofsoftswitch13.git && \
+    cd ofsoftswitch13 && \
+    git checkout d174464dcc414510990e38426e2e274a25330902 && \
+    ./boot.sh && \
+    ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && \
+    make && make install
 CMD ["/bin/bash"]
 '''.format(*image_format)
         super(CordTester, cls).build_image(dockerfile, image)

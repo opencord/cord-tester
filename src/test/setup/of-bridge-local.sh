@@ -7,6 +7,8 @@ fi
 if [ x"$controller" = "x" ]; then
   controller=$ONOS_CONTROLLER_IP
 fi
+pkill -9 ofdatapath
+pkill -9 ofprotocol
 service openvswitch-switch start
 echo "Configuring ovs bridge $bridge"
 ovs-vsctl del-br $bridge
