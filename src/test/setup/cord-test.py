@@ -186,7 +186,6 @@ RUN wget -nc http://www.nbee.org/download/nbeesrc-jan-10-2013.zip && \
 WORKDIR /root
 RUN git clone https://github.com/CPqD/ofsoftswitch13.git && \
     cd ofsoftswitch13 && \
-    git checkout d174464dcc414510990e38426e2e274a25330902 && \
     ./boot.sh && \
     ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && \
     make && make install
