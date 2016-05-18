@@ -20,6 +20,7 @@ utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils
 sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
+from threadPool import ThreadPool
 from CordContainer import *
 from CordTestServer import cord_test_server_start, cord_test_server_stop
 
@@ -39,8 +40,9 @@ class CordTester(Container):
     IMAGE = 'cord-test/nose'
     ALL_TESTS = ('tls', 'dhcp', 'igmp', 'subscriber', 'vrouter', 'flows')
 
-    def __init__(self, ctlr_ip = None, image = IMAGE, tag = 'latest',
+    def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None, image = IMAGE, tag = 'latest',
                  env = None, rm = False, update = False):
+        self.tests = tests
         self.ctlr_ip = ctlr_ip
         self.rm = rm
         self.name = self.get_name()
@@ -61,6 +63,10 @@ class CordTester(Container):
         else:
             self.olt = False
             self.port_map = None
+        if env is not None:
+            env['TEST_HOST'] = self.name
+            env['TEST_INSTANCE'] = instance
+            env['TEST_INSTANCES'] = num_instances
         print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
         self.start(rm = False, volumes = volumes, environment = env, 
                    host_config = host_config, tty = True)
@@ -101,27 +107,24 @@ class CordTester(Container):
         if boot_delay:
             time.sleep(boot_delay)
 
-    def setup_intfs(self):
-        if not self.olt:
-            return 0
+    def setup_intfs(self, port_num = 0):
         tester_intf_subnet = '192.168.100'
         res = 0
-        port_num = 0
         host_intf = self.port_map['host']
         start_vlan = self.port_map['start_vlan']
         for port in self.port_map['ports']:
             guest_if = port
-            local_if = guest_if
-            guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, str(port_num+1))
+            local_if = '{0}_{1}'.format(guest_if, port_num+1)
+            guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
             ##Use pipeworks to configure container interfaces on host/bridge interfaces
             pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if, local_if, self.name, guest_ip)
             if start_vlan != 0:
-                pipework_cmd += ' @{}'.format(str(start_vlan + port_num))
+                pipework_cmd += ' @{}'.format(start_vlan + port_num)
                 
             res += os.system(pipework_cmd)
             port_num += 1
 
-        return res
+        return res, port_num
 
     @classmethod
     def get_name(cls):
@@ -194,9 +197,10 @@ CMD ["/bin/bash"]
         super(CordTester, cls).build_image(dockerfile, image)
         print('Done building docker image %s' %image)
 
-    def run_tests(self, tests):
+    def run_tests(self):
         '''Run the list of tests'''
-        for t in tests:
+        print('Running tests: %s' %self.tests)
+        for t in self.tests:
             test = t.split(':')[0]
             test_file = '{}Test.py'.format(test)
             if t.find(':') >= 0:
@@ -230,6 +234,9 @@ onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester
 def runTest(args):
     #Start the cord test tcp server
     test_server = cord_test_server_start()
+    test_containers = []
+    #These tests end up restarting ONOS/quagga/radius
+    tests_exempt = ('vrouter',)
     if args.test_type.lower() == 'all':
         tests = CordTester.ALL_TESTS
         args.radius = True
@@ -237,6 +244,8 @@ def runTest(args):
     else:
         tests = args.test_type.split('-')
 
+    tests_parallel = [ t for t in tests if t.split(':')[0] not in tests_exempt ]
+    tests_not_parallel = [ t for t in tests if t.split(':')[0] in tests_exempt ]
     onos_cnt = {'tag':'latest'}
     nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
     update_map = { 'quagga' : False, 'test' : False, 'radius' : False }
@@ -290,14 +299,48 @@ def runTest(args):
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
-    test_cnt = CordTester(ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
-                          env = test_cnt_env,
-                          rm = False if args.keep else True,
-                          update = update_map['test'])
-    if args.start_switch or not args.olt:
-        test_cnt.start_switch()
-    test_cnt.setup_intfs()
-    test_cnt.run_tests(tests)
+    port_num = 0
+    num_tests = len(tests_parallel)
+    tests_per_container = max(1, num_tests/args.num_containers)
+    test_slice_start = 0
+    test_slice_end = test_slice_start + tests_per_container
+    num_test_containers = min(num_tests, args.num_containers)
+    if tests_parallel:
+        print('Running %s tests across %d containers in parallel' %(tests_parallel, num_test_containers))
+    for container in range(num_test_containers):
+        test_cnt = CordTester(tests_parallel[test_slice_start:test_slice_end],
+                              instance = container, num_instances = num_test_containers,
+                              ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
+                              env = test_cnt_env,
+                              rm = False if args.keep else True,
+                              update = update_map['test'])
+        test_slice_start = test_slice_end
+        test_slice_end = test_slice_start + tests_per_container
+        update_map['test'] = False
+        test_containers.append(test_cnt)
+        if args.start_switch or not args.olt:
+            test_cnt.start_switch()
+        if test_cnt.olt:
+            _, port_num = test_cnt.setup_intfs(port_num = port_num)
+
+    thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
+    for test_cnt in test_containers:
+        thread_pool.addTask(test_cnt.run_tests)
+    thread_pool.cleanUpThreads()
+
+    ##Run the linear tests
+    if tests_not_parallel:
+        test_cnt = CordTester(tests_not_parallel,
+                              ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
+                              env = test_cnt_env,
+                              rm = False if args.keep else True,
+                              update = update_map['test'])
+        if args.start_switch or not args.olt:
+            test_cnt.start_switch()
+        if test_cnt.olt:
+            test_cnt.setup_intfs(port_num = port_num)
+        test_cnt.run_tests()
+
     cord_test_server_stop(test_server)
 
 def cleanupTests(args):
@@ -341,6 +384,8 @@ if __name__ == '__main__':
                         '    --update=radius to rebuild radius server image.'
                         '    --update=test to rebuild cord test image.(Default)'
                         '    --update=all to rebuild all cord tester images.')
+    parser_run.add_argument('-n', '--num-containers', default=1, type=int,
+                            help='Specify number of test containers to spawn for tests')
     parser_run.set_defaults(func=runTest)
 
     parser_list = subparser.add_parser('list', help='List test cases')
