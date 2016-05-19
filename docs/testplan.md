@@ -5,7 +5,6 @@
 
 **IGMP**
 
-** **
 
 <table>
   <tr>
@@ -370,31 +369,9 @@ ONOS should not show the entry for MF table </td>
 </table>
 
 
-** **
-
-** **
 
 **Authentication:**
 
-** **
-
-**Set up for EAP-TLS :**
-
-**-------------------------**
-
-**1. ea.conf file  (**
-
-         in eap section  default_eap_type = tls **
-
-          in gtc section comment the #auth_type = ****E****AP**** }**
-
-** **
-
-**2. TLS Client Certification PEM file. (File name - inno-dev-ca-certificate..pem)**** .**
-
-**3. C****opy and past Client crt in server installed  CA.crt file. (File name -inno-dev-ca-certificate.crt)****  **
-
-** **
 
 <table>
   <tr>
@@ -521,15 +498,8 @@ ONOS should not show the entry for MF table </td>
 </table>
 
 
-** **
-
 **DHCP:**
 
-** **
-
-**Activate the DHPC app**
-
-** **
 
 <table>
   <tr>
@@ -1246,21 +1216,11 @@ Subscriber1 should not get disturbed.
 </table>
 
 
-** **
-
-** **
-
-** **
-
-** **
-
 **Vrouter :**
 
  
 
 ** Start the quagga container and activate the Vrouter app.**
-
-** **
 
 <table>
   <tr>
@@ -1659,10 +1619,6 @@ Check the cli command “Intents “</td>
 
 **Metrics:**
 
- 
-
-**R****EST API is used for Collecting and Querying System Metrics.**
-
 **1. Install CollectD plugin which is in charging of reporting all metric values to ONOS through REST API.**
 
 **2. Install ONOS and activate CPMan application to receive system metrics from CollectD**.
@@ -1921,11 +1877,8 @@ Should show the information in json format.</td>
 
 **Ovsdb:**
 
- 
-
 **Onos should be running well and Install feature ovsdb-web-provider ovsdb onos-core-netvirt on onos.**
 
- 
 
 <table>
   <tr>
