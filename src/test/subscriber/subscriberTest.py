@@ -105,6 +105,7 @@ class Subscriber(Channels):
 
       def channel_jump(self, delay = 2):
             '''Jumps randomly to the next channel leaving the last channel'''
+            log.info("Jumps randomly to the next channel leaving the last channel")
             if self.last_chan is not None:
                   if self.join_map.has_key(self.last_chan):
                         del self.join_map[self.last_chan]
@@ -388,7 +389,6 @@ class subscriber_exchange(unittest.TestCase):
           return self.test_status
 
       def test_subscriber_join_recv(self):
-          """Test subscriber join and receive"""
           num_subscribers = 10
           num_channels = 1
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
@@ -397,7 +397,6 @@ class subscriber_exchange(unittest.TestCase):
           assert_equal(test_status, True)
 
       def test_subscriber_join_jump(self):
-          """Test subscriber join and receive for channel surfing""" 
           num_subscribers = 5
           num_channels = 50
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
@@ -407,7 +406,6 @@ class subscriber_exchange(unittest.TestCase):
           assert_equal(test_status, True)
 
       def test_subscriber_join_next(self):
-          """Test subscriber join next for channels"""
           num_subscribers = 5
           num_channels = 50
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 

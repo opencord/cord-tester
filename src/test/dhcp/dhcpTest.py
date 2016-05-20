@@ -41,6 +41,18 @@ class dhcp_exchange(unittest.TestCase):
     
     app = 'org.onosproject.dhcp'
 
+    ip_count = 0
+    failure_count = 0
+    start_time = 0
+    diff = 0
+
+    transaction_count = 0
+    transactions = 0
+    running_time = 0
+    total_success = 0
+    total_failure = 0
+
+
     def setUp(self):
         ''' Activate the dhcp app'''
         self.maxDiff = None ##for assert_equal compare outputs on failure
@@ -77,6 +89,44 @@ class dhcp_exchange(unittest.TestCase):
             log.info('Got dhcp client IP %s from server %s for mac %s' %
                      (cip, sip, self.dhcp.get_mac(cip)[0]))
         return cip,sip
+
+
+    def stats(self,success_rate = False, iface = 'veth0'):
+       
+	self.ip_count = 0
+	self.failure_count = 0
+	self.start_time = 0
+	self.diff = 0
+	self.transaction_count = 0
+
+	config = {'startip':'182.17.0.3', 'endip':'182.17.0.180', 
+                  'ip':'182.17.0.2', 'mac': "ca:fe:c3:fe:ca:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = iface)
+	self.start_time = time.time()
+
+	while self.diff <= 60:
+            
+	    cip, sip = self.send_recv(update_seed = True, validate = False)
+	    if cip:
+	    	self.ip_count +=1
+	    elif cip == None:
+		self.failure_count += 1
+                log.info('Failed to get ip')
+		if success_rate:
+			break
+	    
+	    self.diff = round(time.time() - self.start_time, 2)
+
+	self.transaction_count = round((self.ip_count+self.failure_count)/self.diff, 2)
+
+    	self.transactions += (self.ip_count+self.failure_count)
+	self.running_time += self.diff
+        self.total_success += self.ip_count
+	self.total_failure += self.failure_count
+
+
 
     def test_dhcp_1request(self, iface = 'veth0'):
         config = {'startip':'10.10.10.20', 'endip':'10.10.10.69', 
@@ -785,4 +835,41 @@ class dhcp_exchange(unittest.TestCase):
 			log.info("Got DHCP Ack despite of specifying wrong DNS Address in DHCP Request.")
 			log.info("Getting DNS Address as per server 's configuration.")
 		
+    def test_dhcp_server_transactions_per_second(self, iface = 'veth0'):
+       
+	for i in range(1,4):	
+		self.stats()
+		log.info("Statics for run %d",i)
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
+	        log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of transactions per second in run %d:%f" %(i, self.transaction_count))
+
+	log.info("Final Statatics for total transactions")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
+	log.info("    %d                     %d                         %d                        %d" %(self.transactions, 
+                 self.total_success, self.total_failure, self.running_time))
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of transactions per second: %d", round(self.transactions/self.running_time,0))
+
+    def test_dhcp_server_consecutive_successes_per_second(self, iface = 'veth0'):
+       
+	for i in range(1,4):	
+		self.stats(success_rate = True)
+		log.info("Statics for run %d",i)
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of consecutive successful transactions          Running Time ")
+	        log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of successful transactions per second in run %d:%f" %(i, self.transaction_count))
+
+	log.info("Final Statatics for total successful transactions")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of consecutive successes         Running Time ")
+	log.info("    %d                                 %d                             %d        " %(self.transactions, 
+                 self.total_success, self.running_time))
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of transactions per second: %d", round((self.transactions-i)/self.running_time,0))
 
