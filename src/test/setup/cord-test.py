@@ -149,10 +149,14 @@ class CordTester(Container):
         dockerfile = '''
 FROM ubuntu:14.04
 MAINTAINER chetan@ciena.com
-RUN apt-get update 
-RUN apt-get -y install git python python-pip python-setuptools python-scapy tcpdump doxygen doxypy wget
+RUN apt-get update  --fix-missing
+RUN apt-get install -y git git-core autoconf automake autotools-dev pkg-config \
+                        make gcc g++ libtool libc6-dev cmake libpcap-dev libxerces-c2-dev  \
+                        unzip libpcre3-dev flex bison libboost-dev
+RUN apt-get -y install python python-pip python-setuptools python-scapy tcpdump doxygen doxypy wget
 RUN easy_install nose
 RUN apt-get -y install openvswitch-common openvswitch-switch
+RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect telnet
 RUN mkdir -p /root/ovs
 WORKDIR /root
 RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/openvswitch-{}.tar.gz && \
@@ -160,7 +164,6 @@ RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/open
  cd openvswitch-{} && \
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
-RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect telnet
 RUN pip install scapy-ssl_tls
 RUN pip install -U scapy
 RUN pip install monotonic
@@ -173,9 +176,6 @@ RUN pip install -U netaddr
 RUN apt-get -y install arping
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
-RUN apt-get install -y git-core autoconf automake autotools-dev pkg-config \
-                        make gcc g++ libtool libc6-dev cmake libpcap-dev libxerces-c2-dev  \
-                        unzip libpcre3-dev flex bison libboost-dev
 WORKDIR /root
 RUN wget -nc http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/bison_2.5.dfsg-2.1_amd64.deb \
          http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/libbison-dev_2.5.dfsg-2.1_amd64.deb
