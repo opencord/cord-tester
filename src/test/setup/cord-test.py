@@ -230,7 +230,6 @@ def runTest(args):
     tests_exempt = ('vrouter',)
     if args.test_type.lower() == 'all':
         tests = CordTester.ALL_TESTS
-        args.radius = True
         args.quagga = True
     else:
         tests = args.test_type.split('-')
@@ -265,13 +264,10 @@ def runTest(args):
         onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
         onos_ip = onos.ip()
 
-        ##Start Radius container if specified
-        if args.radius == True:
-            radius = Radius( update = update_map['radius'])
-            radius_ip = radius.ip()
-            print('Radius server running with IP %s' %radius_ip)
-        else:
-            radius_ip = None
+        ##Start Radius container
+        radius = Radius( update = update_map['radius'])
+        radius_ip = radius.ip()
+        print('Radius server running with IP %s' %radius_ip)
             
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
     print('Installing ONOS app %s' %onos_app_file)
@@ -362,7 +358,6 @@ if __name__ == '__main__':
     parser_run = subparser.add_parser('run', help='Run cord tester')
     parser_run.add_argument('-t', '--test-type', default=test_type_default, help='Specify test type or test case to run')
     parser_run.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
-    parser_run.add_argument('-r', '--radius',action='store_true', help='Start Radius service')
     parser_run.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
     parser_run.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
     parser_run.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
