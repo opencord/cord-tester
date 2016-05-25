@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9af53d3f_7f264fbc",
+        "filename": "src/test/setup/cord-test.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-05-25T16:35:51Z",
+      "side": 1,
+      "message": "Rather than a bunch of individual RUN statements it might be better to have a single RUB statement to install all the packages. This will lead to a more efficient layering of file system chagnes as well as more efficient image pulling. \n\nRUN apt-get install -y \u003call-packages\u003e\n\nyou can also combine multiple statements using something like\n\nRUN command \u0026\u0026 \\\n        command \u0026\u0026 \\\n       command",
+      "revId": "e7fc8d969d33d162a5e8e2a9ef4f662431a99d78",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
