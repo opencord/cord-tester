@@ -149,14 +149,14 @@ class CordTester(Container):
         dockerfile = '''
 FROM ubuntu:14.04
 MAINTAINER chetan@ciena.com
-RUN apt-get update  --fix-missing
-RUN apt-get install -y git git-core autoconf automake autotools-dev pkg-config \
-                        make gcc g++ libtool libc6-dev cmake libpcap-dev libxerces-c2-dev  \
-                        unzip libpcre3-dev flex bison libboost-dev
-RUN apt-get -y install python python-pip python-setuptools python-scapy tcpdump doxygen doxypy wget
+RUN apt-get update  && \
+    apt-get install -y git git-core autoconf automake autotools-dev pkg-config \
+        make gcc g++ libtool libc6-dev cmake libpcap-dev libxerces-c2-dev  \
+        unzip libpcre3-dev flex bison libboost-dev \
+        python python-pip python-setuptools python-scapy tcpdump doxygen doxypy wget \
+        openvswitch-common openvswitch-switch \
+        python-twisted python-sqlite sqlite3 python-pexpect telnet arping
 RUN easy_install nose
-RUN apt-get -y install openvswitch-common openvswitch-switch
-RUN apt-get -y install python-twisted python-sqlite sqlite3 python-pexpect telnet
 RUN mkdir -p /root/ovs
 WORKDIR /root
 RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/openvswitch-{}.tar.gz && \
@@ -173,7 +173,6 @@ RUN pip install -U pyyaml
 RUN pip install -U nsenter
 RUN pip install -U pyroute2
 RUN pip install -U netaddr
-RUN apt-get -y install arping
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 WORKDIR /root

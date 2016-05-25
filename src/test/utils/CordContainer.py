@@ -277,8 +277,8 @@ FROM hbouvier/docker-radius
 MAINTAINER chetan@ciena.com
 LABEL RUN docker pull hbouvier/docker-radius
 LABEL RUN docker run -it --name cord-radius hbouvier/docker-radius
-RUN apt-get update
-RUN apt-get -y install python python-pexpect strace
+RUN apt-get update && \
+    apt-get -y install python python-pexpect strace
 WORKDIR /root
 CMD ["/etc/freeradius/start-radius.py"]
 '''
