@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9af53d3f_9f47d34b",
+        "filename": "src/test/setup/cord-test.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-05-26T17:35:00Z",
+      "side": 1,
+      "message": "should really get rid of end of line white space, but not a big issue.",
+      "range": {
+        "startLine": 271,
+        "startChar": 0,
+        "endLine": 271,
+        "endChar": 12
+      },
+      "revId": "a661b55a7ca91fcee9fb72a992566196ad060855",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
