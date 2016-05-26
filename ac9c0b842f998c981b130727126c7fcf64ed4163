@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9af53d3f_7f4d2f72",
+        "filename": "src/test/setup/cord-test.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 166,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-05-26T16:43:08Z",
+      "side": 1,
+      "message": "Would it make sense to combine these into a single pip statement `pip install a b c d e f`?",
+      "range": {
+        "startLine": 166,
+        "startChar": 0,
+        "endLine": 166,
+        "endChar": 3
+      },
+      "revId": "ac9c0b842f998c981b130727126c7fcf64ed4163",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
