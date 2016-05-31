@@ -17,6 +17,8 @@ import unittest
 import time
 import os
 from nose.tools import *
+from nose.twistedtools import reactor, deferred
+from twisted.internet import defer
 from EapTLS import TLSAuthTest
 from OnosCtrl import OnosCtrl
 
@@ -43,10 +45,16 @@ class eap_auth_exchange(unittest.TestCase):
                   log.info('Configure request for AAA returned status %d' %code)
                   assert_equal(status, True)
             time.sleep(3)
-            
+
+      @deferred(20)
       def test_eap_tls(self):
-          tls = TLSAuthTest()
-          tls.runTest()
+            df = defer.Deferred()
+            def eap_tls_verify(df):
+                  tls = TLSAuthTest()
+                  tls.runTest()
+                  df.callback(0)
+            reactor.callLater(0, eap_tls_verify, df)
+            return df
 
 if __name__ == '__main__':
     t = TLSAuthTest()
