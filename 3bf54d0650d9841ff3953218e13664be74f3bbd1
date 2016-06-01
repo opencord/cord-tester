@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7afa4931_7eff7102",
+        "filename": "src/test/tls/tlsTest.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-06-01T01:33:05Z",
+      "side": 1,
+      "message": "trailing spaces",
+      "revId": "3bf54d0650d9841ff3953218e13664be74f3bbd1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_5e04b514",
+        "filename": "src/test/utils/EapTLS.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1000004
+      },
+      "writtenOn": "2016-06-01T01:33:05Z",
+      "side": 1,
+      "message": "trailing space",
+      "range": {
+        "startLine": 187,
+        "startChar": 0,
+        "endLine": 187,
+        "endChar": 8
+      },
+      "revId": "3bf54d0650d9841ff3953218e13664be74f3bbd1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
