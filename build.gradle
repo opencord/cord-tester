@@ -22,20 +22,25 @@ ext {
     // The tag used to tag the docker images push to the target registry
     targetTag = project.hasProperty('targetTag') ? project.getProperty('targetTag') : 'candidate'
 
+    cordTesterPath = project.hasProperty('cordTesterPath') ? project.getProperty('cordTesterPath') : './src/test/setup'
+
+    dockerPath = project.hasProperty('dockerPath') ? project.getProperty('dockerPath') : '/usr/bin'
 }
 
 // ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
 
 // To be used to fetch upstream binaries, clone repos, etc.
-task fetch {
+task fetch (type: Exec) {
     // this is where we fetch upstream artifacts that we do not need internet for the build phase"
     // ...
+    commandLine "$cordTesterPath/onos_pull.sh", 'latest'
 }
 
 // To be used to generate all needed binaries that need to be present on the target
 // as docker images in the local docker runner.
-task buildImages {
+task buildImages (type: Exec) {
     // ...
+    commandLine "$cordTesterPath/cord-test.py", 'build', 'all'
 }
 
 // Publish image(s) built during the build step into targetReg registry using the targetTag
