@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_5e2b9582",
+        "filename": "build.gradle",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-03T17:46:57Z",
+      "side": 1,
+      "message": "Its not a custom script. \nIts a launcher feature for cord-tester.\ncord-tester launcher or framework for cord-test has the feature to build all images using the build target.\nIt builds all images in the python script using the existing abstractions/frameworks part of the test as well.\nSo we just invoke that from gradle.\nOtherwise we have to duplicate the docker build phase in gradle through docker cli. \nWe don\u0027t use docker cli in cord-tester. It uses pydocker and builds abstractions around it.",
+      "parentUuid": "7afa4931_be1cd96b",
+      "range": {
+        "startLine": 36,
+        "startChar": 4,
+        "endLine": 36,
+        "endChar": 15
+      },
+      "revId": "5979e214a3ec7a99fcb706861328876a485066e0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_9e191d7c",
         "filename": "build.gradle",
         "patchSetId": 1
