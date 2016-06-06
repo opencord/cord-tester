@@ -91,7 +91,7 @@ class dhcp_exchange(unittest.TestCase):
         return cip,sip
 
 
-    def stats(self,success_rate = False, iface = 'veth0'):
+    def stats(self,success_rate = False, only_discover = False, iface = 'veth0'):
        
 	self.ip_count = 0
 	self.failure_count = 0
@@ -108,16 +108,23 @@ class dhcp_exchange(unittest.TestCase):
 
 	while self.diff <= 60:
             
-	    cip, sip = self.send_recv(update_seed = True, validate = False)
+	    if only_discover:
+		cip, sip, mac, _ = self.dhcp.only_discover(multiple = True)
+                log.info('Got dhcp client IP %s from server %s for mac %s' %
+                          (cip, sip, mac))
+            else:
+                cip, sip = self.send_recv(update_seed = True, validate = False)
+
 	    if cip:
 	    	self.ip_count +=1
 	    elif cip == None:
 		self.failure_count += 1
                 log.info('Failed to get ip')
-		if success_rate:
+		if success_rate and self.ip_count > 0:
 			break
 	    
-	    self.diff = round(time.time() - self.start_time, 2)
+	    self.diff = round(time.time() - self.start_time, 0)
+
 
 	self.transaction_count = round((self.ip_count+self.failure_count)/self.diff, 2)
 
@@ -234,11 +241,11 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %  
 		  (cip, sip, mac) )
 	log.info('Triggering DHCP discover again.')
-	new_cip, new_sip, new_mac = self.dhcp.only_discover()
+	new_cip, new_sip, new_mac, _ = self.dhcp.only_discover()
 	if cip == new_cip:
 		log.info('Got same ip for 2nd DHCP discover for client IP %s from server %s for mac %s. Triggering DHCP Request. '
 			  % (new_cip, new_sip, new_mac) )
@@ -277,7 +284,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.31', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover(desired = True)
+	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 	if cip == self.dhcp.seed_ip:
@@ -296,7 +303,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover(desired = True)
+	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 	if cip == self.dhcp.seed_ip:
@@ -320,7 +327,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 	
@@ -361,7 +368,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 	
@@ -401,7 +408,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 	
@@ -456,7 +463,7 @@ class dhcp_exchange(unittest.TestCase):
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	log.info('Sending DHCP discover with lease time of 700')
-	cip, sip, mac = self.dhcp.only_discover(lease_time = True)
+	cip, sip, mac, _ = self.dhcp.only_discover(lease_time = True)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -480,7 +487,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -509,7 +516,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -552,7 +559,7 @@ class dhcp_exchange(unittest.TestCase):
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -580,6 +587,7 @@ class dhcp_exchange(unittest.TestCase):
 				if latest_cip and latest_sip:
 					log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
 							(latest_cip, mac, latest_sip) )
+					break
 		
 				elif latest_cip == None:
 					log.info("Got DHCP NAK. Lease not renewed.")
@@ -626,7 +634,7 @@ class dhcp_exchange(unittest.TestCase):
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -688,7 +696,7 @@ class dhcp_exchange(unittest.TestCase):
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -750,7 +758,7 @@ class dhcp_exchange(unittest.TestCase):
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -803,7 +811,7 @@ class dhcp_exchange(unittest.TestCase):
 			assert_equal(expected_dns_address, dns_address_value)
 
 
-    def test_dhcp_client_sends_dhcp_request_with_wrong_dns_address(self, iface = 'veth0'):
+    def test_dhcp_client_sends_request_with_wrong_dns_address(self, iface = 'veth0'):
 	
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69', 
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -811,7 +819,7 @@ class dhcp_exchange(unittest.TestCase):
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	
-	cip, sip, mac = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %  
 		  (cip, sip, mac) )
 
@@ -826,12 +834,9 @@ class dhcp_exchange(unittest.TestCase):
 		log.info("Sending DHCP Request with wrong DNS address.")
 		new_cip, new_sip = self.dhcp.only_request(cip, mac)
 		if new_cip == None:
-			
 			log.info("Got DHCP NAK.")
 			assert_not_equal(new_cip, None)
-
 		elif new_cip and new_sip:
-	
 			log.info("Got DHCP Ack despite of specifying wrong DNS Address in DHCP Request.")
 			log.info("Getting DNS Address as per server 's configuration.")
 		
@@ -839,14 +844,14 @@ class dhcp_exchange(unittest.TestCase):
        
 	for i in range(1,4):	
 		self.stats()
-		log.info("Statics for run %d",i)
+		log.info("Stats for run %d",i)
 		log.info("----------------------------------------------------------------------------------")
 		log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
 	        log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
 		log.info("----------------------------------------------------------------------------------")
 		log.info("No. of transactions per second in run %d:%f" %(i, self.transaction_count))
 
-	log.info("Final Statatics for total transactions")
+	log.info("Final Statistics for total transactions")
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
 	log.info("    %d                     %d                         %d                        %d" %(self.transactions, 
@@ -858,18 +863,66 @@ class dhcp_exchange(unittest.TestCase):
        
 	for i in range(1,4):	
 		self.stats(success_rate = True)
-		log.info("Statics for run %d",i)
+		log.info("Stats for run %d",i)
 		log.info("----------------------------------------------------------------------------------")
 		log.info("No. of consecutive successful transactions          Running Time ")
 	        log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
 		log.info("----------------------------------------------------------------------------------")
 		log.info("No. of successful transactions per second in run %d:%f" %(i, self.transaction_count))
+		log.info("----------------------------------------------------------------------------------")
 
-	log.info("Final Statatics for total successful transactions")
+	log.info("Final Statistics for total successful transactions")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of consecutive successes         Running Time ")
+	log.info("    %d                                 %d                             %d        " %(self.transactions,
+                 self.total_success, self.running_time))
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of consecutive successful transactions per second: %d", round(self.total_success/self.running_time,0))
+	log.info("----------------------------------------------------------------------------------")
+
+
+    def test_dhcp_server_client_transactions_per_second(self, iface = 'veth0'):
+
+        for i in range(1,4):
+		self.stats(only_discover = True)
+		log.info("----------------------------------------------------------------------------------")
+		log.info("Stats for run %d of sending only DHCP Discover",i)
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
+	        log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of clients per second in run %d:%f                                      " 
+			%(i, self.transaction_count))
+		log.info("----------------------------------------------------------------------------------")
+	log.info("Final Statistics for total transactions of sending only DHCP Discover")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
+	log.info("    %d                     %d                         %d                        %d" %(self.transactions, 
+                 self.total_success, self.total_failure, self.running_time))
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of clients per second: %d                                        ",
+		round(self.transactions/self.running_time,0))
+	log.info("----------------------------------------------------------------------------------")
+
+    def test_dhcp_server_consecutive_successful_clients_per_second(self, iface = 'veth0'):
+
+        for i in range(1,4):
+		self.stats(success_rate = True, only_discover = True)
+		log.info("----------------------------------------------------------------------------------")
+		log.info("Stats for run %d for sending only DHCP Discover",i)
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of consecutive successful transactions          Running Time ")
+	        log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
+		log.info("----------------------------------------------------------------------------------")
+		log.info("No. of consecutive successful clients per second in run %d:%f" %(i, self.transaction_count))
+		log.info("----------------------------------------------------------------------------------")
+
+	log.info("Final Statistics for total successful transactions")
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Total transactions     Total No. of consecutive successes         Running Time ")
 	log.info("    %d                                 %d                             %d        " %(self.transactions, 
                  self.total_success, self.running_time))
 	log.info("----------------------------------------------------------------------------------")
-	log.info("Average no. of transactions per second: %d", round((self.transactions-i)/self.running_time,0))
+	log.info("Average no. of consecutive successful clients per second: %d", round(self.total_success/self.running_time,0))
+	log.info("----------------------------------------------------------------------------------")
 
