@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -55,12 +55,12 @@ class DHCPTest:
         L5 = BOOTP(chaddr=chmac)
         L6 = DHCP(options=[("message-type","discover"),"end"])
         resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
-	self.dhcpresp = resp
+        self.dhcpresp = resp
         try:
             srcIP = resp.yiaddr
             serverIP = resp.siaddr
         except AttributeError:
-            print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
+            log.info("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             return (None, None)
 
         subnet_mask = "0.0.0.0"
@@ -81,11 +81,15 @@ class DHCPTest:
         self.mac_inverse_map[srcIP] = (mac, serverIP)
         return (srcIP, serverIP)
 
-    def only_discover(self, mac = None, desired = False, lease_time = False):  
+    def only_discover(self, mac = None, desired = False, lease_time = False, multiple = False):
         '''Send a DHCP discover'''
 
         if mac is None:
-            mac = self.seed_mac
+	    if multiple:
+               mac = RandMAC()._fix()
+	    else:
+               mac = self.seed_mac
+
 
         chmac = self.macToChaddr(mac)
 	self.bootpmac = chmac
@@ -95,69 +99,68 @@ class DHCPTest:
         L5 = BOOTP(chaddr=chmac)
 	if desired:
 		L6 = DHCP(options=[("message-type","discover"),("requested_addr",self.seed_ip),"end"])
-	
+
 	elif lease_time:
 		L6 = DHCP(options=[("message-type","discover"),("lease_time",700),"end"])
-		
+
 	else:
 	        L6 = DHCP(options=[("message-type","discover"),"end"])
-		
+
 
         resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
 	if resp == None:
-        	return (None, None, mac)
-		
+                return (None, None, mac, None)
+
 	self.dhcpresp = resp
         for x in resp.lastlayer().options:
             if(x == 'end'):
                 break
             op,val = x
             if(op == "message-type"):
-            	
+
 	    	if(val == 2):
-		
+
 			try:
             			srcIP = resp.yiaddr
             			serverIP = resp.siaddr
         		except AttributeError:
-           			print "In Attribute error."
-            		 	print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
-            		 	return (None, None, None)
+           			log.info("In Attribute error.")
+            		 	log.info("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
+                                return (None, None, None, None)
 
 			if self.return_option:
 				for x in resp.lastlayer().options:
         	    			if(x == 'end'):
                 				break
 	            			op,val = x
-		
+
 	        	    		if op == "lease_time":
 						if self.return_option == 'lease':
 							return (srcIP, serverIP, mac, val)
 
 	        	    		elif op == "subnet_mask":
 						if self.return_option == 'subnet':
-							return (srcIP, serverIP, mac, val)		
+							return (srcIP, serverIP, mac, val)
 					elif op == "router":
 						if self.return_option == 'router':
-							return (srcIP, serverIP, mac, val)		
+							return (srcIP, serverIP, mac, val)
 					elif op == "broadcast_address":
 						if self.return_option == 'broadcast_address':
-							return (srcIP, serverIP, mac, val)		
+							return (srcIP, serverIP, mac, val)
 					elif op == "name_server":
 						if self.return_option == 'dns':
-							return (srcIP, serverIP, mac, val)		
+							return (srcIP, serverIP, mac, val)
 
-				
+
 			else:
-				return (srcIP, serverIP, mac)
+				return (srcIP, serverIP, mac, None)
 		elif(val == 6):
-		
-			return (None, None, mac)
+			return (None, None, mac, None)
 
-	
+
     def only_request(self, cip, mac, cl_reboot = False, lease_time = False, renew_time = False, rebind_time = False, unicast = False):
         '''Send a DHCP offer'''
-        
+
 	subnet_mask = "0.0.0.0"
         for x in self.dhcpresp.lastlayer().options:
             	if(x == 'end'):
@@ -171,22 +174,22 @@ class DHCPTest:
 	if unicast and self.servermac:
         	L2 = Ether(dst=self.servermac, src=mac)
 	        L3 = IP(src=cip, dst=server_id)
-	else:	
+	else:
 	        L2 = Ether(dst="ff:ff:ff:ff:ff:ff", src=mac)
 		if self.after_T2:
 	        	L3 = IP(src=cip, dst="255.255.255.255")
 		else:
 		        L3 = IP(src="0.0.0.0", dst="255.255.255.255")
         L4 = UDP(sport=68, dport=67)
-	
+
 	if self.after_T2 == True:
         	L5 = BOOTP(chaddr=self.bootpmac, ciaddr = cip)
 	else:
 
 	        L5 = BOOTP(chaddr=self.bootpmac, yiaddr=cip)
-	
+
 	if cl_reboot or self.after_T2:
-        	L6 = DHCP(options=[("message-type","request"),("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])		
+                L6 = DHCP(options=[("message-type","request"),("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
 	elif self.send_different_option:
 		if self.send_different_option == 'subnet':
 	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
@@ -201,7 +204,7 @@ class DHCPTest:
 		elif self.send_different_option == 'dns':
 	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
         	                   	("subnet_mask",subnet_mask), ("name_server",'1.1.1.1'), ("requested_addr",cip), "end"])
-		
+
 	else:
        		L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
                            	("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
@@ -218,22 +221,22 @@ class DHCPTest:
                 	break
             	op,val = x
             	if(op == "message-type"):
-	
+
 			if(val == 5):
 				try:
             				srcIP = resp.yiaddr
             				serverIP = resp.siaddr
         			except AttributeError:
-           				print "In Attribute error."
-            				print("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
+           				log.info("In Attribute error.")
+            				log.info("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             				return (None, None)
-        		
+
 				if lease_time or renew_time or rebind_time:
 					for x in resp.lastlayer().options:
             					if(x == 'end'):
                 					break
 	            				op,val = x
-				
+
         	    				if op == "lease_time":
 							if lease_time == True:
 								self.mac_map[mac] = (srcIP, serverIP)
@@ -254,11 +257,11 @@ class DHCPTest:
 					self.mac_inverse_map[srcIP] = (mac, serverIP)
 					return (srcIP, serverIP)
 			elif(val == 6):
-		
+
 				log.info("Got DHCP NAK.")
 				return (None, None)
-	
-		
+
+
 
     def discover_next(self):
         '''Send next dhcp discover/request with updated mac'''
