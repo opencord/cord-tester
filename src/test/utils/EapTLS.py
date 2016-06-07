@@ -19,8 +19,9 @@ from enum import *
 import noseTlsAuthHolder as tlsAuthHolder
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
+from tls_cert import Key
 from socket import *
-from struct import *
+import struct
 import scapy
 from nose.tools import *
 from CordTestBase import CordTester
@@ -56,7 +57,8 @@ class TLSAuthTest(EapolPacket, CordTester):
     server_hello_done_signature = '\x0e\x00\x00\x00'
     SERVER_HELLO = '\x02'
     SERVER_CERTIFICATE = '\x0b'
-    SERVER_HELLO_DONE = '\x0d'
+    CERTIFICATE_REQUEST = '\x0d'
+    SERVER_HELLO_DONE = '\x0e'
     SERVER_UNKNOWN = '\xff'
     HANDSHAKE = '\x16'
     CHANGE_CIPHER = '\x14'
@@ -64,29 +66,40 @@ class TLSAuthTest(EapolPacket, CordTester):
     HDR_IDX = 0
     DATA_IDX = 1
     CB_IDX = 2
+
     CLIENT_CERT = """-----BEGIN CERTIFICATE-----
-MIIDvTCCAqWgAwIBAgIBAjANBgkqhkiG9w0BAQUFADCBizELMAkGA1UEBhMCVVMx
+MIICuDCCAiGgAwIBAgIBAjANBgkqhkiG9w0BAQUFADCBizELMAkGA1UEBhMCVVMx
 CzAJBgNVBAgTAkNBMRIwEAYDVQQHEwlTb21ld2hlcmUxEzARBgNVBAoTCkNpZW5h
 IEluYy4xHjAcBgkqhkiG9w0BCQEWD2FkbWluQGNpZW5hLmNvbTEmMCQGA1UEAxMd
-RXhhbXBsZSBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkwHhcNMTYwMzExMTg1MzM2WhcN
-MTcwMzA2MTg1MzM2WjBnMQswCQYDVQQGEwJVUzELMAkGA1UECBMCQ0ExEzARBgNV
+RXhhbXBsZSBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkwHhcNMTYwNjA2MjExMjI3WhcN
+MTcwNjAxMjExMjI3WjBnMQswCQYDVQQGEwJVUzELMAkGA1UECBMCQ0ExEzARBgNV
 BAoTCkNpZW5hIEluYy4xFzAVBgNVBAMUDnVzZXJAY2llbmEuY29tMR0wGwYJKoZI
-hvcNAQkBFg51c2VyQGNpZW5hLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
-AQoCggEBAOxemcBsPn9tZsCa5o2JA6sQDC7A6JgCNXXl2VFzKLNNvB9PS6D7ZBsQ
-5An0zEDMNzi51q7lnrYg1XyiE4S8FzMGAFr94RlGMQJUbRD9V/oqszMX4k++iAOK
-tIA1gr3x7Zi+0tkjVSVzXTmgNnhChAamdMsjYUG5+CY9WAicXyy+VEV3zTphZZDR
-OjcjEp4m/TSXVPYPgYDXI40YZKX5BdvqykWtT/tIgZb48RS1NPyN/XkCYzl3bv21
-qx7Mc0fcEbsJBIIRYTUkfxnsilcnmLxSYO+p+DZ9uBLBzcQt+4Rd5pLSfi21WM39
-2Z2oOi3vs/OYAPAqgmi2JWOv3mePa/8CAwEAAaNPME0wEwYDVR0lBAwwCgYIKwYB
-BQUHAwIwNgYDVR0fBC8wLTAroCmgJ4YlaHR0cDovL3d3dy5leGFtcGxlLmNvbS9l
-eGFtcGxlX2NhLmNybDANBgkqhkiG9w0BAQUFAAOCAQEALBzMPDTIB6sLyPl0T6JV
-MjOkyldAVhXWiQsTjaGQGJUUe1cmUJyZbUZEc13MygXMPOM4x7z6VpXGuq1c/Vxn
-VzQ2fNnbJcIAHi/7G8W5/SQfPesIVDsHTEc4ZspPi5jlS/MVX3HOC+BDbOjdbwqP
-RX0JEr+uOyhjO+lRxG8ilMRACoBUbw1eDuVDoEBgErSUC44pq5ioDw2xelc+Y6hQ
-dmtYwfY0DbvwxHtA495frLyPcastDiT/zre7NL51MyUDPjjYjghNQEwvu66IKbQ3
-T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
-yg==
+hvcNAQkBFg51c2VyQGNpZW5hLmNvbTCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC
+gYEAwvXiSzb9LZ6c7uNziUfKvoHO7wu/uiFC5YUpXbmVGuGZizbVrny0xnR85Dfe
++9R4diansfDhIhzOUl1XjN3YDeSS9OeF5YWNNE8XDhlz2d3rVzaN6hIhdotBkUjg
+rUewjTg5OFR31QEyG3v8xR3CLgiE9xQELjZbSA07pD79zuUCAwEAAaNPME0wEwYD
+VR0lBAwwCgYIKwYBBQUHAwIwNgYDVR0fBC8wLTAroCmgJ4YlaHR0cDovL3d3dy5l
+eGFtcGxlLmNvbS9leGFtcGxlX2NhLmNybDANBgkqhkiG9w0BAQUFAAOBgQDAjkrY
+6tDChmKbvr8w6Du/t8vHjTCoCIocHTN0qzWOeb1YsAGX89+TrWIuO1dFyYd+Z0KC
+PDKB5j/ygml9Na+AklSYAVJIjvlzXKZrOaPmhZqDufi+rXWti/utVqY4VMW2+HKC
+nXp37qWeuFLGyR1519Y1d6F/5XzqmvbwURuEug==
 -----END CERTIFICATE-----"""
+
+    CLIENT_PRIV_KEY = """-----BEGIN RSA PRIVATE KEY-----
+MIICXAIBAAKBgQDC9eJLNv0tnpzu43OJR8q+gc7vC7+6IULlhSlduZUa4ZmLNtWu
+fLTGdHzkN9771Hh2Jqex8OEiHM5SXVeM3dgN5JL054XlhY00TxcOGXPZ3etXNo3q
+EiF2i0GRSOCtR7CNODk4VHfVATIbe/zFHcIuCIT3FAQuNltIDTukPv3O5QIDAQAB
+AoGBAJha7NgYhevzqvIov25Fs1QDP0Kh7Ne5DH0u/e+nirUyHfqkBILSI7d+6uay
+Hsiv9t9mP+CXvGgbGMVW+oc0CpUbZw4Y64jZhg/vakMuHVhpgUCyPyzjk+7Z7STg
+2B1DEAxILApU8azjrDBIRHM8q0CH6NFwJPpFjg2oi7li6hPhAkEA56e/UT7Mh+57
+qWb2q9CuI+unQcav1tqxRxUtrGHl0YSO5YTWCnaT7vVFUSbemwUhEHJs8h+Qw41L
+g4eBu/qXLQJBANdy7puiDBBvV8XxQms14VRAEUUpCwqmzieG3RNmgr7wYRKyXzws
+hbgp5HIkGFIM4FOIrFj5jUP6CuF2BfoYaZkCQGRIny75w6s413nfY/u/TBOqyW5V
+J/wYElSWW35bpxTLkNzVY5+F88ankUlvTUDIuKaZEobCmXW+bilTeRs6gUUCQGeo
+2Lzw3rUZnTWTus0yg1Ox751C/hkF4LKL5NpsvAN6THpecAvXsA7HuS5hx4HSyCvo
+2mOEzj8ikxGfY4jNLiECQE09wQ39Gw3oGKCzdsTcWy8PXIWjOS44+7N/GjUB52+o
+CK7BGBOdZGZUSFc1rVA7eWKzxFDZ+EK264z6DL95mRw=
+-----END RSA PRIVATE KEY-----"""
 
     def handle_server_hello_done(self, server_hello_done):
         if server_hello_done[-4:] == self.server_hello_done_signature:
@@ -109,13 +122,20 @@ yg==
         self.pkt_history = []
         self.pkt_map = { self.SERVER_HELLO: ['', '', lambda pkt: pkt ],
                          self.SERVER_CERTIFICATE: ['', '', lambda pkt: pkt ],
+                         self.CERTIFICATE_REQUEST: ['', '', lambda pkt: pkt ],
                          self.SERVER_HELLO_DONE: ['', '', self.handle_server_hello_done ],
                          self.SERVER_UNKNOWN: ['', '', lambda pkt: pkt ]
                        }
         self.tls_ctx = TLSSessionCtx(client = True)
 
     def load_tls_record(self, data, pkt_type = ''):
-        if pkt_type not in [ self.SERVER_HELLO_DONE, self.SERVER_UNKNOWN ]:
+        #if pkt_type not in [ self.SERVER_HELLO_DONE, self.SERVER_UNKNOWN ]:
+        if pkt_type == self.SERVER_HELLO_DONE:
+            data = str(TLSRecord(content_type=TLSContentType.HANDSHAKE)/data)
+        elif pkt_type == self.CERTIFICATE_REQUEST:
+            data = str(TLSRecord()/TLSHandshake(type=TLSHandshakeType.CERTIFICATE_REQUEST)/data[9:])
+            data = None #For now ignore this record
+        if data:
             TLS(data, ctx = self.tls_ctx)
 
     def pkt_update(self, pkt_type, data, hdr=None, reassembled = False):
@@ -139,6 +159,7 @@ yg==
         r = str(pkt)
         offset = self.TLS_OFFSET
         tls_data = r[offset:]
+        type_hdrlen = 0
         if self.pending_bytes > 0:
             if len(tls_data) >= self.pending_bytes:
                 self.pkt_update(self.pkt_last, tls_data[:self.pending_bytes], reassembled = True)
@@ -154,9 +175,13 @@ yg==
             self.pending_bytes = bytes_to_num(tls_data[3:5])
             if tls_data[0] == self.HANDSHAKE:
                 pkt_type = tls_data[5]
-                if len(tls_data) - 5 >= self.pending_bytes:
-                    data_received = tls_data[5: 5 + self.pending_bytes]
-                    offset += 5 + self.pending_bytes
+                if pkt_type in [ self.CERTIFICATE_REQUEST ]:
+                    self.pending_bytes = bytes_to_num(tls_data[6:9])
+                    type_hdrlen = 4
+                if len(tls_data) - 5 - type_hdrlen >= self.pending_bytes:
+                    data_received = tls_data[5: 5 + type_hdrlen + self.pending_bytes ]
+                    offset += 5 + type_hdrlen + self.pending_bytes
+                    type_hdrlen = 0
                     self.pending_bytes = 0
                     self.pkt_update(pkt_type, data_received,
                                     hdr = tls_data[:5],
@@ -165,10 +190,13 @@ yg==
                     self.pkt_update(pkt_type, tls_data[5:],
                                     hdr = tls_data[:5],
                                     reassembled = False)
-                    self.pending_bytes -= len(tls_data) - 5
+                    self.pending_bytes -= len(tls_data) - 5 - type_hdrlen
                     self.pkt_last = pkt_type
                     log.info('Pending bytes left %d' %(self.pending_bytes))
                     assert self.pending_bytes > 0
+            elif tls_data[0] == self.SERVER_HELLO_DONE:
+                self.pkt_update(tls_data[0], tls_data, reassembled = True)
+                break
             else:
                 self.pkt_last = self.SERVER_UNKNOWN
                 if len(tls_data) - 5 >= self.pending_bytes:
@@ -210,11 +238,12 @@ yg==
                                                    gmt_unix_time=1234,
                                                    random_bytes= '\xAB' * 28,
                                                    session_id='',
-                                                   compression_methods=(TLSCompressionMethod.NULL),
+                                                   compression_methods=[TLSCompressionMethod.NULL],
                                                    cipher_suites=[TLSCipherSuite.RSA_WITH_AES_256_CBC_SHA]
                                                    )
-                self.pkt_history.append( str(self.client_hello) )
-                reqdata = TLSRecord()/TLSHandshake()/self.client_hello
+                client_hello_data = TLSHandshake()/self.client_hello
+                self.pkt_history.append( str(client_hello_data) )
+                reqdata = TLSRecord()/client_hello_data
                 self.load_tls_record(str(reqdata))
                 log.info("Sending Client Hello TLS payload of len %d, id %d" %(len(reqdata),pkt[EAP].id))
                 eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
@@ -231,14 +260,30 @@ yg==
         ##send cert request when we receive the last server hello fragment
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_CERT_REQ
 
-    def get_encrypted_handshake_msg(self, finish_val=''):
+    def get_verify_data(self):
         all_handshake_pkts = ''.join(self.pkt_history)
+        return self.tls_ctx.get_verify_data(data = all_handshake_pkts)
+
+    def get_verify_signature(self, pem_data):
+        all_handshake_pkts = ''.join(self.pkt_history)
+        k = Key(pem_data)
+        signature = k.sign(all_handshake_pkts, t = 'pkcs', h = 'tls')
+        signature_data = '{}{}'.format(struct.pack('!H', len(signature)), signature)
+        return signature_data
+
+    def get_encrypted_handshake_msg(self, finish_val=''):
         if not finish_val:
-            finish_val = self.tls_ctx.get_verify_data(data = all_handshake_pkts)
+            finish_val = self.get_verify_data()
         msg = str(TLSHandshake(type=TLSHandshakeType.FINISHED)/finish_val)
         crypto_container = CryptoContainer(self.tls_ctx, data = msg,
                                            content_type = TLSContentType.HANDSHAKE)
         return crypto_container.encrypt()
+
+    def get_encrypted_application_msg(self, msg = ''):
+        '''Needed with tunneled TLS'''
+        if not msg:
+            msg = 'test data'
+        return to_raw(TLSPlaintext(data = 'GET / HTTP/1.1\r\nHOST: localhost\r\n\r\n'), self.tls_ctx)
 
     def _eapTlsCertReq(self):
 
@@ -249,21 +294,28 @@ yg==
                 assert self.server_hello_done_received == True
                 rex_pem = re.compile(r'\-+BEGIN[^\-]+\-+(.*?)\-+END[^\-]+\-+', re.DOTALL)
                 der_cert = rex_pem.findall(self.CLIENT_CERT)[0].decode("base64")
-                client_certificate = TLSRecord(version="TLS_1_0")/TLSHandshake()/TLSCertificateList(
+                client_certificate_list = TLSHandshake()/TLSCertificateList(
                     certificates=[TLSCertificate(data=x509.X509Cert(der_cert))])
+                client_certificate = TLSRecord(version="TLS_1_0")/client_certificate_list
                 kex_data = self.tls_ctx.get_client_kex_data()
-                client_key_ex = TLSRecord()/TLSHandshake()/kex_data
-                client_key_ex_data = str(TLSHandshake()/kex_data)
-                self.pkt_history.append(client_key_ex_data)
+                client_key_ex_data = TLSHandshake()/kex_data
+                client_key_ex = TLSRecord()/client_key_ex_data
+                self.load_tls_record(str(client_certificate))
                 self.load_tls_record(str(client_key_ex))
+                self.pkt_history.append(str(client_certificate_list))
+                self.pkt_history.append(str(client_key_ex_data))
+                verify_signature = self.get_verify_signature(self.CLIENT_PRIV_KEY)
+                client_cert_verify = TLSHandshake(type=TLSHandshakeType.CERTIFICATE_VERIFY)/verify_signature
+                client_cert_record = TLSRecord(content_type=TLSContentType.HANDSHAKE)/client_cert_verify
+                self.pkt_history.append(str(client_cert_verify))
                 #log.info('TLS ctxt: %s' %self.tls_ctx)
                 client_ccs = TLSRecord(version="TLS_1_0")/TLSChangeCipherSpec()
                 enc_handshake_msg = self.get_encrypted_handshake_msg()
                 handshake_msg = str(TLSRecord(content_type=TLSContentType.HANDSHAKE)/enc_handshake_msg)
-                reqdata = str(TLS.from_records( [client_certificate, client_key_ex, client_ccs] ))
+                reqdata = str(TLS.from_records([client_certificate, client_key_ex, client_cert_record, client_ccs]))
                 reqdata += handshake_msg
                 log.info("------> Sending Client Hello TLS Certificate payload of len %d ----------->" %len(reqdata))
-                eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
+                eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, reqdata)
                 self.eapol_send(EAPOL_EAPPACKET, eap_payload)
 
         self.eapol_scapy_recv(cb = eapol_cb,
@@ -274,9 +326,12 @@ yg==
     def _eapTlsChangeCipherSpec(self):
         def eapol_cb(pkt):
             r = str(pkt)
-            tls_data = r[TLS_OFFSET:]
+            tls_data = r[self.TLS_OFFSET:]
             log.info('Verifying TLS Change Cipher spec record type %x' %ord(tls_data[0]))
             assert tls_data[0] == self.CHANGE_CIPHER
+            log.info('Handshake finished. Sending empty data')
+            eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, 0, '')
+            self.eapol_send(EAPOL_EAPPACKET, eap_payload)
 
         self.eapol_scapy_recv(cb = eapol_cb,
                               lfilter =
@@ -286,10 +341,10 @@ yg==
     def _eapTlsFinished(self):
 
         def eapol_cb(pkt):
-                log.info('Got Server finished')
+            log.info('Server authentication successfull')
 
         self.eapol_scapy_recv(cb = eapol_cb,
                               lfilter =
-                              lambda pkt: EAP in pkt and pkt[EAP].type == EAP_TYPE_TLS and pkt[EAP].code == EAP.REQUEST)
-        #We stop here as certification validation success implies auth success
+                              lambda pkt: EAP in pkt and pkt[EAP].code == EAP.SUCCESS)
+        self.eapol_logoff()
         self.nextEvent = None

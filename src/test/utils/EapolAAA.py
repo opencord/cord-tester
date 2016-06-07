@@ -102,6 +102,10 @@ class EapolPacket(object):
         eap_payload = self.eap(EAPOL_START, 2)
         return self.eapol_send(EAPOL_START, eap_payload)
 
+    def eapol_logoff(self):
+        eap_payload = self.eap(EAPOL_LOGOFF, 2)
+        return self.eapol_send(EAPOL_LOGOFF, eap_payload)
+
     def eapol_id_req(self, pkt_id = 0, user = USER):
         eap_payload = self.eap(EAP_RESPONSE, pkt_id, EAP_TYPE_ID, user)
         return self.eapol_send(EAPOL_EAPPACKET, eap_payload)
