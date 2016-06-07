@@ -14,10 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import pexpect
-import time
-child = pexpect.spawn('sh -c radius')
-child.expect('Enter PEM pass phrase:')
-child.sendline('whatever')
-while True:
-    time.sleep(3600)
+import os
+import sys
+sys.exit(os.system('sh -c radius'))
