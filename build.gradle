@@ -25,14 +25,40 @@ ext {
     cordTesterPath = project.hasProperty('cordTesterPath') ? project.getProperty('cordTesterPath') : './src/test/setup'
 
     dockerPath = project.hasProperty('dockerPath') ? project.getProperty('dockerPath') : '/usr/bin'
+
+    cordTesterAptDeps = [ 'python', 'python-dev', 'python-pip', 'python-setuptools' ]
+
+    cordTesterPipDeps = [ 'scapy', 'nose', 'monotonic', 'configObj', 'docker-py', 'pyyaml', 'nsenter', 'pyroute2', 'netaddr', 'scapy-ssl_tls' ]
 }
 
 // ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
 
+task aptFetch() {
+    // fetch the dependencies for cord tester
+    cordTesterAptDeps.each {
+        String pkg ->
+        exec {
+            executable 'apt-get'
+            args "install", "-y", pkg
+        }
+    }
+}
+
+task pipFetch() {
+    // fetch the dependencies for cord tester
+    dependsOn aptFetch
+    cordTesterPipDeps.each {
+        String pkg ->
+        exec {
+            executable 'pip'
+            args "install", "-U", pkg
+        }
+    }
+}
+
 // To be used to fetch upstream binaries, clone repos, etc.
 task fetch (type: Exec) {
-    // this is where we fetch upstream artifacts that we do not need internet for the build phase"
-    // ...
+    dependsOn pipFetch
     commandLine "$cordTesterPath/onos_pull.sh", 'latest'
 }
 
@@ -48,4 +74,3 @@ task buildImages (type: Exec) {
 task publish {
     println "$targetTag"
 }
-
