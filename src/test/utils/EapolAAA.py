@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -47,7 +47,7 @@ cCertMsg = '\x0b\x00\x00\x03\x00\x00\x00'
 TLS_LENGTH_INCLUDED = 0x80
 
 class EapolPacket(object):
-    
+
     def __init__(self, intf = 'veth0'):
         self.intf = intf
         self.s = None
@@ -64,7 +64,7 @@ class EapolPacket(object):
         if self.s is not None:
             self.s.close()
             self.s = None
-            
+
     def eapol(self, req_type, payload=""):
         return EAPOL(version = EAPOL_VERSION, type = req_type)/payload
 
@@ -92,11 +92,11 @@ class EapolPacket(object):
         assert_equal(pkt_type, EAPOL_EAPPACKET)
         return p[4:]
 
-    def eapol_scapy_recv(self, cb = None, lfilter = None, count = 1):
+    def eapol_scapy_recv(self, cb = None, lfilter = None, count = 1, timeout = 5):
         def eapol_default_cb(pkt): pass
         if cb is None:
             cb = eapol_default_cb
-        sniff(prn = cb, lfilter = lfilter, count = count, opened_socket = self.recv_sock)
+        return sniff(prn = cb, lfilter = lfilter, count = count, timeout = timeout, opened_socket = self.recv_sock)
 
     def eapol_start(self):
         eap_payload = self.eap(EAPOL_START, 2)
