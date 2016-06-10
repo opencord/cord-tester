@@ -53,6 +53,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_3eb0c9dc",
+        "filename": "Dockerfile.quagga",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T15:58:11Z",
+      "side": 1,
+      "message": "This dockerfile would be started through the cord-test.py wrapper classes. So ideally it should not start if you don\u0027t specify a command as there are some steps done before starting the container from cord-test.p. But I would specify a default of /bin/bash anyway.",
+      "parentUuid": "7afa4931_7eb651de",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_1e9e2d57",
         "filename": "Dockerfile.radius",
         "patchSetId": 1
@@ -64,6 +82,24 @@
       "writtenOn": "2016-06-10T14:18:03Z",
       "side": 1,
       "message": "specify version tag",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_1eb50dcd",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T15:58:11Z",
+      "side": 1,
+      "message": "It should just take the latest from there.\nMaybe I would specify latest for radius server.",
+      "parentUuid": "7afa4931_1e9e2d57",
       "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
@@ -87,6 +123,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_fec9415b",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T15:58:11Z",
+      "side": 1,
+      "message": "Wrong syntax. Just meant to indicate that this image was based out of an external source. But this is bogus. Would be removed.\nIdeally, we wanted to run it as it is. But needed to play some minor abstraction to build another image.",
+      "parentUuid": "7afa4931_fea26199",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_9ea91d7e",
         "filename": "Dockerfile.radius",
         "patchSetId": 1
@@ -104,6 +158,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_dec68549",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T15:58:11Z",
+      "side": 1,
+      "message": "I want the default CMD to point to radius here. (radius is a shell utility within the container that would end up starting freeradius).",
+      "parentUuid": "7afa4931_9ea91d7e",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_beacd98d",
         "filename": "Dockerfile.tester",
         "patchSetId": 1
@@ -115,6 +187,42 @@
       "writtenOn": "2016-06-10T14:18:03Z",
       "side": 1,
       "message": "do you want CMD or entry point here?",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_bec3b937",
+        "filename": "Dockerfile.tester",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T15:58:11Z",
+      "side": 1,
+      "message": "CMD.",
+      "parentUuid": "7afa4931_beacd98d",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_9ec0fd2b",
+        "filename": "Dockerfile.tester",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T15:58:11Z",
+      "side": 1,
+      "message": "cmd.",
+      "parentUuid": "7afa4931_beacd98d",
       "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
