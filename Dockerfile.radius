@@ -1,0 +1,6 @@
+FROM hbouvier/docker-radius:latest
+MAINTAINER chetan@ciena.com
+RUN apt-get update && \
+    apt-get -y install python python-pexpect strace
+WORKDIR /root
+CMD ["radius"]
