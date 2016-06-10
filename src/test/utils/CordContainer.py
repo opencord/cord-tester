@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -114,17 +114,17 @@ class Container(object):
         self.dckr.kill(self.name)
         self.dckr.remove_container(self.name, force=True)
 
-    def start(self, rm = True, ports = None, volumes = None, host_config = None, 
+    def start(self, rm = True, ports = None, volumes = None, host_config = None,
               environment = None, tty = False, stdin_open = True):
 
         if rm and self.exists():
             print('Removing container:', self.name)
             self.dckr.remove_container(self.name, force=True)
 
-        ctn = self.dckr.create_container(image=self.image_name, ports = ports, command=self.command, 
+        ctn = self.dckr.create_container(image=self.image_name, ports = ports, command=self.command,
                                          detach=True, name=self.name,
-                                         environment = environment, 
-                                         volumes = volumes, 
+                                         environment = environment,
+                                         volumes = volumes,
                                          host_config = host_config, stdin_open=stdin_open, tty = tty)
         self.dckr.start(container=self.name)
         if self.quagga_config:
@@ -202,7 +202,7 @@ class Onos(Container):
     host_guest_map = ( (host_config_dir, guest_config_dir), )
     NAME = 'cord-onos'
 
-    def __init__(self, name = NAME, image = 'onosproject/onos', tag = 'latest', 
+    def __init__(self, name = NAME, image = 'onosproject/onos', tag = 'latest',
                  boot_delay = 60, restart = False, network_cfg = None):
         if restart is True:
             ##Find the right image to restart
@@ -229,14 +229,14 @@ class Onos(Container):
                 with open('{}/network-cfg.json'.format(self.host_config_dir), 'w') as f:
                     f.write(json_data)
             print('Starting ONOS container %s' %self.name)
-            self.start(ports = self.ports, environment = self.env, 
+            self.start(ports = self.ports, environment = self.env,
                        host_config = host_config, volumes = volumes, tty = True)
             print('Waiting %d seconds for ONOS to boot' %(boot_delay))
             time.sleep(boot_delay)
 
 class Radius(Container):
     ports = [ 1812, 1813 ]
-    env = {'TIMEZONE':'America/Los_Angeles', 
+    env = {'TIMEZONE':'America/Los_Angeles',
            'DEBUG': 'true', 'cert_password':'whatever', 'primary_shared_secret':'radius_password'
            }
     host_db_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/radius-config/db')
@@ -264,8 +264,8 @@ class Radius(Container):
             volumes = []
             for _,g in self.host_guest_map:
                 volumes.append(g)
-            self.start(ports = self.ports, environment = self.env, 
-                       volumes = volumes, 
+            self.start(ports = self.ports, environment = self.env,
+                       volumes = volumes,
                        host_config = host_config, tty = True)
             time.sleep(boot_delay)
 
@@ -286,7 +286,7 @@ CMD ["/etc/freeradius/start-radius.py"]
         print('Done building image %s' %image)
 
 class Quagga(Container):
-    quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 }, 
+    quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 },
                       { 'bridge' : 'quagga-br', 'ip': '192.168.10.3', 'mask': 16 },
                       )
     ports = [ 179, 2601, 2602, 2603, 2604, 2605, 2606 ]
@@ -297,7 +297,7 @@ class Quagga(Container):
     IMAGE = 'cord-test/quagga'
     NAME = 'cord-quagga'
 
-    def __init__(self, name = NAME, image = IMAGE, tag = 'latest', 
+    def __init__(self, name = NAME, image = IMAGE, tag = 'latest',
                  boot_delay = 15, restart = False, config_file = quagga_config_file, update = False):
         super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
         if update is True or not self.img_exists():
@@ -306,14 +306,14 @@ class Quagga(Container):
             self.kill()
         if not self.exists():
             self.remove_container(name, force=True)
-            host_config = self.create_host_config(port_list = self.ports, 
-                                                  host_guest_map = self.host_guest_map, 
+            host_config = self.create_host_config(port_list = self.ports,
+                                                  host_guest_map = self.host_guest_map,
                                                   privileged = True)
             volumes = []
             for _,g in self.host_guest_map:
                 volumes.append(g)
             self.start(ports = self.ports,
-                       host_config = host_config, 
+                       host_config = host_config,
                        volumes = volumes, tty = True)
             print('Starting Quagga on container %s' %self.name)
             self.execute('{0}/start.sh {1}'.format(self.guest_quagga_config, config_file))
@@ -324,7 +324,8 @@ class Quagga(Container):
         onos_quagga_ip = Onos.quagga_config[0]['ip']
         print('Building Quagga image %s' %image)
         dockerfile = '''
-FROM ubuntu:latest
+FROM ubuntu:14.04
+MAINTAINER chetan@ciena.com
 WORKDIR /root
 RUN useradd -M quagga
 RUN mkdir /var/log/quagga && chown quagga:quagga /var/log/quagga
