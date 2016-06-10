@@ -106,6 +106,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_5ee275d6",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T16:28:27Z",
+      "side": 1,
+      "message": "Specifying latest means you don\u0027t really no what you get. They could change latest to be something that no longer works with the rest of your code. For consistent results it is better to specify a specific version.",
+      "parentUuid": "7afa4931_1eb50dcd",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_fea26199",
         "filename": "Dockerfile.radius",
         "patchSetId": 1
@@ -176,6 +194,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_3ee7a9e6",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T16:28:27Z",
+      "side": 1,
+      "message": "The question is why not specify this as \"ENTRYPOINT\" as opposed to \"CMD\". By using \"ENTRYPOINT\" any other values the caller adds to the docker run command become arguments to the ENTRYPOINT.",
+      "parentUuid": "7afa4931_dec68549",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_beacd98d",
         "filename": "Dockerfile.tester",
         "patchSetId": 1
@@ -223,6 +259,24 @@
       "side": 1,
       "message": "cmd.",
       "parentUuid": "7afa4931_beacd98d",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_1eecedc6",
+        "filename": "Dockerfile.tester",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T16:28:27Z",
+      "side": 1,
+      "message": "Again, I would consider ENTRYPOINT as opposed to CMD",
+      "parentUuid": "7afa4931_bec3b937",
       "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
