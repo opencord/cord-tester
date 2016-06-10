@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "7afa4931_3e99e96e",
+        "filename": "Dockerfile.quagga",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "dangerous to extend from \"latest\" it means your base can change out from under you. you might want to select a specific version.",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_de9fa54f",
+        "filename": "Dockerfile.quagga",
+        "patchSetId": 1
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "no maintainer specified",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_7eb651de",
+        "filename": "Dockerfile.quagga",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "no entry point specified",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_1e9e2d57",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "specify version tag",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_fea26199",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "is this syntax correct? label run?\n\nlabels are meant to add meta data to the docker image. what are you attempting to do here?",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_9ea91d7e",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "cmd or entry point here?",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_beacd98d",
+        "filename": "Dockerfile.tester",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2016-06-10T14:18:03Z",
+      "side": 1,
+      "message": "do you want CMD or entry point here?",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
