@@ -124,6 +124,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_beda9915",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T16:36:06Z",
+      "side": 1,
+      "message": "There is no tag there other than latest now :)",
+      "parentUuid": "7afa4931_5ee275d6",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_fea26199",
         "filename": "Dockerfile.radius",
         "patchSetId": 1
@@ -212,6 +230,24 @@
     },
     {
       "key": {
+        "uuid": "7afa4931_9ed7dded",
+        "filename": "Dockerfile.radius",
+        "patchSetId": 1
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T16:36:06Z",
+      "side": 1,
+      "message": "These containers are meant to be started through cord-test.py that also ends up overriding the command before starting the container.",
+      "parentUuid": "7afa4931_3ee7a9e6",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7afa4931_beacd98d",
         "filename": "Dockerfile.tester",
         "patchSetId": 1
@@ -277,6 +313,24 @@
       "side": 1,
       "message": "Again, I would consider ENTRYPOINT as opposed to CMD",
       "parentUuid": "7afa4931_bec3b937",
+      "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7afa4931_decd655f",
+        "filename": "Dockerfile.tester",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-06-10T16:36:06Z",
+      "side": 1,
+      "message": "The CMD here is overridden when these containers are started through cord-test.py (pydocker abstraction)\nSo I am not sure specifying entrypoint now would make a difference since these containers are meant to be started through cord-test.py. (does a bunch of steps like setting up interfaces,bridges for quagga,etc.)",
+      "parentUuid": "7afa4931_1eecedc6",
       "revId": "db09dcd44ef040b77b6770cfd551a028de893822",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
