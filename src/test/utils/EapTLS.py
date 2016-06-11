@@ -161,6 +161,7 @@ CK7BGBOdZGZUSFc1rVA7eWKzxFDZ+EK264z6DL95mRw=
     def tlsFail(self):
         ##Force a failure
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_FINISHED
+        self.nextState = self.tlsStateTable.ST_EAP_TLS_FINISHED
         self.failTest = True
 
     def eapol_server_hello_cb(self, pkt):
@@ -372,7 +373,7 @@ CK7BGBOdZGZUSFc1rVA7eWKzxFDZ+EK264z6DL95mRw=
             return r
 
     def _eapTlsFinished(self):
-
+        self.nextEvent = None
         def eapol_cb(pkt):
             log.info('Server authentication successfull')
 
@@ -388,4 +389,3 @@ CK7BGBOdZGZUSFc1rVA7eWKzxFDZ+EK264z6DL95mRw=
                               lambda pkt: EAP in pkt and pkt[EAP].code == EAP.SUCCESS,
                               timeout = timeout)
         self.eapol_logoff()
-        self.nextEvent = None
