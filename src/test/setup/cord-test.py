@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -68,7 +68,7 @@ class CordTester(Container):
             env['TEST_INSTANCE'] = instance
             env['TEST_INSTANCES'] = num_instances
         print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
-        self.start(rm = False, volumes = volumes, environment = env, 
+        self.start(rm = False, volumes = volumes, environment = env,
                    host_config = host_config, tty = True)
 
     def execute_switch(self, cmd, shell = False):
@@ -120,7 +120,7 @@ class CordTester(Container):
             pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if, local_if, self.name, guest_ip)
             if start_vlan != 0:
                 pipework_cmd += ' @{}'.format(start_vlan + port_num)
-                
+
             res += os.system(pipework_cmd)
             port_num += 1
 
@@ -218,7 +218,7 @@ CMD ["/bin/bash"]
 onos_image_default='onosproject/onos:latest'
 nose_image_default= '{}:latest'.format(CordTester.IMAGE)
 test_type_default='dhcp'
-onos_app_version = '1.0-SNAPSHOT'
+onos_app_version = '2.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 
@@ -240,11 +240,11 @@ def runTest(args):
     nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
     update_map = { 'quagga' : False, 'test' : False, 'radius' : False }
     update_map[args.update.lower()] = True
-    
+
     if args.update.lower() == 'all':
        for c in update_map.keys():
            update_map[c] = True
-    
+
     radius_ip = None
     quagga_ip = None
 
@@ -268,16 +268,16 @@ def runTest(args):
         radius = Radius( update = update_map['radius'])
         radius_ip = radius.ip()
         print('Radius server running with IP %s' %radius_ip)
-            
+
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
-    print('Installing ONOS app %s' %onos_app_file)
+    print('Installing cord tester ONOS app %s' %onos_app_file)
     OnosCtrl.install_app(args.app, onos_ip = onos_ip)
-    
+
     if args.quagga == True:
         #Start quagga. Builds container if required
         quagga = Quagga(update = update_map['quagga'])
         quagga_ip = quagga.ip()
-        
+
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
                      'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
                      'QUAGGA_IP': quagga_ip if quagga_ip is not None else '',
@@ -345,7 +345,7 @@ def listTests(args):
 def buildImages(args):
     if args.image == 'all' or args.image == 'quagga':
         Quagga.build_image(Quagga.IMAGE)
-    
+
     if args.image == 'all' or args.image == 'radius':
         Radius.build_image(Radius.IMAGE)
 

@@ -169,11 +169,11 @@ class subscriber_pool:
 
 class subscriber_exchange(unittest.TestCase):
 
-      apps = [ 'org.onosproject.aaa', 'org.onosproject.dhcp' ]
+      apps = [ 'org.opencord.aaa', 'org.onosproject.dhcp' ]
 
       dhcp_app = 'org.onosproject.dhcp'
 
-      olt_apps = [ 'org.onosproject.igmp', 'org.onosproject.cordmcast' ]
+      olt_apps = [ 'org.opencord.igmp', 'org.opencord.cordmcast' ]
       dhcp_server_config = {
         "ip": "10.1.11.50",
         "mac": "ca:fe:ca:fe:ca:fe",

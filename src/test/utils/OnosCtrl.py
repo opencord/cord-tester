@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,7 @@ class OnosCtrl:
     auth = ('karaf', 'karaf')
     controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
     cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
+    maven_repo = 'http://central.maven.org/maven2/org/onosproject'
     applications_url = 'http://%s:8181/onos/v1/applications' %(controller)
 
     def __init__(self, app, controller = None):
@@ -94,6 +95,19 @@ class OnosCtrl:
             result = requests.post(url, auth = cls.auth,
                                    params = params, headers = headers,
                                    data = payload)
+        return result.ok, result.status_code
+
+    @classmethod
+    def install_app_from_url(cls, app_name, app_version, app_url = None, onos_ip = None):
+        params = {'activate':'true'}
+        headers = {'content-type':'application/json'}
+        if app_url is None:
+            app_oar_file = '{}-{}.oar'.format(app_name, app_version)
+            app_url = '{0}/{1}/{2}/{3}'.format(cls.maven_repo, app_name, app_version, app_oar_file)
+        params['url'] = app_url
+        url = cls.applications_url if onos_ip is None else 'http://{0}:8181/onos/v1/applications'.format(onos_ip)
+        result = requests.post(url, auth = cls.auth,
+                               json = params, headers = headers)
         return result.ok, result.status_code
 
     @classmethod

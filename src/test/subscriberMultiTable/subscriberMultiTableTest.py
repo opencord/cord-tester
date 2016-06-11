@@ -16,7 +16,7 @@ from EapTLS import TLSAuthTest
 from Channels import Channels, IgmpChannel
 from subscriberDb import SubscriberDB
 from threadPool import ThreadPool
-from portmaps import g_subscriber_port_map 
+from portmaps import g_subscriber_port_map
 from OltConfig import *
 from OnosFlowCtrl import get_mac
 from CordTestServer import cord_test_onos_restart
@@ -48,7 +48,7 @@ class Subscriber(Channels):
                   self.tx_intf = self.port_map[self.PORT_TX_DEFAULT]
                   self.rx_intf = self.port_map[self.PORT_RX_DEFAULT]
 
-            Channels.__init__(self, num, channel_start = channel_start, 
+            Channels.__init__(self, num, channel_start = channel_start,
                               iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
             self.name = name
             self.service = service
@@ -112,7 +112,7 @@ class Subscriber(Channels):
                   chan_list = (chan,)
             else:
                   chan_list = chan
-            for c in chan_list: 
+            for c in chan_list:
                   if self.join_map.has_key(c):
                         self.join_map[c][stats_type].update(packets = packets, t = t)
 
@@ -142,11 +142,11 @@ class subscriber_pool:
             for cb in self.test_cbs:
                   if cb:
                         cb(self.subscriber)
-      
+
 class subscriber_exchange(unittest.TestCase):
 
-      apps = ('org.onosproject.aaa', 'org.onosproject.dhcp')
-      olt_apps = () #'org.onosproject.cordmcast')
+      apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
+      olt_apps = () #'org.opencord.cordmcast')
       table_app = 'org.ciena.cordigmp'
       dhcp_server_config = {
         "ip": "10.1.11.50",
@@ -264,7 +264,7 @@ class subscriber_exchange(unittest.TestCase):
       def onos_aaa_load(self):
             if self.aaa_loaded:
                   return
-            aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password', 
+            aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
                                                                        'radiusIp': '172.17.0.2' } } } }
             radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
             aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
@@ -395,7 +395,7 @@ class subscriber_exchange(unittest.TestCase):
 
             index = 0
             for info in self.subscriber_info:
-                  self.subscriber_list.append(Subscriber(name=info['Name'], 
+                  self.subscriber_list.append(Subscriber(name=info['Name'],
                                                          service=info['Service'],
                                                          port_map = self.port_map,
                                                          num=num_channels,
@@ -412,7 +412,7 @@ class subscriber_exchange(unittest.TestCase):
             ssm_list = reduce(lambda ssm1, ssm2: ssm1+ssm2, ssm_groups)
             igmpChannel.igmp_load_ssm_config(ssm_list)
 
-      def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1, 
+      def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1,
                                   channel_start = 0, cbs = None, port_list = []):
           self.test_status = False
           self.num_subscribers = num_subscribers
@@ -435,16 +435,16 @@ class subscriber_exchange(unittest.TestCase):
           """Test subscriber join and receive"""
           num_subscribers = 5
           num_channels = 1
-          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
                                                     num_channels = num_channels,
                                                     port_list = self.generate_port_list(num_subscribers, num_channels))
           assert_equal(test_status, True)
 
       def test_subscriber_join_jump(self):
-          """Test subscriber join and receive for channel surfing""" 
+          """Test subscriber join and receive for channel surfing"""
           num_subscribers = 5
           num_channels = 50
-          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
                                                     num_channels = num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
                                                     port_list = self.generate_port_list(num_subscribers, num_channels))
@@ -454,7 +454,7 @@ class subscriber_exchange(unittest.TestCase):
           """Test subscriber join next for channels"""
           num_subscribers = 5
           num_channels = 50
-          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers, 
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
                                                     num_channels = num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
                                                     port_list = self.generate_port_list(num_subscribers, num_channels))

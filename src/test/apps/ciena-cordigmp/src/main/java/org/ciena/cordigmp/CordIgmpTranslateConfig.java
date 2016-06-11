@@ -41,7 +41,7 @@ public class CordIgmpTranslateConfig extends Config<ApplicationId> {
                 return false;
             }
 
-            if (!(isIpAddress((ObjectNode) node, GROUP, FieldPresence.MANDATORY) && 
+            if (!(isIpAddress((ObjectNode) node, GROUP, FieldPresence.MANDATORY) &&
                   node.get(INPUT_PORT).isInt() && node.get(OUTPUT_PORT).isInt())) {
                 return false;
             }
