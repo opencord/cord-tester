@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -41,7 +41,7 @@ class IGMPTestState:
             self.group_map = {} ##create a send/recv count map
             for g in groups:
                 self.group_map[g] = (Stats(), Stats())
-            
+
       def update(self, group, tx = 0, rx = 0, t = 0):
             self.counter += 1
             index = 0 if rx == 0 else 1
@@ -75,7 +75,7 @@ class igmp_exchange(unittest.TestCase):
     PORT_TX_DEFAULT = 2
     PORT_RX_DEFAULT = 1
     max_packets = 100
-    app = 'org.onosproject.igmp'
+    app = 'org.opencord.igmp'
     olt_conf_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json')
 
     @classmethod
@@ -85,7 +85,7 @@ class igmp_exchange(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls): pass
-          
+
     def setUp(self):
         ''' Activate the dhcp app'''
         self.onos_ctrl = OnosCtrl(self.app)
@@ -99,7 +99,7 @@ class igmp_exchange(unittest.TestCase):
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
         time.sleep(2)
-          
+
     def onos_ssm_table_load(self, groups, src_list):
           ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
@@ -120,14 +120,14 @@ class igmp_exchange(unittest.TestCase):
         sendState, recvState = igmpStateList
         ## check if the send is received for the groups
         for g in sendState.groups:
-            tx_stats = sendState.group_map[g][0]  
+            tx_stats = sendState.group_map[g][0]
             tx = tx_stats.count
             assert_greater(tx, 0)
             rx_stats = recvState.group_map[g][1]
             rx = rx_stats.count
             assert_greater(rx, 0)
             log.info('Receive stats %s for group %s' %(rx_stats, g))
-            
+
         log.info('IGMP test verification success')
 
     def igmp_verify_leave(self, igmpStateList, leave_groups):
@@ -137,14 +137,14 @@ class igmp_exchange(unittest.TestCase):
             tx_stats = sendState.group_map[g][0]
             rx_stats = recvState.group_map[g][1]
             tx = tx_stats.count
-            rx = rx_stats.count                   
+            rx = rx_stats.count
             assert_greater(tx, 0)
             if g not in leave_groups:
                 log.info('Received %d packets for group %s' %(rx, g))
         for g in leave_groups:
             rx = recvState.group_map[g][1].count
             assert_equal(rx, 0)
-            
+
         log.info('IGMP test verification success')
 
     def mcast_traffic_timer(self):
@@ -279,12 +279,12 @@ class igmp_exchange(unittest.TestCase):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
             if not mcastTraffic.isRecvStopped():
@@ -393,7 +393,7 @@ class igmp_exchange(unittest.TestCase):
           sniff(prn = igmp_recv_cb, count = 1, lfilter = lambda p: IP in p and p[IP].dst in groups,
                 timeout = 3, opened_socket = recv_socket)
           recv_socket.close()
-          return self.NEGATIVE_TRAFFIC_STATUS 
+          return self.NEGATIVE_TRAFFIC_STATUS
 
     def group_latency_check(self, groups):
           tasks = []
@@ -401,7 +401,7 @@ class igmp_exchange(unittest.TestCase):
           join_state = IGMPTestState(groups = groups)
           tasks.append(threading.Thread(target=self.igmp_join_task, args = ('veth0', groups, join_state,)))
           traffic_state = IGMPTestState(groups = groups)
-          mcast_traffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+          mcast_traffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                        arg = traffic_state)
           mcast_traffic.start()
           tasks.append(threading.Thread(target=self.igmp_recv_task, args = ('veth0', groups, join_state)))
@@ -441,7 +441,7 @@ class igmp_exchange(unittest.TestCase):
         df = defer.Deferred()
         self.df = df
         self.recv_socket = L2Socket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_query_timeout():
               def igmp_query_cb(pkt):
                     log.info('Got IGMP query packet from %s for %s' %(pkt[IP].src, pkt[IP].dst))
@@ -483,7 +483,7 @@ class igmp_exchange(unittest.TestCase):
         if query_group1 is 'group1':
             log.info('Sending join message for the group %s and waiting for a query packet on join interface' %g1)
             self.send_igmp_join_recvQuery((g1,), None, src_list = sourcelist1, ip_pkt = eth/ip, iface = intf, delay = 2)
-        else: 
+        else:
             log.info('Sending join message for the group %s' %g1)
             self.send_igmp_join((g1,), src_list = sourcelist1, ip_pkt = eth/ip, iface = intf, delay = 2)
         eth = Ether(dst = self.MMACGROUP2, src = self.IGMP_SRC_MAC, type = ETH_P_IP)
@@ -491,7 +491,7 @@ class igmp_exchange(unittest.TestCase):
         if query_group2 is 'group2':
             log.info('Sending join message for the group %s and waiting for a query packet on join interface' %g2)
             self.send_igmp_join_recvQuery((g2,), None, src_list = sourcelist2, ip_pkt = eth/ip, iface = intf, delay = 2)
-        else: 
+        else:
             log.info('Sending join message for group %s' %g2)
             self.send_igmp_join((g2,), src_list = sourcelist2, ip_pkt = eth/ip, iface = intf, delay = 2)
 
@@ -547,7 +547,7 @@ class igmp_exchange(unittest.TestCase):
             log.info('Ended test case')
         mcastTraffic1.stop()
         mcastTraffic2.stop()
-        
+
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_2joins_1leave_functionality(self):
@@ -588,7 +588,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1 == 2, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s, working as expected' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_not_in_src_list_functionality(self):
         df = defer.Deferred()
@@ -620,7 +620,7 @@ class igmp_exchange(unittest.TestCase):
         assert target2 == 2, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s after sending CHANGE_TO_EXCLUDE' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_change_to_exclude_src_list_functionality(self):
         df = defer.Deferred()
@@ -652,7 +652,7 @@ class igmp_exchange(unittest.TestCase):
                                                       intf = self.V_INF1, delay = 2)
         target1 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+30)
     def test_igmp_include_to_allow_src_list_functionality(self):
         df = defer.Deferred()
@@ -684,7 +684,7 @@ class igmp_exchange(unittest.TestCase):
         target1 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         log.info('Interface is still receiving from old multicast group data %s even after we send block list' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+30)
     def test_igmp_include_to_block_src_list_functionality(self):
         df = defer.Deferred()
@@ -700,7 +700,7 @@ class igmp_exchange(unittest.TestCase):
         groups2 = (self.MGROUP2,)
         self.send_igmp_leave(groups = groups1, src_list = ['2.2.2.2', '3.3.3.3', '4.4.4.4'],
                              iface = self.V_INF1, delay = 2)
-        
+
         dst_mac = '01:00:5e:01:02:03'
         src_ip = '2.2.2.2'
         if df is None:
@@ -720,7 +720,7 @@ class igmp_exchange(unittest.TestCase):
         target2 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         log.info('Interface is receiving from multicast groups %s after send Change to include message' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_change_to_include_src_list_functionality(self):
         df = defer.Deferred()
@@ -735,7 +735,7 @@ class igmp_exchange(unittest.TestCase):
         groups2 = (self.MGROUP2,)
         self.send_igmp_leave(groups = groups1, src_list = ['2.2.2.2', '3.3.3.3', '4.4.4.4'],
                              iface = self.V_INF1, delay = 2)
-        
+
         dst_mac = '01:00:5e:01:02:03'
         src_ip = '2.2.2.2'
         if df is None:
@@ -756,7 +756,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1 == 1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_exclude_to_allow_src_list_functionality(self):
         df = defer.Deferred()
@@ -771,7 +771,7 @@ class igmp_exchange(unittest.TestCase):
         groups2 = (self.MGROUP2,)
         self.send_igmp_leave(groups = groups1, src_list = ['2.2.2.2', '3.3.3.3', '4.4.4.4'],
                              iface = self.V_INF1, delay = 2)
-        
+
         dst_mac = '01:00:5e:01:02:03'
         src_ip = '2.2.2.2'
         if df is None:
@@ -791,7 +791,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1 == 1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_exclude_to_block_src_list_functionality(self):
         df = defer.Deferred()
@@ -826,7 +826,7 @@ class igmp_exchange(unittest.TestCase):
         target2 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         log.info('Interface is receiving from multicast groups %s after sending join with new source list' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_new_src_list_functionality(self):
         df = defer.Deferred()
@@ -893,7 +893,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1==1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s when we sent join with source list is empty' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def ztest_igmp_include_empty_src_list_functionality(self):
         ## '''Disabling this test as scapy IGMP doesn't work with empty source lists'''
@@ -922,7 +922,7 @@ class igmp_exchange(unittest.TestCase):
         target1 = self.igmp_recv_task(self.V_INF1, groups2, join_state1)
         log.info('Interface is receiving multicast groups %s' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def ztest_igmp_exclude_empty_src_list_functionality(self):
         df = defer.Deferred()
@@ -954,7 +954,7 @@ class igmp_exchange(unittest.TestCase):
         target1 = self.igmp_recv_task(self.V_INF1, groups2, join_state1)
         log.info('Interface is receiving from multicast groups %s when we sent join with source IP  is 0.0.0.0' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_join_sourceip_0_0_0_0_functionality(self):
         df = defer.Deferred()
@@ -987,7 +987,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1==1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s when we sent invalid join packet ' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_invalid_join_packet_functionality(self):
         df = defer.Deferred()
@@ -1028,7 +1028,7 @@ class igmp_exchange(unittest.TestCase):
         target1 = self.igmp_recv_task(self.V_INF1, groups2, join_state1)
         log.info('Interface is receiving from multicast groups %s when we bringup interface up after down  ' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_join_data_receiving_during_subscriber_link_up_down_functionality(self):
         df = defer.Deferred()
@@ -1090,7 +1090,7 @@ class igmp_exchange(unittest.TestCase):
         target2 = self.igmp_recv_task(self.V_INF1, groups2, join_state2)
         log.info('Interface is receiving from multicast groups %s when we bringup interface up after down  ' %groups2)
         mcastTraffic2.stop()
-        
+
     ##  This test case is failing to receive traffic from multicast data from defferent channel interfaces TO-DO
     ###### TO DO scenario #######
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+60)
@@ -1158,7 +1158,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1==1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s when we sent invalid join packet ' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_invalidClassD_IP_as_srclistIP_join_packet_functionality(self):
         df = defer.Deferred()
@@ -1208,7 +1208,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1==1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving multicast data for group %s' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+250)
     def test_igmp_general_query_recv_packet_traffic_functionality(self):
         df = defer.Deferred()
@@ -1217,7 +1217,7 @@ class igmp_exchange(unittest.TestCase):
               df.callback(0)
         reactor.callLater(0, igmp_general_query_recv_packet_functionality)
         return df
-    
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+80)
     def test_igmp_query_packet_received_on_joining_interface(self):
         groups = ['224.0.1.10', '225.0.0.10']
@@ -1226,12 +1226,12 @@ class igmp_exchange(unittest.TestCase):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
             if not mcastTraffic.isRecvStopped():
@@ -1259,12 +1259,12 @@ class igmp_exchange(unittest.TestCase):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
             if not mcastTraffic.isRecvStopped():
@@ -1287,12 +1287,12 @@ class igmp_exchange(unittest.TestCase):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
             if not mcastTraffic.isRecvStopped():
@@ -1319,12 +1319,12 @@ class igmp_exchange(unittest.TestCase):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
             if not mcastTraffic.isRecvStopped():
@@ -1352,12 +1352,12 @@ class igmp_exchange(unittest.TestCase):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, 
+        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
-        
+
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
             if not mcastTraffic.isRecvStopped():
@@ -1396,7 +1396,7 @@ class igmp_exchange(unittest.TestCase):
         assert target2 == 1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s after sending CHANGE_TO_EXCLUDE' %groups2)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+60)
     def test_igmp_change_to_exclude_src_list_check_for_group_source_specific_query(self):
         df = defer.Deferred()
@@ -1431,7 +1431,7 @@ class igmp_exchange(unittest.TestCase):
         target2 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         log.info('Interface is receiving from multicast groups %s after send Change to include message' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+80)
     def test_igmp_change_to_include_src_list_check_for_general_query(self):
         df = defer.Deferred()
@@ -1465,7 +1465,7 @@ class igmp_exchange(unittest.TestCase):
         target2 = self.igmp_recv_task(self.V_INF1, groups1, join_state1)
         log.info('Interface is receiving from multicast groups %s after sending join with new source list' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+80)
     def test_igmp_allow_new_src_list_check_for_general_query(self):
         df = defer.Deferred()
@@ -1577,7 +1577,7 @@ class igmp_exchange(unittest.TestCase):
         groups2 = (self.MGROUP2,)
         self.send_igmp_leave(groups = groups1, src_list = ['2.2.2.2', '3.3.3.3', '4.4.4.4'],
                              iface = self.V_INF1, delay = 2)
-        
+
         dst_mac = '01:00:5e:01:02:03'
         src_ip = '2.2.2.2'
         if df is None:
@@ -1597,7 +1597,7 @@ class igmp_exchange(unittest.TestCase):
         assert target1 == 1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s' %groups1)
         mcastTraffic1.stop()
-        
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+90)
     def test_igmp_exclude_to_allow_src_list_check_for_general_query(self):
         df = defer.Deferred()
@@ -1612,7 +1612,7 @@ class igmp_exchange(unittest.TestCase):
         groups2 = (self.MGROUP2,)
         self.send_igmp_leave(groups = groups1, src_list = ['2.2.2.2', '3.3.3.3', '4.4.4.4'],
                              iface = self.V_INF1, delay = 2)
-        
+
         dst_mac = '01:00:5e:01:02:03'
         src_ip = '2.2.2.2'
         if df is None:
@@ -1626,7 +1626,7 @@ class igmp_exchange(unittest.TestCase):
         target1= self.igmp_not_recv_task(self.V_INF1, groups1, join_state1)
         assert target1 == 1, 'EXPECTED FAILURE'
         log.info('Interface is not receiving from multicast groups %s' %groups1)
-        self.send_igmp_leave_listening_group_specific_query(groups = groups1, 
+        self.send_igmp_leave_listening_group_specific_query(groups = groups1,
                                           src_list = ['2.2.2.2', '3.3.3.3', '4.4.4.4', '5.5.5.5', '7.7.7.7'],
                                           iface = self.V_INF1, delay = 2)
         target1= self.igmp_not_recv_task(self.V_INF1, groups1, join_state1)
@@ -1642,5 +1642,3 @@ class igmp_exchange(unittest.TestCase):
               df.callback(0)
         reactor.callLater(0, igmp_exclude_to_block_src_list_check_for_group_source_specific_query)
         return df
-
-

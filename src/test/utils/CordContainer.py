@@ -21,6 +21,7 @@ from itertools import chain
 from nsenter import Namespace
 from docker import Client
 from shutil import copy
+from OnosCtrl import OnosCtrl
 
 class docker_netns(object):
 
@@ -89,7 +90,7 @@ class Container(object):
         cnt_list = filter(lambda c: c['Image'] == image, cls.dckr.containers(all=True))
         for cnt in cnt_list:
             print('Cleaning container %s' %cnt['Id'])
-            if cnt['State'] == 'running':
+            if cnt.has_key('State') and cnt['State'] == 'running':
                 cls.dckr.kill(cnt['Id'])
             cls.dckr.remove_container(cnt['Id'], force=True)
 
@@ -195,10 +196,15 @@ class Onos(Container):
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
     SYSTEM_MEMORY = (get_mem(),) * 2
     JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
-    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,aaa,igmp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
+    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
+    onos_cord_apps = ( ('cord-config', '1.0-SNAPSHOT'),
+                       ('aaa', '1.0-SNAPSHOT'),
+                       ('igmp', '1.0-SNAPSHOT'),
+                       )
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
     host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
     guest_config_dir = '/root/onos/config'
+    cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')
     host_guest_map = ( (host_config_dir, guest_config_dir), )
     NAME = 'cord-onos'
 
@@ -233,6 +239,19 @@ class Onos(Container):
                        host_config = host_config, volumes = volumes, tty = True)
             print('Waiting %d seconds for ONOS to boot' %(boot_delay))
             time.sleep(boot_delay)
+
+        self.install_cord_apps()
+
+    @classmethod
+    def install_cord_apps(cls):
+        for app, version in cls.onos_cord_apps:
+            app_file = '{}/{}-{}.oar'.format(cls.cord_apps_dir, app, version)
+            ok, code = OnosCtrl.install_app(app_file)
+            ##app already installed (conflicts)
+            if code in [ 409 ]:
+                ok = True
+            print('ONOS app %s, version %s %s' %(app, version, 'installed' if ok else 'failed to install'))
+            time.sleep(2)
 
 class Radius(Container):
     ports = [ 1812, 1813 ]
@@ -339,4 +358,3 @@ RUN ldconfig
 '''.format(onos_quagga_ip)
         super(Quagga, cls).build_image(dockerfile, image)
         print('Done building image %s' %image)
-

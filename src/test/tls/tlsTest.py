@@ -26,7 +26,7 @@ log.setLevel('INFO')
 
 class eap_auth_exchange(unittest.TestCase):
 
-    app = 'org.onosproject.aaa'
+    app = 'org.opencord.aaa'
     TLS_TIMEOUT = 20
     CLIENT_CERT_INVALID = '''-----BEGIN CERTIFICATE-----
 MIIDvTCCAqWgAwIBAgIBAjANBgkqhkiG9w0BAQUFADCBizELMAkGA1UEBhMCVVMx
@@ -126,4 +126,3 @@ yg==
 if __name__ == '__main__':
     t = TLSAuthTest()
     t.runTest()
-

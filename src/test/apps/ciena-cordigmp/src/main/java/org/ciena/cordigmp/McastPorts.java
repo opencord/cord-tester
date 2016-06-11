@@ -22,8 +22,8 @@ import org.onlab.packet.IpAddress;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-/**
- * An entity representing a multicast group and its input and output ports
+/*
+ * An entity representing a multicast group and its input and output ports.
  */
 @Beta
 public class McastPorts {

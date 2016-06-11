@@ -15,7 +15,6 @@
  */
 package org.ciena.cordigmp;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.ConcurrentHashMultiset;
@@ -50,32 +49,24 @@ import org.onosproject.net.flow.instructions.Instructions;
 import org.onosproject.net.flow.FlowEntry;
 import org.onosproject.net.flow.DefaultFlowEntry;
 import org.onosproject.net.flow.FlowRuleService;
-import org.onosproject.net.flowobjective.DefaultNextObjective;
 import org.onosproject.net.flowobjective.FlowObjectiveService;
-import org.onosproject.net.flowobjective.NextObjective;
-import org.onosproject.net.flowobjective.Objective;
-import org.onosproject.net.flowobjective.ObjectiveContext;
-import org.onosproject.net.flowobjective.ObjectiveError;
 import org.onosproject.net.mcast.McastEvent;
 import org.onosproject.net.mcast.McastListener;
 import org.onosproject.net.mcast.McastRoute;
 import org.onosproject.net.mcast.McastRouteInfo;
 import org.onosproject.net.mcast.MulticastRouteService;
-import org.onosproject.cordconfig.access.AccessDeviceConfig;
-import org.onosproject.cordconfig.access.AccessDeviceData;
+import org.opencord.cordconfig.access.AccessDeviceConfig;
+import org.opencord.cordconfig.access.AccessDeviceData;
 import org.osgi.service.component.ComponentContext;
 import org.onosproject.net.PortNumber;
 import org.onlab.packet.IPv4;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.util.Dictionary;
-import java.util.List;
 import java.util.Map;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -130,7 +121,7 @@ public class CordIgmp {
 
     //Count of group joins
     private Multiset<IpAddress> cordIgmpCountTable = ConcurrentHashMultiset.create();
-    
+
     //TODO: move this to distributed atomic long
     private AtomicInteger channels = new AtomicInteger(0);
 
@@ -195,10 +186,10 @@ public class CordIgmp {
 
         CordIgmpTranslateConfig cordIgmpTranslateConfig = networkConfig.getConfig(appId, CordIgmpTranslateConfig.class);
 
-        if(cordIgmpTranslateConfig != null) {
+        if (cordIgmpTranslateConfig != null) {
             Collection<McastPorts> translations = cordIgmpTranslateConfig.getCordIgmpTranslations();
-            for(McastPorts port: translations) {
-                cordIgmpTranslateTable.put(port.group(), 
+            for (McastPorts port: translations) {
+                cordIgmpTranslateTable.put(port.group(),
                                            port.portPair());
             }
         }
@@ -282,14 +273,14 @@ public class CordIgmp {
             }
         }
     }
-    
+
     private void provisionFilterIgmp(DeviceId devId, boolean remove) {
         Boolean deviceStatus = deviceAvailability.get(devId);
-        if(deviceStatus != null) {
-            if(remove == false) {
+        if (deviceStatus != null) {
+            if (!remove) {
                 return;
             }
-        } else if(remove == true) {
+        } else if (remove) {
             return;
         }
         TrafficSelector.Builder igmp = DefaultTrafficSelector.builder()
@@ -304,14 +295,14 @@ public class CordIgmp {
         flowEntry.withTreatment(treatment.build());
         flowEntry.fromApp(appId);
         flowEntry.makePermanent();
-        if(remove == false) {
+        if (!remove) {
             deviceAvailability.put(devId, true);
             flowRuleService.applyFlowRules(flowEntry.build());
         } else {
             deviceAvailability.remove(devId);
             flowRuleService.removeFlowRules(flowEntry.build());
         }
-        log.warn("IGMP flow rule " + ( remove ? "removed" : "added" ) + " for device id " + devId);
+        log.warn("IGMP flow rule " + (remove ? "removed" : "added") + " for device id " + devId);
     }
 
     private class InternalDeviceListener implements DeviceListener {
@@ -325,7 +316,7 @@ public class CordIgmp {
                     provisionFilterIgmp(devId, false);
                     break;
                 case DEVICE_AVAILABILITY_CHANGED:
-                    if(deviceService.isAvailable(devId)) {
+                    if (deviceService.isAvailable(devId)) {
                         provisionFilterIgmp(devId, false);
                     } else {
                         provisionFilterIgmp(devId, true);
@@ -355,16 +346,16 @@ public class CordIgmp {
         }
         ConnectPoint loc = info.sink().get();
         AccessDeviceData oltInfo = oltData.get(loc.deviceId());
-        if(oltInfo != null) {
+        if (oltInfo != null) {
             log.warn("Ignoring deprovisioning mcast route for OLT device: " + loc.deviceId());
             return;
         }
         final IgmpPortPair portPair = cordIgmpTranslateTable.get(info.route().group());
-        if(portPair == null) {
+        if (portPair == null) {
             log.warn("Ignoring unprovisioning for group " + info.route().group() + " with no port map");
             return;
         }
-        if(cordIgmpCountTable.remove(info.route().group(), 1) <= 1) {
+        if (cordIgmpCountTable.remove(info.route().group(), 1) <= 1) {
             //Remove flow for last channel leave
             final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
             final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
@@ -391,16 +382,16 @@ public class CordIgmp {
         checkNotNull(sink, "Sink cannot be null");
 
         AccessDeviceData oltInfo = oltData.get(sink.deviceId());
-        if(oltInfo != null) {
+        if (oltInfo != null) {
             log.warn("Ignoring provisioning mcast route for OLT device: " + sink.deviceId());
             return;
-        } 
+        }
         final IgmpPortPair portPair = cordIgmpTranslateTable.get(route.group());
-        if(portPair == null) {
+        if (portPair == null) {
             log.warn("Ports for Group " + route.group() + " not found in cord igmp map. Skipping provisioning.");
             return;
         }
-        if(cordIgmpCountTable.count(route.group()) == 0) {
+        if (cordIgmpCountTable.count(route.group()) == 0) {
             //First group entry. Provision the flows
             final PortNumber inPort = PortNumber.portNumber(portPair.inputPort());
             final PortNumber outPort = PortNumber.portNumber(portPair.outputPort());
@@ -438,7 +429,7 @@ public class CordIgmp {
                             cordIgmpTranslateTable.clear();
                             cordIgmpCountTable.clear();
                             config.getCordIgmpTranslations().forEach(
-                                                                     mcastPorts -> cordIgmpTranslateTable.put(mcastPorts.group(), mcastPorts.portPair()));
+                                mcastPorts -> cordIgmpTranslateTable.put(mcastPorts.group(), mcastPorts.portPair()));
                         }
                     }
                     break;
