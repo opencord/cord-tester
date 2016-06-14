@@ -1057,6 +1057,142 @@ class flows_exchange(unittest.TestCase):
 	       self.success = self.success and t[1]
         assert_equal(self.success, True)
 
+    def test_rate_100_flow_mac(self):
+        egress = 1
+        ingress = 2
+        egress_mac = '00:00:00:00:01:00'
+        ingress_mac = '00:00:00:00:00:00'
+	flows_added = 0
+	stats_dir = collections.OrderedDict()
+	running_time = 0
+
+
+	for i in range(1,4):
+	    start_time = time.time()
+	    for j in range(0,100):
+		ingress_mac = self.next_mac(ingress_mac)
+		egress_mac = self.to_egress_mac(ingress_mac)
+
+		flow = OnosFlowCtrl(deviceId = self.device_id,
+			    egressPort = egress,
+			    ingressPort = ingress,
+			    ethSrc = ingress_mac,
+			    ethDst = egress_mac)
+		result = flow.addFlow()
+		assert_equal(result, True)
+		flows_added += 1
+	##wait for flows to be added to ONOS
+		log.info("%d flow added.",j+1)
+	    end_time = time.time()
+	    stats_dir['run '+str(i)] =  round((end_time - start_time),2)
+	for t in stats_dir.items():
+	    log.info("----------------------------------------------")
+	    log.info("Statics for %s",t[0])
+	    log.info("----------------------------------------------")
+	    log.info("No. of flows added               Running Time ")
+	    log.info("       %d                             %s     " %(100, t[1]))
+	    running_time += float(t[1])
+
+	log.info("-------------------------------------------------------------------------------------------------------")
+	log.info("Final Statics")
+	log.info("-------------------------------------------------------------------------------------------------------")
+	log.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
+	log.info("       %d                                %s second                               %d                     "
+		%(flows_added, running_time, round(flows_added/running_time,0)))
+	log.info("-------------------------------------------------------------------------------------------------------")
+
+
+
+    def test_rate_500_flow_mac(self):
+        egress = 1
+        ingress = 2
+        egress_mac = '00:00:00:00:01:00'
+        ingress_mac = '00:00:00:00:00:00'
+	flows_added = 0
+	stats_dir = collections.OrderedDict()
+	running_time = 0
+
+
+	for i in range(1,4):
+	    start_time = time.time()
+	    for j in range(0,500):
+		ingress_mac = self.next_mac(ingress_mac)
+		egress_mac = self.to_egress_mac(ingress_mac)
+
+		flow = OnosFlowCtrl(deviceId = self.device_id,
+			    egressPort = egress,
+			    ingressPort = ingress,
+			    ethSrc = ingress_mac,
+			    ethDst = egress_mac)
+		result = flow.addFlow()
+		assert_equal(result, True)
+		flows_added += 1
+	##wait for flows to be added to ONOS
+		log.info("%d flow added.",j+1)
+	    end_time = time.time()
+	    stats_dir['run '+str(i)] =  round((end_time - start_time),2)
+	for t in stats_dir.items():
+	    log.info("----------------------------------------------")
+	    log.info("Statics for %s",t[0])
+	    log.info("----------------------------------------------")
+	    log.info("No. of flows added               Running Time ")
+	    log.info("       %d                             %s     " %(500, t[1]))
+	    running_time += float(t[1])
+
+	log.info("-------------------------------------------------------------------------------------------------------")
+	log.info("Final Statics")
+	log.info("-------------------------------------------------------------------------------------------------------")
+	log.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
+	log.info("       %d                                %s second                               %d                     "
+		%(flows_added, running_time, round(flows_added/running_time,0)))
+	log.info("-------------------------------------------------------------------------------------------------------")
+
+    def test_rate_1k_flow_mac(self):
+        egress = 1
+        ingress = 2
+        egress_mac = '00:00:00:00:01:00'
+        ingress_mac = '00:00:00:00:00:00'
+	flows_added = 0
+	stats_dir = collections.OrderedDict()
+	running_time = 0
+
+
+	for i in range(1,4):
+	    start_time = time.time()
+	    for j in range(0,1000):
+		ingress_mac = self.next_mac(ingress_mac)
+		egress_mac = self.to_egress_mac(ingress_mac)
+
+		flow = OnosFlowCtrl(deviceId = self.device_id,
+			    egressPort = egress,
+			    ingressPort = ingress,
+			    ethSrc = ingress_mac,
+			    ethDst = egress_mac)
+		result = flow.addFlow()
+		assert_equal(result, True)
+		flows_added += 1
+	##wait for flows to be added to ONOS
+		log.info("%d flow added.",j+1)
+	    end_time = time.time()
+	    stats_dir['run '+str(i)] =  round((end_time - start_time),2)
+	for t in stats_dir.items():
+	    log.info("----------------------------------------------")
+	    log.info("Statics for %s",t[0])
+	    log.info("----------------------------------------------")
+	    log.info("No. of flows added               Running Time ")
+	    log.info("       %d                             %s     " %(1000, t[1]))
+	    running_time += float(t[1])
+
+	log.info("-------------------------------------------------------------------------------------------------------")
+	log.info("Final Statics")
+	log.info("-------------------------------------------------------------------------------------------------------")
+	log.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
+	log.info("       %d                                %s second                               %d                     "
+		%(flows_added, running_time, round(flows_added/running_time,0)))
+	log.info("-------------------------------------------------------------------------------------------------------")
+
+
+
     def test_500_flow_ip(self):
         egress = 1
         ingress = 2
