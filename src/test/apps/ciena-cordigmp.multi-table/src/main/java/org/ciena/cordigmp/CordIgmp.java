@@ -15,7 +15,6 @@
  */
 package org.ciena.cordigmp;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.felix.scr.annotations.Activate;
@@ -29,8 +28,8 @@ import org.onlab.packet.Ethernet;
 import org.onlab.packet.IpAddress;
 import org.onlab.packet.VlanId;
 import org.onosproject.cfg.ComponentConfigService;
-import org.onosproject.cordconfig.access.AccessDeviceConfig;
-import org.onosproject.cordconfig.access.AccessDeviceData;
+import org.opencord.cordconfig.access.AccessDeviceConfig;
+import org.opencord.cordconfig.access.AccessDeviceData;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
 import org.onosproject.net.ConnectPoint;
@@ -60,9 +59,7 @@ import org.onosproject.net.mcast.MulticastRouteService;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 
-import java.io.IOException;
 import java.util.Dictionary;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -185,7 +182,7 @@ public class CordIgmp {
         Dictionary<?, ?> properties = context != null ? context.getProperties() : new Properties();
 
         try {
-            
+
             String s = get(properties, "mcastVlan");
             mcastVlan = isNullOrEmpty(s) ? DEFAULT_MCAST_VLAN : Short.parseShort(s.trim());
 
@@ -239,8 +236,8 @@ public class CordIgmp {
         TrafficSelector.Builder metabuilder = DefaultTrafficSelector.builder()
             .matchEthType(Ethernet.TYPE_IPV4)
             .matchIPDst(info.route().group().toIpPrefix());
-        if(vlanEnabled) {
-            metabuilder.matchVlanId(VlanId.vlanId((short)mcastVlan));
+        if (vlanEnabled) {
+            metabuilder.matchVlanId(VlanId.vlanId((short) mcastVlan));
         }
         NextObjective next = DefaultNextObjective.builder()
                 .fromApp(appId)
@@ -379,7 +376,7 @@ public class CordIgmp {
 
             flowObjectiveService.next(sink.deviceId(), next);
 
-            log.info("Append flows for device {}, id {}, ip {}", sink.deviceId(), nextId, 
+            log.info("Append flows for device {}, id {}, ip {}", sink.deviceId(), nextId,
                      route.group().toIpPrefix());
         }
 
