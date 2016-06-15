@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,12 +17,15 @@ import sqlite3
 import sys
 
 class SubscriberDB:
-    def __init__(self, db = 'subscriber.db', create = False):
+
+    default_services = ('TLS', 'DHCP', 'IGMP')
+
+    def __init__(self, db = 'subscriber.db', create = False, services = default_services):
         self.db = db
         self.con = sqlite3.connect(db)
         self.con.row_factory = sqlite3.Row
         self.cur = self.con.cursor()
-        self.services = [ 'TLS', 'DHCP', 'IGMP' ]
+        self.services = services
         self.create = create
         if create == True:
             self.cur.execute("DROP TABLE IF EXISTS Subscriber")

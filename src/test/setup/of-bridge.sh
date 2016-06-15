@@ -7,12 +7,14 @@ fi
 if [ x"$controller" = "x" ]; then
   controller=$ONOS_CONTROLLER_IP
 fi
+pkill -9 ofdatapath
+pkill -9 ofprotocol
 service openvswitch-switch restart
 num_ports=200
 ports=$(($num_ports-1))
 for vports in $(seq 0 2 $ports); do
    echo "Deleting veth$vports"
-   ip link del veth$vports
+   ip link del veth$vports 2>/dev/null
 done
 for vports in $(seq 0 2 $ports); do
   ip link add type veth

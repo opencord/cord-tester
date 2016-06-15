@@ -163,29 +163,39 @@ class subscriber_exchange(unittest.TestCase):
 
       aaa_loaded = False
       test_path = os.path.dirname(os.path.realpath(__file__))
-      table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-1.0-SNAPSHOT.oar')
-      app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-1.0-SNAPSHOT.oar')
+      table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
+      app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
       olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config_multitable.json')
       cpqd_path = os.path.join(test_path, '..', 'setup')
       ovs_path = cpqd_path
       device_id = 'of:' + get_mac('ovsbr0')
-      cpqd_device_dict = { "devices" : {
+      device_dict = { "devices" : {
                   "{}".format(device_id) : {
                         "basic" : {
-                              "driver" : "spring-open-cpqd"
+                              "driver" : "pmc-olt"
                               }
                         }
                   },
               }
+      test_services = ('IGMP',)
 
       @classmethod
       def setUpClass(cls):
           '''Load the OLT config and activate relevant apps'''
-          ## First restart ONOS with cpqd driver config for OVS
-          #cls.start_onos(network_cfg = cls.cpqd_device_dict)
+          device_id = cls.start_cpqd(mac = RandMAC()._fix())
+          network_cfg = { "devices" : {
+                  "{}".format(device_id) : {
+                        "basic" : {
+                              "driver" : "pmc-olt"
+                              }
+                        }
+                  },
+          }
+          cls.device_id = device_id
+          ## Restart ONOS with cpqd driver config for OVS
+          cls.start_onos(network_cfg = network_cfg)
           cls.install_app_table()
-          cls.start_cpqd(mac = RandMAC()._fix())
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
           cls.port_map, cls.port_list = cls.olt.olt_port_map_multi()
@@ -199,6 +209,7 @@ class subscriber_exchange(unittest.TestCase):
               onos_ctrl = OnosCtrl(app)
               onos_ctrl.deactivate()
           cls.uninstall_app_table()
+          cls.remove_onos_config()
           cls.start_ovs()
 
       @classmethod
@@ -229,7 +240,7 @@ class subscriber_exchange(unittest.TestCase):
       @classmethod
       def start_onos(cls, network_cfg = None):
             if network_cfg is None:
-                  network_cfg = cls.cpqd_device_dict
+                  network_cfg = cls.device_dict
 
             if type(network_cfg) is tuple:
                   res = []
@@ -243,7 +254,16 @@ class subscriber_exchange(unittest.TestCase):
             with open('{}/network-cfg.json'.format(cls.onos_config_path), 'w') as f:
                   f.write(cfg)
 
-            return cord_test_onos_restart()
+            try:
+                  return cord_test_onos_restart()
+            except:
+                  return False
+
+      @classmethod
+      def remove_onos_config(cls):
+            try:
+                  os.unlink('{}/network-cfg.json'.format(cls.onos_config_path))
+            except: pass
 
       @classmethod
       def start_cpqd(cls, mac = '00:11:22:33:44:55'):
@@ -253,13 +273,15 @@ class subscriber_exchange(unittest.TestCase):
             ret = os.system(cpqd_cmd)
             assert_equal(ret, 0)
             time.sleep(10)
+            device_id = 'of:{}{}'.format('0'*4, dpid)
+            return device_id
 
       @classmethod
       def start_ovs(cls):
-            ovs_file = os.sep.join( (cls.ovs_path, 'of-bridge-local.sh') )
+            ovs_file = os.sep.join( (cls.ovs_path, 'of-bridge.sh') )
             ret = os.system(ovs_file)
             assert_equal(ret, 0)
-            time.sleep(2)
+            time.sleep(30)
 
       def onos_aaa_load(self):
             if self.aaa_loaded:
@@ -319,28 +341,40 @@ class subscriber_exchange(unittest.TestCase):
       def tls_verify(self, subscriber):
             if subscriber.has_service('TLS'):
                   time.sleep(2)
-                  tls = TLSAuthTest()
+                  tls = TLSAuthTest(intf = subscriber.rx_intf)
                   log.info('Running subscriber %s tls auth test' %subscriber.name)
                   tls.runTest()
                   self.test_status = True
 
       def dhcp_verify(self, subscriber):
-            cip, sip = self.dhcp_request(subscriber, update_seed = True)
-            log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
-            subscriber.src_list = [cip]
-            self.test_status = True
+            if subscriber.has_service('DHCP'):
+                  cip, sip = self.dhcp_request(subscriber, update_seed = True)
+                  log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
+                  subscriber.src_list = [cip]
+                  self.test_status = True
+            else:
+                  subscriber.src_list = ['10.10.10.{}'.format(subscriber.rx_port)]
+                  self.test_status = True
 
       def dhcp_jump_verify(self, subscriber):
-          cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.200.1')
-          log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
-          subscriber.src_list = [cip]
-          self.test_status = True
+            if subscriber.has_service('DHCP'):
+                  cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.200.1')
+                  log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
+                  subscriber.src_list = [cip]
+                  self.test_status = True
+            else:
+                  subscriber.src_list = ['10.10.10.{}'.format(subscriber.rx_port)]
+                  self.test_status = True
 
       def dhcp_next_verify(self, subscriber):
-          cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.150.1')
-          log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
-          subscriber.src_list = [cip]
-          self.test_status = True
+            if subscriber.has_service('DHCP'):
+                  cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.150.1')
+                  log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
+                  subscriber.src_list = [cip]
+                  self.test_status = True
+            else:
+                  subscriber.src_list = ['10.10.10.{}'.format(subscriber.rx_port)]
+                  self.test_status = True
 
       def igmp_verify(self, subscriber):
             chan = 0
@@ -385,7 +419,7 @@ class subscriber_exchange(unittest.TestCase):
 
       def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0, port_list = []):
             '''Load the subscriber from the database'''
-            self.subscriber_db = SubscriberDB(create = create)
+            self.subscriber_db = SubscriberDB(create = create, services = self.test_services)
             if create is True:
                   self.subscriber_db.generate(num)
             self.subscriber_info = self.subscriber_db.read(num)
@@ -443,7 +477,7 @@ class subscriber_exchange(unittest.TestCase):
       def test_subscriber_join_jump(self):
           """Test subscriber join and receive for channel surfing"""
           num_subscribers = 5
-          num_channels = 50
+          num_channels = 5
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
                                                     num_channels = num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
@@ -453,7 +487,7 @@ class subscriber_exchange(unittest.TestCase):
       def test_subscriber_join_next(self):
           """Test subscriber join next for channels"""
           num_subscribers = 5
-          num_channels = 50
+          num_channels = 5
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
                                                     num_channels = num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
