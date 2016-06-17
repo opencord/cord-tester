@@ -231,7 +231,7 @@ class Onos(Container):
             for _,g in self.host_guest_map:
                 volumes.append(g)
             if network_cfg is not None:
-                json_data = json.dumps(network_cfg)
+                json_data = json.dumps(network_cfg, indent=4)
                 with open('{}/network-cfg.json'.format(self.host_config_dir), 'w') as f:
                     f.write(json_data)
             print('Starting ONOS container %s' %self.name)
@@ -358,3 +358,7 @@ RUN ldconfig
 '''.format(onos_quagga_ip)
         super(Quagga, cls).build_image(dockerfile, image)
         print('Done building image %s' %image)
+
+def reinitContainerClients():
+    docker_netns.dckr = Client()
+    Container.dckr = Client()
