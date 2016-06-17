@@ -22,7 +22,7 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from threadPool import ThreadPool
 from CordContainer import *
-from CordTestServer import cord_test_server_start, cord_test_server_stop
+from CordTestServer import cord_test_server_start, cord_test_server_stop, CORD_TEST_HOST, CORD_TEST_PORT
 
 class CordTester(Container):
     sandbox = '/root/test'
@@ -164,7 +164,7 @@ RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/open
  cd openvswitch-{} && \
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
-RUN pip install -U scapy scapy-ssl_tls monotonic configObj docker-py pyyaml nsenter pyroute2 netaddr
+RUN pip install -U scapy scapy-ssl_tls monotonic configObj docker-py pyyaml nsenter pyroute2 netaddr python-daemon
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 WORKDIR /root
@@ -221,10 +221,21 @@ test_type_default='dhcp'
 onos_app_version = '2.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
+cord_test_server_address = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
 
 def runTest(args):
     #Start the cord test tcp server
-    test_server = cord_test_server_start()
+    test_server_params = args.server.split(':')
+    test_host = test_server_params[0]
+    test_port = CORD_TEST_PORT
+    if len(test_server_params) > 1:
+        test_port = int(test_server_params[1])
+    try:
+        test_server = cord_test_server_start(daemonize = False, cord_test_host = test_host, cord_test_port = test_port)
+    except:
+        ##Most likely a server instance is already running (daemonized earlier)
+        test_server = None
+
     test_containers = []
     #These tests end up restarting ONOS/quagga/radius
     tests_exempt = ('vrouter',)
@@ -278,9 +289,12 @@ def runTest(args):
         quagga = Quagga(update = update_map['quagga'])
         quagga_ip = quagga.ip()
 
+
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
                      'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
                      'QUAGGA_IP': quagga_ip if quagga_ip is not None else '',
+                     'CORD_TEST_HOST' : test_host,
+                     'CORD_TEST_PORT' : test_port,
                    }
     if args.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
@@ -328,7 +342,64 @@ def runTest(args):
             test_cnt.setup_intfs(port_num = port_num)
         test_cnt.run_tests()
 
-    cord_test_server_stop(test_server)
+    if test_server:
+        cord_test_server_stop(test_server)
+
+##Starts onos/radius/quagga containers as appropriate
+def setupCordTester(args):
+    onos_cnt = {'tag':'latest'}
+    update_map = { 'quagga' : False, 'radius' : False }
+    update_map[args.update.lower()] = True
+
+    if args.update.lower() == 'all':
+       for c in update_map.keys():
+           update_map[c] = True
+
+    onos_ip = None
+    radius_ip = None
+    quagga_ip = None
+
+    ##If onos/radius was already started
+    if args.test_controller:
+        ips = args.test_controller.split('/')
+        onos_ip = ips[0]
+        if len(ips) > 1:
+            radius_ip = ips[1]
+        else:
+            radius_ip = None
+
+    #don't spawn onos if the user had started it externally
+    onos_cnt['image'] = args.onos.split(':')[0]
+    if args.onos.find(':') >= 0:
+        onos_cnt['tag'] = args.onos.split(':')[1]
+
+    if onos_ip is None:
+        onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
+        onos_ip = onos.ip()
+
+    ##Start Radius container if not started
+    if radius_ip is None:
+        radius = Radius( update = update_map['radius'])
+        radius_ip = radius.ip()
+
+    print('Radius server running with IP %s' %radius_ip)
+    print('Onos IP %s' %onos_ip)
+    print('Installing cord tester ONOS app %s' %onos_app_file)
+    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+
+    if args.quagga == True:
+        #Start quagga. Builds container if required
+        quagga = Quagga(update = update_map['quagga'])
+        quagga_ip = quagga.ip()
+        print('Quagga running with IP %s' %quagga_ip)
+
+    #Finally start the test server and daemonize
+    params = args.server.split(':')
+    ip = params[0]
+    port = CORD_TEST_PORT
+    if len(params) > 1:
+        port = int(params[1])
+    cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port)
 
 def cleanupTests(args):
     test_container = '{}:latest'.format(CordTester.IMAGE)
@@ -363,6 +434,8 @@ if __name__ == '__main__':
     parser_run.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
     parser_run.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server. '
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
+    parser_run.add_argument('-r', '--server', default=cord_test_server_address, type=str,
+                            help='ip:port address to connect for cord test server for container requests')
     parser_run.add_argument('-k', '--keep', action='store_true', help='Keep test container after tests')
     parser_run.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
     parser_run.add_argument('-u', '--update', default='none', choices=['test','quagga','radius', 'all'], type=str, help='Update cord tester container images. '
@@ -373,6 +446,21 @@ if __name__ == '__main__':
     parser_run.add_argument('-n', '--num-containers', default=1, type=int,
                             help='Specify number of test containers to spawn for tests')
     parser_run.set_defaults(func=runTest)
+
+
+    parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
+    parser_setup.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
+    parser_setup.add_argument('-r', '--server', default=cord_test_server_address, type=str,
+                              help='ip:port address for cord test server to listen for container restart requests')
+    parser_setup.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
+    parser_setup.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
+    parser_setup.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server. '
+                        'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
+    parser_setup.add_argument('-u', '--update', default='none', choices=['quagga','radius', 'all'], type=str, help='Update cord tester container images. '
+                        'Eg: --update=quagga to rebuild quagga image.'
+                        '    --update=radius to rebuild radius server image.'
+                        '    --update=all to rebuild all cord tester images.')
+    parser_setup.set_defaults(func=setupCordTester)
 
     parser_list = subparser.add_parser('list', help='List test cases')
     parser_list.add_argument('-t', '--test', default='all', help='Specify test type to list test cases. '

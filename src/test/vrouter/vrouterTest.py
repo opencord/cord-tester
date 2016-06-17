@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -81,7 +81,7 @@ line vty
             cls.port_map = g_subscriber_port_map
         #cls.vrouter_host_load(host = cls.GATEWAY)
         time.sleep(3)
-        
+
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the vrouter apps'''
@@ -148,27 +148,19 @@ line vty
         else:
             config = network_cfg
         log.info('Restarting ONOS with new network configuration')
-        cfg = json.dumps(config)
-        with open('{}/network-cfg.json'.format(cls.onos_config_path), 'w') as f:
-            f.write(cfg)
-
-        return cord_test_onos_restart()
+        return cord_test_onos_restart(config = config)
 
     @classmethod
     def start_quagga(cls, networks = 4):
         log.info('Restarting Quagga container with configuration for %d networks' %(networks))
         config = cls.generate_conf(networks = networks)
-        host_config_file = '{}/testrib_gen.conf'.format(Quagga.host_quagga_config)
-        guest_config_file = os.path.join(Quagga.guest_quagga_config, 'testrib_gen.conf')
-        with open(host_config_file, 'w') as f:
-            f.write(config)
         if networks <= 10000:
             boot_delay = 25
         else:
             delay_map = [60, 100, 150, 200, 300, 450, 600, 800, 1000, 1200]
             n = min(networks/100000, len(delay_map)-1)
             boot_delay = delay_map[n]
-        cord_test_quagga_restart(config_file = guest_config_file, boot_delay = boot_delay)
+        cord_test_quagga_restart(config = config, boot_delay = boot_delay)
 
     @classmethod
     def zgenerate_vrouter_conf(cls, networks = 4):
@@ -187,7 +179,7 @@ line vty
                 except:
                     port_map[device_port_key] = { 'interfaces' : [] }
                     interfaces = port_map[device_port_key]['interfaces']
-                    
+
                 ips = '%d.%d.%d.2/24'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
                 if num < cls.MAX_PORTS - 1:
                     interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [ips], 'mac' : '00:00:00:00:00:01' }
@@ -202,7 +194,7 @@ line vty
         quagga_router_dict = quagga_dict['apps']['org.onosproject.router']['router']
         quagga_router_dict['ospfEnabled'] = True
         quagga_router_dict['interfaces'] = interface_list
-        quagga_router_dict['controlPlaneConnectPoint'] = '{0}/{1}'.format(cls.device_id, 
+        quagga_router_dict['controlPlaneConnectPoint'] = '{0}/{1}'.format(cls.device_id,
                                                                           networks + 1 if networks < cls.MAX_PORTS else cls.MAX_PORTS )
         return (cls.vrouter_device_dict, ports_dict, quagga_dict)
 
@@ -276,7 +268,7 @@ line vty
         zebra_routes = '\n'.join(net_list)
         #log.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
         return cls.zebra_conf + zebra_routes
-    
+
     @classmethod
     def vrouter_activate(cls, deactivate = False):
         app = 'org.onosproject.vrouter'
@@ -296,7 +288,7 @@ line vty
         ##Start quagga
         cls.start_quagga(networks = networks)
         return vrouter_configs
-    
+
     def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip, positive_test = True):
         src_mac = '00:00:00:00:00:02'
         src_ip = '1.1.1.1'
@@ -343,7 +335,7 @@ line vty
                 ##Verify if flows are setup by sending traffic across
                 self.vrouter_port_send_recv(ingress, egress, dst_mac, dst_ip, positive_test = positive_test)
             num += 1
-    
+
     def __vrouter_network_verify(self, networks, peers = 1, positive_test = True):
         _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers)
         self.cliEnter()
@@ -430,12 +422,12 @@ line vty
         '''Test vrouter with 1000 routes'''
         res = self.__vrouter_network_verify(1000, peers = 1)
         assert_equal(res, True)
-    
+
     def test_vrouter_10(self):
         '''Test vrouter with 10000 routes'''
         res = self.__vrouter_network_verify(10000, peers = 1)
         assert_equal(res, True)
-    
+
     @nottest
     def test_vrouter_11(self):
         '''Test vrouter with 100000 routes'''

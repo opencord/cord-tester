@@ -1,80 +1,99 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import SocketServer as socketserver
-import threading
-import socket
-from CordContainer import Onos, Quagga
+from CordContainer import Container, Onos, Quagga, Radius, reinitContainerClients
 from nose.tools import nottest
+from SimpleXMLRPCServer import SimpleXMLRPCServer
+import daemon
+import xmlrpclib
+import os
+import json
+import time
+import threading
 
-##Server to handle container restart requests from test container.
+##Server to handle container restart/stop requests from test container.
 ##Used now to restart ONOS from vrouter test container
 
 CORD_TEST_HOST = '172.17.0.1'
 CORD_TEST_PORT = 25000
 
-class CordTestServer(socketserver.BaseRequestHandler):
+class QuaggaStopWrapper(Container):
+    def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'latest'):
+        super(QuaggaStopWrapper, self).__init__(name, image, tag = tag)
+        if self.exists():
+            self.kill()
 
-    def restart_onos(self, *args):
+class CordTestServer(object):
+
+    def __restart_onos(self, config = None):
+        onos_config = '{}/network-cfg.json'.format(Onos.host_config_dir)
+        if config is None:
+            try:
+                os.unlink(onos_config)
+            except:
+                pass
         print('Restarting ONOS')
-        onos = Onos(restart = True)
-        self.request.sendall('DONE')
+        Onos(restart = True, network_cfg = config)
+        return 'DONE'
 
-    def restart_quagga(self, *args):
+    def restart_onos(self, kwargs):
+        return self.__restart_onos(**kwargs)
+
+    def __restart_quagga(self, config = None, boot_delay = 30 ):
         config_file = Quagga.quagga_config_file
-        boot_delay = 15
-        if args:
-            config_file = args[0]
-            if len(args) > 1:
-                boot_delay = int(args[1])
-        print('Restarting QUAGGA with config file %s, delay %d secs'%(config_file, boot_delay))
-        quagga = Quagga(restart = True, config_file = config_file, boot_delay = boot_delay)
-        self.request.sendall('DONE')
+        if config is not None:
+            quagga_config = '{}/testrib_gen.conf'.format(Quagga.host_quagga_config)
+            config_file = '{}/testrib_gen.conf'.format(Quagga.guest_quagga_config)
+            with open(quagga_config, 'w+') as fd:
+                fd.write(str(config))
+        print('Restarting QUAGGA with config file %s, delay %d' %(config_file, boot_delay))
+        Quagga(restart = True, config_file = config_file, boot_delay = boot_delay)
+        return 'DONE'
 
-    def restart_radius(self, *args):
-        print('Restarting RADIUS Server')
-        radius = Radius(restart = True)
-        self.request.sendall('DONE')
+    def restart_quagga(self, kwargs):
+        return self.__restart_quagga(**kwargs)
 
-    callback_table = { 'RESTART_ONOS' : restart_onos,
-                       'RESTART_QUAGGA' : restart_quagga,
-                       'RESTART_RADIUS' : restart_radius,
-                     }
-
-    def handle(self):
-        data = self.request.recv(1024).strip()
-        cmd = data.split()[0]
+    def stop_quagga(self):
+        quaggaStop = QuaggaStopWrapper()
+        time.sleep(2)
         try:
-            #args = ' '.join(data.split()[1:])
-            args = data.split()[1:]
-        except:
-            args = None
+            quagga_config_gen = '{}/testrib_gen.conf'.format(Quagga.host_quagga_config)
+            os.unlink(quagga_config_gen)
+        except: pass
+        return 'DONE'
 
-        if self.callback_table.has_key(cmd):
-            self.callback_table[cmd](self, *args)
-
-class ThreadedTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    allow_reuse_address = True
+    def restart_radius(self):
+        print('Restarting RADIUS Server')
+        Radius(restart = True)
+        return 'DONE'
 
 @nottest
-def cord_test_server_start():
-    server = ThreadedTestServer( (CORD_TEST_HOST, CORD_TEST_PORT), CordTestServer)
-    task = threading.Thread(target = server.serve_forever)
-    ##terminate when main thread exits
-    task.daemon = True
-    task.start()
+def cord_test_server_start(daemonize = True, cord_test_host = CORD_TEST_HOST, cord_test_port = CORD_TEST_PORT):
+    server = SimpleXMLRPCServer( (cord_test_host, cord_test_port) )
+    server.register_instance(CordTestServer())
+    if daemonize is True:
+        d = daemon.DaemonContext(files_preserve = [server],
+                                 detach_process = True)
+        with d:
+            reinitContainerClients()
+            server.serve_forever()
+    else:
+        task = threading.Thread(target = server.serve_forever)
+        ##terminate when main thread exits
+        task.daemon = True
+        task.start()
     return server
 
 @nottest
@@ -83,27 +102,44 @@ def cord_test_server_stop(server):
     server.server_close()
 
 @nottest
-def cord_test_onos_restart():
+def get_cord_test_loc():
+    host = os.getenv('CORD_TEST_HOST', CORD_TEST_HOST)
+    port = int(os.getenv('CORD_TEST_PORT', CORD_TEST_PORT))
+    return host, port
+
+def rpc_server_instance():
+    '''Stateless'''
+    host, port = get_cord_test_loc()
+    rpc_server = 'http://{}:{}'.format(host, port)
+    return xmlrpclib.Server(rpc_server, allow_none = True)
+
+@nottest
+def __cord_test_onos_restart(**kwargs):
+    return rpc_server_instance().restart_onos(kwargs)
+
+@nottest
+def cord_test_onos_restart(config = None):
     '''Send ONOS restart to server'''
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
-    s.sendall('RESTART_ONOS\n')
-    data = s.recv(1024).strip()
-    s.close()
+    data = __cord_test_onos_restart(config = config)
     if data == 'DONE':
         return True
     return False
 
 @nottest
-def cord_test_quagga_restart(config_file = None, boot_delay = 30):
+def __cord_test_quagga_restart(**kwargs):
+    return rpc_server_instance().restart_quagga(kwargs)
+
+@nottest
+def cord_test_quagga_restart(config = None, boot_delay = 30):
     '''Send QUAGGA restart to server'''
-    if config_file is None:
-        config_file = Quagga.quagga_config_file
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
-    s.sendall('RESTART_QUAGGA {0} {1}\n'.format(config_file, boot_delay))
-    data = s.recv(1024).strip()
-    s.close()
+    data = __cord_test_quagga_restart(config = config, boot_delay = boot_delay)
+    if data == 'DONE':
+        return True
+    return False
+
+@nottest
+def cord_test_quagga_stop():
+    data = rpc_server_instance().stop_quagga()
     if data == 'DONE':
         return True
     return False
@@ -111,11 +147,7 @@ def cord_test_quagga_restart(config_file = None, boot_delay = 30):
 @nottest
 def cord_test_radius_restart():
     '''Send Radius server restart to server'''
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect( (CORD_TEST_HOST, CORD_TEST_PORT) )
-    s.sendall('RESTART_RADIUS\n')
-    data = s.recv(1024).strip()
-    s.close()
+    data = rpc_server_instance().restart_radius()
     if data == 'DONE':
         return True
     return False
