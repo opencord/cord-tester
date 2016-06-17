@@ -29,6 +29,7 @@ pip install -U pyyaml
 pip install -U nsenter
 pip install -U pyroute2
 pip install -U netaddr
+pip install -U python-daemon
 pip install scapy-ssl_tls
 ( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
 ## Special mode to pull cord-tester repo in case prereqs was installed by hand instead of repo
