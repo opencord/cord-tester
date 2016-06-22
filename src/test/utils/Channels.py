@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -36,7 +36,7 @@ class IgmpChannel:
     IP_DST = '224.0.1.1'
     igmp_eth = Ether(dst = IGMP_DST_MAC, src = IGMP_SRC_MAC, type = ETH_P_IP)
     igmp_ip = IP(dst = IP_DST, src = IP_SRC)
-    ssm_list = [] 
+    ssm_list = []
 
     def __init__(self, iface = 'veth0', ssm_list = [], src_list = ['1.2.3.4'], delay = 2):
         self.iface = iface
@@ -45,7 +45,7 @@ class IgmpChannel:
         self.delay = delay
         self.onos_ctrl = OnosCtrl('org.onosproject.igmp')
         self.onos_ctrl.activate()
-    
+
     def igmp_load_ssm_config(self, ssm_list = []):
         if not ssm_list:
             ssm_list = self.ssm_list
@@ -124,13 +124,12 @@ class Channels(IgmpChannel):
         self.streams = None
         self.channel_states = {}
         self.last_chan = None
-        self.recv_sock = L2Socket(iface = iface, type = ETH_P_IP)
         self.iface_mcast = iface_mcast
         self.mcast_cb = mcast_cb
         for c in range(self.num):
             self.channel_states[c] = [self.Idle]
         IgmpChannel.__init__(self, ssm_list = self.channels, iface=iface)
-        
+
     def generate(self, num, channel_start = 0):
         start = (225 << 24) | ( ( (channel_start >> 16) & 0xff) << 16 ) | \
             ( ( (channel_start >> 8) & 0xff ) << 8 ) | (channel_start) & 0xff
@@ -187,7 +186,7 @@ class Channels(IgmpChannel):
         if chan == self.last_chan:
             self.last_chan = None
         return True
-    
+
     def join_next(self, chan = None):
         if chan is None:
             chan = self.last_chan
@@ -198,7 +197,7 @@ class Channels(IgmpChannel):
         else:
             leave = chan - 1
             join = chan
-        
+
         if join >= self.num:
             join = 0
 
@@ -238,7 +237,7 @@ class Channels(IgmpChannel):
         recv_time = monotonic.monotonic()
         log.debug('Packet received in %.3f usecs' %(recv_time - send_time))
 
-    def recv(self, chan, cb = None, count = 1):
+    def recv(self, chan, cb = None, count = 1, timeout = 5):
         if chan is None:
             return None
         if type(chan) == type([]) or type(chan) == type(()):
@@ -248,7 +247,8 @@ class Channels(IgmpChannel):
             groups = (self.gaddr(chan),)
         if cb is None:
             cb = self.recv_cb
-        sniff(prn = cb, count=count, lfilter = lambda p: IP in p and p[IP].dst in groups, opened_socket = self.recv_sock)
+        return sniff(prn = cb, count=count, timeout = timeout,
+                     lfilter = lambda p: IP in p and p[IP].dst in groups, iface = self.iface)
 
     def stop(self):
         if self.streams:

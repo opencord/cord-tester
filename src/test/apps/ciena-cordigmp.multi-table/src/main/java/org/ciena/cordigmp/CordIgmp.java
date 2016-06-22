@@ -233,23 +233,18 @@ public class CordIgmp {
             return;
         }
         ConnectPoint loc = info.sink().get();
-        TrafficSelector.Builder metabuilder = DefaultTrafficSelector.builder()
-            .matchEthType(Ethernet.TYPE_IPV4)
-            .matchIPDst(info.route().group().toIpPrefix());
-        if (vlanEnabled) {
-            metabuilder.matchVlanId(VlanId.vlanId((short) mcastVlan));
-        }
+        log.info("Removing flow for subscriber port: {}, group {}",
+                loc.port(), info.route().group());
         NextObjective next = DefaultNextObjective.builder()
                 .fromApp(appId)
                 .addTreatment(DefaultTrafficTreatment.builder().setOutput(loc.port()).build())
                 .withType(NextObjective.Type.BROADCAST)
-                .withMeta(metabuilder.build())
                 .withId(groups.get(info.route().group()))
                 .removeFromExisting(new ObjectiveContext() {
                     @Override
                     public void onSuccess(Objective objective) {
                         //TODO: change to debug
-                        log.info("Next Objective {} installed", objective.id());
+                        log.info("Next Objective {} removed", objective.id());
                     }
 
                     @Override
@@ -281,17 +276,10 @@ public class CordIgmp {
 
         Integer nextId = groups.computeIfAbsent(route.group(), (g) -> {
             Integer id = flowObjectiveService.allocateNextId();
-            TrafficSelector.Builder metabuilder = DefaultTrafficSelector.builder()
-                    .matchEthType(Ethernet.TYPE_IPV4)
-                    .matchIPDst(g.toIpPrefix());
-            if (vlanEnabled) {
-                metabuilder.matchVlanId(VlanId.vlanId((short) mcastVlan));
-            }
             NextObjective next = DefaultNextObjective.builder()
                     .fromApp(appId)
                     .addTreatment(DefaultTrafficTreatment.builder().setOutput(sink.port()).build())
                     .withType(NextObjective.Type.BROADCAST)
-                    .withMeta(metabuilder.build())
                     .withId(id)
                     .add(new ObjectiveContext() {
                         @Override
@@ -303,7 +291,7 @@ public class CordIgmp {
                         @Override
                         public void onError(Objective objective, ObjectiveError error) {
                             //TODO: change to debug
-                            log.info("Next Objective {} failed, because {}",
+                            log.info("Next Objective {} failed to add, because {}",
                                     objective.id(),
                                     error);
                         }
@@ -312,9 +300,9 @@ public class CordIgmp {
             flowObjectiveService.next(sink.deviceId(), next);
 
             TrafficSelector.Builder mcast = DefaultTrafficSelector.builder()
-                    .matchInPort(oltInfo.uplink())
-                    .matchEthType(Ethernet.TYPE_IPV4)
-                    .matchIPDst(g.toIpPrefix());
+                .matchInPort(oltInfo.uplink())
+                .matchEthType(Ethernet.TYPE_IPV4)
+                .matchIPDst(g.toIpPrefix());
 
             if (vlanEnabled) {
                 mcast.matchVlanId(VlanId.vlanId((short) mcastVlan));
@@ -344,31 +332,28 @@ public class CordIgmp {
             flowObjectiveService.forward(sink.deviceId(), fwd);
 
             sync.set(true);
-            log.info("Installed flows for device: {}, id {}, ip {}", sink.deviceId(), id, g.toIpPrefix());
+            log.info("Installed flows for device: {}, id {}, ip {}, port {}",
+                    sink.deviceId(), id, g.toIpPrefix(), sink.port());
             return id;
         });
 
         if (!sync.get()) {
-            TrafficSelector.Builder metabuilder = DefaultTrafficSelector.builder()
-                    .matchEthType(Ethernet.TYPE_IPV4)
-                    .matchIPDst(route.group().toIpPrefix());
             NextObjective next = DefaultNextObjective.builder()
                     .fromApp(appId)
                     .addTreatment(DefaultTrafficTreatment.builder().setOutput(sink.port()).build())
                     .withType(NextObjective.Type.BROADCAST)
                     .withId(nextId)
-                    .withMeta(metabuilder.build())
                     .addToExisting(new ObjectiveContext() {
                         @Override
                         public void onSuccess(Objective objective) {
                             //TODO: change to debug
-                            log.info("Next Objective {} installed", objective.id());
+                            log.info("Next Objective {} installed to existing", objective.id());
                         }
 
                         @Override
                         public void onError(Objective objective, ObjectiveError error) {
                             //TODO: change to debug
-                            log.info("Next Objective {} failed, because {}",
+                            log.info("Next Objective {} failed to install to existing, because {}",
                                     objective.id(),
                                     error);
                         }
@@ -376,8 +361,8 @@ public class CordIgmp {
 
             flowObjectiveService.next(sink.deviceId(), next);
 
-            log.info("Append flows for device {}, id {}, ip {}", sink.deviceId(), nextId,
-                     route.group().toIpPrefix());
+            log.info("Append flows for device {}, id {}, ip {}, port {}", sink.deviceId(), nextId,
+                    route.group().toIpPrefix(), sink.port());
         }
 
     }
