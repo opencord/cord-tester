@@ -48,6 +48,7 @@ class Subscriber(Channels):
                   self.tx_intf = self.port_map[self.PORT_TX_DEFAULT]
                   self.rx_intf = self.port_map[self.PORT_RX_DEFAULT]
 
+            log.info('Subscriber %s, rx interface %s, uplink interface %s' %(name, self.rx_intf, self.tx_intf))
             Channels.__init__(self, num, channel_start = channel_start,
                               iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
             self.name = name
@@ -61,6 +62,7 @@ class Subscriber(Channels):
             self.join_map = {}
             ##accumulated join recv stats
             self.join_rx_stats = Stats()
+            self.recv_timeout = False
 
       def has_service(self, service):
             if self.service_map.has_key(service):
@@ -116,13 +118,20 @@ class Subscriber(Channels):
                   if self.join_map.has_key(c):
                         self.join_map[c][stats_type].update(packets = packets, t = t)
 
-      def channel_receive(self, chan, cb = None, count = 1):
-            log.info('Subscriber %s receiving from group %s, channel %d' %(self.name, self.gaddr(chan), chan))
-            self.recv(chan, cb = cb, count = count)
+      def channel_receive(self, chan, cb = None, count = 1, timeout = 5):
+            log.info('Subscriber %s on port %s receiving from group %s, channel %d' %
+                     (self.name, self.rx_intf, self.gaddr(chan), chan))
+            r = self.recv(chan, cb = cb, count = count, timeout = timeout)
+            if self.recv_timeout:
+                  ##Negative test case is disabled for now
+                  assert_equal(len(r), 0)
 
       def recv_channel_cb(self, pkt):
             ##First verify that we have received the packet for the joined instance
-            log.debug('Packet received for group %s, subscriber %s' %(pkt[IP].dst, self.name))
+            log.info('Packet received for group %s, subscriber %s, port %s' %
+                     (pkt[IP].dst, self.name, self.rx_intf))
+            if self.recv_timeout:
+                  return
             chan = self.caddr(pkt[IP].dst)
             assert_equal(chan in self.join_map.keys(), True)
             recv_time = monotonic.monotonic() * 1000000
@@ -179,6 +188,10 @@ class subscriber_exchange(unittest.TestCase):
                   },
               }
       test_services = ('IGMP',)
+      num_joins = 0
+      num_subscribers = 0
+      num_channels = 0
+      recv_timeout = False
 
       @classmethod
       def setUpClass(cls):
@@ -250,14 +263,7 @@ class subscriber_exchange(unittest.TestCase):
             else:
                   config = network_cfg
             log.info('Restarting ONOS with new network configuration')
-            cfg = json.dumps(config)
-            with open('{}/network-cfg.json'.format(cls.onos_config_path), 'w') as f:
-                  f.write(cfg)
-
-            try:
-                  return cord_test_onos_restart()
-            except:
-                  return False
+            return cord_test_onos_restart(config = config)
 
       @classmethod
       def remove_onos_config(cls):
@@ -379,14 +385,28 @@ class subscriber_exchange(unittest.TestCase):
       def igmp_verify(self, subscriber):
             chan = 0
             if subscriber.has_service('IGMP'):
-                  for i in range(5):
-                        log.info('Joining channel %d for subscriber %s' %(chan, subscriber.name))
-                        subscriber.channel_join(chan, delay = 0)
-                        subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1)
+                  ##We wait for all the subscribers to join before triggering leaves
+                  if subscriber.rx_port > 1:
+                        time.sleep(5)
+                  subscriber.channel_join(chan, delay = 0)
+                  self.num_joins += 1
+                  while self.num_joins < self.num_subscribers:
+                        time.sleep(5)
+                  log.info('All subscribers have joined the channel')
+                  for i in range(10):
+                        subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
                         log.info('Leaving channel %d for subscriber %s' %(chan, subscriber.name))
                         subscriber.channel_leave(chan)
-                        time.sleep(3)
+                        time.sleep(5)
                         log.info('Interface %s Join RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name,subscriber.join_rx_stats))
+                        #Should not receive packets for this subscriber
+                        self.recv_timeout = True
+                        subscriber.recv_timeout = True
+                        subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
+                        subscriber.recv_timeout = False
+                        self.recv_timeout = False
+                        log.info('Joining channel %d for subscriber %s' %(chan, subscriber.name))
+                        subscriber.channel_join(chan, delay = 0)
                   self.test_status = True
 
       def igmp_jump_verify(self, subscriber):
@@ -454,8 +474,10 @@ class subscriber_exchange(unittest.TestCase):
                                num_channels = num_channels, channel_start = channel_start, port_list = port_list)
           self.onos_aaa_load()
           self.thread_pool = ThreadPool(min(100, self.num_subscribers), queue_size=1, wait_timeout=1)
+          chan_leave = False #for single channel, multiple subscribers
           if cbs is None:
                 cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify)
+                chan_leave = True
           for subscriber in self.subscriber_list:
                 subscriber.start()
                 pool_object = subscriber_pool(subscriber, cbs)
@@ -463,33 +485,39 @@ class subscriber_exchange(unittest.TestCase):
           self.thread_pool.cleanUpThreads()
           for subscriber in self.subscriber_list:
                 subscriber.stop()
+                if chan_leave is True:
+                      subscriber.channel_leave(0)
+          self.num_subscribers = 0
           return self.test_status
 
       def test_subscriber_join_recv(self):
           """Test subscriber join and receive"""
-          num_subscribers = 5
-          num_channels = 1
-          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
-                                                    num_channels = num_channels,
-                                                    port_list = self.generate_port_list(num_subscribers, num_channels))
+          self.num_subscribers = 5
+          self.num_channels = 1
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
           assert_equal(test_status, True)
 
       def test_subscriber_join_jump(self):
           """Test subscriber join and receive for channel surfing"""
-          num_subscribers = 5
-          num_channels = 5
-          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
-                                                    num_channels = num_channels,
+          self.num_subscribers = 5
+          self.num_channels = 10
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
-                                                    port_list = self.generate_port_list(num_subscribers, num_channels))
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
           assert_equal(test_status, True)
 
       def test_subscriber_join_next(self):
           """Test subscriber join next for channels"""
-          num_subscribers = 5
-          num_channels = 5
-          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
-                                                    num_channels = num_channels,
+          self.num_subscribers = 5
+          self.num_channels = 10
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
                                                     cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
-                                                    port_list = self.generate_port_list(num_subscribers, num_channels))
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
           assert_equal(test_status, True)
