@@ -196,16 +196,14 @@ class subscriber_exchange(unittest.TestCase):
       @classmethod
       def setUpClass(cls):
           '''Load the OLT config and activate relevant apps'''
-          device_id = cls.start_cpqd(mac = RandMAC()._fix())
           network_cfg = { "devices" : {
-                  "{}".format(device_id) : {
+                  "{}".format(cls.device_id) : {
                         "basic" : {
                               "driver" : "pmc-olt"
                               }
                         }
                   },
           }
-          cls.device_id = device_id
           ## Restart ONOS with cpqd driver config for OVS
           cls.start_onos(network_cfg = network_cfg)
           cls.install_app_table()
@@ -222,8 +220,7 @@ class subscriber_exchange(unittest.TestCase):
               onos_ctrl = OnosCtrl(app)
               onos_ctrl.deactivate()
           cls.uninstall_app_table()
-          cls.remove_onos_config()
-          cls.start_ovs()
+          cls.start_onos(network_cfg = {})
 
       @classmethod
       def activate_apps(cls, apps):
