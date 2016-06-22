@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,7 +34,7 @@ class OnosFlowCtrl:
     auth = ('karaf', 'karaf')
     controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
     cfg_url = 'http://%s:8181/onos/v1/flows/' %(controller)
-    
+
     def __init__( self,
                   deviceId,
                   appId=0,
@@ -51,7 +51,18 @@ class OnosFlowCtrl:
                   tcpDst="",
                   udpDst="",
                   udpSrc="",
-                  mpls=""):
+                  mpls="",
+		  dscp="",
+		  icmpv4_type="",
+		  icmpv4_code="",
+		  icmpv6_type="",
+		  icmpv6_code="",
+		  ipv6flow_label="",
+		  ecn="",
+		  ipv6_target="",
+		  ipv6_sll="",
+		  ipv6_tll="",
+		  ipv6_extension=""):
         self.deviceId = deviceId
         self.appId = appId
         self.ingressPort = ingressPort
@@ -68,6 +79,17 @@ class OnosFlowCtrl:
         self.udpDst = udpDst
         self.udpSrc = udpSrc
         self.mpls = mpls
+        self.dscp = dscp
+	self.icmpv4_type = icmpv4_type
+	self.icmpv4_code = icmpv4_code
+	self.icmpv6_type = icmpv6_type
+	self.icmpv6_code = icmpv6_code
+	self.ipv6flow_label = ipv6flow_label
+	self.ecn = ecn
+	self.ipv6_target = ipv6_target
+	self.ipv6_sll = ipv6_sll
+	self.ipv6_tll = ipv6_tll
+	self.ipv6_extension = ipv6_extension
 
     @classmethod
     def get_flows(cls, device_id):
@@ -104,7 +126,7 @@ class OnosFlowCtrl:
                      "selector": {"criteria":[]}}
         if self.appId:
             flowJson[ "appId" ] = self.appId
-            
+
         if self.egressPort:
             flowJson[ 'treatment' ][ 'instructions' ].append( {
                     "type":"OUTPUT",
@@ -161,6 +183,64 @@ class OnosFlowCtrl:
             flowJson[ 'selector' ][ 'criteria' ].append( {
                     "type":"IP_PROTO",
                     "protocol": self.ipProto } )
+        if self.dscp:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":"IP_DSCP",
+                    "ipDscp": self.dscp } )
+
+        if self.icmpv4_type:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'ICMPV4_TYPE',
+                    "icmpType":self.icmpv4_type } )
+
+        if self.icmpv6_type:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'ICMPV6_TYPE',
+                    "icmpv6Type":self.icmpv6_type } )
+
+        if self.icmpv4_code:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'ICMPV4_CODE',
+                    "icmpCode": self.icmpv4_code } )
+
+        if self.icmpv6_code:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'ICMPV6_CODE',
+                    "icmpv6Code": self.icmpv6_code } )
+
+        if self.ipv6flow_label:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'IPV6_FLABEL',
+                    "flowLabel": self.ipv6flow_label } )
+
+        if self.ecn:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":"IP_ECN",
+                    "ipEcn": self.ecn } )
+
+        if self.ipv6_target:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'IPV6_ND_TARGET',
+                    "targetAddress": self.ipv6_target } )
+
+        if self.ipv6_sll:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'IPV6_ND_SLL',
+                    "mac": self.ipv6_sll } )
+
+        if self.ipv6_tll:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'IPV6_ND_TLL',
+                    "mac": self.ipv6_tll } )
+
+
+        if self.ipv6_extension:
+            flowJson[ 'selector' ][ 'criteria' ].append( {
+                    "type":'IPV6_EXTHDR',
+                    "exthdrFlags": self.ipv6_extension } )
+
+
+
 
         return self.sendFlow( deviceId=self.deviceId, flowJson=flowJson)
 
@@ -199,10 +279,10 @@ class OnosFlowCtrl:
                 val = c[match_key]
                 if val == match_val:
                     num_matched += 1
-                if num_matched == matches:    
+                if num_matched == matches:
                     return f['id']
         return None
-                    
+
     def sendFlow(self, deviceId, flowJson):
         """
         Description:
@@ -222,10 +302,11 @@ class OnosFlowCtrl:
                 log.info('Successfully POSTED flow for device %s' %str(deviceId))
                 return True
             else:
-                log.info('Post flow for device %s failed with status %d' %(str(deviceId), 
+                log.info('Post flow for device %s failed with status %d' %(str(deviceId),
                                                                            response.status_code))
                 return False
         else:
             log.error('Flow post request returned with status %d' %response.status_code)
 
         return False
+
