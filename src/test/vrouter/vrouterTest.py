@@ -21,20 +21,13 @@ from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl, get_mac
 from onosclidriver import OnosCliDriver
 from CordContainer import Container, Onos, Quagga
-from CordTestServer import cord_test_onos_restart, cord_test_quagga_restart
+from CordTestServer import cord_test_onos_restart, cord_test_quagga_restart, cord_test_quagga_stop
 from portmaps import g_subscriber_port_map
 import threading
 import time
 import os
 import json
 log.setLevel('INFO')
-
-class QuaggaStopWrapper(Container):
-
-    def __init__(self, name = 'cord-quagga', image = 'cord-test/quagga', tag = 'latest'):
-        super(QuaggaStopWrapper, self).__init__(name, image, tag = tag)
-        if self.exists():
-            self.kill()
 
 class vrouter_exchange(unittest.TestCase):
 
@@ -361,8 +354,7 @@ line vty
     def __vrouter_network_verify_negative(self, networks, peers = 1):
         ##Stop quagga. Test traffic again to see if flows were removed
         log.info('Stopping Quagga container')
-        quaggaStop = QuaggaStopWrapper()
-        time.sleep(2)
+        cord_test_quagga_stop()
         if networks <= 10000:
             routes = json.loads(self.cli.routes(jsonFormat = True))
             #Verify routes have been removed

@@ -67,7 +67,7 @@ class CordTestServer(object):
 
     def stop_quagga(self):
         quaggaStop = QuaggaStopWrapper()
-        time.sleep(2)
+        time.sleep(5)
         try:
             quagga_config_gen = '{}/testrib_gen.conf'.format(Quagga.host_quagga_config)
             os.unlink(quagga_config_gen)
