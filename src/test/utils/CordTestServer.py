@@ -74,6 +74,16 @@ class CordTestServer(object):
         except: pass
         return 'DONE'
 
+    def __run_shell_quagga(self, cmd = None):
+        ret = 0
+        if cmd is not None:
+            exec_cmd = 'docker exec {} {}'.format(Quagga.NAME, cmd)
+            ret = os.system(exec_cmd)
+        return ret
+
+    def run_shell_quagga(self, kwargs):
+        return self.__run_shell_quagga(**kwargs)
+
     def restart_radius(self):
         print('Restarting RADIUS Server')
         Radius(restart = True)
@@ -136,6 +146,15 @@ def cord_test_quagga_restart(config = None, boot_delay = 30):
     if data == 'DONE':
         return True
     return False
+
+@nottest
+def __cord_test_quagga_shell(**kwargs):
+    return rpc_server_instance().run_shell_quagga(kwargs)
+
+@nottest
+def cord_test_quagga_shell(cmd = None):
+    '''Send QUAGGA shell cmd to server'''
+    return __cord_test_quagga_shell(cmd = cmd)
 
 @nottest
 def cord_test_quagga_stop():
