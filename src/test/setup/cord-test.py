@@ -348,7 +348,8 @@ def runTest(args):
 ##Starts onos/radius/quagga containers as appropriate
 def setupCordTester(args):
     onos_cnt = {'tag':'latest'}
-    update_map = { 'quagga' : False, 'radius' : False }
+    nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
+    update_map = { 'quagga' : False, 'radius' : False, 'test': False }
     update_map[args.update.lower()] = True
 
     if args.update.lower() == 'all':
@@ -393,12 +394,39 @@ def setupCordTester(args):
         quagga_ip = quagga.ip()
         print('Quagga running with IP %s' %quagga_ip)
 
-    #Finally start the test server and daemonize
     params = args.server.split(':')
     ip = params[0]
     port = CORD_TEST_PORT
     if len(params) > 1:
         port = int(params[1])
+
+    #provision the test container
+    if not args.dont_provision:
+        test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
+                         'ONOS_AAA_IP' : radius_ip,
+                         'QUAGGA_IP': quagga_ip if quagga_ip is not None else '',
+                         'CORD_TEST_HOST' : ip,
+                         'CORD_TEST_PORT' : port,
+                       }
+        if args.olt:
+            olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
+            test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
+
+        test_cnt = CordTester((),
+                              ctlr_ip = onos_ip,
+                              image = nose_cnt['image'],
+                              tag = nose_cnt['tag'],
+                              env = test_cnt_env,
+                              rm = False,
+                              update = update_map['test'])
+
+        if args.start_switch or not args.olt:
+            test_cnt.start_switch()
+        if test_cnt.olt:
+            test_cnt.setup_intfs(port_num = 0)
+        print('Test container %s started and provisioned to run tests using nosetests' %(test_cnt.name))
+
+    #Finally start the test server and daemonize
     cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port)
 
 def cleanupTests(args):
@@ -460,6 +488,9 @@ if __name__ == '__main__':
                         'Eg: --update=quagga to rebuild quagga image.'
                         '    --update=radius to rebuild radius server image.'
                         '    --update=all to rebuild all cord tester images.')
+    parser_setup.add_argument('-d', '--dont-provision', action='store_true', help='Dont start test container.')
+    parser_setup.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
+    parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_list = subparser.add_parser('list', help='List test cases')
