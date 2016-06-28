@@ -257,7 +257,6 @@ def runTest(args):
            update_map[c] = True
 
     radius_ip = None
-    quagga_ip = None
 
     #don't spawn onos if the user has specified external test controller with test interface config
     if args.test_controller:
@@ -287,12 +286,10 @@ def runTest(args):
     if args.quagga == True:
         #Start quagga. Builds container if required
         quagga = Quagga(update = update_map['quagga'])
-        quagga_ip = quagga.ip()
-
 
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
                      'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
-                     'QUAGGA_IP': quagga_ip if quagga_ip is not None else '',
+                     'QUAGGA_IP': test_host,
                      'CORD_TEST_HOST' : test_host,
                      'CORD_TEST_PORT' : test_port,
                    }
@@ -358,7 +355,6 @@ def setupCordTester(args):
 
     onos_ip = None
     radius_ip = None
-    quagga_ip = None
 
     ##If onos/radius was already started
     if args.test_controller:
@@ -391,8 +387,7 @@ def setupCordTester(args):
     if args.quagga == True:
         #Start quagga. Builds container if required
         quagga = Quagga(update = update_map['quagga'])
-        quagga_ip = quagga.ip()
-        print('Quagga running with IP %s' %quagga_ip)
+        print('Quagga started')
 
     params = args.server.split(':')
     ip = params[0]
@@ -404,7 +399,7 @@ def setupCordTester(args):
     if not args.dont_provision:
         test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
                          'ONOS_AAA_IP' : radius_ip,
-                         'QUAGGA_IP': quagga_ip if quagga_ip is not None else '',
+                         'QUAGGA_IP': ip,
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
                        }
