@@ -27,7 +27,11 @@ def get_mac(iface = 'ovsbr0', pad = 4):
         info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', iface[:15]))
     except:
         info = ['0'] * 24
-    return '0'*pad + ''.join(['%02x' %ord(char) for char in info[18:24]])
+    s.close()
+    sep = ''
+    if pad == 0:
+        sep = ':'
+    return '0'*pad + sep.join(['%02x' %ord(char) for char in info[18:24]])
 
 class OnosFlowCtrl:
 
