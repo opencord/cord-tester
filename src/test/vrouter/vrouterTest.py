@@ -20,13 +20,22 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl, get_mac
 from onosclidriver import OnosCliDriver
+#from quaggaclidriver import QuaggaCliDriver
 from CordContainer import Container, Onos, Quagga
-from CordTestServer import cord_test_onos_restart, cord_test_quagga_restart, cord_test_quagga_stop
+from CordTestServer import cord_test_onos_restart, cord_test_quagga_restart, cord_test_quagga_stop, cord_test_quagga_shell
 from portmaps import g_subscriber_port_map
 import threading
 import time
 import os
 import json
+import pexpect
+
+#from cli import quagga
+#from quagga import *
+#from cli import requires
+#from cli import system
+#from generic import *
+
 log.setLevel('INFO')
 
 class vrouter_exchange(unittest.TestCase):
@@ -64,6 +73,10 @@ line vty
     MAX_PORTS = 100
     peer_list = [ ('192.168.10.1', '00:00:00:00:00:01'), ('192.168.11.1', '00:00:00:00:02:01'), ]
     network_list = []
+    network_mask = 24
+    default_routes_address = ('11.10.10.0/24',)
+    default_peer_address = peer_list
+    quagga_ip = os.getenv('QUAGGA_IP')
 
     @classmethod
     def setUpClass(cls):
@@ -72,7 +85,6 @@ line vty
         cls.port_map = cls.olt.olt_port_map()
         if not cls.port_map:
             cls.port_map = g_subscriber_port_map
-        #cls.vrouter_host_load(host = cls.GATEWAY)
         time.sleep(3)
 
     @classmethod
@@ -101,8 +113,10 @@ line vty
             assert_equal(status, True)
 
     @classmethod
-    def vrouter_config_get(cls, networks = 4, peers = 1):
-        vrouter_configs = cls.generate_vrouter_conf(networks = networks, peers = peers)
+    def vrouter_config_get(cls, networks = 4, peers = 1, peer_address = None,
+                           route_update = None, router_address = None):
+        vrouter_configs = cls.generate_vrouter_conf(networks = networks, peers = peers,
+                                                    peer_address = peer_address, router_address = router_address)
         return vrouter_configs
         ##ONOS router does not support dynamic reconfigurations
         #for config in vrouter_configs:
@@ -110,21 +124,27 @@ line vty
         #    time.sleep(5)
 
     @classmethod
-    def vrouter_host_load(cls):
+    def vrouter_host_load(cls, peer_address = None):
         index = 1
-        for host,_ in cls.peer_list:
+        peer_info = peer_address if peer_address is not None else cls.peer_list
+
+        for host,_ in peer_info:
             iface = cls.port_map[index]
             index += 1
-            config_cmds = ( 'ifconfig {0} {1}'.format(iface, host),
+            log.info('Assigning ip %s to interface %s' %(host, iface))
+            config_cmds = ( 'ifconfig {} 0'.format(iface),
+                            'ifconfig {0} {1}'.format(iface, host),
                             'arping -I {0} {1} -c 2'.format(iface, host),
                             )
             for cmd in config_cmds:
                 os.system(cmd)
 
     @classmethod
-    def vrouter_host_unload(cls):
+    def vrouter_host_unload(cls, peer_address = None):
         index = 1
-        for host,_ in cls.peer_list:
+        peer_info = peer_address if peer_address is not None else cls.peer_list
+
+        for host,_ in peer_info:
             iface = cls.port_map[index]
             index += 1
             config_cmds = ('ifconfig {} 0'.format(iface), )
@@ -144,9 +164,9 @@ line vty
         return cord_test_onos_restart(config = config)
 
     @classmethod
-    def start_quagga(cls, networks = 4):
+    def start_quagga(cls, networks = 4, peer_address = None, router_address = None):
         log.info('Restarting Quagga container with configuration for %d networks' %(networks))
-        config = cls.generate_conf(networks = networks)
+        config = cls.generate_conf(networks = networks, peer_address = peer_address, router_address = router_address)
         if networks <= 10000:
             boot_delay = 25
         else:
@@ -156,46 +176,16 @@ line vty
         cord_test_quagga_restart(config = config, boot_delay = boot_delay)
 
     @classmethod
-    def zgenerate_vrouter_conf(cls, networks = 4):
+    def generate_vrouter_conf(cls, networks = 4, peers = 1, peer_address = None, router_address = None):
         num = 0
-        start_network = ( 11 << 24) | ( 0 << 16) | ( 0 << 8) | 0
-        end_network =   ( 200 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
-        ports_dict = { 'ports' : {} }
-        interface_list = []
-        for n in xrange(start_network, end_network):
-            if n & 255 == 0:
-                port_map = ports_dict['ports']
-                port = num + 1 if num < cls.MAX_PORTS - 1 else cls.MAX_PORTS - 1
-                device_port_key = '{0}/{1}'.format(cls.device_id, port)
-                try:
-                    interfaces = port_map[device_port_key]['interfaces']
-                except:
-                    port_map[device_port_key] = { 'interfaces' : [] }
-                    interfaces = port_map[device_port_key]['interfaces']
-
-                ips = '%d.%d.%d.2/24'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
-                if num < cls.MAX_PORTS - 1:
-                    interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [ips], 'mac' : '00:00:00:00:00:01' }
-                    interfaces.append(interface_dict)
-                    interface_list.append(interface_dict['name'])
-                else:
-                    interfaces[0]['ips'].append(ips)
-                num += 1
-                if num == networks:
-                    break
-        quagga_dict = { 'apps': { 'org.onosproject.router' : { 'router' : {} } } }
-        quagga_router_dict = quagga_dict['apps']['org.onosproject.router']['router']
-        quagga_router_dict['ospfEnabled'] = True
-        quagga_router_dict['interfaces'] = interface_list
-        quagga_router_dict['controlPlaneConnectPoint'] = '{0}/{1}'.format(cls.device_id,
-                                                                          networks + 1 if networks < cls.MAX_PORTS else cls.MAX_PORTS )
-        return (cls.vrouter_device_dict, ports_dict, quagga_dict)
-
-    @classmethod
-    def generate_vrouter_conf(cls, networks = 4, peers = 1):
-        num = 0
-        start_peer = ( 192 << 24) | ( 168 << 16)  |  (10 << 8) | 0
-        end_peer =   ( 200 << 24 ) | (168 << 16)  |  (10 << 8) | 0
+        if peer_address is None:
+           start_peer = ( 192 << 24) | ( 168 << 16)  |  (10 << 8) | 0
+           end_peer =   ( 200 << 24 ) | (168 << 16)  |  (10 << 8) | 0
+        else:
+           ip = peer_address[0][0]
+           start_ip = ip.split('.')
+           start_peer = ( int(start_ip[0]) << 24) | ( int(start_ip[1]) << 16)  |  ( int(start_ip[2]) << 8) | 0
+           end_peer =   ((int(start_ip[0]) + 8) << 24 ) | (int(start_ip[1]) << 16)  |  (int(start_ip[2]) << 8) | 0
         local_network = end_peer + 1
         ports_dict = { 'ports' : {} }
         interface_list = []
@@ -241,23 +231,33 @@ line vty
         return (cls.vrouter_device_dict, ports_dict, quagga_dict)
 
     @classmethod
-    def generate_conf(cls, networks = 4):
+    def generate_conf(cls, networks = 4, peer_address = None, router_address = None):
         num = 0
-        start_network = ( 11 << 24) | ( 10 << 16) | ( 10 << 8) | 0
-        end_network =   ( 172 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
+        if router_address is None:
+            start_network = ( 11 << 24) | ( 10 << 16) | ( 10 << 8) | 0
+            end_network =   ( 172 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
+            network_mask = 24
+        else:
+           ip = router_address
+           start_ip = ip.split('.')
+           network_mask = int(start_ip[3].split('/')[1])
+           start_ip[3] = (start_ip[3].split('/'))[0]
+           start_network = (int(start_ip[0]) << 24) | ( int(start_ip[1]) << 16)  |  ( int(start_ip[2]) << 8) | 0
+           end_network = (172 << 24 ) | (int(start_ip[1]) << 16)  |  (int(start_ip[2]) << 8) | 0
         net_list = []
-        peer_list = cls.peer_list
+        peer_list = peer_address if peer_address is not None else cls.peer_list
         network_list = []
         for n in xrange(start_network, end_network, 256):
             net = '%d.%d.%d.0'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
             network_list.append(net)
             gateway = peer_list[num % len(peer_list)][0]
-            net_route = 'ip route {0}/24 {1}'.format(net, gateway)
+            net_route = 'ip route {0}/{1} {2}'.format(net, network_mask, gateway)
             net_list.append(net_route)
             num += 1
             if num == networks:
                 break
         cls.network_list = network_list
+        cls.network_mask = network_mask
         zebra_routes = '\n'.join(net_list)
         #log.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
         return cls.zebra_conf + zebra_routes
@@ -273,13 +273,14 @@ line vty
         time.sleep(3)
 
     @classmethod
-    def vrouter_configure(cls, networks = 4, peers = 1):
-        ##Deactivate vrouter
-        vrouter_configs = cls.vrouter_config_get(networks = networks, peers = peers)
+    def vrouter_configure(cls, networks = 4, peers = 1, peer_address = None,
+                          route_update = None, router_address = None, time_expire = None, adding_new_routes = None):
+        vrouter_configs = cls.vrouter_config_get(networks = networks, peers = peers,
+                                                 peer_address = peer_address, route_update = route_update)
         cls.start_onos(network_cfg = vrouter_configs)
         cls.vrouter_host_load()
         ##Start quagga
-        cls.start_quagga(networks = networks)
+        cls.start_quagga(networks = networks, peer_address = peer_address, router_address = router_address)
         return vrouter_configs
 
     def vrouter_port_send_recv(self, ingress, egress, dst_mac, dst_ip, positive_test = True):
@@ -310,18 +311,27 @@ line vty
         t.join()
         assert_equal(self.success, True)
 
-    def vrouter_traffic_verify(self, positive_test = True):
-        peers = len(self.peer_list)
+    def vrouter_traffic_verify(self, positive_test = True, peer_address = None):
+        if peer_address is None:
+            peers = len(self.peer_list)
+            peer_list = self.peer_list
+        else:
+            peers = len(peer_address)
+            peer_list = peer_address
         egress = peers + 1
         num = 0
         num_hosts = 5 if positive_test else 1
+        src_mac = '00:00:00:00:00:02'
+        src_ip = '1.1.1.1'
+        if self.network_mask != 24:
+            peers = 1
         for network in self.network_list:
             num_ips = num_hosts
             octets = network.split('.')
             for i in xrange(num_ips):
                 octets[-1] = str(int(octets[-1]) + 1)
                 dst_ip = '.'.join(octets)
-                dst_mac = self.peer_list[ num % peers ] [1]
+                dst_mac = peer_list[ num % peers ] [1]
                 port = (num % peers)
                 ingress = port + 1
                 #Since peers are on the same network
@@ -329,8 +339,17 @@ line vty
                 self.vrouter_port_send_recv(ingress, egress, dst_mac, dst_ip, positive_test = positive_test)
             num += 1
 
-    def __vrouter_network_verify(self, networks, peers = 1, positive_test = True):
-        _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers)
+    def __vrouter_network_verify(self, networks, peers = 1, positive_test = True,
+                                 start_network = None, start_peer_address = None, route_update = None,
+                                 invalid_peers = None, time_expire = None, unreachable_route_traffic = None,
+                                 deactivate_activate_vrouter = None, adding_new_routes = None):
+
+        _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers,
+                                                          peer_address = start_peer_address,
+                                                          route_update = route_update,
+                                                          router_address = start_network,
+                                                          time_expire = time_expire,
+                                                          adding_new_routes = adding_new_routes)
         self.cliEnter()
         ##Now verify
         hosts = json.loads(self.cli.hosts(jsonFormat = True))
@@ -339,14 +358,41 @@ line vty
         if networks <= 10000:
             routes = json.loads(self.cli.routes(jsonFormat = True))
             #log.info('Routes: %s' %routes)
-            assert_equal(len(routes['routes4']), networks)
+            if start_network is not None:
+               if start_network.split('/')[1] is 24:
+                  assert_equal(len(routes['routes4']), networks)
+               if start_network.split('/')[1] is not 24:
+                  assert_equal(len(routes['routes4']), 1)
+            if start_network is None and invalid_peers is None:
+               assert_equal(len(routes['routes4']), networks)
+            if invalid_peers is not None:
+               assert_equal(len(routes['routes4']), 0)
             flows = json.loads(self.cli.flows(jsonFormat = True))
             flows = filter(lambda f: f['flows'], flows)
             #log.info('Flows: %s' %flows)
             assert_not_equal(len(flows), 0)
-        self.vrouter_traffic_verify()
+        if invalid_peers is None:
+            self.vrouter_traffic_verify()
         if positive_test is False:
             self.__vrouter_network_verify_negative(networks, peers = peers)
+        if time_expire is True:
+            self.start_quagga(networks = networks, peer_address = start_peer_address, router_address = '12.10.10.1/24')
+            self.vrouter_traffic_verify()
+        if unreachable_route_traffic is True:
+            network_list_backup = self.network_list
+            self.network_list = ['2.2.2.2','3.3.3.3','4.4.4.4','5.5.5.5']
+            self.vrouter_traffic_verify(positive_test = False)
+            self.network_list = network_list_backup
+        if deactivate_activate_vrouter is True:
+            log.info('Deactivating vrouter app in ONOS controller for negative scenario')
+            self.vrouter_activate(deactivate = True)
+            #routes = json.loads(self.cli.routes(jsonFormat = False, cmd_exist = False))
+            #assert_equal(len(routes['routes4']), 'Command not found')
+            log.info('Activating vrouter app again in ONOS controller for negative scenario')
+            self.vrouter_activate(deactivate = False)
+            routes = json.loads(self.cli.routes(jsonFormat = True))
+            assert_equal(len(routes['routes4']), networks)
+            self.vrouter_traffic_verify()
         self.cliExit()
         self.vrouter_host_unload()
         return True
@@ -370,72 +416,218 @@ line vty
         self.vrouter_traffic_verify()
         log.info('OVS flows have been successfully reinstalled after Quagga was restarted')
 
-    def test_vrouter_1(self):
-        '''Test vrouter with 5 routes'''
+    def quagga_shell(self, cmd):
+        shell_cmds = ('vtysh', '"conf t"', '"{}"'.format(cmd))
+        quagga_cmd = ' -c '.join(shell_cmds)
+        return cord_test_quagga_shell(quagga_cmd)
+
+    def test_vrouter_with_5_routes(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
 
-    def test_vrouter_2(self):
-        '''Test vrouter with 5 routes with 2 peers'''
+    def test_vrouter_with_5_routes_2_peers(self):
         res = self.__vrouter_network_verify(5, peers = 2)
         assert_equal(res, True)
 
-    def test_vrouter_3(self):
-        '''Test vrouter with 6 routes with 3 peers'''
+    def test_vrouter_with_6_routes_3_peers(self):
         res = self.__vrouter_network_verify(6, peers = 3)
         assert_equal(res, True)
 
-    def test_vrouter_4(self):
-        '''Test vrouter with 50 routes'''
+    def test_vrouter_with_50_routes(self):
         res = self.__vrouter_network_verify(50, peers = 1)
         assert_equal(res, True)
 
-    def test_vrouter_5(self):
-        '''Test vrouter with 50 routes and 5 peers'''
+    def test_vrouter_with_50_routes_5_peers(self):
         res = self.__vrouter_network_verify(50, peers = 5)
         assert_equal(res, True)
 
-    def test_vrouter_6(self):
-        '''Test vrouter with 100 routes'''
+    def test_vrouter_with_100_routes(self):
         res = self.__vrouter_network_verify(100, peers = 1)
         assert_equal(res, True)
 
-    def test_vrouter_7(self):
-        '''Test vrouter with 100 routes and 10 peers'''
+    def test_vrouter_with_100_routes_10_peers(self):
         res = self.__vrouter_network_verify(100, peers = 10)
         assert_equal(res, True)
 
-    def test_vrouter_8(self):
-        '''Test vrouter with 300 routes'''
+    def test_vrouter_with_300_routes(self):
         res = self.__vrouter_network_verify(300, peers = 1)
         assert_equal(res, True)
 
-    def test_vrouter_9(self):
-        '''Test vrouter with 1000 routes'''
+    def test_vrouter_with_1000_routes(self):
         res = self.__vrouter_network_verify(1000, peers = 1)
         assert_equal(res, True)
 
-    def test_vrouter_10(self):
-        '''Test vrouter with 10000 routes'''
+    def test_vrouter_with_10000_routes(self):
         res = self.__vrouter_network_verify(10000, peers = 1)
         assert_equal(res, True)
 
     @nottest
-    def test_vrouter_11(self):
-        '''Test vrouter with 100000 routes'''
+    def test_vrouter_with_100000_routes(self):
         res = self.__vrouter_network_verify(100000, peers = 1)
         assert_equal(res, True)
 
     @nottest
-    def test_vrouter_12(self):
-        '''Test vrouter with 1000000 routes'''
+    def test_vrouter_with_1000000_routes(self):
         res = self.__vrouter_network_verify(1000000, peers = 1)
         assert_equal(res, True)
 
-    def test_vrouter_13(self):
-        '''Test vrouter by installing 5 routes, removing Quagga and re-starting Quagga back'''
+    def test_vrouter_with_5_routes_stopping_quagga(self):
         res = self.__vrouter_network_verify(5, peers = 1, positive_test = False)
 
-    def test_vrouter_14(self):
-        '''Test vrouter by installing 50 routes, removing Quagga and re-starting Quagga back'''
+    def test_vrouter_with_50_routes_stopping_quagga(self):
         res = self.__vrouter_network_verify(50, peers = 1, positive_test = False)
+
+    def test_vrouter_with_route_update(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True)
+        assert_equal(res, True)
+        peer_info = [('192.168.20.1', '00:00:00:00:01:01'), ('192.168.21.1', '00:00:00:00:02:01')]
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True,
+                                            start_peer_address = peer_info, route_update = True)
+        assert_equal(res, True)
+
+    def test_vrouter_with_classA_route_update(self):
+        router_address = '11.10.10.0/8'
+        res = self.__vrouter_network_verify(1, peers = 1, positive_test = True, start_network = router_address)
+        assert_equal(res, True)
+
+    def test_vrouter_with_classB_route_update(self):
+        router_address = '11.10.10.0/16'
+        res = self.__vrouter_network_verify(1, peers = 1, positive_test = True, start_network = router_address)
+        assert_equal(res, True)
+
+    def test_vrouter_with_classless_route_update(self):
+        router_address = '11.10.10.0/12'
+        res = self.__vrouter_network_verify(1, peers = 1, positive_test = True, start_network = router_address)
+        assert_equal(res, True)
+
+    def test_vrouter_with_classA_duplicate_route_update(self):
+        router_address = '11.10.10.0/8'
+        res = self.__vrouter_network_verify(5, peers = 1, positive_test = True, start_network = router_address)
+        assert_equal(res, True)
+
+    def test_vrouter_with_classB_duplicate_route_update(self):
+        router_address = '11.10.10.0/16'
+        res = self.__vrouter_network_verify(5, peers = 1, positive_test = True, start_network = router_address)
+        assert_equal(res, True)
+
+    def test_vrouter_with_classless_duplicate_route_update(self):
+        router_address = '11.10.10.0/12'
+        res = self.__vrouter_network_verify(5, peers = 1, positive_test = True, start_network = router_address)
+        assert_equal(res, True)
+
+    def test_vrouter_with_invalid_peers(self):
+        peer_info = [('239.255.255.250', '00:00:00:00:01:01'), ('239.255.255.240', '00:00:00:00:02:01')]
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True,
+                                            start_peer_address = peer_info, invalid_peers= True)
+        assert_equal(res, True)
+
+    @nottest
+    def test_vrouter_with_traffic_sent_between_peers_connected_to_onos(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True, traffic_running_between_peers = True)
+        assert_equal(res, True)
+
+    @nottest
+    def test_vrouter_with_routes_time_expire(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True, time_expire = True)
+        assert_equal(res, True)
+
+    def test_vrouter_with_unreachable_route(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True, unreachable_route_traffic = True)
+        assert_equal(res, True)
+
+    @nottest
+    def test_vrouter_with_enabling_disabling_vrouter_app(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True, deactivate_activate_vrouter = True)
+        assert_equal(res, True)
+
+    def test_vrouter_with_adding_new_routes_in_routing_table(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True)
+        cmd = 'ip route 21.10.20.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify()
+        self.network_list = [ '21.10.20.0' ]
+        self.network_mask = 24
+        self.vrouter_traffic_verify()
+        assert_equal(res, True)
+
+    def test_vrouter_with_removing_old_routes_in_routing_table(self):
+        res = self.__vrouter_network_verify(5, peers = 2, positive_test = True)
+        cmd = 'ip route 21.10.20.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify()
+        old_network_list = self.network_list
+        old_network_mask = self.network_mask
+        self.network_list = [ '21.10.20.0' ]
+        self.network_mask = 24
+        self.vrouter_traffic_verify()
+        assert_equal(res, True)
+        cmd = 'no ip route 21.10.20.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify(positive_test = False)
+        self.network_mask = old_network_mask
+        self.network_list = old_network_list
+        self.vrouter_traffic_verify(positive_test = True)
+
+    def test_vrouter_modifying_nexthop_route_in_routing_table(self):
+        peer_info = [('192.168.10.1', '00:00:00:00:01:01'), ('192.168.11.1', '00:00:00:00:02:01')]
+        router_address = '11.10.10.0/24'
+        res = self.__vrouter_network_verify(1, peers = 1, positive_test = True,
+                                            start_peer_address = peer_info, start_network  = router_address)
+        cmd = 'ip route 11.10.10.0/24 192.168.20.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify(positive_test = True)
+        assert_equal(res, True)
+
+
+    def test_vrouter_deleting_alternative_nexthop_in_routing_table(self):
+        peer_info = [('192.168.10.1', '00:00:00:00:01:01'), ('192.168.11.1', '00:00:00:00:02:01')]
+        router_address = '11.10.10.0/24'
+        res = self.__vrouter_network_verify(1, peers = 2, positive_test = True,
+                                            start_peer_address = peer_info, start_network  = router_address)
+        cmd = 'no ip route 11.10.10.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify(positive_test = False)
+        assert_equal(res, True)
+
+    def test_vrouter_deleting_some_routes_in_routing_table(self):
+        peer_info = [('192.168.10.1', '00:00:00:00:01:01'), ('192.168.11.1', '00:00:00:00:02:01')]
+        router_address = '11.10.10.0/24'
+        res = self.__vrouter_network_verify(10, peers = 2, positive_test = True,
+                                            start_peer_address = peer_info, start_network  = router_address)
+        cmd = 'no ip route 11.10.10.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        cmd = 'no ip route 11.10.13.0/24 192.168.11.1'
+        self.quagga_shell(cmd)
+        cmd = 'no ip route 11.10.14.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify(positive_test = True)
+        assert_equal(res, True)
+
+
+    def test_vrouter_deleting_and_adding_routes_in_routing_table(self):
+        peer_info = [('192.168.10.1', '00:00:00:00:01:01'), ('192.168.11.1', '00:00:00:00:02:01')]
+        router_address = '11.10.10.0/24'
+        res = self.__vrouter_network_verify(1, peers = 1, positive_test = True, start_peer_address = peer_info, start_network  = router_address)
+        cmd = 'no ip route 11.10.10.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        cmd = 'ip route 11.10.10.0/24 192.168.10.1'
+        self.quagga_shell(cmd)
+        self.vrouter_traffic_verify(positive_test = True)
+        assert_equal(res, True)
+
+    def test_vrouter_toggling_nexthop_interface(self):
+        peer_info = [('192.168.10.1', '00:00:00:00:01:01'), ('192.168.11.1', '00:00:00:00:02:01')]
+        router_address = '11.10.10.0/24'
+        res = self.__vrouter_network_verify(1, peers = 1, positive_test = True, start_peer_address = peer_info, start_network  = router_address)
+        #iface = cls.port_map[0]
+        iface = g_subscriber_port_map
+        cmd = 'ifconfig {} 0'.format(iface),
+        self.vrouter_traffic_verify(positive_test = False)
+        os.system(cmd)
+        host = "192.168.10.1"
+        cmd = 'ifconfig {0} {1}'.format(iface, host),
+        self.vrouter_traffic_verify(positive_test = True)
+        assert_equal(res, True)
+
+
+
