@@ -167,6 +167,8 @@ RUN service openvswitch-switch restart || /bin/true
 RUN pip install -U scapy scapy-ssl_tls monotonic configObj docker-py pyyaml nsenter pyroute2 netaddr python-daemon
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
+RUN mv /usr/sbin/dhcpd /sbin/
+RUN ln -sf /sbin/dhcpd /usr/sbin/dhcpd
 WORKDIR /root
 RUN wget -nc http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/bison_2.5.dfsg-2.1_amd64.deb \
          http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/libbison-dev_2.5.dfsg-2.1_amd64.deb
