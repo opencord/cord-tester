@@ -563,6 +563,7 @@ line vty
         assert_equal(res, True)
         cmd = 'no ip route 21.10.20.0/24 192.168.10.1'
         self.quagga_shell(cmd)
+        time.sleep(5)
         self.vrouter_traffic_verify(positive_test = False)
         self.network_mask = old_network_mask
         self.network_list = old_network_list
@@ -586,6 +587,7 @@ line vty
                                             start_peer_address = peer_info, start_network  = router_address)
         cmd = 'no ip route 11.10.10.0/24 192.168.10.1'
         self.quagga_shell(cmd)
+        time.sleep(5)
         self.vrouter_traffic_verify(positive_test = False)
         assert_equal(res, True)
 
@@ -619,13 +621,19 @@ line vty
         peer_info = [('192.168.10.1', '00:00:00:00:01:01'), ('192.168.11.1', '00:00:00:00:02:01')]
         router_address = '11.10.10.0/24'
         res = self.__vrouter_network_verify(1, peers = 1, positive_test = True, start_peer_address = peer_info, start_network  = router_address)
-        #iface = cls.port_map[0]
-        iface = g_subscriber_port_map
-        cmd = 'ifconfig {} 0'.format(iface),
+        iface = self.port_map[1]
+        #toggle the interface to trigger host removal.
+        cmds = ('ifconfig {} down'.format(iface),
+                'sleep 2',
+                'ifconfig {} 0'.format(iface),)
+        for cmd in cmds:
+            os.system(cmd)
         self.vrouter_traffic_verify(positive_test = False)
-        os.system(cmd)
         host = "192.168.10.1"
-        cmd = 'ifconfig {0} {1}'.format(iface, host),
+        cmd = 'ifconfig {0} {1} up'.format(iface, host)
+        os.system(cmd)
+        #wait for arp refresh
+        time.sleep(60)
         self.vrouter_traffic_verify(positive_test = True)
         assert_equal(res, True)
 
