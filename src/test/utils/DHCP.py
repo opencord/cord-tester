@@ -205,8 +205,11 @@ class DHCPTest:
 	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
         	                   	("subnet_mask",subnet_mask), ("name_server",'1.1.1.1'), ("requested_addr",cip), "end"])
 
+	elif self.specific_lease:
+             L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
+                                ("subnet_mask",subnet_mask), ("requested_addr",cip),("lease_time",self.specific_lease), "end"])
 	else:
-       		L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
+             L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
                            	("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
 
 	resp=srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
@@ -226,18 +229,23 @@ class DHCPTest:
 				try:
             				srcIP = resp.yiaddr
             				serverIP = resp.siaddr
+					self.mac_map[mac] = (srcIP, serverIP)
+                                        self.mac_inverse_map[srcIP] = (mac, serverIP)
         			except AttributeError:
            				log.info("In Attribute error.")
             				log.info("Failed to acquire IP via DHCP for %s on interface %s" %(mac, self.iface))
             				return (None, None)
 
-				if lease_time or renew_time or rebind_time:
+				if lease_time or renew_time or rebind_time or self.specific_lease:
 					for x in resp.lastlayer().options:
             					if(x == 'end'):
                 					break
 	            				op,val = x
 
         	    				if op == "lease_time":
+
+							if self.specific_lease:
+								return (srcIP, serverIP, val)
 							if lease_time == True:
 								self.mac_map[mac] = (srcIP, serverIP)
 			        				self.mac_inverse_map[srcIP] = (mac, serverIP)
