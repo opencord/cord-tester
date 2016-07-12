@@ -493,6 +493,7 @@ yg==
           self.thread_pool.cleanUpThreads()
           for subscriber in self.subscriber_list:
                 subscriber.stop()
+          print "self.test_status %s\n"%(self.test_status)
           return self.test_status
 
       def tls_invalid_cert(self, subscriber):
@@ -1133,4 +1134,152 @@ yg==
                                num_channels = num_channels,
                                cbs = (self.tls_verify, self.dhcp_client_specific_lease_scenario, self.igmp_verify),
                                port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+
+      def test_subscriber_join_recv_100channels(self):
+          num_subscribers = 1
+          num_channels = 100
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_recv_400channels(self):
+          num_subscribers = 1
+          num_channels = 400
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_recv_800channels(self):
+          num_subscribers = 1
+          num_channels = 800
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_recv_1200channels(self):
+          num_subscribers = 1
+          num_channels = 1200
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_recv_1500channels(self):
+          num_subscribers = 1
+          num_channels = 1500
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_jump_100channels(self):
+          num_subscribers = 1
+          num_channels = 100
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+      def test_subscriber_join_jump_400channels(self):
+          num_subscribers = 1
+          num_channels = 400
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+      def test_subscriber_join_jump_800channels(self):
+          num_subscribers = 1
+          num_channels = 800
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+      def test_subscriber_join_jump_1200channel(sself):
+          num_subscribers = 1
+          num_channels = 1200
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+      def test_subscriber_join_jump_1500channels(self):
+          num_subscribers = 1
+          num_channels = 1500
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_next_100channels(self):
+          num_subscribers = 1
+          num_channels = 100
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_next_400channels(self):
+          num_subscribers = 1
+          num_channels = 400
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_next_800channels(self):
+          num_subscribers = 1
+          num_channels = 800
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+
+      def test_subscriber_join_next_1200channels(self):
+          num_subscribers = 1
+          num_channels = 1200
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+      def test_subscriber_join_next_1500channels(self):
+          num_subscribers = 1
+          num_channels = 1500
+          test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
