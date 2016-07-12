@@ -32,6 +32,7 @@ class DHCPTest:
 	self.return_option = None
 	self.after_T2 = False
 	self.send_different_option = None
+        self.specific_lease = None
 
     def is_mcast(self, ip):
         mcast_octet = (atol(ip) >> 24) & 0xff
