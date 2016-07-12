@@ -19,11 +19,13 @@ from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from scapy.all import *
 import time
-import os
+import os, sys
 from DHCP import DHCPTest
 from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import get_mac
 from portmaps import g_subscriber_port_map
+import threading, random
+from threading import current_thread
 log.setLevel('INFO')
 
 class dhcprelay_exchange(unittest.TestCase):
@@ -49,6 +51,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     range 192.168.1.10 192.168.1.100;
 }
 '''), ]
+
+    lock = threading.Condition()
     ip_count = 0
     failure_count = 0
     start_time = 0
@@ -215,7 +219,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 			break
 
 	    self.diff = round(time.time() - self.start_time, 0)
-
 
 	self.transaction_count = round((self.ip_count+self.failure_count)/self.diff, 2)
         self.transactions += (self.ip_count+self.failure_count)
@@ -496,7 +499,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 		log.info('Got DHCP NAK')
 
 
-    def test_dhcpRelay_server_nak_packet(self, iface = 'veth0'):
+    def test_dhcpRelay_nak_packet(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.host_load(iface)
         ##we use the defaults for this test that serves as an example for others
@@ -601,7 +604,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 			log.info("Got DHCP ACK.")
 		os.system('ifconfig '+iface+' up')
 
-    def test_dhcpRelay_server_after_reboot(self, iface = 'veth0'):
+    def test_dhcpRelay_after_reboot(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.host_load(iface)
         ##we use the defaults for this test that serves as an example for others
@@ -859,15 +862,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	if (cip == None and mac != None):
 		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
 		assert_not_equal(cip, None)
-
 	elif cip and sip and mac:
-
-		if expected_subnet == subnet_value:
-			log.info("Got same subnet as passed in DHCP server configuration.")
-
-		elif expected_subnet != subnet_value:
-			log.info("Not getting same subnet as passed in DHCP server configuration.")
-			assert_equal(expected_subnet, subnet_value)
+	   if expected_subnet == subnet_value:
+              log.info("Got same subnet as passed in DHCP server configuration.")
+	   elif expected_subnet != subnet_value:
+              log.info("Not getting same subnet as passed in DHCP server configuration.")
+	      assert_equal(expected_subnet, subnet_value)
 
 
     def test_dhcpRelay_client_sends_dhcp_request_with_wrong_subnet_mask(self, iface = 'veth0'):
@@ -939,11 +939,10 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 		assert_not_equal(cip, None)
 
 	elif cip and sip and mac:
+	     if expected_router_address == router_address_value:
+		log.info("Got same router address as passed in DHCP server configuration.")
 
-		if expected_router_address == router_address_value:
-			log.info("Got same router address as passed in DHCP server configuration.")
-
-		elif expected_router_address != router_address_value:
+	     elif expected_router_address != router_address_value:
 			log.info("Not getting same router address as passed in DHCP server configuration.")
 			assert_equal(expected_router_address, router_address_value)
 
@@ -1135,18 +1134,18 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 			log.info("Got DHCP Ack despite of specifying wrong DNS Address in DHCP Request.")
 			log.info("Getting DNS Address as per server 's configuration.")
 
-    def test_dhcpRelay_server_transactions_per_second(self, iface = 'veth0'):
+    def test_dhcpRelay_transactions_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-		self.stats()
-		log.info("Statics for run %d",i)
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
-	        log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of transactions per second in run %d:%f" %(i, self.transaction_count))
+	    self.stats()
+	    log.info("Statistics for run %d",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
+	    log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of transactions per second in run %d:%f" %(i, self.transaction_count))
 
-	log.info("Final Statatics for total transactions")
+	log.info("Final Statistics for total transactions")
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
 	log.info("    %d                     %d                         %d                        %d" %(self.transactions,
@@ -1154,19 +1153,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Average no. of transactions per second: %d", round(self.transactions/self.running_time,0))
 
-    def test_dhcpRelay_server_consecutive_successes_per_second(self, iface = 'veth0'):
+    def test_dhcpRelay_consecutive_successes_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-		self.stats(success_rate = True)
-		log.info("Statics for run %d",i)
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of consecutive successful transactions          Running Time ")
-	        log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of successful transactions per second in run %d:%f" %(i, self.transaction_count))
-		log.info("----------------------------------------------------------------------------------")
+	    self.stats(success_rate = True)
+	    log.info("Statistics for run %d",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of consecutive successful transactions          Running Time ")
+	    log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of successful transactions per second in run %d:%f" %(i, self.transaction_count))
+	    log.info("----------------------------------------------------------------------------------")
 
-	log.info("Final Statatics for total successful transactions")
+	log.info("Final Statistics for total successful transactions")
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Total transactions     Total No. of consecutive successes         Running Time ")
 	log.info("    %d                                 %d                             %d        " %(self.transactions,
@@ -1176,20 +1175,20 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	log.info("----------------------------------------------------------------------------------")
 
 
-    def test_dhcpRelay_server_clients_per_second(self, iface = 'veth0'):
+    def test_dhcpRelay_clients_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-		self.stats(only_discover = True)
-		log.info("----------------------------------------------------------------------------------")
-		log.info("Statics for run %d of sending only DHCP Discover",i)
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
-	        log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of clients per second in run %d:%f                                      "
-			%(i, self.transaction_count))
-		log.info("----------------------------------------------------------------------------------")
-	log.info("Final Statatics for total transactions of sending only DHCP Discover")
+	    self.stats(only_discover = True)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("Statistics for run %d of sending only DHCP Discover",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
+	    log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of clients per second in run %d:%f                                      "
+		    %(i, self.transaction_count))
+	    log.info("----------------------------------------------------------------------------------")
+	log.info("Final Statistics for total transactions of sending only DHCP Discover")
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
 	log.info("    %d                     %d                         %d                        %d" %(self.transactions,
@@ -1199,20 +1198,20 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 		round(self.transactions/self.running_time,0))
 	log.info("----------------------------------------------------------------------------------")
 
-    def test_dhcpRelay_server_consecutive_successful_clients_per_second(self, iface = 'veth0'):
+    def test_dhcpRelay_consecutive_successful_clients_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-		self.stats(success_rate = True, only_discover = True)
-		log.info("----------------------------------------------------------------------------------")
-		log.info("Statics for run %d for sending only DHCP Discover",i)
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of consecutive successful transactions          Running Time ")
-	        log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
-		log.info("----------------------------------------------------------------------------------")
-		log.info("No. of consecutive successful clients per second in run %d:%f" %(i, self.transaction_count))
-		log.info("----------------------------------------------------------------------------------")
+	    self.stats(success_rate = True, only_discover = True)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("Statistics for run %d for sending only DHCP Discover",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of consecutive successful transactions          Running Time ")
+	    log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of consecutive successful clients per second in run %d:%f" %(i, self.transaction_count))
+	    log.info("----------------------------------------------------------------------------------")
 
-	log.info("Final Statatics for total successful transactions")
+	log.info("Final Statistics for total successful transactions")
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Total transactions     Total No. of consecutive successes         Running Time ")
 	log.info("    %d                                 %d                             %d        " %(self.transactions,
@@ -1220,5 +1219,325 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Average no. of consecutive successful clients per second: %d", round(self.total_success/self.running_time,0))
 	log.info("----------------------------------------------------------------------------------")
+
+    def test_dhcpRelay_concurrent_transactions_per_second(self, iface = 'veth0'):
+
+        config = self.default_config
+        options = self.default_options
+        subnet =  [ ('192.168.1.2',
+'''
+subnet 192.168.0.0 netmask 255.255.0.0 {
+    range 192.168.1.10 192.168.2.100;
+}
+'''), ]
+
+        dhcpd_interface_list = self.relay_interfaces
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+	for key in (key for key in g_subscriber_port_map if key < 100):
+	    self.host_load(g_subscriber_port_map[key])
+
+	def thread_fun(i):
+	    mac = self.get_mac('veth{}'.format(i))
+	    cip, sip = DHCPTest(iface = 'veth{}'.format(i)).discover(mac = mac)
+	    log.info('Got dhcp client IP %s from server %s for mac %s'%(cip, sip, mac))
+	    self.lock.acquire()
+
+	    if cip:
+		    self.ip_count += 1
+
+	    elif cip is None:
+		    self.failure_count += 1
+
+	    self.lock.notify_all()
+	    self.lock.release()
+
+	for i in range (1,4):
+	    self.ip_count = 0
+	    self.failure_count = 0
+	    self.start_time = 0
+	    self.diff = 0
+	    self.transaction_count = 0
+	    self.start_time = time.time()
+
+	    while self.diff <= 60:
+		  t = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(0, random.randrange(1,40,1), 1)})
+		  t1 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(42, random.randrange(43,80,1), 1)})
+		  t2 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(82, random.randrange(83,120,1), 1)})
+		  t3 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(122, random.randrange(123,160,1), 1)})
+		  t4 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(162, random.randrange(163,180,1), 1)})
+		  t5 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(182, random.randrange(183,196,1), 1)})
+
+		  t.start()
+		  t1.start()
+		  t2.start()
+		  t3.start()
+		  t4.start()
+		  t5.start()
+
+		  t.join()
+		  t1.join()
+		  t2.join()
+		  t3.join()
+		  t4.join()
+		  t5.join()
+
+		  self.diff = round(time.time() - self.start_time, 0)
+
+	    self.transaction_count = round((self.ip_count+self.failure_count)/self.diff, 2)
+
+	    self.transactions += (self.ip_count+self.failure_count)
+	    self.running_time += self.diff
+	    self.total_success += self.ip_count
+	    self.total_failure += self.failure_count
+
+
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("Statistics for run %d",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
+	    log.info("    %d                    %d                     %d                  %d"
+			    %(self.ip_count+self.failure_count,self.ip_count, self.failure_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of transactions per second in run %d:%f" %(i, self.transaction_count))
+	    log.info("----------------------------------------------------------------------------------")
+
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Final Statistics for total transactions")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
+	log.info("    %d                     %d                         %d                        %d" %(self.transactions,
+                 self.total_success, self.total_failure, self.running_time))
+
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of transactions per second: %d", round(self.transactions/self.running_time,0))
+	log.info("----------------------------------------------------------------------------------")
+
+    def test_dhcpRelay_concurrent_consecutive_successes_per_second(self, iface = 'veth0'):
+
+        config = self.default_config
+        options = self.default_options
+        subnet =  [ ('192.168.1.2',
+'''
+subnet 192.168.0.0 netmask 255.255.0.0 {
+    range 192.168.1.10 192.168.2.100;
+}
+'''), ]
+
+        dhcpd_interface_list = self.relay_interfaces
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+	failure_dir = {}
+
+	for key in (key for key in g_subscriber_port_map if key != 100):
+	    self.host_load(g_subscriber_port_map[key])
+
+	def thread_fun(i, j):
+#		log.info("Thread Name:%s",current_thread().name)
+#		failure_dir[current_thread().name] = True
+	    while failure_dir.has_key(current_thread().name) is False:
+		  mac = RandMAC()._fix()
+		  cip, sip = DHCPTest(iface = 'veth{}'.format(i)).discover(mac = mac)
+		  i += 2
+		  log.info('Got dhcp client IP %s from server %s for mac %s'%(cip, sip, mac))
+		  self.lock.acquire()
+
+		  if cip:
+		     self.ip_count += 1
+		     self.lock.notify_all()
+		     self.lock.release()
+		  elif cip is None:
+		     self.failure_count += 1
+		     failure_dir[current_thread().name] = True
+		     self.lock.notify_all()
+		     self.lock.release()
+		     break
+#		self.lock.notify_all()
+#		self.lock.release()
+
+	for i in range (1,4):
+	    failure_dir = {}
+	    self.ip_count = 0
+	    self.failure_count = 0
+	    self.start_time = 0
+	    self.diff = 0
+	    self.transaction_count = 0
+	    self.start_time = time.time()
+
+	    while len(failure_dir) != 6:
+		  t = threading.Thread(target = thread_fun, kwargs = {'i': 0, 'j': 2})
+		  t1 = threading.Thread(target = thread_fun, kwargs = {'i': 0, 'j': 2})
+		  t2 = threading.Thread(target = thread_fun, kwargs = {'i': 0, 'j': 2})
+		  t3 = threading.Thread(target = thread_fun, kwargs = {'i': 0, 'j': 2})
+		  t4 = threading.Thread(target = thread_fun, kwargs = {'i': 0, 'j': 2})
+		  t5 = threading.Thread(target = thread_fun, kwargs = {'i': 0, 'j': 2})
+
+		  t.start()
+		  t1.start()
+		  t2.start()
+		  t3.start()
+		  t4.start()
+		  t5.start()
+
+		  t.join()
+		  t1.join()
+		  t2.join()
+		  t3.join()
+		  t4.join()
+		  t5.join()
+
+		  self.diff = round(time.time() - self.start_time, 0)
+	    self.transaction_count = round((self.ip_count)/self.diff, 2)
+
+	    self.transactions += (self.ip_count+self.failure_count)
+	    self.running_time += self.diff
+	    self.total_success += self.ip_count
+	    self.total_failure += self.failure_count
+
+
+	    log.info("Statistics for run %d",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of consecutive successful transactions          Running Time ")
+	    log.info("                   %d                                   %d        " %(self.ip_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of successful transactions per second in run %d:%f" %(i, self.transaction_count))
+	    log.info("----------------------------------------------------------------------------------")
+
+	log.info("Final Statistics for total successful transactions")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of consecutive successes         Running Time ")
+	log.info("    %d                                 %d                             %d        " %(self.transactions,
+                 self.total_success, self.running_time))
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of consecutive successful transactions per second: %d", round(self.total_success/self.running_time,2))
+	log.info("----------------------------------------------------------------------------------")
+
+    def test_dhcpRelay_concurrent_clients_per_second(self, iface = 'veth0'):
+
+        config = self.default_config
+        options = self.default_options
+        subnet =  [ ('192.168.1.2',
+'''
+subnet 192.168.0.0 netmask 255.255.0.0 {
+    range 192.168.1.10 192.168.2.100;
+}
+'''), ]
+
+        dhcpd_interface_list = self.relay_interfaces
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+	for key in (key for key in g_subscriber_port_map if key < 100):
+		self.host_load(g_subscriber_port_map[key])
+
+	def thread_fun(i):
+#		mac = self.get_mac('veth{}'.format(i))
+	    cip, sip, mac, _ = DHCPTest(iface = 'veth{}'.format(i)).only_discover(mac = RandMAC()._fix())
+	    log.info('Got dhcp client IP %s from server %s for mac %s'%(cip, sip, mac))
+	    self.lock.acquire()
+
+	    if cip:
+	       self.ip_count += 1
+	    elif cip is None:
+	       self.failure_count += 1
+
+	    self.lock.notify_all()
+	    self.lock.release()
+
+	for i in range (1,4):
+	    self.ip_count = 0
+	    self.failure_count = 0
+	    self.start_time = 0
+	    self.diff = 0
+	    self.transaction_count = 0
+	    self.start_time = time.time()
+
+	    while self.diff <= 60:
+		  t = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(0, random.randrange(1,40,1), 1)})
+		  t1 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(42, random.randrange(43,80,1), 1)})
+		  t2 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(82, random.randrange(83,120,1), 1)})
+		  t3 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(122, random.randrange(123,160,1), 1)})
+		  t4 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(162, random.randrange(163,180,1), 1)})
+		  t5 = threading.Thread(target = thread_fun, kwargs = {'i': random.randrange(182, random.randrange(183,196,1), 1)})
+
+		  t.start()
+		  t1.start()
+		  t2.start()
+		  t3.start()
+		  t4.start()
+		  t5.start()
+
+		  t.join()
+		  t1.join()
+		  t2.join()
+		  t3.join()
+		  t4.join()
+		  t5.join()
+
+		  self.diff = round(time.time() - self.start_time, 0)
+	    self.transaction_count = round((self.ip_count+self.failure_count)/self.diff, 2)
+	    self.transactions += (self.ip_count+self.failure_count)
+	    self.running_time += self.diff
+	    self.total_success += self.ip_count
+	    self.total_failure += self.failure_count
+
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("Statistics for run %d of sending only DHCP Discover",i)
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of transactions     No. of successes     No. of failures     Running Time ")
+	    log.info("    %d                    %d                     %d                  %d" %(self.ip_count+self.failure_count, 		               self.ip_count, self.failure_count, self.diff))
+	    log.info("----------------------------------------------------------------------------------")
+	    log.info("No. of clients per second in run %d:%f                                      "
+		    %(i, self.transaction_count))
+	    log.info("----------------------------------------------------------------------------------")
+
+	log.info("Final Statistics for total transactions of sending only DHCP Discover")
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Total transactions     Total No. of successes     Total No. of failures     Running Time ")
+	log.info("    %d                     %d                         %d                        %d" %(self.transactions,
+                 self.total_success, self.total_failure, self.running_time))
+	log.info("----------------------------------------------------------------------------------")
+	log.info("Average no. of clients per second: %d                                        ",
+		round(self.transactions/self.running_time,0))
+	log.info("----------------------------------------------------------------------------------")
+
+
+    @nottest
+    def test_dhcpRelay_inform_packet(self, iface = 'veth0'):
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        self.send_recv(mac, inform_packet = True)
+
+    def test_dhcpRelay_client_conflict(self, iface = 'veth0'):
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+	cip, sip, mac, _ = self.dhcp.only_discover()
+	log.info('Got dhcp client IP %s from server %s for mac %s.' %
+		  (cip, sip, mac) )
+        self.dhcp1 = DHCPTest(seed_ip = cip, iface = iface)
+	new_cip, new_sip, new_mac, _ = self.dhcp1.only_discover(desired = True)
+	new_cip, new_sip = self.dhcp1.only_request(new_cip, new_mac)
+	log.info('Got dhcp client IP %s from server %s for mac %s.' %
+		  (new_cip, new_sip, new_mac) )
+	log.info("IP %s alredy consumed by mac %s." % (new_cip, new_mac))
+	log.info("Now sending DHCP Request for old DHCP discover.")
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	if new_cip is None:
+	   log.info('Got dhcp client IP %s from server %s for mac %s.Which is expected behavior.'
+                    %(new_cip, new_sip, new_mac) )
+	elif new_cip:
+	   log.info('Got dhcp client IP %s from server %s for mac %s.Which is not expected behavior as IP %s is already consumed.'
+		    %(new_cip, new_sip, new_mac, new_cip) )
+	   assert_equal(new_cip, None)
+
 
 
