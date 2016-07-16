@@ -13,7 +13,7 @@ The CORD Automated Tester Suite is an extensible end-to-end system test suite ta
 ##  <a name="how_to_install">How to install
 
 ```bash
-$ git clone https://github.cyanoptics.com/cord-lab/cord-tester.git
+$ git clone https://github.com/opencord/cord-tester.git
 $ cd cord-tester
 $ vagrant up
 $ vagrant ssh cordtest
@@ -37,13 +37,11 @@ $ sudo ./cord-test.py run -h
 usage: cord-test.py run [-h] [-t TEST_TYPE] [-o ONOS] [-r] [-q] [-a APP] [-p]
                         [-e TEST_CONTROLLER] [-k] [-s]
                         [-u {test,quagga,radius,all}]
-
 optional arguments:
   -h, --help            show this help message and exit
   -t TEST_TYPE, --test-type TEST_TYPE
                         Specify test type or test case to run
   -o ONOS, --onos ONOS  ONOS container image
-  -r, --radius          Start Radius service
   -q, --quagga          Provision quagga container for vrouter
   -a APP, --app APP     Cord ONOS app filename
   -p, --olt             Use OLT config
@@ -51,6 +49,9 @@ optional arguments:
                         External test controller ip for Onos and/or radius
                         server. Eg: 10.0.0.2/10.0.0.3 to specify ONOS and
                         Radius ip to connect
+  -r SERVER, --server SERVER
+                        ip:port address to connect for cord test server for
+                        container requests
   -k, --keep            Keep test container after tests
   -s, --start-switch    Start OVS when running under OLT config
   -u {test,quagga,radius,all}, --update {test,quagga,radius,all}
@@ -59,6 +60,8 @@ optional arguments:
                         --update=radius to rebuild radius server image.
                         --update=test to rebuild cord test image.(Default)
                         --update=all to rebuild all cord tester images.
+  -n NUM_CONTAINERS, --num-containers NUM_CONTAINERS
+                        Specify number of test containers to spawn for tests
 $  sudo ./cord-test.py list -h
 usage: cord-test.py list [-h] [-t TEST]
 
