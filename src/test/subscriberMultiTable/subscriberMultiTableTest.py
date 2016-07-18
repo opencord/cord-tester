@@ -9,6 +9,7 @@ import tempfile
 import random
 import threading
 import json
+import requests
 from Stats import Stats
 from OnosCtrl import OnosCtrl
 from DHCP import DHCPTest
@@ -187,7 +188,7 @@ class subscriber_exchange(unittest.TestCase):
                         }
                   },
               }
-      test_services = ('IGMP',)
+      test_services = ('IGMP', 'TRAFFIC')
       num_joins = 0
       num_subscribers = 0
       num_channels = 0
@@ -249,6 +250,10 @@ class subscriber_exchange(unittest.TestCase):
 
       @classmethod
       def start_onos(cls, network_cfg = None):
+            v = bool(int(os.getenv('ONOS_RESTART_DISABLED', 0)))
+            if v:
+                  log.info('ONOS restart is disabled. Skipping ONOS restart')
+                  return
             if network_cfg is None:
                   network_cfg = cls.device_dict
 
@@ -340,6 +345,18 @@ class subscriber_exchange(unittest.TestCase):
             self.subscriber.channel_update(chan, self.subscriber.STATS_RX, 1, t = delta)
             log.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
             self.test_status = True
+
+      def traffic_verify(self, subscriber):
+            if subscriber.has_service('TRAFFIC'):
+                  url = 'http://www.google.com'
+                  resp = requests.get(url)
+                  self.test_status = resp.ok
+                  if resp.ok == False:
+                        log.info('Subscriber %s failed get from url %s with status code %d'
+                                 %(subscriber.name, url, resp.status_code))
+                  else:
+                        log.info('GET request from %s succeeded for subscriber %s'
+                                 %(url, subscriber.name))
 
       def tls_verify(self, subscriber):
             if subscriber.has_service('TLS'):
@@ -473,7 +490,7 @@ class subscriber_exchange(unittest.TestCase):
           self.thread_pool = ThreadPool(min(100, self.num_subscribers), queue_size=1, wait_timeout=1)
           chan_leave = False #for single channel, multiple subscribers
           if cbs is None:
-                cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify)
+                cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify, self.traffic_verify)
                 chan_leave = True
           for subscriber in self.subscriber_list:
                 subscriber.start()
@@ -503,7 +520,8 @@ class subscriber_exchange(unittest.TestCase):
           self.num_channels = 10
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
                                                     num_channels = self.num_channels,
-                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify,
+                                                           self.igmp_jump_verify, self.traffic_verify),
                                                     port_list = self.generate_port_list(self.num_subscribers,
                                                                                         self.num_channels))
           assert_equal(test_status, True)
@@ -514,7 +532,8 @@ class subscriber_exchange(unittest.TestCase):
           self.num_channels = 10
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
                                                     num_channels = self.num_channels,
-                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify,
+                                                           self.igmp_next_verify, self.traffic_verify),
                                                     port_list = self.generate_port_list(self.num_subscribers,
                                                                                         self.num_channels))
           assert_equal(test_status, True)
