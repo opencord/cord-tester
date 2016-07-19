@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -4589,6 +4589,28 @@ class OnosCliDriver( CLI ):
             main.cleanup()
             main.exit()
 
+    def host_remove( self, hostid ):
+	try:
+	    cmdStr = "host-remove" + " " + hostid
+	    handle = self.sendline( cmdStr )
+	    assert "Command not found:" not in handle, handle
+	    return handle
+	except AssertionError:
+	    main.log.exception( "" )
+	    return None
+	except TypeError:
+	    main.log.exception( self.name + ": Object not as expected" )
+	    return None
+        except pexpect.EOF:
+	    main.log.error( self.name + ": EOF exception found" )
+	    main.log.error( self.name + ":    " + self.handle.before )
+	    main.cleanup()
+	    main.exit()
+	except Exception:
+	    main.log.exception( self.name + ": Uncaught exception!" )
+	    main.cleanup()
+	    main.exit()
+
 if __name__ == '__main__':
   onos_cli = OnosCliDriver(connect = False)
   name = 'onos_cli'
@@ -4607,4 +4629,4 @@ if __name__ == '__main__':
   flows_json = onos_cli.flows(state = "ADDED")
   print('Flows %s' %flows_json)
   onos_cli.disconnect()
-  
+
