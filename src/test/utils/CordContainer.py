@@ -240,13 +240,11 @@ class Onos(Container):
             print('Waiting %d seconds for ONOS to boot' %(boot_delay))
             time.sleep(boot_delay)
 
-        self.install_cord_apps()
-
     @classmethod
-    def install_cord_apps(cls):
+    def install_cord_apps(cls, onos_ip = None):
         for app, version in cls.onos_cord_apps:
             app_file = '{}/{}-{}.oar'.format(cls.cord_apps_dir, app, version)
-            ok, code = OnosCtrl.install_app(app_file)
+            ok, code = OnosCtrl.install_app(app_file, onos_ip = onos_ip)
             ##app already installed (conflicts)
             if code in [ 409 ]:
                 ok = True
