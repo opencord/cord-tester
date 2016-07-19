@@ -24,6 +24,7 @@ class OnosCtrl:
     cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
     maven_repo = 'http://central.maven.org/maven2/org/onosproject'
     applications_url = 'http://%s:8181/onos/v1/applications' %(controller)
+    host_cfg_url = 'http://%s:8181/onos/v1/hosts/' %(controller)
 
     def __init__(self, app, controller = None):
         self.app = app
@@ -118,3 +119,11 @@ class OnosCtrl:
         app_url = '{}/{}'.format(url, app_name)
         resp = requests.delete(app_url, auth = cls.auth)
         return resp.ok, resp.status_code
+
+    @classmethod
+    def host_config(cls, config):
+        if config:
+           json_data = json.dumps(config)
+           resp = requests.post(cls.host_cfg_url, auth = cls.auth, data = json_data)
+           return resp.ok, resp.status_code
+        return False, 400
