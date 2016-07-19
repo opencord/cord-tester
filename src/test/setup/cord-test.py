@@ -276,14 +276,19 @@ def runTest(args):
         onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
         onos_ip = onos.ip()
 
+    print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
+    print('Installing ONOS cord apps')
+    Onos.install_cord_apps(onos_ip = onos_ip)
+
+    print('Installing cord tester ONOS app %s' %onos_app_file)
+    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+
+    if radius_ip is None:
         ##Start Radius container
         radius = Radius( update = update_map['radius'])
         radius_ip = radius.ip()
-        print('Radius server running with IP %s' %radius_ip)
 
-    print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
-    print('Installing cord tester ONOS app %s' %onos_app_file)
-    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+    print('Radius server running with IP %s' %radius_ip)
 
     if args.quagga == True:
         #Start quagga. Builds container if required
@@ -294,6 +299,7 @@ def runTest(args):
                      'QUAGGA_IP': test_host,
                      'CORD_TEST_HOST' : test_host,
                      'CORD_TEST_PORT' : test_port,
+                     'ONOS_RESTART_DISABLED' : 1 if args.olt and args.test_controller else 0,
                    }
     if args.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
@@ -376,15 +382,19 @@ def setupCordTester(args):
         onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
         onos_ip = onos.ip()
 
+    print('Onos IP %s' %onos_ip)
+    print('Installing ONOS cord apps')
+    Onos.install_cord_apps(onos_ip = onos_ip)
+
+    print('Installing cord tester ONOS app %s' %onos_app_file)
+    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+
     ##Start Radius container if not started
     if radius_ip is None:
         radius = Radius( update = update_map['radius'])
         radius_ip = radius.ip()
 
     print('Radius server running with IP %s' %radius_ip)
-    print('Onos IP %s' %onos_ip)
-    print('Installing cord tester ONOS app %s' %onos_app_file)
-    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
 
     if args.quagga == True:
         #Start quagga. Builds container if required
@@ -404,6 +414,7 @@ def setupCordTester(args):
                          'QUAGGA_IP': ip,
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
+                         'ONOS_RESTART_DISABLED' : 1 if args.olt and args.test_controller else 0,
                        }
         if args.olt:
             olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
