@@ -505,7 +505,7 @@ class subscriber_exchange(unittest.TestCase):
           return self.test_status
 
       def test_subscriber_join_recv(self):
-          """Test subscriber join and receive"""
+          """Test subscriber join and receive for channel surfing"""
           self.num_subscribers = 5
           self.num_channels = 1
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
@@ -527,7 +527,7 @@ class subscriber_exchange(unittest.TestCase):
           assert_equal(test_status, True)
 
       def test_subscriber_join_next(self):
-          """Test subscriber join next for channels"""
+          """Test subscriber join next for channel surfing"""
           self.num_subscribers = 5
           self.num_channels = 10
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
