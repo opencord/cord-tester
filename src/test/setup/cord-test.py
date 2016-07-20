@@ -363,6 +363,15 @@ def setupCordTester(args):
 
     onos_ip = None
     radius_ip = None
+    onos_cord_loc = args.onos_cord
+    if onos_cord_loc:
+        if onos_cord_loc.find(os.path.sep) < 0:
+            onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
+        if not os.access(onos_cord_loc, os.F_OK):
+            print('ONOS cord config location %s is not accessible' %onos_cord_loc)
+            sys.exit(1)
+        #Disable test container provisioning on the ONOS compute node
+        args.dont_provision = True
 
     ##If onos/radius was already started
     if args.test_controller:
@@ -372,6 +381,14 @@ def setupCordTester(args):
             radius_ip = ips[1]
         else:
             radius_ip = None
+
+    onos_cord = None
+    if onos_cord_loc:
+        if not args.test_controller:
+            ##Unexpected case. Specify the external controller ip when running on cord node
+            print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
+            sys.exit(1)
+        onos_cord = OnosCord(onos_cord_loc)
 
     #don't spawn onos if the user had started it externally
     onos_cnt['image'] = args.onos.split(':')[0]
@@ -385,7 +402,6 @@ def setupCordTester(args):
     print('Onos IP %s' %onos_ip)
     print('Installing ONOS cord apps')
     Onos.install_cord_apps(onos_ip = onos_ip)
-
     print('Installing cord tester ONOS app %s' %onos_app_file)
     OnosCtrl.install_app(args.app, onos_ip = onos_ip)
 
@@ -435,7 +451,8 @@ def setupCordTester(args):
         print('Test container %s started and provisioned to run tests using nosetests' %(test_cnt.name))
 
     #Finally start the test server and daemonize
-    cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port)
+    cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port,
+                           onos_cord = onos_cord)
 
 def cleanupTests(args):
     test_container = '{}:latest'.format(CordTester.IMAGE)
@@ -499,6 +516,8 @@ if __name__ == '__main__':
     parser_setup.add_argument('-d', '--dont-provision', action='store_true', help='Dont start test container.')
     parser_setup.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
+    parser_setup.add_argument('-c', '--onos-cord', default='', type=str,
+                              help='Specify cord location for ONOS cord when running on podd')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_list = subparser.add_parser('list', help='List test cases')

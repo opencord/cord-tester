@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from CordContainer import Container, Onos, Quagga, Radius, reinitContainerClients
+from CordContainer import Container, Onos, OnosCord, Quagga, Radius, reinitContainerClients
 from nose.tools import nottest
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import daemon
@@ -28,6 +28,7 @@ import threading
 
 CORD_TEST_HOST = '172.17.0.1'
 CORD_TEST_PORT = 25000
+g_onos_cord = None
 
 class QuaggaStopWrapper(Container):
     def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'latest'):
@@ -38,14 +39,20 @@ class QuaggaStopWrapper(Container):
 class CordTestServer(object):
 
     def __restart_onos(self, config = None):
-        onos_config = '{}/network-cfg.json'.format(Onos.host_config_dir)
+        if g_onos_cord:
+            onos_config = '{}/network-cfg.json'.format(OnosCord.onos_config_dir)
+        else:
+            onos_config = '{}/network-cfg.json'.format(Onos.host_config_dir)
         if config is None:
             try:
                 os.unlink(onos_config)
             except:
                 pass
         print('Restarting ONOS')
-        Onos(restart = True, network_cfg = config)
+        if g_onos_cord:
+            g_onos_cord.start(restart = True, network_cfg = config)
+        else:
+            Onos(restart = True, network_cfg = config)
         return 'DONE'
 
     def restart_onos(self, kwargs):
@@ -90,9 +97,12 @@ class CordTestServer(object):
         return 'DONE'
 
 @nottest
-def cord_test_server_start(daemonize = True, cord_test_host = CORD_TEST_HOST, cord_test_port = CORD_TEST_PORT):
+def cord_test_server_start(daemonize = True, cord_test_host = CORD_TEST_HOST,
+                           cord_test_port = CORD_TEST_PORT, onos_cord = None):
+    global g_onos_cord
     server = SimpleXMLRPCServer( (cord_test_host, cord_test_port) )
     server.register_instance(CordTestServer())
+    g_onos_cord = onos_cord
     if daemonize is True:
         d = daemon.DaemonContext(files_preserve = [server],
                                  detach_process = True)
