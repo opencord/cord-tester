@@ -179,15 +179,6 @@ class subscriber_exchange(unittest.TestCase):
       olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config_multitable.json')
       cpqd_path = os.path.join(test_path, '..', 'setup')
       ovs_path = cpqd_path
-      device_id = 'of:' + get_mac('ovsbr0')
-      device_dict = { "devices" : {
-                  "{}".format(device_id) : {
-                        "basic" : {
-                              "driver" : "pmc-olt"
-                              }
-                        }
-                  },
-              }
       test_services = ('IGMP', 'TRAFFIC')
       num_joins = 0
       num_subscribers = 0
@@ -195,10 +186,39 @@ class subscriber_exchange(unittest.TestCase):
       recv_timeout = False
 
       @classmethod
+      def load_device_id(cls):
+            '''If running under olt, we get the first switch connected to onos'''
+            olt = os.getenv('OLT_CONFIG', None)
+            if olt:
+                  devices = OnosCtrl.get_devices()
+                  if devices:
+                        dids = map(lambda d: d['id'], devices)
+                        if len(dids) == 1:
+                              did = dids[0]
+                        else:
+                              ###If we have more than 1, then check for env before using first one
+                              did = os.getenv('OLT_DEVICE_ID', dids[0])
+            else:
+                  did = 'of:' + get_mac('ovsbr0')
+
+            #Set the default config
+            cls.device_id = did
+            cls.device_dict = { "devices" : {
+                        "{}".format(did) : {
+                              "basic" : {
+                                    "driver" : "pmc-olt"
+                                    }
+                              }
+                        },
+                  }
+            return did
+
+      @classmethod
       def setUpClass(cls):
           '''Load the OLT config and activate relevant apps'''
+          did = cls.load_device_id()
           network_cfg = { "devices" : {
-                  "{}".format(cls.device_id) : {
+                  "{}".format(did) : {
                         "basic" : {
                               "driver" : "pmc-olt"
                               }

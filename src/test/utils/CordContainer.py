@@ -16,6 +16,7 @@
 import os,time
 import io
 import json
+import yaml
 from pyroute2 import IPRoute
 from itertools import chain
 from nsenter import Namespace
@@ -51,7 +52,10 @@ class Container(object):
         self.name = name
         self.image = image
         self.tag = tag
-        self.image_name = image + ':' + tag
+        if tag:
+            self.image_name = image + ':' + tag
+        else:
+            self.image_name = image
         self.id = None
         self.command = command
         self.quagga_config = quagga_config
@@ -191,6 +195,68 @@ def get_mem():
         mem = min(mem, 16)
         return str(mem) + 'G'
 
+class OnosCord(Container):
+    """Use this when running the cord tester agent on the onos compute node"""
+    onos_cord_dir = os.path.join(os.getenv('HOME'), 'cord-tester-cord')
+    onos_config_dir_guest = '/root/onos/config'
+    onos_config_dir = os.path.join(onos_cord_dir, 'config')
+    docker_yaml = os.path.join(onos_cord_dir, 'docker-compose.yml')
+
+    def __init__(self, conf):
+        self.cord_conf_dir = conf
+        if os.access(self.cord_conf_dir, os.F_OK) and not os.access(self.onos_cord_dir, os.F_OK):
+            os.mkdir(self.onos_cord_dir)
+            os.mkdir(self.onos_config_dir)
+            ##copy the config file from cord-tester-config
+            cmd = 'cp {}/* {}'.format(self.cord_conf_dir, self.onos_cord_dir)
+            os.system(cmd)
+
+        ##update the docker yaml with the config volume
+        with open(self.docker_yaml, 'r') as f:
+            yaml_config = yaml.load(f)
+            image = yaml_config['services'].keys()[0]
+            name = 'cordtestercord_{}_1'.format(image)
+            volumes = yaml_config['services'][image]['volumes']
+            config_volumes = filter(lambda e: e.find(self.onos_config_dir_guest) >= 0, volumes)
+            if not config_volumes:
+                config_volume = '{}:{}'.format(self.onos_config_dir, self.onos_config_dir_guest)
+                volumes.append(config_volume)
+                docker_yaml_changed = '{}-changed'.format(self.docker_yaml)
+                with open(docker_yaml_changed, 'w') as wf:
+                    yaml.dump(yaml_config, wf)
+
+                os.rename(docker_yaml_changed, self.docker_yaml)
+            self.volumes = volumes
+
+        super(OnosCord, self).__init__(name, image, tag = '')
+        cord_conf_dir_basename = os.path.basename(self.cord_conf_dir.replace('-', ''))
+        self.xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
+        ##Create an container instance of xos onos
+        self.xos_onos = Container(self.xos_onos_name, image, tag = '')
+
+    def start(self, restart = False, network_cfg = None):
+        if restart is True:
+            if self.exists():
+                ##Kill the existing instance
+                print('Killing container %s' %self.name)
+                self.kill()
+            if self.xos_onos.exists():
+                print('Killing container %s' %self.xos_onos.name)
+                self.xos_onos.kill()
+
+        if network_cfg is not None:
+            json_data = json.dumps(network_cfg, indent=4)
+            with open('{}/network-cfg.json'.format(self.onos_config_dir), 'w') as f:
+                f.write(json_data)
+
+        #start the container using docker-compose
+        cmd = 'cd {} && docker-compose up -d'.format(self.onos_cord_dir)
+        os.system(cmd)
+
+    def build_image(self):
+        build_cmd = 'cd {} && docker-compose build'.format(self.onos_cord_dir)
+        os.system(build_cmd)
+
 class Onos(Container):
 
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
@@ -239,6 +305,8 @@ class Onos(Container):
                        host_config = host_config, volumes = volumes, tty = True)
             print('Waiting %d seconds for ONOS to boot' %(boot_delay))
             time.sleep(boot_delay)
+
+        self.install_cord_apps()
 
     @classmethod
     def install_cord_apps(cls, onos_ip = None):
