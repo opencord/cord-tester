@@ -28,7 +28,6 @@ import threading
 
 CORD_TEST_HOST = '172.17.0.1'
 CORD_TEST_PORT = 25000
-g_onos_cord = None
 
 class QuaggaStopWrapper(Container):
     def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'latest'):
@@ -38,8 +37,10 @@ class QuaggaStopWrapper(Container):
 
 class CordTestServer(object):
 
+    onos_cord = None
+
     def __restart_onos(self, config = None):
-        if g_onos_cord:
+        if self.onos_cord:
             onos_config = '{}/network-cfg.json'.format(OnosCord.onos_config_dir)
         else:
             onos_config = '{}/network-cfg.json'.format(Onos.host_config_dir)
@@ -49,8 +50,8 @@ class CordTestServer(object):
             except:
                 pass
         print('Restarting ONOS')
-        if g_onos_cord:
-            g_onos_cord.start(restart = True, network_cfg = config)
+        if self.onos_cord:
+            self.onos_cord.start(restart = True, network_cfg = config)
         else:
             Onos(restart = True, network_cfg = config)
         return 'DONE'
@@ -99,10 +100,9 @@ class CordTestServer(object):
 @nottest
 def cord_test_server_start(daemonize = True, cord_test_host = CORD_TEST_HOST,
                            cord_test_port = CORD_TEST_PORT, onos_cord = None):
-    global g_onos_cord
     server = SimpleXMLRPCServer( (cord_test_host, cord_test_port) )
     server.register_instance(CordTestServer())
-    g_onos_cord = onos_cord
+    CordTestServer.onos_cord = onos_cord
     if daemonize is True:
         d = daemon.DaemonContext(files_preserve = [server],
                                  detach_process = True)

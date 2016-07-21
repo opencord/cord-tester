@@ -277,8 +277,9 @@ def runTest(args):
         onos_ip = onos.ip()
 
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
-    print('Installing ONOS cord apps')
-    Onos.install_cord_apps(onos_ip = onos_ip)
+    if args.test_controller:
+        print('Installing ONOS cord apps')
+        Onos.install_cord_apps(onos_ip = onos_ip)
 
     print('Installing cord tester ONOS app %s' %onos_app_file)
     OnosCtrl.install_app(args.app, onos_ip = onos_ip)
@@ -388,7 +389,7 @@ def setupCordTester(args):
             ##Unexpected case. Specify the external controller ip when running on cord node
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
-        onos_cord = OnosCord(onos_cord_loc)
+        onos_cord = OnosCord(onos_ip, onos_cord_loc)
 
     #don't spawn onos if the user had started it externally
     onos_cnt['image'] = args.onos.split(':')[0]
@@ -400,8 +401,10 @@ def setupCordTester(args):
         onos_ip = onos.ip()
 
     print('Onos IP %s' %onos_ip)
-    print('Installing ONOS cord apps')
-    Onos.install_cord_apps(onos_ip = onos_ip)
+    if args.test_controller:
+        print('Installing ONOS cord apps')
+        Onos.install_cord_apps(onos_ip = onos_ip)
+
     print('Installing cord tester ONOS app %s' %onos_app_file)
     OnosCtrl.install_app(args.app, onos_ip = onos_ip)
 
