@@ -202,8 +202,10 @@ class OnosCord(Container):
     onos_config_dir = os.path.join(onos_cord_dir, 'config')
     docker_yaml = os.path.join(onos_cord_dir, 'docker-compose.yml')
 
-    def __init__(self, conf):
+    def __init__(self, onos_ip, conf, boot_delay = 60):
+        self.onos_ip = onos_ip
         self.cord_conf_dir = conf
+        self.boot_delay = boot_delay
         if os.access(self.cord_conf_dir, os.F_OK) and not os.access(self.onos_cord_dir, os.F_OK):
             os.mkdir(self.onos_cord_dir)
             os.mkdir(self.onos_config_dir)
@@ -252,6 +254,9 @@ class OnosCord(Container):
         #start the container using docker-compose
         cmd = 'cd {} && docker-compose up -d'.format(self.onos_cord_dir)
         os.system(cmd)
+        #Delay to make sure ONOS fully boots
+        time.sleep(self.boot_delay)
+        Onos.install_cord_apps(onos_ip = self.onos_ip)
 
     def build_image(self):
         build_cmd = 'cd {} && docker-compose build'.format(self.onos_cord_dir)
@@ -266,6 +271,7 @@ class Onos(Container):
     onos_cord_apps = ( ('cord-config', '1.0-SNAPSHOT'),
                        ('aaa', '1.0-SNAPSHOT'),
                        ('igmp', '1.0-SNAPSHOT'),
+                       ('vtn', '1.0-SNAPSHOT'),
                        )
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
     host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
