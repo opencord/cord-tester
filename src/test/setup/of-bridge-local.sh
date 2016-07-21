@@ -14,7 +14,8 @@ echo "Configuring ovs bridge $bridge"
 ovs-vsctl del-br $bridge
 ovs-vsctl add-br $bridge
 my_ip=`ifconfig docker0 | grep "inet addr" | tr -s ' ' | cut -d":" -f2 |cut -d" " -f1`
-ovs-vsctl set-controller $bridge ptcp:6653:$my_ip tcp:$controller:6633
+#ovs-vsctl set-controller $bridge ptcp:6653:$my_ip tcp:$controller:6633
+ovs-vsctl set-controller $bridge tcp:$controller:6653
 ovs-vsctl set controller $bridge max_backoff=1000
 ovs-vsctl set bridge $bridge protocols=OpenFlow10,OpenFlow11,OpenFlow12,OpenFlow13
 ovs-vsctl show
