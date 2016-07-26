@@ -127,6 +127,41 @@ class CordTester(Container):
         return res, port_num
 
     @classmethod
+    def cleanup_intfs(cls):
+        olt_conf_file = os.path.join(cls.tester_base, 'olt_config.json')
+        olt_config = OltConfig(olt_conf_file)
+        port_map = olt_config.olt_port_map()
+        port_num = 0
+        intf_host = port_map['host']
+        start_vlan = port_map['start_vlan']
+        intf_type = 0
+        if os.path.isdir('/sys/class/net/{}/bridge'.format(intf_host)):
+            intf_type = 1 ##linux bridge
+        else:
+            cmd = 'ovs-vsctl list-br | grep -q "^{0}$"'.format(intf_host)
+            res = os.system(cmd)
+            if res == 0: ##ovs bridge
+                intf_type = 2
+        cmds = ()
+        res = 0
+        for port in port_map['ports']:
+            local_if = '{0}_{1}'.format(port, port_num+1)
+            if intf_type == 0:
+                if start_vlan != 0:
+                    cmds = ('ip link del {}.{}'.format(intf_host, start_vlan + port_num),)
+            else:
+                if intf_type == 1:
+                    cmds = ('brctl delif {} {}'.format(intf_host, local_if),
+                            'ip link del {}'.format(local_if))
+                else:
+                    cmds = ('ovs-vsctl del-port {} {}'.format(intf_host, local_if),)
+
+            for cmd in cmds:
+                res += os.system(cmd)
+
+            port_num += 1
+
+    @classmethod
     def get_name(cls):
         cnt_name = '/{0}'.format(cls.basename)
         cnt_name_len = len(cnt_name)
@@ -461,6 +496,9 @@ def cleanupTests(args):
     test_container = '{}:latest'.format(CordTester.IMAGE)
     print('Cleaning up Test containers ...')
     Container.cleanup(test_container)
+    if args.olt:
+        print('Cleaning up test container OLT configuration')
+        CordTester.cleanup_intfs()
 
 def listTests(args):
     if args.test == 'all':
@@ -535,6 +573,7 @@ if __name__ == '__main__':
     parser_build.set_defaults(func=buildImages)
 
     parser_cleanup = subparser.add_parser('cleanup', help='Cleanup test containers')
+    parser_cleanup.add_argument('-p', '--olt', action = 'store_true', help = 'Cleanup OLT config')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     args = parser.parse_args()
