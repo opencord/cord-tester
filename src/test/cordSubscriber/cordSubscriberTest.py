@@ -183,6 +183,7 @@ class subscriber_exchange(unittest.TestCase):
       num_subscribers = 0
       num_channels = 0
       recv_timeout = False
+      onos_restartable = not bool(int(os.getenv('ONOS_RESTART_DISABLED', 0)))
 
       @classmethod
       def load_device_id(cls):
@@ -257,8 +258,7 @@ class subscriber_exchange(unittest.TestCase):
 
       @classmethod
       def start_onos(cls, network_cfg = None):
-            v = bool(int(os.getenv('ONOS_RESTART_DISABLED', 0)))
-            if v:
+            if cls.onos_restartable is False:
                   log.info('ONOS restart is disabled. Skipping ONOS restart')
                   return
             if network_cfg is None:
@@ -515,14 +515,17 @@ class subscriber_exchange(unittest.TestCase):
           """Test subscriber join and receive for channel surfing"""
           self.num_subscribers = 5
           self.num_channels = 1
-          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
-                                                    num_channels = self.num_channels,
-                                                    port_list = self.generate_port_list(self.num_subscribers,
-                                                                                        self.num_channels))
+          test_status = True
+          ##Run this test only if ONOS can be restarted as it incurs a network-cfg change
+          if self.onos_restartable is True:
+                test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                          num_channels = self.num_channels,
+                                                          port_list = self.generate_port_list(self.num_subscribers,
+                                                                                              self.num_channels))
           assert_equal(test_status, True)
 
       def test_subscriber_join_jump(self):
-          """Test subscriber join and receive for channel surfing"""
+          """Test subscriber join jump for channel surfing"""
           self.num_subscribers = 5
           self.num_channels = 10
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
