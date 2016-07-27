@@ -34,5 +34,5 @@ echo "Running IGMP join verify test"
 docker exec $cnt nosetests -v /root/test/src/test/igmp/igmpTest.py:igmp_exchange.test_igmp_join_verify_traffic
 echo "Running VROUTER test with 5 routes"
 docker exec $cnt nosetests -v /root/test/src/test/vrouter/vrouterTest.py:vrouter_exchange.test_vrouter_with_5_routes
-echo "Running CORD subscriber channel join jump test"
-docker exec $cnt nosetests -v /root/test/src/test/cordSubscriber/cordSubscriberTest.py:subscriber_exchange.test_subscriber_join_jump
+echo "Running CORD subscriber tests"
+docker exec $cnt nosetests -v /root/test/src/test/cordSubscriber/cordSubscriberTest.py
