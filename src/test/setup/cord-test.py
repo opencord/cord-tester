@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 from argparse import ArgumentParser
-import os,sys,time
+import os,sys,time,socket,errno
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
 sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
@@ -489,8 +489,12 @@ def setupCordTester(args):
         print('Test container %s started and provisioned to run tests using nosetests' %(test_cnt.name))
 
     #Finally start the test server and daemonize
-    cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port,
-                           onos_cord = onos_cord)
+    try:
+        cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port,
+                               onos_cord = onos_cord)
+    except socket.error, e:
+        #the test agent address could be remote or already running. Exit gracefully
+        sys.exit(0)
 
 def cleanupTests(args):
     test_container = '{}:latest'.format(CordTester.IMAGE)
