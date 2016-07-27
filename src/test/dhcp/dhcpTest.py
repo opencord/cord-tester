@@ -57,7 +57,7 @@ class dhcp_exchange(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.olt = OltConfig()
-        cls.port_map = cls.olt.olt_port_map()
+        cls.port_map, _ = cls.olt.olt_port_map()
         if not cls.port_map:
             cls.port_map = g_subscriber_port_map
         cls.iface = cls.port_map[1]

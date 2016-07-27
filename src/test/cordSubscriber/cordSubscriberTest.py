@@ -19,7 +19,6 @@ from subscriberDb import SubscriberDB
 from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
-from OnosFlowCtrl import get_mac
 from CordTestServer import cord_test_onos_restart
 
 log.setLevel('INFO')
@@ -176,7 +175,7 @@ class subscriber_exchange(unittest.TestCase):
       table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
       app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
-      olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config_multitable.json')
+      olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
       cpqd_path = os.path.join(test_path, '..', 'setup')
       ovs_path = cpqd_path
       test_services = ('IGMP', 'TRAFFIC')
@@ -187,20 +186,8 @@ class subscriber_exchange(unittest.TestCase):
 
       @classmethod
       def load_device_id(cls):
-            '''If running under olt, we get the first switch connected to onos'''
-            olt = os.getenv('OLT_CONFIG', None)
-            if olt:
-                  devices = OnosCtrl.get_devices()
-                  if devices:
-                        dids = map(lambda d: d['id'], devices)
-                        if len(dids) == 1:
-                              did = dids[0]
-                        else:
-                              ###If we have more than 1, then check for env before using first one
-                              did = os.getenv('OLT_DEVICE_ID', dids[0])
-            else:
-                  did = 'of:' + get_mac('ovsbr0')
-
+            '''Configure the device id'''
+            did = OnosCtrl.get_device_id()
             #Set the default config
             cls.device_id = did
             cls.device_dict = { "devices" : {
@@ -230,7 +217,7 @@ class subscriber_exchange(unittest.TestCase):
           cls.install_app_table()
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
-          cls.port_map, cls.port_list = cls.olt.olt_port_map_multi()
+          cls.port_map, cls.port_list = cls.olt.olt_port_map()
           cls.activate_apps(cls.apps + cls.olt_apps)
 
       @classmethod

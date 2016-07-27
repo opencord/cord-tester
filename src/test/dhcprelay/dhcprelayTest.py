@@ -21,8 +21,8 @@ from scapy.all import *
 import time
 import os, sys
 from DHCP import DHCPTest
-from OnosCtrl import OnosCtrl
-from OnosFlowCtrl import get_mac
+from OnosCtrl import OnosCtrl, get_mac
+from OltConfig import OltConfig
 from portmaps import g_subscriber_port_map
 import threading, random
 from threading import current_thread
@@ -32,9 +32,7 @@ class dhcprelay_exchange(unittest.TestCase):
 
     app = 'org.onosproject.dhcprelay'
     app_dhcp = 'org.onosproject.dhcp'
-    relay_device_id = 'of:' + get_mac('ovsbr0')
-    relay_interface_port = 100
-    relay_interfaces = (g_subscriber_port_map[relay_interface_port],)
+    relay_interfaces_last = ()
     interface_to_mac_map = {}
     dhcp_data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
@@ -74,6 +72,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         status, _ = cls.onos_ctrl.activate()
         assert_equal(status, True)
         time.sleep(3)
+        cls.dhcp_relay_setup()
         ##start dhcpd initially with default config
         cls.dhcpd_start()
         cls.onos_dhcp_relay_load()
@@ -87,6 +86,20 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         except: pass
         cls.onos_ctrl.deactivate()
         cls.dhcpd_stop()
+
+    @classmethod
+    def dhcp_relay_setup(cls):
+        did = OnosCtrl.get_device_id()
+        cls.relay_device_id = did
+        cls.olt = OltConfig()
+        cls.port_map, _ = cls.olt.olt_port_map()
+        if cls.port_map:
+            cls.relay_interface_port = cls.port_map['uplink']
+            cls.relay_interfaces = (cls.port_map[cls.relay_interface_port],)
+        else:
+            cls.relay_interface_port = 100
+            cls.relay_interfaces = (g_subscriber_port_map[cls.relay_interface_port],)
+        cls.relay_interfaces_last = cls.relay_interfaces
 
     @classmethod
     def onos_load_config(cls, config):
@@ -133,10 +146,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         return '{}{}{}'.format(conf, opts, subnet_config)
 
     @classmethod
-    def dhcpd_start(cls, intf_list = relay_interfaces,
+    def dhcpd_start(cls, intf_list = None,
                     config = default_config, options = default_options,
                     subnet = default_subnet_config):
         '''Start the dhcpd server by generating the conf file'''
+        if intf_list is None:
+            intf_list = cls.relay_interfaces
         ##stop dhcpd if already running
         cls.dhcpd_stop()
         dhcp_conf = cls.dhcpd_conf_generate(config = config, options = options,
@@ -163,6 +178,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         ret = os.system(dhcpd_cmd)
         assert_equal(ret, 0)
         time.sleep(3)
+        cls.relay_interfaces_last = cls.relay_interfaces
         cls.relay_interfaces = intf_list
 
     @classmethod
@@ -170,6 +186,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         os.system('pkill -9 dhcpd')
         for intf in cls.relay_interfaces:
             os.system('ifconfig {} 0'.format(intf))
+
+        cls.relay_interfaces = cls.relay_interfaces_last
 
     def get_mac(self, iface):
         if self.interface_to_mac_map.has_key(iface):
@@ -226,8 +244,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         self.total_success += self.ip_count
 	self.total_failure += self.failure_count
 
-
-
     def send_recv(self, mac, update_seed = False, validate = True):
         cip, sip = self.dhcp.discover(mac = mac, update_seed = update_seed)
         if validate:
@@ -269,6 +285,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         self.dhcp = DHCPTest(seed_ip = '192.169.1.1', iface = iface)
         ip_map = {}
         for i in range(10):
+            mac = RandMAC()._fix()
             cip, sip = self.send_recv(mac, update_seed = True)
             if ip_map.has_key(cip):
                 log.info('IP %s given out multiple times' %cip)
@@ -300,7 +317,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         assert_equal(self.dhcp.release(cip2), True)
 
     def test_dhcpRelay_Nrelease(self, iface = 'veth0'):
-        mac = self.get_mac(iface)
+        mac = None
         self.host_load(iface)
         ##we use the defaults for this test that serves as an example for others
         ##You don't need to restart dhcpd server if retaining default config
@@ -337,29 +354,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             log.info('Map before release %s' %ip_map)
             log.info('Map after release %s' %ip_map2)
         assert_equal(ip_map, ip_map2)
-
-    def test_dhcpRelay_starvation(self, iface = 'veth0'):
-        mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
-        self.dhcp = DHCPTest(seed_ip = '192.169.1.1', iface = iface)
-        ip_map = {}
-        for i in range(10):
-            cip, sip = self.send_recv(mac, update_seed = True)
-            if ip_map.has_key(cip):
-                log.info('IP %s given out multiple times' %cip)
-                assert_equal(False, ip_map.has_key(cip))
-            ip_map[cip] = sip
-
 
     def test_dhcpRelay_starvation(self, iface = 'veth0'):
         mac = self.get_mac(iface)
