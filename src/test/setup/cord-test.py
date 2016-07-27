@@ -59,7 +59,7 @@ class CordTester(Container):
             self.olt = True
             olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
             olt_config = OltConfig(olt_conf_file)
-            self.port_map = olt_config.olt_port_map()
+            self.port_map, _ = olt_config.olt_port_map()
         else:
             self.olt = False
             self.port_map = None
@@ -130,7 +130,7 @@ class CordTester(Container):
     def cleanup_intfs(cls):
         olt_conf_file = os.path.join(cls.tester_base, 'olt_config.json')
         olt_config = OltConfig(olt_conf_file)
-        port_map = olt_config.olt_port_map()
+        port_map, _ = olt_config.olt_port_map()
         port_num = 0
         intf_host = port_map['host']
         start_vlan = port_map['start_vlan']
@@ -275,7 +275,7 @@ def runTest(args):
 
     test_containers = []
     #These tests end up restarting ONOS/quagga/radius
-    tests_exempt = ('vrouter',)
+    tests_exempt = ('vrouter', 'cordSubscriber', 'proxyarp')
     if args.test_type.lower() == 'all':
         tests = CordTester.ALL_TESTS
         args.quagga = True

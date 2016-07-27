@@ -237,7 +237,7 @@ yg==
       def setUp(self):
           '''Load the OLT config and activate relevant apps'''
           self.olt = OltConfig()
-          self.port_map = self.olt.olt_port_map()
+          self.port_map, _ = self.olt.olt_port_map()
           ##if no olt config, fall back to ovs port map
           if not self.port_map:
                 self.port_map = g_subscriber_port_map

@@ -8,11 +8,31 @@ $cord_tester build all
 docker kill cord-onos || true
 docker kill cord-quagga || true
 docker kill cord-radius || true
+olt_config="$(dirname $0)/olt_config.json"
+sub=0
+if grep -q br-int $olt_config; then
+  sub=1
+fi
+if [ $sub -eq 1 ]; then
+    sed -i 's,br-int,ovsbr0,g' $olt_config
+fi
+function finish {
+    $cord_tester cleanup --olt
+    pkill -f cord-test
+    if [ $sub -eq 1 ]; then
+        sed -i 's,ovsbr0,br-int,g' $olt_config
+    fi
+}
+trap finish EXIT
+$cord_tester setup --olt --start-switch
+cnt=`docker ps -lq`
 echo "Running TLS authentication test"
-$cord_tester run -r -t tls
-echo "Running DHCP request test"
-$cord_tester run -t dhcp
+docker exec $cnt nosetests -v /root/test/src/test/tls/tlsTest.py
+echo "Running DHCP relay request test"
+docker exec $cnt nosetests -v /root/test/src/test/dhcprelay/dhcprelayTest.py:dhcprelay_exchange.test_dhcpRelay_1request
 echo "Running IGMP join verify test"
-$cord_tester run -t igmp:igmp_exchange.test_igmp_join_verify_traffic
+docker exec $cnt nosetests -v /root/test/src/test/igmp/igmpTest.py:igmp_exchange.test_igmp_join_verify_traffic
 echo "Running VROUTER test with 5 routes"
-$cord_tester run -q -t vrouter:vrouter_exchange.test_vrouter_1
+docker exec $cnt nosetests -v /root/test/src/test/vrouter/vrouterTest.py:vrouter_exchange.test_vrouter_with_5_routes
+echo "Running CORD subscriber channel join jump test"
+docker exec $cnt nosetests -v /root/test/src/test/cordSubscriber/cordSubscriberTest.py:subscriber_exchange.test_subscriber_join_jump

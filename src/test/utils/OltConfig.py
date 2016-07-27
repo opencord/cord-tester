@@ -38,34 +38,12 @@ class OltConfig:
     def olt_port_map(self):
         if self.on_olt() and self.olt_conf.has_key('port_map'):
             port_map = {}
-            port_map['ports'] = self.olt_conf['port_map']['ports']
-            port_map['start_vlan'] = 0
-            if self.olt_conf['port_map'].has_key('host'):
-                port_map['host'] = self.olt_conf['port_map']['host']
-            else:
-                port_map['host'] = 'ovsbr0'
-            if self.olt_conf['port_map'].has_key('start_vlan'):
-                port_map['start_vlan'] = int(self.olt_conf['port_map']['start_vlan'])
-                
-            ##Build a rx/tx port number to interface map
-            port_map[1] = self.olt_conf['port_map']['rx']
-            port_map[2] = self.olt_conf['port_map']['tx']
-            port_map[port_map[1]] = 1
-            port_map[port_map[2]] = 2
-            return port_map
-        else:
-            return None
-
-    def olt_port_map_multi(self):
-        if self.on_olt() and self.olt_conf.has_key('port_map'):
-            port_map = {}
             if self.olt_conf['port_map'].has_key('ports'):
                 port_map['ports'] = self.olt_conf['port_map']['ports']
             else:
                 port_map['ports'] = []
                 num_ports = int(self.olt_conf['port_map']['num_ports'])
-                port_map['port'] = self.olt_conf['port_map']['port']
-                for port in xrange(0, num_ports, 2):
+                for port in xrange(0, num_ports*2, 2):
                     port_map['ports'].append('veth{}'.format(port))
             port_num = 1
             port_map['uplink'] = int(self.olt_conf['uplink'])

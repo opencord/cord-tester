@@ -23,7 +23,7 @@ import json
 import threading
 import os
 from OnosCtrl import OnosCtrl
-from OnosFlowCtrl import OnosFlowCtrl, get_mac
+from OnosFlowCtrl import OnosFlowCtrl
 from OltConfig import OltConfig
 import random
 from threading import current_thread
@@ -98,15 +98,13 @@ class flows_exchange(unittest.TestCase):
         return '.'.join(lst)
 
 
-
-
     @classmethod
     def setUpClass(cls):
         cls.olt = OltConfig()
-        cls.port_map = cls.olt.olt_port_map()
+        cls.port_map, _ = cls.olt.olt_port_map()
         if not cls.port_map:
             cls.port_map = cls.default_port_map
-        cls.device_id = 'of:' + get_mac() ##match against our device id
+        cls.device_id = OnosCtrl.get_device_id()
 
     def test_flow_mac(self):
         '''Test Add and verify flows with MAC selectors'''

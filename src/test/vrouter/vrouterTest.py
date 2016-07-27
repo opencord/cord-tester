@@ -16,9 +16,9 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from OnosCtrl import OnosCtrl
+from OnosCtrl import OnosCtrl, get_mac
 from OltConfig import OltConfig
-from OnosFlowCtrl import OnosFlowCtrl, get_mac
+from OnosFlowCtrl import OnosFlowCtrl
 from onosclidriver import OnosCliDriver
 #from quaggaclidriver import QuaggaCliDriver
 from CordContainer import Container, Onos, Quagga
@@ -82,15 +82,29 @@ line vty
     def setUpClass(cls):
         ''' Activate the vrouter apps'''
         cls.olt = OltConfig()
-        cls.port_map = cls.olt.olt_port_map()
+        cls.port_map, _ = cls.olt.olt_port_map()
         if not cls.port_map:
             cls.port_map = g_subscriber_port_map
         time.sleep(3)
+        cls.load_device_id()
 
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the vrouter apps'''
         #cls.vrouter_host_unload()
+
+    @classmethod
+    def load_device_id(cls):
+        did = OnosCtrl.get_device_id()
+        cls.device_id = did
+        cls.vrouter_device_dict = { "devices" : {
+                "{}".format(did) : {
+                    "basic" : {
+                        "driver" : "softrouter"
+                    }
+                }
+            },
+        }
 
     def cliEnter(self):
         retries = 0

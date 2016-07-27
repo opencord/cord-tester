@@ -16,6 +16,20 @@
 import json
 import requests
 import os,sys,time
+from OltConfig import OltConfig
+import fcntl, socket, struct
+
+def get_mac(iface = 'ovsbr0', pad = 4):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', bytes(iface[:15])))
+    except:
+        info = ['0'] * 24
+    s.close()
+    sep = ''
+    if pad == 0:
+        sep = ':'
+    return '0'*pad + sep.join(['%02x' %ord(char) for char in info[18:24]])
 
 class OnosCtrl:
 
@@ -59,6 +73,24 @@ class OnosCtrl:
             return filter(lambda d: d['available'], devices)
 
         return None
+
+    @classmethod
+    def get_device_id(cls):
+        '''If running under olt, we get the first switch connected to onos'''
+        olt = OltConfig()
+        if olt.on_olt():
+            devices = cls.get_devices()
+            if devices:
+                dids = map(lambda d: d['id'], devices)
+                if len(dids) == 1:
+                    did = dids[0]
+                else:
+                    ###If we have more than 1, then check for env before using first one
+                    did = os.getenv('OLT_DEVICE_ID', dids[0])
+            else:
+                  did = 'of:' + get_mac('ovsbr0')
+
+        return did
 
     @classmethod
     def get_flows(cls, device_id):

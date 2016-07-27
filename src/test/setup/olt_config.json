@@ -1,2 +1,1 @@
-{ "olt" : false , "port_map" : { "ports" : [ "veth0", "veth2", "veth4", "veth6", "veth8", "veth10" ], "tx" : "veth2", "rx" : "veth0", "host" : "br-int", "start_vlan" : 1000 }, "uplink" : 2, "vlan" : 0 }
-
+{ "olt" : false , "port_map" : { "num_ports" : 11, "host" : "br-int", "start_vlan" : 1000 }, "uplink" : 2, "vlan" : 0 }
