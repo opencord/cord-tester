@@ -31,7 +31,7 @@ class OltConfig:
             self.olt_handle = None
             self.olt_conf = {}
             self.olt_conf['olt'] = False
-            
+
     def on_olt(self):
         return self.olt_conf['olt'] is True
 
