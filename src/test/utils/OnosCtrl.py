@@ -78,6 +78,7 @@ class OnosCtrl:
     def get_device_id(cls):
         '''If running under olt, we get the first switch connected to onos'''
         olt = OltConfig()
+        did = 'of:' + get_mac('ovsbr0')
         if olt.on_olt():
             devices = cls.get_devices()
             if devices:
@@ -87,8 +88,6 @@ class OnosCtrl:
                 else:
                     ###If we have more than 1, then check for env before using first one
                     did = os.getenv('OLT_DEVICE_ID', dids[0])
-            else:
-                  did = 'of:' + get_mac('ovsbr0')
 
         return did
 
