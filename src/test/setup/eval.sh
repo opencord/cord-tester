@@ -8,20 +8,9 @@ $cord_tester build all
 docker kill cord-onos || true
 docker kill cord-quagga || true
 docker kill cord-radius || true
-olt_config="$(dirname $0)/olt_config.json"
-sub=0
-if grep -q br-int $olt_config; then
-  sub=1
-fi
-if [ $sub -eq 1 ]; then
-    sed -i 's,br-int,ovsbr0,g' $olt_config
-fi
 function finish {
     $cord_tester cleanup --olt
     pkill -f cord-test
-    if [ $sub -eq 1 ]; then
-        sed -i 's,ovsbr0,br-int,g' $olt_config
-    fi
 }
 trap finish EXIT
 $cord_tester setup --olt --start-switch

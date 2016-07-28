@@ -19,7 +19,9 @@ import os,sys,time
 from OltConfig import OltConfig
 import fcntl, socket, struct
 
-def get_mac(iface = 'ovsbr0', pad = 4):
+def get_mac(iface = None, pad = 4):
+    if iface is None:
+        iface = os.getenv('TEST_SWITCH', 'ovsbr0')
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', bytes(iface[:15])))
@@ -78,7 +80,7 @@ class OnosCtrl:
     def get_device_id(cls):
         '''If running under olt, we get the first switch connected to onos'''
         olt = OltConfig()
-        did = 'of:' + get_mac('ovsbr0')
+        did = 'of:' + get_mac()
         if olt.on_olt():
             devices = cls.get_devices()
             if devices:
