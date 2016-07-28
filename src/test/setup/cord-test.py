@@ -521,6 +521,21 @@ def buildImages(args):
     if args.image == 'all' or args.image == 'test':
         CordTester.build_image(CordTester.IMAGE)
 
+def startImages(args):
+
+    ##starts the latest ONOS image
+    if args.image == 'all' or args.image == 'onos':
+        onos = Onos()
+        print('ONOS started with ip %s' %(onos.ip()))
+
+    if args.image == 'all' or args.image == 'quagga':
+        quagga = Quagga()
+        print('Quagga started with ip %s' %(quagga.ip()))
+
+    if args.image == 'all' or args.image == 'radius':
+        radius = Radius()
+        print('Radius started with ip %s' %(radius.ip()))
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='Cord Tester')
     subparser = parser.add_subparsers()
@@ -575,6 +590,10 @@ if __name__ == '__main__':
     parser_build = subparser.add_parser('build', help='Build cord test container images')
     parser_build.add_argument('image', choices=['quagga', 'radius', 'test', 'all'])
     parser_build.set_defaults(func=buildImages)
+
+    parser_start = subparser.add_parser('start', help='Start cord tester containers')
+    parser_start.add_argument('image', choices=['onos', 'quagga', 'radius', 'all'])
+    parser_start.set_defaults(func=startImages)
 
     parser_cleanup = subparser.add_parser('cleanup', help='Cleanup test containers')
     parser_cleanup.add_argument('-p', '--olt', action = 'store_true', help = 'Cleanup OLT config')
