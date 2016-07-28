@@ -34,7 +34,7 @@ log.setLevel('INFO')
 class proxyarp_exchange(unittest.TestCase):
 
     apps = ('org.onosproject.vrouter','org.onosproject.proxyarp')
-    device_id = 'of:' + get_mac('ovsbr0')
+    device_id = 'of:' + get_mac()
     device_dict = { "devices" : {
                 "{}".format(device_id) : {
                     "basic" : {

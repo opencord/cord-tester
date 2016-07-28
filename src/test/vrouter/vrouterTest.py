@@ -41,7 +41,7 @@ log.setLevel('INFO')
 class vrouter_exchange(unittest.TestCase):
 
     apps = ('org.onosproject.vrouter', 'org.onosproject.fwd')
-    device_id = 'of:' + get_mac('ovsbr0')
+    device_id = 'of:' + get_mac()
     vrouter_device_dict = { "devices" : {
                 "{}".format(device_id) : {
                     "basic" : {

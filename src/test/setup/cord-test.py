@@ -55,15 +55,19 @@ class CordTester(Container):
             self.build_image(image)
         ##Remove test container if any
         self.remove_container(self.name, force=True)
+        self.olt = False
         if env is not None and env.has_key('OLT_CONFIG'):
             self.olt = True
-            olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
-            olt_config = OltConfig(olt_conf_file)
-            self.port_map, _ = olt_config.olt_port_map()
+        olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
+        olt_config = OltConfig(olt_conf_file)
+        self.port_map, _ = olt_config.olt_port_map()
+        #Try using the host interface in olt conf to setup the switch
+        if self.port_map.has_key('host'):
+            self.switch = self.port_map['host']
         else:
-            self.olt = False
-            self.port_map = None
+            self.switch = 'ovsbr0'
         if env is not None:
+            env['TEST_SWITCH'] = self.switch
             env['TEST_HOST'] = self.name
             env['TEST_INSTANCE'] = instance
             env['TEST_INSTANCES'] = num_instances
@@ -76,11 +80,11 @@ class CordTester(Container):
             return os.system(cmd)
         return self.execute(cmd, shell = shell)
 
-    def start_switch(self, bridge = 'ovsbr0', boot_delay = 2):
+    def start_switch(self, boot_delay = 2):
         """Start OVS"""
         ##Determine if OVS has to be started locally or not
         s_file,s_sandbox = ('of-bridge-local.sh',self.tester_base) if self.olt else ('of-bridge.sh',self.sandbox_setup)
-        ovs_cmd = os.path.join(s_sandbox, '{0}'.format(s_file)) + ' {0}'.format(bridge)
+        ovs_cmd = os.path.join(s_sandbox, s_file) + ' {0}'.format(self.switch)
         if self.olt:
             ovs_cmd += ' {0}'.format(self.ctlr_ip)
             print('Starting OVS on the host')
@@ -91,7 +95,7 @@ class CordTester(Container):
         ## Wait for the LLDP flows to be added to the switch
         tries = 0
         while status != 0 and tries < 200:
-            cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(bridge)
+            cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(self.switch)
             status = self.execute_switch(cmd, shell = True)
             tries += 1
             if tries % 10 == 0:
