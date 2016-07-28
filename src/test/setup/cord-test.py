@@ -38,7 +38,7 @@ class CordTester(Container):
                        )
     basename = 'cord-tester'
     IMAGE = 'cord-test/nose'
-    ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber', 'vrouter', 'flows', 'proxyarp')
+    ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber', 'cordSubscriber', 'vrouter', 'flows', 'proxyarp')
 
     def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None, image = IMAGE, tag = 'latest',
                  env = None, rm = False, update = False):
