@@ -116,14 +116,24 @@ class CordTester(Container):
         res = 0
         host_intf = self.port_map['host']
         start_vlan = self.port_map['start_vlan']
+        start_vlan += port_num
+        uplink = self.port_map['uplink']
+        wan = self.port_map['wan']
         for port in self.port_map['ports']:
             guest_if = port
             local_if = '{0}_{1}'.format(guest_if, port_num+1)
             guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
             ##Use pipeworks to configure container interfaces on host/bridge interfaces
-            pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if, local_if, self.name, guest_ip)
-            if start_vlan != 0:
-                pipework_cmd += ' @{}'.format(start_vlan + port_num)
+            pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
+                                                                       local_if, self.name, guest_ip)
+            #if the wan interface is specified for uplink, then use it instead
+            if wan and port == self.port_map[uplink]:
+                pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(wan, guest_if,
+                                                                           local_if, self.name, guest_ip)
+            else:
+                if start_vlan != 0:
+                    pipework_cmd += ' @{}'.format(start_vlan)
+                    start_vlan += 1
 
             res += os.system(pipework_cmd)
             port_num += 1
@@ -138,6 +148,8 @@ class CordTester(Container):
         port_num = 0
         intf_host = port_map['host']
         start_vlan = port_map['start_vlan']
+        uplink = port_map['uplink']
+        wan = port_map['wan']
         intf_type = 0
         if os.path.isdir('/sys/class/net/{}/bridge'.format(intf_host)):
             intf_type = 1 ##linux bridge
@@ -150,9 +162,12 @@ class CordTester(Container):
         res = 0
         for port in port_map['ports']:
             local_if = '{0}_{1}'.format(port, port_num+1)
+            if wan and port_map[uplink] == port:
+                    continue
             if intf_type == 0:
                 if start_vlan != 0:
-                    cmds = ('ip link del {}.{}'.format(intf_host, start_vlan + port_num),)
+                    cmds = ('ip link del {}.{}'.format(intf_host, start_vlan),)
+                    start_vlan += 1
             else:
                 if intf_type == 1:
                     cmds = ('brctl delif {} {}'.format(intf_host, local_if),

@@ -47,6 +47,9 @@ class OltConfig:
                     port_map['ports'].append('veth{}'.format(port))
             port_num = 1
             port_map['uplink'] = int(self.olt_conf['uplink'])
+            port_map['wan'] = None
+            if self.olt_conf.has_key('wan'):
+                port_map['wan'] = self.olt_conf['wan']
             port_list = []
             ##build the port map and inverse port map
             for port in port_map['ports']:
