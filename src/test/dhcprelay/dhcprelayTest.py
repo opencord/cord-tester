@@ -34,7 +34,10 @@ class dhcprelay_exchange(unittest.TestCase):
     app_dhcp = 'org.onosproject.dhcp'
     relay_interfaces_last = ()
     interface_to_mac_map = {}
-    dhcp_data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
+    host_ip_map = {}
+    test_path = os.path.dirname(os.path.realpath(__file__))
+    dhcp_data_dir = os.path.join(test_path, '..', 'setup')
+    olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
     default_options = [ ('subnet-mask', '255.255.255.0'),
                      ('broadcast-address', '192.168.1.255'),
@@ -62,7 +65,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     total_success = 0
     total_failure = 0
 
-
     @classmethod
     def setUpClass(cls):
         ''' Activate the dhcprelay app'''
@@ -75,7 +77,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         cls.dhcp_relay_setup()
         ##start dhcpd initially with default config
         cls.dhcpd_start()
-        cls.onos_dhcp_relay_load()
 
     @classmethod
     def tearDownClass(cls):
@@ -91,7 +92,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def dhcp_relay_setup(cls):
         did = OnosCtrl.get_device_id()
         cls.relay_device_id = did
-        cls.olt = OltConfig()
+        cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, _ = cls.olt.olt_port_map()
         if cls.port_map:
             cls.relay_interface_port = cls.port_map['uplink']
@@ -100,6 +101,20 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             cls.relay_interface_port = 100
             cls.relay_interfaces = (g_subscriber_port_map[cls.relay_interface_port],)
         cls.relay_interfaces_last = cls.relay_interfaces
+        if cls.port_map:
+            ##generate a ip/mac client virtual interface config for onos
+            interface_list = []
+            for port in cls.port_map['ports']:
+                port_num = cls.port_map[port]
+                if port_num == cls.port_map['uplink']:
+                    ##configure the dhcp server virtual interface on the same subnet as client interface
+                    ip = cls.get_host_ip(1)
+                else:
+                    ip = cls.get_host_ip(port_num)
+                mac = cls.get_mac(port)
+                interface_list.append((port_num, ip, mac))
+
+            cls.onos_interface_load(interface_list)
 
     @classmethod
     def onos_load_config(cls, config):
@@ -110,11 +125,40 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         time.sleep(3)
 
     @classmethod
-    def onos_dhcp_relay_load(cls):
+    def onos_interface_load(cls, interface_list):
+        interface_dict = { 'ports': {} }
+        for port_num, ip, mac in interface_list:
+            port_map = interface_dict['ports']
+            port = '{}/{}'.format(cls.relay_device_id, port_num)
+            port_map[port] = { 'interfaces': [] }
+            interface_list = port_map[port]['interfaces']
+            interface_map = { 'ips' : [ '{}/{}'.format(ip, 24) ],
+                              'mac' : mac,
+                              'name': 'vir-{}'.format(port_num)
+                            }
+            interface_list.append(interface_map)
+
+        cls.onos_load_config(interface_dict)
+
+    @classmethod
+    def onos_dhcp_relay_load(cls, server_ip, server_mac):
         relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
         dhcp_dict = {'apps':{'org.onosproject.dhcp-relay':{'dhcprelay':
-                                                          {'dhcpserverConnectPoint':relay_device_map}}}}
+                                                          {'dhcpserverConnectPoint':relay_device_map,
+                                                           'serverip':server_ip,
+                                                           'servermac':server_mac
+                                                           }
+                                                           }
+                             }
+                     }
         cls.onos_load_config(dhcp_dict)
+
+    @classmethod
+    def get_host_ip(cls, port):
+        if cls.host_ip_map.has_key(port):
+            return cls.host_ip_map[port]
+        cls.host_ip_map[port] = '192.168.1.{}'.format(port)
+        return cls.host_ip_map[port]
 
     @classmethod
     def host_load(cls, iface):
@@ -167,8 +211,11 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
         #now configure the dhcpd interfaces for various subnets
         index = 0
+        intf_info = []
         for ip,_ in subnet:
             intf = intf_list[index]
+            mac = cls.get_mac(intf)
+            intf_info.append((ip, mac))
             index += 1
             os.system('ifconfig {} {}'.format(intf, ip))
 
@@ -180,6 +227,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         time.sleep(3)
         cls.relay_interfaces_last = cls.relay_interfaces
         cls.relay_interfaces = intf_list
+        cls.onos_dhcp_relay_load(*intf_info[0])
 
     @classmethod
     def dhcpd_stop(cls):
@@ -189,11 +237,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
         cls.relay_interfaces = cls.relay_interfaces_last
 
-    def get_mac(self, iface):
-        if self.interface_to_mac_map.has_key(iface):
-            return self.interface_to_mac_map[iface]
+    @classmethod
+    def get_mac(cls, iface):
+        if cls.interface_to_mac_map.has_key(iface):
+            return cls.interface_to_mac_map[iface]
         mac = get_mac(iface, pad = 0)
-        self.interface_to_mac_map[iface] = mac
+        cls.interface_to_mac_map[iface] = mac
         return mac
 
     def stats(self,success_rate = False, only_discover = False, iface = 'veth0'):
