@@ -422,7 +422,7 @@ RUN useradd -M quagga
 RUN mkdir /var/log/quagga && chown quagga:quagga /var/log/quagga
 RUN mkdir /var/run/quagga && chown quagga:quagga /var/run/quagga
 RUN apt-get update && apt-get install -qy git autoconf libtool gawk make telnet libreadline6-dev
-RUN git clone git://git.sv.gnu.org/quagga.git quagga && \
+RUN git clone git://git.savannah.nongnu.org/quagga.git quagga && \
 (cd quagga && git checkout HEAD && ./bootstrap.sh && \
 sed -i -r 's,htonl.*?\(INADDR_LOOPBACK\),inet_addr\("{0}"\),g' zebra/zebra_fpm.c && \
 ./configure --enable-fpm --disable-doc --localstatedir=/var/run/quagga && make && make install)
