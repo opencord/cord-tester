@@ -40,12 +40,13 @@ class CordTester(Container):
     IMAGE = 'cord-test/nose'
     ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber', 'cordSubscriber', 'vrouter', 'flows', 'proxyarp', 'acl')
 
-    def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None, image = IMAGE, tag = 'latest',
+    def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None,
+                 name = '', image = IMAGE, tag = 'latest',
                  env = None, rm = False, update = False):
         self.tests = tests
         self.ctlr_ip = ctlr_ip
         self.rm = rm
-        self.name = self.get_name()
+        self.name = name or self.get_name()
         super(CordTester, self).__init__(self.name, image = image, tag = tag)
         host_config = self.create_host_config(host_guest_map = self.host_guest_map, privileged = True)
         volumes = []
@@ -53,8 +54,13 @@ class CordTester(Container):
             volumes.append(g)
         if update is True or not self.img_exists():
             self.build_image(image)
-        ##Remove test container if any
-        self.remove_container(self.name, force=True)
+        self.create = True
+        #check if are trying to run tests on existing container
+        if not name or not self.exists():
+            ##Remove test container if any
+            self.remove_container(self.name, force=True)
+        else:
+            self.create = False
         self.olt = False
         if env is not None and env.has_key('OLT_CONFIG'):
             self.olt = True
@@ -71,9 +77,10 @@ class CordTester(Container):
             env['TEST_HOST'] = self.name
             env['TEST_INSTANCE'] = instance
             env['TEST_INSTANCES'] = num_instances
-        print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
-        self.start(rm = False, volumes = volumes, environment = env,
-                   host_config = host_config, tty = True)
+        if self.create:
+            print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
+            self.start(rm = False, volumes = volumes, environment = env,
+                       host_config = host_config, tty = True)
 
     def execute_switch(self, cmd, shell = False):
         if self.olt:
@@ -270,6 +277,7 @@ CMD ["/bin/bash"]
             cmd = 'nosetests -v --collect-only {0}/../{1}/{2}'.format(cls.tester_base, test, test_file)
             os.system(cmd)
 
+
 ##default onos/radius/test container images and names
 onos_image_default='onosproject/onos:latest'
 nose_image_default= '{}:latest'.format(CordTester.IMAGE)
@@ -360,6 +368,11 @@ def runTest(args):
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
+    if args.num_containers > 1 and args.container:
+        print('Cannot specify number of containers with container option')
+        sys.exit(1)
+    if args.container:
+        args.keep = True
     port_num = 0
     num_tests = len(tests_parallel)
     tests_per_container = max(1, num_tests/args.num_containers)
@@ -371,7 +384,8 @@ def runTest(args):
     for container in range(num_test_containers):
         test_cnt = CordTester(tests_parallel[test_slice_start:test_slice_end],
                               instance = container, num_instances = num_test_containers,
-                              ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
+                              ctlr_ip = onos_ip,
+                              name = args.container, image = nose_cnt['image'], tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False if args.keep else True,
                               update = update_map['test'])
@@ -379,9 +393,11 @@ def runTest(args):
         test_slice_end = test_slice_start + tests_per_container
         update_map['test'] = False
         test_containers.append(test_cnt)
-        if args.start_switch or not args.olt:
+        if not test_cnt.create:
+            continue
+        if test_cnt.create and (args.start_switch or not args.olt):
             test_cnt.start_switch()
-        if test_cnt.olt:
+        if test_cnt.create and test_cnt.olt:
             _, port_num = test_cnt.setup_intfs(port_num = port_num)
 
     thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
@@ -392,13 +408,14 @@ def runTest(args):
     ##Run the linear tests
     if tests_not_parallel:
         test_cnt = CordTester(tests_not_parallel,
-                              ctlr_ip = onos_ip, image = nose_cnt['image'], tag = nose_cnt['tag'],
+                              ctlr_ip = onos_ip,
+                              name = args.container, image = nose_cnt['image'], tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False if args.keep else True,
                               update = update_map['test'])
-        if args.start_switch or not args.olt:
+        if test_cnt.create and (args.start_switch or not args.olt):
             test_cnt.start_switch()
-        if test_cnt.olt:
+        if test_cnt.create and test_cnt.olt:
             test_cnt.setup_intfs(port_num = port_num)
         test_cnt.run_tests()
 
@@ -577,6 +594,7 @@ if __name__ == '__main__':
                         '    --update=all to rebuild all cord tester images.')
     parser_run.add_argument('-n', '--num-containers', default=1, type=int,
                             help='Specify number of test containers to spawn for tests')
+    parser_run.add_argument('-c', '--container', default='', type=str, help='Test container name for running tests')
     parser_run.set_defaults(func=runTest)
 
 

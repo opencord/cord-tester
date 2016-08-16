@@ -19,7 +19,7 @@ from subscriberDb import SubscriberDB
 from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
-from CordTestServer import cord_test_onos_restart
+from CordTestServer import cord_test_onos_restart, cord_test_shell
 
 log.setLevel('INFO')
 
@@ -122,6 +122,10 @@ class Subscriber(Channels):
             log.info('Subscriber %s on port %s receiving from group %s, channel %d' %
                      (self.name, self.rx_intf, self.gaddr(chan), chan))
             r = self.recv(chan, cb = cb, count = count, timeout = timeout)
+            if len(r) == 0:
+                  log.info('Subscriber %s on port %s timed out' %(self.name, self.rx_intf))
+            else:
+                  log.info('Subscriber %s on port %s received %d packets' %(self.name, self.rx_intf, len(r)))
             if self.recv_timeout:
                   ##Negative test case is disabled for now
                   assert_equal(len(r), 0)
@@ -156,7 +160,7 @@ class subscriber_pool:
                            self.test_status = True
                            log.info('This service is failed and other services will not run for this subscriber')
                            break
-            log.info('This Subscriber is tested for multiple service elgibility ')
+            log.info('This Subscriber is tested for multiple service eligibility ')
             self.test_status = True
 
 
@@ -164,6 +168,7 @@ class subscriber_exchange(unittest.TestCase):
 
       apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
       olt_apps = () #'org.opencord.cordmcast')
+      vtn_app = 'org.opencord.vtn'
       table_app = 'org.ciena.cordigmp'
       dhcp_server_config = {
         "ip": "10.1.11.50",
@@ -301,6 +306,8 @@ yg==
             log.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
             OnosCtrl.install_app(cls.table_app_file)
             time.sleep(3)
+            onos_ctrl = OnosCtrl(cls.vtn_app)
+            onos_ctrl.deactivate()
 
       @classmethod
       def uninstall_app_table(cls):
@@ -309,6 +316,8 @@ yg==
             time.sleep(2)
             log.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
             OnosCtrl.install_app(cls.app_file)
+            onos_ctrl = OnosCtrl(cls.vtn_app)
+            onos_ctrl.activate()
 
       @classmethod
       def start_onos(cls, network_cfg = None):
@@ -351,6 +360,16 @@ yg==
             ret = os.system(ovs_file)
             assert_equal(ret, 0)
             time.sleep(30)
+
+      @classmethod
+      def ovs_cleanup(cls):
+            ##For every test case, delete all the OVS groups
+            cmd = 'ovs-ofctl del-groups br-int -OOpenFlow11 >/dev/null 2>&1'
+            cord_test_shell(cmd)
+            ##Since olt config is used for this test, we just fire a careless local cmd as well
+            try:
+                  os.system(cmd)
+            except: pass
 
       def onos_aaa_load(self):
             if self.aaa_loaded:
@@ -418,6 +437,7 @@ yg==
                   else:
                         log.info('GET request from %s succeeded for subscriber %s'
                                  %(url, subscriber.name))
+                  return self.test_status
 
       def tls_verify(self, subscriber):
             if subscriber.has_service('TLS'):
@@ -556,8 +576,8 @@ yg==
 
       def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1,
                                   channel_start = 0, cbs = None, port_list = [], negative_subscriber_auth = None):
-
           self.test_status = False
+          self.ovs_cleanup()
           subscribers_count = num_subscribers
           sub_loop_count =  num_subscribers
           self.subscriber_load(create = True, num = num_subscribers,

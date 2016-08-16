@@ -89,8 +89,17 @@ class CordTestServer(object):
             ret = os.system(exec_cmd)
         return ret
 
+    def __run_shell(self, cmd = None):
+        ret = 0
+        if cmd is not None:
+            ret = os.system(cmd)
+        return ret
+
     def run_shell_quagga(self, kwargs):
         return self.__run_shell_quagga(**kwargs)
+
+    def run_shell(self, kwargs):
+        return self.__run_shell(**kwargs)
 
     def restart_radius(self):
         print('Restarting RADIUS Server')
@@ -165,6 +174,15 @@ def __cord_test_quagga_shell(**kwargs):
 def cord_test_quagga_shell(cmd = None):
     '''Send QUAGGA shell cmd to server'''
     return __cord_test_quagga_shell(cmd = cmd)
+
+@nottest
+def __cord_test_shell(**kwargs):
+    return rpc_server_instance().run_shell(kwargs)
+
+@nottest
+def cord_test_shell(cmd = None):
+    '''Send shell cmd to run remotely'''
+    return __cord_test_shell(cmd = cmd)
 
 @nottest
 def cord_test_quagga_stop():

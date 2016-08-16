@@ -9,7 +9,7 @@ if [ x"$controller" = "x" ]; then
 fi
 pkill -9 ofdatapath
 pkill -9 ofprotocol
-service openvswitch-switch start
+service openvswitch-switch restart
 echo "Configuring ovs bridge $bridge"
 ovs-vsctl del-br $bridge
 ovs-vsctl add-br $bridge
