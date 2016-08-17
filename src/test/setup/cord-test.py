@@ -302,7 +302,7 @@ def runTest(args):
 
     test_containers = []
     #These tests end up restarting ONOS/quagga/radius
-    tests_exempt = ('vrouter', 'cordSubscriber', 'proxyarp')
+    tests_exempt = ('vrouter', 'cordSubscriber', 'proxyarp', 'dhcprelay')
     if args.test_type.lower() == 'all':
         tests = CordTester.ALL_TESTS
         args.quagga = True
@@ -362,7 +362,7 @@ def runTest(args):
                      'QUAGGA_IP': test_host,
                      'CORD_TEST_HOST' : test_host,
                      'CORD_TEST_PORT' : test_port,
-                     'ONOS_RESTART_DISABLED' : 1 if args.olt and args.test_controller else 0,
+                     'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
                    }
     if args.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
@@ -398,6 +398,7 @@ def runTest(args):
         if test_cnt.create and (args.start_switch or not args.olt):
             test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
+            print('Test container create with port num: %d' %port_num)
             _, port_num = test_cnt.setup_intfs(port_num = port_num)
 
     thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
@@ -504,7 +505,7 @@ def setupCordTester(args):
                          'QUAGGA_IP': ip,
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
-                         'ONOS_RESTART_DISABLED' : 1 if args.olt and args.test_controller else 0,
+                         'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
                        }
         if args.olt:
             olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')

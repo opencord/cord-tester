@@ -23,6 +23,7 @@ import os, sys
 from DHCP import DHCPTest
 from OnosCtrl import OnosCtrl, get_mac
 from OltConfig import OltConfig
+from CordTestServer import cord_test_onos_restart
 from portmaps import g_subscriber_port_map
 import threading, random
 from threading import current_thread
@@ -64,6 +65,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     running_time = 0
     total_success = 0
     total_failure = 0
+    #just in case we want to reset ONOS to default network cfg after relay tests
+    onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
 
     @classmethod
     def setUpClass(cls):
@@ -87,6 +90,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         except: pass
         cls.onos_ctrl.deactivate()
         cls.dhcpd_stop()
+        cls.dhcp_relay_cleanup()
 
     @classmethod
     def dhcp_relay_setup(cls):
@@ -115,6 +119,13 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                 interface_list.append((port_num, ip, mac))
 
             cls.onos_interface_load(interface_list)
+
+    @classmethod
+    def dhcp_relay_cleanup(cls):
+        ##reset the ONOS port configuration back to default
+        if cls.onos_restartable is True:
+            log.info('Cleaning up dhcp relay config by restarting ONOS with default network cfg')
+            return cord_test_onos_restart(config = {})
 
     @classmethod
     def onos_load_config(cls, config):

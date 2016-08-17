@@ -196,7 +196,7 @@ class subscriber_exchange(unittest.TestCase):
       num_subscribers = 0
       num_channels = 0
       recv_timeout = False
-      onos_restartable = not bool(int(os.getenv('ONOS_RESTART_DISABLED', 0)))
+      onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
 
       INTF_TX_DEFAULT = 'veth2'
       INTF_RX_DEFAULT = 'veth0'
