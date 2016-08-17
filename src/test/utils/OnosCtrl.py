@@ -52,7 +52,7 @@ class OnosCtrl:
 
     @classmethod
     def config(cls, config):
-        if config:
+        if config is not None:
             json_data = json.dumps(config)
             resp = requests.post(cls.cfg_url, auth = cls.auth, data = json_data)
             return resp.ok, resp.status_code

@@ -92,6 +92,7 @@ line vty
     def tearDownClass(cls):
         '''Deactivate the vrouter apps'''
         #cls.vrouter_host_unload()
+        cls.start_onos(network_cfg = {})
 
     @classmethod
     def load_device_id(cls):
