@@ -274,11 +274,22 @@ class Onos(Container):
                        ('vtn', '1.0-SNAPSHOT'),
                        )
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
-    host_config_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup/onos-config')
+    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
+    host_config_dir = os.path.join(setup_dir, 'onos-config')
     guest_config_dir = '/root/onos/config'
+    onos_gen_partitions = os.path.join(setup_dir, 'onos-gen-partitions')
     cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')
     host_guest_map = ( (host_config_dir, guest_config_dir), )
     NAME = 'cord-onos'
+    ##the ip of ONOS in default cluster.json in setup/onos-config
+    CLUSTER_CFG_IP = '172.17.0.2'
+
+    @classmethod
+    def onos_generate_cluster_cfg(cls, ip):
+        try:
+            cmd = '{} {}/cluster.json {}'.format(cls.onos_gen_partitions, cls.host_config_dir, ip)
+            os.system(cmd)
+        except: pass
 
     def __init__(self, name = NAME, image = 'onosproject/onos', tag = 'latest',
                  boot_delay = 60, restart = False, network_cfg = None):
@@ -309,6 +320,20 @@ class Onos(Container):
             print('Starting ONOS container %s' %self.name)
             self.start(ports = self.ports, environment = self.env,
                        host_config = host_config, volumes = volumes, tty = True)
+            if not restart:
+                ##wait a bit before fetching IP to regenerate cluster cfg
+                time.sleep(5)
+                ip = self.ip()
+                ##Just a quick hack/check to ensure we don't regenerate in the common case.
+                ##As ONOS is usually the first test container that is started
+                if ip != self.CLUSTER_CFG_IP:
+                    print('Regenerating ONOS cluster cfg for ip %s' %ip)
+                    self.onos_generate_cluster_cfg(ip)
+                    self.kill()
+                    self.remove_container(self.name, force=True)
+                    print('Restarting ONOS container %s' %self.name)
+                    self.start(ports = self.ports, environment = self.env,
+                               host_config = host_config, volumes = volumes, tty = True)
             print('Waiting %d seconds for ONOS to boot' %(boot_delay))
             time.sleep(boot_delay)
 
