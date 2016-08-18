@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,11 +40,17 @@ class OltConfig:
             port_map = {}
             if self.olt_conf['port_map'].has_key('ports'):
                 port_map['ports'] = self.olt_conf['port_map']['ports']
+                num_ports = len(port_map['ports'])
             else:
                 port_map['ports'] = []
                 num_ports = int(self.olt_conf['port_map']['num_ports'])
                 for port in xrange(0, num_ports*2, 2):
                     port_map['ports'].append('veth{}'.format(port))
+            ##also add dhcprelay ports. We add as many relay ports as subscriber ports
+            relay_ports = num_ports
+            port_map['relay_ports'] = []
+            for port in xrange(relay_ports*2, relay_ports*4, 2):
+                port_map['relay_ports'].append('veth{}'.format(port))
             port_num = 1
             port_map['uplink'] = int(self.olt_conf['uplink'])
             port_map['wan'] = None
@@ -58,6 +64,11 @@ class OltConfig:
                 if port_num != port_map['uplink']:
                     ##create tx,rx map
                     port_list.append( (port_map['uplink'], port_num ) )
+                port_num += 1
+            ##build the port and inverse map for relay ports
+            for port in port_map['relay_ports']:
+                port_map[port_num] = port
+                port_map[port] = port_num
                 port_num += 1
             port_map['start_vlan'] = 0
             if self.olt_conf['port_map'].has_key('host'):

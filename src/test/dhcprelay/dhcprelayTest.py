@@ -99,7 +99,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, _ = cls.olt.olt_port_map()
         if cls.port_map:
-            cls.relay_interface_port = cls.port_map['uplink']
+            ##Per subscriber, we use 1 relay port
+            try:
+                relay_port = cls.port_map[cls.port_map['relay_ports'][0]]
+            except:
+                relay_port = cls.port_map['uplink']
+            cls.relay_interface_port = relay_port
             cls.relay_interfaces = (cls.port_map[cls.relay_interface_port],)
         else:
             cls.relay_interface_port = 100
@@ -111,13 +116,15 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             for port in cls.port_map['ports']:
                 port_num = cls.port_map[port]
                 if port_num == cls.port_map['uplink']:
-                    ##configure the dhcp server virtual interface on the same subnet as client interface
-                    ip = cls.get_host_ip(1)
-                else:
-                    ip = cls.get_host_ip(port_num)
+                    continue
+                ip = cls.get_host_ip(port_num)
                 mac = cls.get_mac(port)
                 interface_list.append((port_num, ip, mac))
 
+            #configure dhcp server virtual interface on the same subnet as first client interface
+            relay_ip = cls.get_host_ip(interface_list[0][0])
+            relay_mac = cls.get_mac(cls.port_map[cls.relay_interface_port])
+            interface_list.append((cls.relay_interface_port, relay_ip, relay_mac))
             cls.onos_interface_load(interface_list)
 
     @classmethod

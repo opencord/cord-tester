@@ -37,6 +37,7 @@ class CordTester(Container):
                        ('/var/run/docker.sock', '/var/run/docker.sock')
                        )
     basename = 'cord-tester'
+    switch_on_olt = False
     IMAGE = 'cord-test/nose'
     ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber', 'cordSubscriber', 'vrouter', 'flows', 'proxyarp', 'acl')
 
@@ -93,6 +94,9 @@ class CordTester(Container):
         s_file,s_sandbox = ('of-bridge-local.sh',self.tester_base) if self.olt else ('of-bridge.sh',self.sandbox_setup)
         ovs_cmd = os.path.join(s_sandbox, s_file) + ' {0}'.format(self.switch)
         if self.olt:
+            if CordTester.switch_on_olt is True:
+                return
+            CordTester.switch_on_olt = True
             ovs_cmd += ' {0}'.format(self.ctlr_ip)
             print('Starting OVS on the host')
         else:
@@ -126,7 +130,8 @@ class CordTester(Container):
         start_vlan += port_num
         uplink = self.port_map['uplink']
         wan = self.port_map['wan']
-        for port in self.port_map['ports']:
+        port_list = self.port_map['ports'] + self.port_map['relay_ports']
+        for port in port_list:
             guest_if = port
             local_if = '{0}_{1}'.format(guest_if, port_num+1)
             guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
@@ -398,7 +403,6 @@ def runTest(args):
         if test_cnt.create and (args.start_switch or not args.olt):
             test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
-            print('Test container create with port num: %d' %port_num)
             _, port_num = test_cnt.setup_intfs(port_num = port_num)
 
     thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
@@ -415,6 +419,8 @@ def runTest(args):
                               rm = False if args.keep else True,
                               update = update_map['test'])
         if test_cnt.create and (args.start_switch or not args.olt):
+            #For non parallel tests, we just restart the switch also for OLT's
+            CordTester.switch_on_olt = False
             test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
             test_cnt.setup_intfs(port_num = port_num)
