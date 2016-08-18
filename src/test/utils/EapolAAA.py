@@ -55,11 +55,17 @@ class EapolPacket(object):
         self.s = None
         self.max_recv_size = 1600
 
-    def setup(self):
+    def setup(self,src_mac = 'default'):
         self.s = socket(AF_PACKET, SOCK_RAW, htons(ETHERTYPE_PAE))
         self.s.bind((self.intf, ETHERTYPE_PAE))
         self.mymac = self.s.getsockname()[4]
-        self.llheader = Ether(dst = PAE_GROUP_ADDR, src = self.mymac, type = ETHERTYPE_PAE)
+        if src_mac is 'bcast': src_mac = 'ff:ff:ff:ff:ff:ff'
+        if src_mac is 'mcast': src_mac = '01:80:C2:00:00:03'
+        if src_mac is 'zeros': src_mac = '00:00:00:00:00:00'
+        if src_mac is 'default': src_mac = self.mymac
+        self.llheader = Ether(dst = PAE_GROUP_ADDR, src = src_mac, type = ETHERTYPE_PAE)
+	log.info('llheader packet is %s'%self.llheader.show())
+	log.info('source mac of  packet is %s'%src_mac)
         self.recv_sock = L2Socket(iface = self.intf, type = ETHERTYPE_PAE)
 
     def cleanup(self):

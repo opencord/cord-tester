@@ -183,6 +183,11 @@ class Container(object):
             res += 0 if result['ExitCode'] == None else result['ExitCode']
         return res
 
+    def restart(self, container = 'cord-radius', timeout =10):
+        print('Restarting container: by default radius container', self.name)
+        ctn = self.dckr.restart(container, timeout)
+        return ctn
+
 def get_mem():
     with open('/proc/meminfo', 'r') as fd:
         meminfo = fd.readlines()
