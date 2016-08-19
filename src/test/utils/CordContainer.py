@@ -183,6 +183,9 @@ class Container(object):
             res += 0 if result['ExitCode'] == None else result['ExitCode']
         return res
 
+    def restart(self, timeout =10):
+        return self.dckr.restart(self.name, timeout)
+
 def get_mem():
     with open('/proc/meminfo', 'r') as fd:
         meminfo = fd.readlines()

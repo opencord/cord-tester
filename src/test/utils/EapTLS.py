@@ -21,11 +21,14 @@ from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
 from tls_cert import Key
 from socket import *
+from CordTestServer import cord_test_radius_restart
 import struct
 import scapy
 from nose.tools import *
 from CordTestBase import CordTester
+from CordContainer import *
 import re
+import time
 
 log.setLevel('INFO')
 
@@ -121,15 +124,49 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
 
     def handle_server_hello_done(self, server_hello_done):
         if server_hello_done[-4:] == self.server_hello_done_signature:
+	    log.info('server hello received')
             self.server_hello_done_received = True
 
-    def __init__(self, intf = 'veth0', client_cert = None, client_priv_key = None, fail_cb = None):
+    def __init__(self, intf = 'veth0', client_cert = None, client_priv_key = None,
+                 fail_cb = None, src_mac='default', version = "TLS_1_0", session_id = '',
+                 session_id_length = None, gmt_unix_time=1234, invalid_content_type = 22,
+                 record_fragment_length = None, cipher_suites_length = None,
+                 compression_methods_length = None, compression_methods = TLSCompressionMethod.NULL,
+                 CipherSuite = True, cipher_suite = 'RSA_WITH_AES_256_CBC_SHA', id_mismatch_in_identifier_response_packet = False,
+                 id_mismatch_in_client_hello_packet = False , dont_send_client_certificate = False,
+                 dont_send_client_hello = False, restart_radius = False, invalid_client_hello_handshake_type = False,
+                 invalid_cert_req_handshake = False, incorrect_tlsrecord_type_cert_req = False,
+                 invalid_client_hello_handshake_length = False, clientkeyex_replace_with_serverkeyex = False):
+
         self.fsmTable = tlsAuthHolder.initTlsAuthHolderFsmTable(self, self.tlsStateTable, self.tlsEventTable)
         EapolPacket.__init__(self, intf)
         CordTester.__init__(self, self.fsmTable, self.tlsStateTable.ST_EAP_TLS_DONE)
                             #self.tlsStateTable, self.tlsEventTable)
         self.currentState = self.tlsStateTable.ST_EAP_SETUP
         self.currentEvent = self.tlsEventTable.EVT_EAP_SETUP
+	self.src_mac = src_mac
+	self.version = version
+        self.session_id_length = session_id_length
+        self.session_id = session_id
+        self.gmt_unix_time = gmt_unix_time
+        self.invalid_content_type = invalid_content_type
+        self.CipherSuite = CipherSuite
+        self.cipher_suites_length = cipher_suites_length
+        self.compression_methods_length = compression_methods_length
+        self.cipher_suite = cipher_suite
+        self.compression_methods_length = compression_methods_length
+        self.compression_methods = compression_methods
+        self.record_fragment_length = record_fragment_length
+	self.invalid_client_hello_handshake_type = invalid_client_hello_handshake_type
+	self.invalid_client_hello_handshake_length = invalid_client_hello_handshake_length
+	self.invalid_cert_req_handshake = invalid_cert_req_handshake
+        self.id_mismatch_in_identifier_response_packet = id_mismatch_in_identifier_response_packet
+        self.id_mismatch_in_client_hello_packet = id_mismatch_in_client_hello_packet
+        self.dont_send_client_certificate = dont_send_client_certificate
+        self.dont_send_client_hello = dont_send_client_hello
+	self.incorrect_tlsrecord_type_cert_req = incorrect_tlsrecord_type_cert_req
+	self.restart_radius = restart_radius
+	self.clientkeyex_replace_with_serverkeyex = clientkeyex_replace_with_serverkeyex
         self.nextState = None
         self.nextEvent = None
         self.pending_bytes = 0 #for TLS fragment reassembly
@@ -145,7 +182,10 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
                          self.SERVER_HELLO_DONE: ['', '', self.handle_server_hello_done ],
                          self.SERVER_UNKNOWN: ['', '', lambda pkt: pkt ]
                        }
-        self.tls_ctx = TLSSessionCtx(client = True)
+	if self.clientkeyex_replace_with_serverkeyex:
+            self.tls_ctx = TLSSessionCtx(client = False)
+	else:
+	    self.tls_ctx = TLSSessionCtx(client = True)
         self.client_cert = self.CLIENT_CERT if client_cert is None else client_cert
         self.client_priv_key = self.CLIENT_PRIV_KEY if client_priv_key is None else client_priv_key
         self.failTest = False
@@ -179,6 +219,7 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
 
     def tlsFail(self):
         ##Force a failure
+	log.info('entering into testFail funciton')
         self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_FINISHED
         self.nextState = self.tlsStateTable.ST_EAP_TLS_FINISHED
         self.failTest = True
@@ -240,10 +281,15 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
             self.eapol_send(EAPOL_EAPPACKET, eap_payload)
 
     def _eapSetup(self):
-        self.setup()
+	#if self.src_mac == 'bcast':self.setup(src_mac='bcast')
+	#if self.src_mac == 'mcast': self.setup(src_mac='mcast')
+	#if self.src_mac == 'zeros': self.setup(src_mac='zeros')
+	#if self.src_mac == 'default': self.setup(src_mac='default')
+	self.setup(src_mac=self.src_mac)
         self.nextEvent = self.tlsEventTable.EVT_EAP_START
 
     def _eapStart(self):
+	log.info('_eapStart method started')
         self.eapol_start()
         self.nextEvent = self.tlsEventTable.EVT_EAP_ID_REQ
 
@@ -268,20 +314,44 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
 
         def eapol_cb(pkt):
                 log.info('Got hello request for id %d', pkt[EAP].id)
-                self.client_hello = TLSClientHello(version="TLS_1_0",
-                                                   gmt_unix_time=1234,
+                self.client_hello = TLSClientHello(version= self.version,
+                                                   gmt_unix_time=self.gmt_unix_time,
                                                    random_bytes= '\xAB' * 28,
-                                                   session_id='',
-                                                   compression_methods=[TLSCompressionMethod.NULL],
-                                                   cipher_suites=[TLSCipherSuite.RSA_WITH_AES_256_CBC_SHA]
+                                                   session_id_length = self.session_id_length,
+                                                   session_id= self.session_id,
+                                                   compression_methods_length = self.compression_methods_length,
+                                                   compression_methods= self.compression_methods,
+                                                   cipher_suites_length = self.cipher_suites_length,
+                                                   cipher_suites=[self.cipher_suite]
                                                    )
-                client_hello_data = TLSHandshake()/self.client_hello
+		if self.invalid_client_hello_handshake_type:
+		    log.info('sending server_hello instead of client_hello handshape type in client hello packet')
+		    client_hello_data = TLSHandshake(type='server_hello')/self.client_hello
+		elif self.invalid_client_hello_handshake_length:
+		    log.info('sending TLS Handshake message with zero length field in client hello packet')
+		    client_hello_data = TLSHandshake(length=0)/self.client_hello
+		else:
+		    client_hello_data = TLSHandshake()/self.client_hello
+                #client_hello_data = TLSHandshake()/self.client_hello
                 self.pkt_history.append( str(client_hello_data) )
-                reqdata = TLSRecord()/client_hello_data
+		if self.record_fragment_length:
+                    reqdata = TLSRecord(length=self.record_fragment_length)/client_hello_data
+		else:
+		    reqdata = TLSRecord()/client_hello_data
                 self.load_tls_record(str(reqdata))
                 log.info("Sending Client Hello TLS payload of len %d, id %d" %(len(reqdata),pkt[EAP].id))
-                eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
-                self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+		if self.id_mismatch_in_client_hello_packet:
+                    log.info('\nsending invalid id field in client hello packet')
+                    eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id+10, TLS_LENGTH_INCLUDED, str(reqdata))
+                else:
+                    eap_payload = self.eapTLS(EAP_RESPONSE, pkt[EAP].id, TLS_LENGTH_INCLUDED, str(reqdata))
+                if self.dont_send_client_hello:
+                    log.info('\nskipping client hello packet sending part')
+                    pass
+                else:
+                    self.eapol_send(EAPOL_EAPPACKET, eap_payload)
+		if self.restart_radius:
+                    cord_test_radius_restart()
 
         r = self.eapol_scapy_recv(cb = eapol_cb,
                                   lfilter =
@@ -339,7 +409,7 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
         else:
             client_certificate_list = TLSHandshake()/TLSCertificateList(certificates=[])
         client_certificate = TLSRecord(version="TLS_1_0")/client_certificate_list
-        kex_data = self.tls_ctx.get_client_kex_data()
+	kex_data = self.tls_ctx.get_client_kex_data()
         client_key_ex_data = TLSHandshake()/kex_data
         client_key_ex = TLSRecord()/client_key_ex_data
         if self.client_cert:
@@ -348,24 +418,40 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
         self.load_tls_record(str(client_key_ex))
         self.pkt_history.append(str(client_key_ex_data))
         verify_signature = self.get_verify_signature(self.client_priv_key)
-        client_cert_verify = TLSHandshake(type=TLSHandshakeType.CERTIFICATE_VERIFY)/verify_signature
-        client_cert_record = TLSRecord(content_type=TLSContentType.HANDSHAKE)/client_cert_verify
+	if self.invalid_cert_req_handshake:
+	    log.info("sending 'certificate-request' type of handshake message instead of 'certificate-verify' type")
+	    client_cert_verify = TLSHandshake(type=TLSHandshakeType.CERTIFICATE_REQUEST)/verify_signature
+	else:
+            client_cert_verify = TLSHandshake(type=TLSHandshakeType.CERTIFICATE_VERIFY)/verify_signature
+	if self.incorrect_tlsrecord_type_cert_req:
+	    log.info("sending TLS Record type as ALERT instead of HANDSHAKE in certificate request packet")
+            client_cert_record = TLSRecord(content_type=TLSContentType.ALERT)/client_cert_verify
+	else:
+	    client_cert_record = TLSRecord(content_type=TLSContentType.HANDSHAKE)/client_cert_verify
         self.pkt_history.append(str(client_cert_verify))
         #log.info('TLS ctxt: %s' %self.tls_ctx)
         client_ccs = TLSRecord(version="TLS_1_0")/TLSChangeCipherSpec()
         enc_handshake_msg = self.get_encrypted_handshake_msg()
-        handshake_msg = str(TLSRecord(content_type=TLSContentType.HANDSHAKE)/enc_handshake_msg)
+	if self.invalid_content_type:
+            handshake_msg = str(TLSRecord(content_type=self.invalid_content_type)/enc_handshake_msg)
+	else:
+	    handshake_msg = str(TLSRecord(content_type=TLSContentType.HANDSHAKE)/enc_handshake_msg)
         reqdata = str(TLS.from_records([client_certificate, client_key_ex, client_cert_record, client_ccs]))
         reqdata += handshake_msg
         log.info("------> Sending Client Hello TLS Certificate payload of len %d ----------->" %len(reqdata))
-        status = self.eapFragmentSend(EAP_RESPONSE, self.server_hello_done_eap_id, TLS_LENGTH_INCLUDED,
+	if self.dont_send_client_certificate:
+	    log.info('\nskipping sending client certificate part')
+	    pass
+	else:
+            status = self.eapFragmentSend(EAP_RESPONSE, self.server_hello_done_eap_id, TLS_LENGTH_INCLUDED,
                                       payload = reqdata, fragsize = 1024)
-        assert_equal(status, True)
-        self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_CHANGE_CIPHER_SPEC
+            assert_equal(status, True)
+            self.nextEvent = self.tlsEventTable.EVT_EAP_TLS_CHANGE_CIPHER_SPEC
 
     def _eapTlsChangeCipherSpec(self):
         def eapol_cb(pkt):
             r = str(pkt)
+	    log.info('data received in change cipher spec function is %s'%pkt.show())
             tls_data = r[self.TLS_OFFSET:]
             log.info('Verifying TLS Change Cipher spec record type %x' %ord(tls_data[0]))
             assert tls_data[0] == self.CHANGE_CIPHER
