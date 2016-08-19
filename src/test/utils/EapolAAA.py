@@ -50,16 +50,29 @@ TLS_MORE_FRAGMENTS = 0x40
 
 class EapolPacket(object):
 
+    src_mac_map = { 'bcast': 'ff:ff:ff:ff:ff:ff',
+                    'mcast': '01:80:C2:00:00:03',
+                    'zeros': '00:00:00:00:00:00',
+                    'default': None
+                    }
+
     def __init__(self, intf = 'veth0'):
         self.intf = intf
         self.s = None
         self.max_recv_size = 1600
 
-    def setup(self):
+    def setup(self, src_mac = 'default'):
         self.s = socket(AF_PACKET, SOCK_RAW, htons(ETHERTYPE_PAE))
         self.s.bind((self.intf, ETHERTYPE_PAE))
         self.mymac = self.s.getsockname()[4]
-        self.llheader = Ether(dst = PAE_GROUP_ADDR, src = self.mymac, type = ETHERTYPE_PAE)
+        mac = None
+        if self.src_mac_map.has_key(src_mac):
+            mac = self.src_mac_map[src_mac]
+        if mac is None:
+            mac = self.mymac
+        self.llheader = Ether(dst = PAE_GROUP_ADDR, src = mac, type = ETHERTYPE_PAE)
+	log.info('llheader packet is %s'%self.llheader.show())
+	log.info('source mac of  packet is %s'%mac)
         self.recv_sock = L2Socket(iface = self.intf, type = ETHERTYPE_PAE)
 
     def cleanup(self):
