@@ -1,0 +1,5 @@
+{
+  "onos"   : "172.17.0.2",
+  "radius" : "172.17.0.3",
+  "head_node"   : "cord-r6-s1.cord.lab"
+}

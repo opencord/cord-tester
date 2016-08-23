@@ -48,8 +48,14 @@ flatten = lambda l: chain.from_iterable(l)
 
 class Container(object):
     dckr = Client()
-    def __init__(self, name, image, tag = 'latest', command = 'bash', quagga_config = None):
+    IMAGE_PREFIX = '' ##for saving global prefix for all test classes
+
+    def __init__(self, name, image, prefix='', tag = 'candidate', command = 'bash', quagga_config = None):
         self.name = name
+        self.prefix = prefix
+        if prefix:
+            self.prefix += '/'
+            image = '{}{}'.format(self.prefix, image)
         self.image = image
         self.tag = tag
         if tag:
@@ -108,7 +114,7 @@ class Container(object):
         return '/{0}'.format(self.name) in list(flatten(n['Names'] for n in self.dckr.containers()))
 
     def img_exists(self):
-        return self.image_name in [ctn['RepoTags'][0] for ctn in self.dckr.images()]
+        return self.image_name[len(self.prefix):] in [ctn['RepoTags'][0] for ctn in self.dckr.images()]
 
     def ip(self):
         cnt_list = filter(lambda c: c['Image'] == self.image_name, self.dckr.containers())
@@ -286,6 +292,9 @@ class Onos(Container):
     NAME = 'cord-onos'
     ##the ip of ONOS in default cluster.json in setup/onos-config
     CLUSTER_CFG_IP = '172.17.0.2'
+    IMAGE = 'onosproject/onos'
+    TAG = 'latest'
+    PREFIX = ''
 
     @classmethod
     def onos_generate_cluster_cfg(cls, ip):
@@ -294,7 +303,7 @@ class Onos(Container):
             os.system(cmd)
         except: pass
 
-    def __init__(self, name = NAME, image = 'onosproject/onos', tag = 'latest',
+    def __init__(self, name = NAME, image = 'onosproject/onos', prefix = '', tag = 'latest',
                  boot_delay = 60, restart = False, network_cfg = None):
         if restart is True:
             ##Find the right image to restart
@@ -306,7 +315,7 @@ class Onos(Container):
                     tag = image_name.split(':')[1]
                 except: pass
 
-        super(Onos, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
+        super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.quagga_config)
         if restart is True and self.exists():
             self.kill()
         if not self.exists():
@@ -369,11 +378,11 @@ class Radius(Container):
     IMAGE = 'cord-test/radius'
     NAME = 'cord-radius'
 
-    def __init__(self, name = NAME, image = IMAGE, tag = 'latest',
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
                  boot_delay = 10, restart = False, update = False):
-        super(Radius, self).__init__(name, image, tag = tag, command = self.start_command)
+        super(Radius, self).__init__(name, image, prefix = prefix, tag = tag, command = self.start_command)
         if update is True or not self.img_exists():
-            self.build_image(image)
+            self.build_image(self.image_name)
         if restart is True and self.exists():
             self.kill()
         if not self.exists():
@@ -416,11 +425,11 @@ class Quagga(Container):
     IMAGE = 'cord-test/quagga'
     NAME = 'cord-quagga'
 
-    def __init__(self, name = NAME, image = IMAGE, tag = 'latest',
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
                  boot_delay = 15, restart = False, config_file = quagga_config_file, update = False):
-        super(Quagga, self).__init__(name, image, tag = tag, quagga_config = self.quagga_config)
+        super(Quagga, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.quagga_config)
         if update is True or not self.img_exists():
-            self.build_image(image)
+            self.build_image(self.image_name)
         if restart is True and self.exists():
             self.kill()
         if not self.exists():

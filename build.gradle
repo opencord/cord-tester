@@ -27,6 +27,7 @@ ext {
     dockerPath = project.hasProperty('dockerPath') ? project.getProperty('dockerPath') : '/usr/bin'
 
     cordTesterImages = [ 'cord-test/radius:latest' : 'Dockerfile.radius', 'cord-test/quagga:latest' : 'Dockerfile.quagga', 'cord-test/nose:latest' : 'Dockerfile.tester' ]
+
 }
 
 // ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,8 +50,56 @@ task buildImages {
     }
 }
 
+task buildRadiusImage(type: Exec) {
+    commandLine "$dockerPath/docker", 'build', '-t', 'cord-test/radius', '-f', 'Dockerfile.radius', '.'
+}
+
+task tagRadiusImage(type: Exec) {
+   dependsOn buildRadiusImage
+   commandLine "$dockerPath/docker", 'tag', 'cord-test/radius', "$targetReg/cord-test/radius:$targetTag"
+}
+
+task publishRadiusImage(type: Exec) {
+    dependsOn tagRadiusImage
+    commandLine "$dockerPath/docker", 'push', "$targetReg/cord-test/radius:$targetTag"
+}
+
+task buildQuaggaImage(type: Exec) {
+    commandLine "$dockerPath/docker", 'build', '-t', 'cord-test/quagga', '-f', 'Dockerfile.quagga', '.'
+}
+
+task tagQuaggaImage(type: Exec) {
+   dependsOn buildQuaggaImage
+   commandLine "$dockerPath/docker", 'tag', 'cord-test/quagga', "$targetReg/cord-test/quagga:$targetTag"
+}
+
+task publishQuaggaImage(type: Exec) {
+    dependsOn tagQuaggaImage
+    commandLine "$dockerPath/docker", 'push', "$targetReg/cord-test/quagga:$targetTag"
+}
+
+task buildTesterImage(type: Exec) {
+    commandLine "$dockerPath/docker", 'build', '-t', 'cord-test/nose', '-f', 'Dockerfile.tester', '.'
+}
+
+task tagTesterImage(type: Exec) {
+   dependsOn buildTesterImage
+   commandLine "$dockerPath/docker", 'tag', 'cord-test/nose', "$targetReg/cord-test/nose:$targetTag"
+}
+
+task publishTesterImage(type: Exec) {
+    dependsOn tagTesterImage
+    commandLine "$dockerPath/docker", 'push', "$targetReg/cord-test/nose:$targetTag"
+}
+
 // Publish image(s) built during the build step into targetReg registry using the targetTag
 // tag. See maas subproject for examples on how to do this.
+task publishImages {
+     dependsOn publishTesterImage
+     dependsOn publishQuaggaImage
+     dependsOn publishRadiusImage
+}
+
 task publish {
-    println "$targetTag"
+    dependsOn publishImages
 }

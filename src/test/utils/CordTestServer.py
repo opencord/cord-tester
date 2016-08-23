@@ -30,8 +30,8 @@ CORD_TEST_HOST = '172.17.0.1'
 CORD_TEST_PORT = 25000
 
 class QuaggaStopWrapper(Container):
-    def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'latest'):
-        super(QuaggaStopWrapper, self).__init__(name, image, tag = tag)
+    def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'candidate'):
+        super(QuaggaStopWrapper, self).__init__(name, image, prefix = Container.IMAGE_PREFIX, tag = tag)
         if self.exists():
             self.kill()
 
@@ -53,7 +53,7 @@ class CordTestServer(object):
         if self.onos_cord:
             self.onos_cord.start(restart = True, network_cfg = config)
         else:
-            Onos(restart = True, network_cfg = config)
+            Onos(restart = True, network_cfg = config, image = Onos.IMAGE, tag = Onos.TAG)
         return 'DONE'
 
     def restart_onos(self, kwargs):
@@ -67,7 +67,7 @@ class CordTestServer(object):
             with open(quagga_config, 'w+') as fd:
                 fd.write(str(config))
         print('Restarting QUAGGA with config file %s, delay %d' %(config_file, boot_delay))
-        Quagga(restart = True, config_file = config_file, boot_delay = boot_delay)
+        Quagga(prefix = Container.IMAGE_PREFIX, restart = True, config_file = config_file, boot_delay = boot_delay)
         return 'DONE'
 
     def restart_quagga(self, kwargs):
@@ -103,7 +103,7 @@ class CordTestServer(object):
 
     def restart_radius(self):
         print('Restarting RADIUS Server')
-        Radius(restart = True)
+        Radius(prefix = Container.IMAGE_PREFIX, restart = True)
         return 'DONE'
 
 @nottest

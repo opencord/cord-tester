@@ -16,6 +16,7 @@
 #
 from argparse import ArgumentParser
 import os,sys,time,socket,errno
+import shutil, platform
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
 sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
@@ -23,6 +24,11 @@ from OltConfig import OltConfig
 from threadPool import ThreadPool
 from CordContainer import *
 from CordTestServer import cord_test_server_start, cord_test_server_stop, CORD_TEST_HOST, CORD_TEST_PORT
+from TestManifest import TestManifest
+try:
+    from Fabric import FabricMAAS
+except:
+    FabricMAAS = None
 
 class CordTester(Container):
     sandbox = '/root/test'
@@ -42,19 +48,19 @@ class CordTester(Container):
     ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber', 'cordSubscriber', 'vrouter', 'flows', 'proxyarp', 'acl')
 
     def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None,
-                 name = '', image = IMAGE, tag = 'latest',
+                 name = '', image = IMAGE, prefix = '', tag = 'candidate',
                  env = None, rm = False, update = False):
         self.tests = tests
         self.ctlr_ip = ctlr_ip
         self.rm = rm
         self.name = name or self.get_name()
-        super(CordTester, self).__init__(self.name, image = image, tag = tag)
+        super(CordTester, self).__init__(self.name, image = image, prefix = prefix, tag = tag)
         host_config = self.create_host_config(host_guest_map = self.host_guest_map, privileged = True)
         volumes = []
         for _, g in self.host_guest_map:
             volumes.append(g)
         if update is True or not self.img_exists():
-            self.build_image(image)
+            self.build_image(self.image_name)
         self.create = True
         #check if are trying to run tests on existing container
         if not name or not self.exists():
@@ -221,7 +227,8 @@ RUN apt-get update  && \
         unzip libpcre3-dev flex bison libboost-dev \
         python python-pip python-setuptools python-scapy tcpdump doxygen doxypy wget \
         openvswitch-common openvswitch-switch \
-        python-twisted python-sqlite sqlite3 python-pexpect telnet arping isc-dhcp-server
+        python-twisted python-sqlite sqlite3 python-pexpect telnet arping isc-dhcp-server \
+        python-paramiko python-maas-client
 RUN easy_install nose
 RUN mkdir -p /root/ovs
 WORKDIR /root
@@ -285,12 +292,27 @@ CMD ["/bin/bash"]
 
 ##default onos/radius/test container images and names
 onos_image_default='onosproject/onos:latest'
-nose_image_default= '{}:latest'.format(CordTester.IMAGE)
+nose_image_default= '{}:candidate'.format(CordTester.IMAGE)
 test_type_default='dhcp'
 onos_app_version = '2.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 cord_test_server_address = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
+identity_file_default = '/etc/maas/ansible/id_rsa'
+
+##sets up the ssh key file for the test container
+def set_ssh_key_file(identity_file):
+    ssh_key_file = None
+    if os.access(identity_file, os.F_OK):
+        ##copy it to setup directory
+        identity_dest = os.path.join(CordTester.tester_base, 'id_rsa')
+        if os.path.abspath(identity_file) != identity_dest:
+            try:
+                shutil.copy(identity_file, identity_dest)
+                ssh_key_file = os.path.join(CordTester.sandbox_setup, 'id_rsa')
+            except: pass
+
+    return ssh_key_file
 
 def runTest(args):
     #Start the cord test tcp server
@@ -317,7 +339,7 @@ def runTest(args):
     tests_parallel = [ t for t in tests if t.split(':')[0] not in tests_exempt ]
     tests_not_parallel = [ t for t in tests if t.split(':')[0] in tests_exempt ]
     onos_cnt = {'tag':'latest'}
-    nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
+    nose_cnt = {'image': CordTester.IMAGE, 'tag': 'candidate'}
     update_map = { 'quagga' : False, 'test' : False, 'radius' : False }
     update_map[args.update.lower()] = True
 
@@ -325,7 +347,25 @@ def runTest(args):
        for c in update_map.keys():
            update_map[c] = True
 
+    onos_ip = None
     radius_ip = None
+    head_node = platform.node()
+    use_manifest = False
+    if args.manifest:
+        if os.access(args.manifest, os.F_OK):
+            ##copy it to setup directory
+            dest = os.path.join(CordTester.tester_base, 'manifest.json')
+            if os.path.abspath(args.manifest) != dest:
+                try:
+                    shutil.copy(args.manifest, dest)
+                except: pass
+            test_manifest = TestManifest(dest)
+            onos_ip = test_manifest.onos_ip
+            radius_ip = test_manifest.radius_ip
+            head_node = test_manifest.head_node
+            use_manifest = True
+        else:
+            print('Unable to access test manifest: %s' %args.manifest)
 
     #don't spawn onos if the user has specified external test controller with test interface config
     if args.test_controller:
@@ -335,40 +375,68 @@ def runTest(args):
             radius_ip = ips[1]
         else:
             radius_ip = None
-    else:
-        onos_cnt['image'] = args.onos.split(':')[0]
-        if args.onos.find(':') >= 0:
-            onos_cnt['tag'] = args.onos.split(':')[1]
 
-        onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
+    Container.IMAGE_PREFIX = args.prefix
+    if onos_ip is None:
+        image_names = args.onos.rsplit(':', 1)
+        onos_cnt['image'] = image_names[0]
+        if len(image_names) > 1:
+            if image_names[1].find('/') < 0:
+                onos_cnt['tag'] = image_names[1]
+            else:
+                #tag cannot have slashes
+                onos_cnt['image'] = args.onos
+
+        Onos.IMAGE = onos_cnt['image']
+        Onos.PREFIX = args.prefix
+        Onos.TAG = onos_cnt['tag']
+        onos = Onos(image = Onos.IMAGE,
+                    tag = Onos.TAG, boot_delay = 60)
         onos_ip = onos.ip()
 
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
-    if args.test_controller:
+    if use_manifest or args.test_controller:
         print('Installing ONOS cord apps')
-        Onos.install_cord_apps(onos_ip = onos_ip)
+        try:
+            Onos.install_cord_apps(onos_ip = onos_ip)
+        except: pass
 
     print('Installing cord tester ONOS app %s' %onos_app_file)
-    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+    try:
+        OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+    except: pass
 
     if radius_ip is None:
         ##Start Radius container
-        radius = Radius( update = update_map['radius'])
+        radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'])
         radius_ip = radius.ip()
 
     print('Radius server running with IP %s' %radius_ip)
 
     if args.quagga == True:
         #Start quagga. Builds container if required
-        quagga = Quagga(update = update_map['quagga'])
+        quagga = Quagga(prefix = Container.IMAGE_PREFIX, update = update_map['quagga'])
 
+    try:
+        maas_api_key = FabricMAAS.get_api_key()
+    except:
+        maas_api_key = 'UNKNOWN'
+
+    ssh_key_file = set_ssh_key_file(args.identity_file)
     test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
                      'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
                      'QUAGGA_IP': test_host,
                      'CORD_TEST_HOST' : test_host,
                      'CORD_TEST_PORT' : test_port,
                      'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
+                     'MANIFEST': int(use_manifest),
+                     'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
+                     'MAAS_API_KEY': maas_api_key
                    }
+
+    if ssh_key_file:
+        test_cnt_env['SSH_KEY_FILE'] = ssh_key_file
+
     if args.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
@@ -390,7 +458,10 @@ def runTest(args):
         test_cnt = CordTester(tests_parallel[test_slice_start:test_slice_end],
                               instance = container, num_instances = num_test_containers,
                               ctlr_ip = onos_ip,
-                              name = args.container, image = nose_cnt['image'], tag = nose_cnt['tag'],
+                              name = args.container,
+                              image = nose_cnt['image'],
+                              prefix = Container.IMAGE_PREFIX,
+                              tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False if args.keep else True,
                               update = update_map['test'])
@@ -401,7 +472,8 @@ def runTest(args):
         if not test_cnt.create:
             continue
         if test_cnt.create and (args.start_switch or not args.olt):
-            test_cnt.start_switch()
+            if not args.no_switch:
+                test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
             _, port_num = test_cnt.setup_intfs(port_num = port_num)
 
@@ -414,14 +486,18 @@ def runTest(args):
     if tests_not_parallel:
         test_cnt = CordTester(tests_not_parallel,
                               ctlr_ip = onos_ip,
-                              name = args.container, image = nose_cnt['image'], tag = nose_cnt['tag'],
+                              name = args.container,
+                              image = nose_cnt['image'],
+                              prefix = Container.IMAGE_PREFIX,
+                              tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False if args.keep else True,
                               update = update_map['test'])
         if test_cnt.create and (args.start_switch or not args.olt):
             #For non parallel tests, we just restart the switch also for OLT's
             CordTester.switch_on_olt = False
-            test_cnt.start_switch()
+            if not args.no_switch:
+                test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
             test_cnt.setup_intfs(port_num = port_num)
         test_cnt.run_tests()
@@ -432,7 +508,7 @@ def runTest(args):
 ##Starts onos/radius/quagga containers as appropriate
 def setupCordTester(args):
     onos_cnt = {'tag':'latest'}
-    nose_cnt = {'image': CordTester.IMAGE, 'tag': 'latest'}
+    nose_cnt = {'image': CordTester.IMAGE, 'tag': 'candidate'}
     update_map = { 'quagga' : False, 'radius' : False, 'test': False }
     update_map[args.update.lower()] = True
 
@@ -452,6 +528,22 @@ def setupCordTester(args):
         #Disable test container provisioning on the ONOS compute node
         args.dont_provision = True
 
+    head_node = platform.node()
+    use_manifest = False
+    if args.manifest:
+        if os.access(args.manifest, os.F_OK):
+            ##copy it to setup directory
+            dest = os.path.join(CordTester.tester_base, 'manifest.json')
+            if os.path.abspath(args.manifest) != dest:
+                try:
+                    shutil.copy(args.manifest, dest)
+                except: pass
+            test_manifest = TestManifest(dest)
+            onos_ip = test_manifest.onos_ip
+            radius_ip = test_manifest.radius_ip
+            head_node = test_manifest.head_node
+            use_manifest = True
+
     ##If onos/radius was already started
     if args.test_controller:
         ips = args.test_controller.split('/')
@@ -469,33 +561,46 @@ def setupCordTester(args):
             sys.exit(1)
         onos_cord = OnosCord(onos_ip, onos_cord_loc)
 
+    Container.IMAGE_PREFIX = args.prefix
     #don't spawn onos if the user had started it externally
-    onos_cnt['image'] = args.onos.split(':')[0]
-    if args.onos.find(':') >= 0:
-        onos_cnt['tag'] = args.onos.split(':')[1]
+    image_names = args.onos.rsplit(':', 1)
+    onos_cnt['image'] = image_names[0]
+    if len(image_names) > 1:
+        if image_names[1].find('/') < 0:
+            onos_cnt['tag'] = image_names[1]
+        else:
+            #tag cannot have slashes
+            onos_cnt['image'] = args.onos
 
+    Onos.IMAGE = onos_cnt['image']
+    Onos.PREFIX = args.prefix
+    Onos.TAG = onos_cnt['tag']
     if onos_ip is None:
-        onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'], boot_delay = 60)
+        onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60)
         onos_ip = onos.ip()
 
     print('Onos IP %s' %onos_ip)
-    if args.test_controller:
+    if use_manifest or args.test_controller:
         print('Installing ONOS cord apps')
-        Onos.install_cord_apps(onos_ip = onos_ip)
+        try:
+            Onos.install_cord_apps(onos_ip = onos_ip)
+        except: pass
 
     print('Installing cord tester ONOS app %s' %onos_app_file)
-    OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+    try:
+        OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+    except: pass
 
     ##Start Radius container if not started
     if radius_ip is None:
-        radius = Radius( update = update_map['radius'])
+        radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'])
         radius_ip = radius.ip()
 
     print('Radius server running with IP %s' %radius_ip)
 
     if args.quagga == True:
         #Start quagga. Builds container if required
-        quagga = Quagga(update = update_map['quagga'])
+        quagga = Quagga(prefix = Container.IMAGE_PREFIX, update = update_map['quagga'])
         print('Quagga started')
 
     params = args.server.split(':')
@@ -503,6 +608,13 @@ def setupCordTester(args):
     port = CORD_TEST_PORT
     if len(params) > 1:
         port = int(params[1])
+
+    try:
+        maas_api_key = FabricMAAS.get_api_key()
+    except:
+        maas_api_key = 'UNKNOWN'
+
+    ssh_key_file = set_ssh_key_file(args.identity_file)
 
     #provision the test container
     if not args.dont_provision:
@@ -512,7 +624,13 @@ def setupCordTester(args):
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
                          'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
+                         'MANIFEST': int(use_manifest),
+                         'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
+                         'MAAS_API_KEY': maas_api_key
                        }
+
+        if ssh_key_file:
+            test_cnt_env['SSH_KEY_FILE'] = ssh_key_file
         if args.olt:
             olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
             test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
@@ -520,6 +638,7 @@ def setupCordTester(args):
         test_cnt = CordTester((),
                               ctlr_ip = onos_ip,
                               image = nose_cnt['image'],
+                              prefix = Container.IMAGE_PREFIX,
                               tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False,
@@ -540,7 +659,10 @@ def setupCordTester(args):
         sys.exit(0)
 
 def cleanupTests(args):
-    test_container = '{}:latest'.format(CordTester.IMAGE)
+    prefix = args.prefix
+    if prefix:
+        prefix += '/'
+    test_container = '{}{}:candidate'.format(prefix, CordTester.IMAGE)
     print('Cleaning up Test containers ...')
     Container.cleanup(test_container)
     if args.olt:
@@ -555,28 +677,44 @@ def listTests(args):
     CordTester.list_tests(tests)
 
 def buildImages(args):
+    tag = 'candidate'
+    prefix = args.prefix
+    if prefix:
+        prefix += '/'
     if args.image == 'all' or args.image == 'quagga':
-        Quagga.build_image(Quagga.IMAGE)
+        image_name = '{}{}:{}'.format(prefix, Quagga.IMAGE, tag)
+        Quagga.build_image(image_name)
 
     if args.image == 'all' or args.image == 'radius':
-        Radius.build_image(Radius.IMAGE)
+        image_name = '{}{}:{}'.format(prefix, Radius.IMAGE, tag)
+        Radius.build_image(image_name)
 
     if args.image == 'all' or args.image == 'test':
-        CordTester.build_image(CordTester.IMAGE)
+        image_name = '{}{}:{}'.format(prefix, CordTester.IMAGE, tag)
+        CordTester.build_image(image_name)
 
 def startImages(args):
-
     ##starts the latest ONOS image
+    onos_cnt = {'tag': 'latest'}
+    image_names = args.onos.rsplit(':', 1)
+    onos_cnt['image'] = image_names[0]
+    if len(image_names) > 1:
+        if image_names[1].find('/') < 0:
+            onos_cnt['tag'] = image_names[1]
+        else:
+            #tag cannot have slashes
+            onos_cnt['image'] = args.onos
+
     if args.image == 'all' or args.image == 'onos':
-        onos = Onos()
+        onos = Onos(image = onos_cnt['image'], tag = onos_cnt['tag'])
         print('ONOS started with ip %s' %(onos.ip()))
 
     if args.image == 'all' or args.image == 'quagga':
-        quagga = Quagga()
+        quagga = Quagga(prefix = args.prefix)
         print('Quagga started with ip %s' %(quagga.ip()))
 
     if args.image == 'all' or args.image == 'radius':
-        radius = Radius()
+        radius = Radius(prefix = args.prefix)
         print('Radius started with ip %s' %(radius.ip()))
 
 if __name__ == '__main__':
@@ -587,7 +725,7 @@ if __name__ == '__main__':
     parser_run.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
     parser_run.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
     parser_run.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
-    parser_run.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
+    parser_run.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
     parser_run.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server. '
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
     parser_run.add_argument('-r', '--server', default=cord_test_server_address, type=str,
@@ -602,6 +740,11 @@ if __name__ == '__main__':
     parser_run.add_argument('-n', '--num-containers', default=1, type=int,
                             help='Specify number of test containers to spawn for tests')
     parser_run.add_argument('-c', '--container', default='', type=str, help='Test container name for running tests')
+    parser_run.add_argument('-m', '--manifest', default='', type=str, help='Provide test configuration manifest')
+    parser_run.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
+    parser_run.add_argument('-d', '--no-switch', action='store_true', help='Dont start test switch.')
+    parser_run.add_argument('-i', '--identity-file', default=identity_file_default,
+                            type=str, help='ssh identity file to access compute nodes from test container')
     parser_run.set_defaults(func=runTest)
 
 
@@ -618,10 +761,14 @@ if __name__ == '__main__':
                         '    --update=radius to rebuild radius server image.'
                         '    --update=all to rebuild all cord tester images.')
     parser_setup.add_argument('-d', '--dont-provision', action='store_true', help='Dont start test container.')
-    parser_setup.add_argument('-p', '--olt', action='store_true', help='Use OLT config')
+    parser_setup.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
     parser_setup.add_argument('-c', '--onos-cord', default='', type=str,
                               help='Specify cord location for ONOS cord when running on podd')
+    parser_setup.add_argument('-m', '--manifest', default='', type=str, help='Provide test configuration manifest')
+    parser_setup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
+    parser_setup.add_argument('-i', '--identity-file', default=identity_file_default,
+                              type=str, help='ssh identity file to access compute nodes from test container')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_list = subparser.add_parser('list', help='List test cases')
@@ -633,14 +780,18 @@ if __name__ == '__main__':
 
     parser_build = subparser.add_parser('build', help='Build cord test container images')
     parser_build.add_argument('image', choices=['quagga', 'radius', 'test', 'all'])
+    parser_build.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_build.set_defaults(func=buildImages)
 
     parser_start = subparser.add_parser('start', help='Start cord tester containers')
+    parser_start.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
+    parser_start.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
     parser_start.add_argument('image', choices=['onos', 'quagga', 'radius', 'all'])
     parser_start.set_defaults(func=startImages)
 
     parser_cleanup = subparser.add_parser('cleanup', help='Cleanup test containers')
-    parser_cleanup.add_argument('-p', '--olt', action = 'store_true', help = 'Cleanup OLT config')
+    parser_cleanup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
+    parser_cleanup.add_argument('-l', '--olt', action = 'store_true', help = 'Cleanup OLT config')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     args = parser.parse_args()
