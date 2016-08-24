@@ -1,0 +1,29 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Archive cord tester files
+      local_action: shell tar -cvzf /tmp/cord-tester.tar.gz ../cord-tester --exclude=.git
+
+- hosts: all
+  tasks:
+    - name: Unarchive cord tester files
+      unarchive:
+        src=/tmp/cord-tester.tar.gz
+        dest=/home/{{ ansible_user }}
+        owner={{ ansible_user }}
+        group={{ ansible_user }}
+
+    - name: Cleanup remote archive files
+      file:
+        path=/home/{{ ansible_user }}/.ansible state=absent
+
+- hosts: localhost
+  tasks:
+    - name: Cleanup local archive files
+      file:
+        path=/tmp/cord-tester.tar.gz state=absent
+
+- name: Run prerequisites on head node
+  hosts: all
+  roles:
+    - prereq

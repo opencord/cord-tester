@@ -1,0 +1,14 @@
+#
+# variables needed to be defined in user's playbook
+#
+#
+# user-configurable defaults
+#
+# default install path
+docker_tools_path: '/usr/local/bin'
+docker_tools_pipework_exe_url: https://raw.githubusercontent.com/jpetazzo/pipework/master/pipework
+
+#docker variables
+docker:
+    registry: "{{ docker_registry | default('docker-registry:5000') }}"
+    image_version: "{{ docker_image_version | default('latest') }}"

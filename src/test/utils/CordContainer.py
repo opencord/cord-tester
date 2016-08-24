@@ -114,7 +114,7 @@ class Container(object):
         return '/{0}'.format(self.name) in list(flatten(n['Names'] for n in self.dckr.containers()))
 
     def img_exists(self):
-        return self.image_name[len(self.prefix):] in [ctn['RepoTags'][0] for ctn in self.dckr.images()]
+        return self.image_name in [ctn['RepoTags'][0] if ctn['RepoTags'] else '' for ctn in self.dckr.images()]
 
     def ip(self):
         cnt_list = filter(lambda c: c['Image'] == self.image_name, self.dckr.containers())
