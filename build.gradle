@@ -13,6 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.opencord.gradle.rules.*
+import org.yaml.snakeyaml.Yaml
+
+allprojects {
+    apply plugin: 'base'
+    apply plugin: 'de.gesellix.docker'
+    //apply plugin: 'com.tmiyamon.config'
+
+    docker {
+        // dockerHost = System.env.DOCKER_HOST ?: 'unix:///var/run/docker.sock'
+        // dockerHost = System.env.DOCKER_HOST ?: 'https://192.168.99.100:2376'
+        // certPath = System.getProperty('docker.cert.path') ?: "${System.getProperty('user.home')}/.docker/machine/machines/default"
+        // authConfigPlain = [
+        //   "username"       : "joe",
+        //   "password"       : "some-pw-as-needed",
+        //   "email"          : "joe@acme.com",
+        //   "serveraddress"  : "https://index.docker.io/v1/"
+        //  ]
+    }
+}
 
 ext {
 
@@ -21,6 +41,10 @@ ext {
 
     // The tag used to tag the docker images push to the target registry
     targetTag = project.hasProperty('targetTag') ? project.getProperty('targetTag') : 'candidate'
+
+    // Deployment target config file (yaml format); this can be overwritten from the command line
+    // using the -PdeployConfig=<file-path> syntax.
+    deployConfig = project.hasProperty('deployConfig') ? project.getProperty('deployConfig') : './config/default.yml'
 
     cordTesterPath = project.hasProperty('cordTesterPath') ? project.getProperty('cordTesterPath') : './src/test/setup'
 
@@ -102,4 +126,120 @@ task publishImages {
 
 task publish {
     dependsOn publishImages
+}
+
+task deployBase (type: Exec) {
+    println "Using deployment config: $deployConfig"
+    File configFile = new File(deployConfig)
+    def yaml = new Yaml()
+    def config = yaml.load(configFile.newReader())
+
+    executable = "ansible-playbook"
+    args = ["-i", config.seedServer.ip + ',']
+
+    if ( config.seedServer.user != null && config.seedServer.user != "" ) {
+        args = args << "--user=$config.seedServer.user"
+    }
+
+
+    if ( config.debug ) {
+        args = args << "-vvvv"
+    }
+
+    def extraVars = []
+    if (config.seedServer) {
+        extraVars = extraVars.p(config.seedServer.extraVars)
+            .p(config.seedServer.password, "ansible_ssh_pass")
+            .p(config.seedServer.sudoPassword, "ansible_sudo_pass")
+            .p(config.seedServer.fabric_ip, "fabric_ip")
+	    .p(config.seedServer.management_ip, "management_ip")
+            .p(config.seedServer.management_gw, "management_gw")
+            .p(config.seedServer.management_network, "management_network")
+	    .p(config.seedServer.management_iface, "management_iface")
+	    .p(config.seedServer.external_ip, "external_ip")
+            .p(config.seedServer.external_gw, "external_gw")
+            .p(config.seedServer.external_network, "external_network")
+            .p(config.seedServer.external_iface, "external_iface")
+	    .p(config.seedServer.fabric_ip, "fabric_ip")
+	    .p(config.seedServer.fabric_network, "fabric_network")
+	    .p(config.seedServer.fabric_iface, "fabric_iface")
+            .p(config.seedServer.domain, "domain")
+            .p(config.seedServer.virtualbox_support, "virtualbox_support")
+	    .p(config.seedServer.power_helper_user, "power_helper_user")
+	    .p(config.seedServer.power_helper_host, "power_helper_host")
+            .p(config.seedServer.port, "ansible_ssh_port")
+    }
+
+    if (config.otherServers) {
+        extraVars = extraVars.p(config.otherServers.location, "prov_location")
+        .p(config.otherServers.rolesPath, "prov_role_path")
+        .p(config.otherServers.role, "prov_role")
+    }
+
+    if (config.docker) {
+        extraVars = extraVars.p(config.docker.registry, "docker_registry")
+            .p(config.docker.imageVersion, "docker_image_version")
+    }
+
+    def skipTags = [].p(config.seedServer.skipTags)
+
+    args = args.p(skipTags.asParam("skip-tags", ",")).p(extraVars.asParam("extra-vars", " ")) << "cord-tester-deploy.yml"
+}
+
+task verify (type: Exec) {
+    println "Using deployment config: $deployConfig"
+    File configFile = new File(deployConfig)
+    def yaml = new Yaml()
+    def config = yaml.load(configFile.newReader())
+
+    executable = "ansible-playbook"
+    args = ["-i", config.seedServer.ip + ',']
+
+    if ( config.seedServer.user != null && config.seedServer.user != "" ) {
+        args = args << "--user=$config.seedServer.user"
+    }
+
+
+    if ( config.debug ) {
+        args = args << "-vvvv"
+    }
+
+    def extraVars = []
+    if (config.seedServer) {
+        extraVars = extraVars.p(config.seedServer.extraVars)
+            .p(config.seedServer.password, "ansible_ssh_pass")
+            .p(config.seedServer.sudoPassword, "ansible_sudo_pass")
+            .p(config.seedServer.fabric_ip, "fabric_ip")
+	    .p(config.seedServer.management_ip, "management_ip")
+            .p(config.seedServer.management_gw, "management_gw")
+            .p(config.seedServer.management_network, "management_network")
+	    .p(config.seedServer.management_iface, "management_iface")
+	    .p(config.seedServer.external_ip, "external_ip")
+            .p(config.seedServer.external_gw, "external_gw")
+            .p(config.seedServer.external_network, "external_network")
+            .p(config.seedServer.external_iface, "external_iface")
+	    .p(config.seedServer.fabric_ip, "fabric_ip")
+	    .p(config.seedServer.fabric_network, "fabric_network")
+	    .p(config.seedServer.fabric_iface, "fabric_iface")
+            .p(config.seedServer.domain, "domain")
+            .p(config.seedServer.virtualbox_support, "virtualbox_support")
+	    .p(config.seedServer.power_helper_user, "power_helper_user")
+	    .p(config.seedServer.power_helper_host, "power_helper_host")
+            .p(config.seedServer.port, "ansible_ssh_port")
+    }
+
+    if (config.otherServers) {
+        extraVars = extraVars.p(config.otherServers.location, "prov_location")
+        .p(config.otherServers.rolesPath, "prov_role_path")
+        .p(config.otherServers.role, "prov_role")
+    }
+
+    if (config.docker) {
+        extraVars = extraVars.p(config.docker.registry, "docker_registry")
+            .p(config.docker.imageVersion, "docker_image_version")
+    }
+
+    def skipTags = [].p(config.seedServer.skipTags)
+
+    args = args.p(skipTags.asParam("skip-tags", ",")).p(extraVars.asParam("extra-vars", " ")) << "cord-tester-verify.yml"
 }

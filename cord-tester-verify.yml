@@ -1,0 +1,6 @@
+---
+- hosts: all
+  tasks:
+    - name: Run fabric tests using cord-tester
+      become: yes
+      command: "/home/{{ ansible_user }}/cord-tester/src/test/setup/cord-test.py run -e onos-fabric/onos-fabric --no-switch --prefix=docker-registry:5000 -t fabric"
