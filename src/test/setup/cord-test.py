@@ -265,6 +265,7 @@ CMD ["/bin/bash"]
 
     def run_tests(self):
         '''Run the list of tests'''
+        res = 0
         print('Running tests: %s' %self.tests)
         for t in self.tests:
             test = t.split(':')[0]
@@ -275,11 +276,16 @@ CMD ["/bin/bash"]
                 test_case = test_file
             cmd = 'nosetests -v {0}/src/test/{1}/{2}'.format(self.sandbox, test, test_case)
             status = self.execute(cmd, shell = True)
+            if status > 255:
+                status = 1
+            res |= status
             print('Test %s %s' %(test_case, 'Success' if status == 0 else 'Failure'))
         print('Done running tests')
         if self.rm:
             print('Removing test container %s' %self.name)
             self.kill(remove=True)
+
+        return res
 
     @classmethod
     def list_tests(cls, tests):
@@ -477,10 +483,14 @@ def runTest(args):
         if test_cnt.create and test_cnt.olt:
             _, port_num = test_cnt.setup_intfs(port_num = port_num)
 
-    thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
-    for test_cnt in test_containers:
-        thread_pool.addTask(test_cnt.run_tests)
-    thread_pool.cleanUpThreads()
+    status = 0
+    if len(test_containers) > 1:
+        thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
+        for test_cnt in test_containers:
+            thread_pool.addTask(test_cnt.run_tests)
+        thread_pool.cleanUpThreads()
+    else:
+        status = test_containers[0].run_tests()
 
     ##Run the linear tests
     if tests_not_parallel:
@@ -504,6 +514,8 @@ def runTest(args):
 
     if test_server:
         cord_test_server_stop(test_server)
+
+    return status
 
 ##Starts onos/radius/quagga containers as appropriate
 def setupCordTester(args):
@@ -658,6 +670,8 @@ def setupCordTester(args):
         #the test agent address could be remote or already running. Exit gracefully
         sys.exit(0)
 
+    return 0
+
 def cleanupTests(args):
     prefix = args.prefix
     if prefix:
@@ -668,6 +682,7 @@ def cleanupTests(args):
     if args.olt:
         print('Cleaning up test container OLT configuration')
         CordTester.cleanup_intfs()
+    return 0
 
 def listTests(args):
     if args.test == 'all':
@@ -675,6 +690,7 @@ def listTests(args):
     else:
         tests = args.test.split('-')
     CordTester.list_tests(tests)
+    return 0
 
 def buildImages(args):
     tag = 'candidate'
@@ -692,6 +708,8 @@ def buildImages(args):
     if args.image == 'all' or args.image == 'test':
         image_name = '{}{}:{}'.format(prefix, CordTester.IMAGE, tag)
         CordTester.build_image(image_name)
+
+    return 0
 
 def startImages(args):
     ##starts the latest ONOS image
@@ -716,6 +734,8 @@ def startImages(args):
     if args.image == 'all' or args.image == 'radius':
         radius = Radius(prefix = args.prefix)
         print('Radius started with ip %s' %(radius.ip()))
+
+    return 0
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Cord Tester')
@@ -795,4 +815,5 @@ if __name__ == '__main__':
     parser_cleanup.set_defaults(func=cleanupTests)
 
     args = parser.parse_args()
-    args.func(args)
+    res = args.func(args)
+    sys.exit(res)
