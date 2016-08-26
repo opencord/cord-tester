@@ -16,7 +16,7 @@
 #
 from argparse import ArgumentParser
 import os,sys,time,socket,errno
-import shutil, platform
+import shutil, platform, re
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
 sys.path.append(utils_dir)
 from OnosCtrl import OnosCtrl
@@ -25,6 +25,9 @@ from threadPool import ThreadPool
 from CordContainer import *
 from CordTestServer import cord_test_server_start, cord_test_server_stop, CORD_TEST_HOST, CORD_TEST_PORT
 from TestManifest import TestManifest
+from docker import Client
+from docker.utils import kwargs_from_env
+
 try:
     from Fabric import FabricMAAS
 except:
@@ -690,6 +693,66 @@ def listTests(args):
     else:
         tests = args.test.split('-')
     CordTester.list_tests(tests)
+
+def getMetrics(args):
+
+    detail = c.inspect_container(args.container)
+    state = detail["State"]
+    if bool(state["Paused"]):
+       print("Container is in Paused State")
+    elif bool(state["Running"]):
+       print("Container is in Running State")
+    elif int(state["ExitCode"]) == 0:
+       print("Container is in Stopped State")
+    else:
+       print("Container is in Crashed State")
+
+    print("Ip Address of a container : " +detail['NetworkSettings']['IPAddress'])
+
+    if bool(detail["State"]["Running"]):
+        container_id = detail['Id']
+        cpu_usage = {}
+        with open('/sys/fs/cgroup/cpuacct/docker/' + container_id + '/cpuacct.stat', 'r') as f:
+            for line in f:
+                m = re.search(r"(system|user)\s+(\d+)", line)
+                if m:
+                    cpu_usage[m.group(1)] = int(m.group(2))
+            cpu = cpu_usage["system"] + cpu_usage["user"]
+        user_ticks = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+        print "CPU Usage : %f"%(float(cpu) / user_ticks)
+    else:
+        print(0)
+
+    if bool(detail["State"]["Running"]):
+        container_id = detail['Id']
+        print "Docker Port Info:"
+        cmd = "sudo docker port {}".format(container_id)
+        os.system(cmd)
+
+    if bool(detail["State"]["Running"]):
+        container_id = detail['Id']
+        with open('/sys/fs/cgroup/memory/docker/' + container_id + '/memory.stat', 'r') as f:
+            for line in f:
+                m = re.search(r"total_rss\s+(\d+)", line)
+                if m:
+                    print "Memory in Bytes : %s "%(m.group(1))
+                o = re.search(r"usage\s+(\d+)", line)
+                if o:
+                    print "Usage : %s "%(o.group(1))
+                p = re.search(r"max_usage\s+(\d+)", line)
+                if p:
+                    print "Max Usage : %s "%(p.group(1))
+
+    if bool(detail["State"]["Running"]):
+        container_id = detail['Id']
+        with open('/sys/fs/cgroup/cpuacct/docker/' + container_id + '/cpuacct.stat', 'r') as f:
+            for line in f:
+                m = re.search(r"user\s+(\d+)", line)
+                if m:
+                    print "Time spent running processes since boot: %s "%(m.group(1))
+    print "List Networks :"
+    cmd = "docker network ls"
+    os.system(cmd)
     return 0
 
 def buildImages(args):
@@ -803,6 +866,10 @@ if __name__ == '__main__':
     parser_build.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_build.set_defaults(func=buildImages)
 
+    parser_metrics = subparser.add_parser('metrics', help='Info of container')
+    parser_metrics.add_argument("container", help="Container name")
+    parser_metrics.set_defaults(func=getMetrics)
+
     parser_start = subparser.add_parser('start', help='Start cord tester containers')
     parser_start.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_start.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
@@ -813,6 +880,8 @@ if __name__ == '__main__':
     parser_cleanup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_cleanup.add_argument('-l', '--olt', action = 'store_true', help = 'Cleanup OLT config')
     parser_cleanup.set_defaults(func=cleanupTests)
+
+    c = Client(**(kwargs_from_env()))
 
     args = parser.parse_args()
     res = args.func(args)
