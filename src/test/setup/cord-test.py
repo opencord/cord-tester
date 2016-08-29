@@ -493,7 +493,8 @@ def runTest(args):
             thread_pool.addTask(test_cnt.run_tests)
         thread_pool.cleanUpThreads()
     else:
-        status = test_containers[0].run_tests()
+        if test_containers:
+            status = test_containers[0].run_tests()
 
     ##Run the linear tests
     if tests_not_parallel:
@@ -693,10 +694,15 @@ def listTests(args):
     else:
         tests = args.test.split('-')
     CordTester.list_tests(tests)
+    return 0
 
 def getMetrics(args):
-
-    detail = c.inspect_container(args.container)
+    try:
+        detail = c.inspect_container(args.container)
+    except:
+        print('Unknown container %s' %args.container)
+        return 0
+    user_hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     state = detail["State"]
     if bool(state["Paused"]):
        print("Container is in Paused State")
@@ -707,25 +713,31 @@ def getMetrics(args):
     else:
        print("Container is in Crashed State")
 
-    print("Ip Address of a container : " +detail['NetworkSettings']['IPAddress'])
+    print("Ip Address of the container: " +detail['NetworkSettings']['IPAddress'])
 
     if bool(detail["State"]["Running"]):
         container_id = detail['Id']
         cpu_usage = {}
-        with open('/sys/fs/cgroup/cpuacct/docker/' + container_id + '/cpuacct.stat', 'r') as f:
-            for line in f:
-                m = re.search(r"(system|user)\s+(\d+)", line)
-                if m:
-                    cpu_usage[m.group(1)] = int(m.group(2))
-            cpu = cpu_usage["system"] + cpu_usage["user"]
-        user_ticks = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
-        print "CPU Usage : %f"%(float(cpu) / user_ticks)
+        cur_usage = 0
+        last_usage = 0
+        for i in range(2):
+            with open('/sys/fs/cgroup/cpuacct/docker/' + container_id + '/cpuacct.stat', 'r') as f:
+                for line in f:
+                    m = re.search(r"(system|user)\s+(\d+)", line)
+                    if m:
+                        cpu_usage[m.group(1)] = int(m.group(2))
+                cpu = cpu_usage["system"] + cpu_usage["user"]
+                last_usage = cur_usage
+                cur_usage = cpu
+                time.sleep(1)
+        cpu_percent = (cur_usage - last_usage)*100.0/user_hz
+        print("CPU Usage: %.2f %%" %(cpu_percent))
     else:
         print(0)
 
     if bool(detail["State"]["Running"]):
         container_id = detail['Id']
-        print "Docker Port Info:"
+        print("Docker Port Info:")
         cmd = "sudo docker port {}".format(container_id)
         os.system(cmd)
 
@@ -735,13 +747,14 @@ def getMetrics(args):
             for line in f:
                 m = re.search(r"total_rss\s+(\d+)", line)
                 if m:
-                    print "Memory in Bytes : %s "%(m.group(1))
+                    mem = int(m.group(1))
+                    print("Memory: %s KB "%(mem/1024.0))
                 o = re.search(r"usage\s+(\d+)", line)
                 if o:
-                    print "Usage : %s "%(o.group(1))
+                    print("Usage: %s "%(o.group(1)))
                 p = re.search(r"max_usage\s+(\d+)", line)
                 if p:
-                    print "Max Usage : %s "%(p.group(1))
+                    print("Max Usage: %s "%(p.group(1)))
 
     if bool(detail["State"]["Running"]):
         container_id = detail['Id']
@@ -749,8 +762,9 @@ def getMetrics(args):
             for line in f:
                 m = re.search(r"user\s+(\d+)", line)
                 if m:
-                    print "Time spent running processes since boot: %s "%(m.group(1))
-    print "List Networks :"
+                    user_ticks = int(m.group(1))
+                    print("Time spent by running processes: %.2f ms"%(user_ticks*1000.0/user_hz))
+    print("List Networks:")
     cmd = "docker network ls"
     os.system(cmd)
     return 0
