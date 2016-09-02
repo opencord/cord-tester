@@ -19,24 +19,30 @@ $ vagrant up
 $ vagrant ssh cordtest
 $ cd /cord-tester/src/test/setup/
 $ sudo ./cord-test.py -h
-usage: cord-test.py [-h] {run,list,build,cleanup} ...
+usage: cord-test.py [-h] {run,setup,list,build,metrics,start,cleanup} ...
 
 Cord Tester
 
 positional arguments:
-  {run,list,build,cleanup}
+  {run,setup,list,build,metrics,start,cleanup}
     run                 Run cord tester
+    setup               Setup cord tester environment
     list                List test cases
     build               Build cord test container images
+    metrics             Info of container
+    start               Start cord tester containers
     cleanup             Cleanup test containers
 
 optional arguments:
   -h, --help            show this help message and exit
 
 $ sudo ./cord-test.py run -h
-usage: cord-test.py run [-h] [-t TEST_TYPE] [-o ONOS] [-r] [-q] [-a APP] [-p]
-                        [-e TEST_CONTROLLER] [-k] [-s]
-                        [-u {test,quagga,radius,all}]
+usage: cord-test.py run [-h] [-t TEST_TYPE] [-o ONOS] [-q] [-a APP] [-l]
+                        [-e TEST_CONTROLLER] [-r SERVER] [-k] [-s]
+                        [-u {test,quagga,radius,all}] [-n NUM_CONTAINERS]
+                        [-c CONTAINER] [-m MANIFEST] [-p PREFIX] [-d]
+                        [-i IDENTITY_FILE]
+
 optional arguments:
   -h, --help            show this help message and exit
   -t TEST_TYPE, --test-type TEST_TYPE
@@ -44,7 +50,7 @@ optional arguments:
   -o ONOS, --onos ONOS  ONOS container image
   -q, --quagga          Provision quagga container for vrouter
   -a APP, --app APP     Cord ONOS app filename
-  -p, --olt             Use OLT config
+  -l, --olt             Use OLT config
   -e TEST_CONTROLLER, --test-controller TEST_CONTROLLER
                         External test controller ip for Onos and/or radius
                         server. Eg: 10.0.0.2/10.0.0.3 to specify ONOS and
@@ -62,7 +68,27 @@ optional arguments:
                         --update=all to rebuild all cord tester images.
   -n NUM_CONTAINERS, --num-containers NUM_CONTAINERS
                         Specify number of test containers to spawn for tests
-$  sudo ./cord-test.py list -h
+  -c CONTAINER, --container CONTAINER
+                        Test container name for running tests
+  -m MANIFEST, --manifest MANIFEST
+                        Provide test configuration manifest
+  -p PREFIX, --prefix PREFIX
+                        Provide container image prefix
+  -d, --no-switch       Dont start test switch.
+  -i IDENTITY_FILE, --identity-file IDENTITY_FILE
+                        ssh identity file to access compute nodes from test
+                        container
+$ sudo ./cord-test.py build -h
+usage: cord-test.py build [-h] [-p PREFIX] {quagga,radius,test,all}
+
+positional arguments:
+  {quagga,radius,test,all}
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p PREFIX, --prefix PREFIX
+                        Provide container image prefix
+$sudo ./cord-test.py list -h
 usage: cord-test.py list [-h] [-t TEST]
 
 optional arguments:
@@ -71,14 +97,6 @@ optional arguments:
                         list tls test cases. -t tls-dhcp-vrouter to list
                         tls,dhcp and vrouter test cases. -t all to list all
                         test cases.
- sudo ./cord-test.py build -h
-usage: cord-test.py build [-h] {quagga,radius,test,all}
-
-positional arguments:
-  {quagga,radius,test,all}
-
-optional arguments:
-  -h, --help            show this help message and exit
 ```
 * If you want to run cord-tester without Vagrant and already have a Ubuntu 14.04 server installed.
 ```
@@ -108,7 +126,7 @@ $ sudo ./cord-test.py  run -t all
 ```
 * Check list of test cases
 ```
-$ sudo ./cord-test.py list
+$ sudo ./cord-test.py list -t <all>
 ```
 * Check list of specific module 
 ```
