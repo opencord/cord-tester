@@ -33,7 +33,11 @@ import time
 log.setLevel('INFO')
 
 def bytes_to_num(data):
-    return int(data.encode('hex'), 16)
+    try:
+        return int(data.encode('hex'), 16)
+    except:
+        print('Exception')
+        return -1
 
 class TLSAuthTest(EapolPacket, CordTester):
 
@@ -239,10 +243,14 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
             else:
                 self.pkt_update(self.pkt_last, tls_data)
                 self.pending_bytes -= len(tls_data)
-
+        print('Offset: %d, pkt : %d, pending %d\n' %(offset, len(pkt), self.pending_bytes))
         while self.pending_bytes == 0 and offset < len(pkt):
             tls_data = r[offset:]
+            hexdump(tls_data)
             self.pending_bytes = bytes_to_num(tls_data[3:5])
+            if self.pending_bytes < 0:
+                self.pending_bytes = 0
+                return
             if tls_data[0] == self.HANDSHAKE:
                 pkt_type = tls_data[5]
                 if pkt_type in [ self.CERTIFICATE_REQUEST ]:

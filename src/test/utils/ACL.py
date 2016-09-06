@@ -26,7 +26,7 @@ conf.checkIPaddr = 0 # Don't check response packets for matching destination IPs
 class ACLTest:
 
     auth = ('karaf', 'karaf')
-    controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'   
+    controller = OnosCtrl.get_controller()
     add_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
     remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(controller, id)
     clear_all_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
@@ -51,7 +51,7 @@ class ACLTest:
     def adding_acl_rule(self, ipv4Prefix, srcIp, dstIp, ipProto ='null', dstTpPort='null', action= 'include'):
         '''This function is generating ACL json file and post to ONOS for creating a ACL rule'''
         if ipv4Prefix is 'v4':
-           acl_dict = {} 
+           acl_dict = {}
            if srcIp and dstIp and action:
               acl_dict['srcIp'] = '{}'.format(srcIp)
               acl_dict['dstIp'] = '{}'.format(dstIp)
@@ -78,7 +78,7 @@ class ACLTest:
            remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(cls.controller, id)
         resp = requests.delete(remove_acl_rule_url, auth = cls.auth)
         return resp.ok, resp.status_code
-  
+
     def generate_onos_interface_config(self,iface_num = 4, iface_name = 'null',iface_count = 1,iface_ip = '198.162.10.1'):
         '''This function is generate interface config data in json format and post to ONOS for creating it '''
         ''' To add interfaces on ONOS to test acl with trffic'''

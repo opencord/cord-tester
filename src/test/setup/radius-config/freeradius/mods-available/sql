@@ -813,6 +813,18 @@ sql {
 	sqlite {
 		filename = "/opt/db/radius.sqlite3"
 	}
+ 
+	sqlite {
+		filename = "/opt/db/radius.sqlite3"
+	}
+ 
+	sqlite {
+		filename = "/opt/db/radius.sqlite3"
+	}
+ 
+	sqlite {
+		filename = "/opt/db/radius.sqlite3"
+	}
 
 #
 #	Several drivers accept specific options, to set them, a

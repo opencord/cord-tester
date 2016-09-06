@@ -77,10 +77,14 @@ class igmp_exchange(unittest.TestCase):
     max_packets = 100
     app = 'org.opencord.igmp'
     olt_conf_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json')
+    ROVER_TEST_TIMEOUT = 300 #3600*86
+    ROVER_TIMEOUT = (ROVER_TEST_TIMEOUT - 100)
+    ROVER_JOIN_TIMEOUT = 60
 
     @classmethod
     def setUpClass(cls):
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
+          cls.port_map, _ = cls.olt.olt_port_map()
           OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
 
     @classmethod
@@ -185,6 +189,17 @@ class igmp_exchange(unittest.TestCase):
             ip_range.append(".".join(map(str, temp)))
         return random.choice(ip_range)
 
+    def get_igmp_intf(self):
+        inst = os.getenv('TEST_INSTANCE', None)
+        if not inst:
+            return 'veth0'
+        inst = int(inst) + 1
+        if inst >= self.port_map['uplink']:
+            inst += 1
+        if self.port_map.has_key(inst):
+              return self.port_map[inst]
+        return 'veth0'
+
     def igmp_verify_join(self, igmpStateList):
         sendState, recvState = igmpStateList
         ## check if the send is received for the groups
@@ -237,8 +252,10 @@ class igmp_exchange(unittest.TestCase):
         igmpState.update(p.dst, rx = 1, t = recv_time - send_time)
         return 0
 
-    def send_igmp_join(self, groups, src_list = ['1.2.3.4'], record_type=IGMP_V3_GR_TYPE_INCLUDE,ip_pkt = None, iface = 'veth0', delay = 1):
-        #self.onos_ssm_table_load(groups, src_list)
+    def send_igmp_join(self, groups, src_list = ['1.2.3.4'], record_type=IGMP_V3_GR_TYPE_INCLUDE,
+                       ip_pkt = None, iface = 'veth0', ssm_load = False, delay = 1):
+        if ssm_load is True:
+              self.onos_ssm_table_load(groups, src_list)
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr=self.IP_DST)
         for g in groups:
@@ -510,7 +527,7 @@ class igmp_exchange(unittest.TestCase):
         reactor.callLater(0, igmp_Ngroup_join_latency)
         return df
 
-    def test_igmp_join_rover(self):
+    def test_igmp_join_rover_all(self):
           s = (224 << 24) | 1
           #e = (225 << 24) | (255 << 16) | (255 << 16) | 255
           e = (224 << 24) | 10
@@ -518,6 +535,44 @@ class igmp_exchange(unittest.TestCase):
                 if i&0xff:
                       ip = '%d.%d.%d.%d'%((i>>24)&0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
                 self.send_igmp_join([ip], delay = 0)
+
+    @deferred(timeout=ROVER_TEST_TIMEOUT)
+    def test_igmp_join_rover(self):
+          df = defer.Deferred()
+          iface = self.get_igmp_intf()
+          self.df = df
+          self.count = 0
+          self.timeout = 0
+          self.complete = False
+          def igmp_join_timer():
+                self.timeout += self.ROVER_JOIN_TIMEOUT
+                log.info('IGMP joins sent: %d' %self.count)
+                did = OnosCtrl.get_device_id()
+                if self.timeout >= self.ROVER_TIMEOUT:
+                      self.complete = True
+                reactor.callLater(self.ROVER_JOIN_TIMEOUT, igmp_join_timer)
+
+          reactor.callLater(self.ROVER_JOIN_TIMEOUT, igmp_join_timer)
+          self.start_channel = s = (224 << 24) | 1
+          self.end_channel = e = (224 << 24) | 200 #(225 << 24) | (255 << 16) | (255 << 16) | 255
+          self.current_channel = self.start_channel
+          def igmp_join_rover(self):
+                #e = (224 << 24) | 10
+                chan = self.current_channel
+                self.current_channel += 1
+                if self.current_channel >= self.end_channel:
+                      chan = self.current_channel = self.start_channel
+                if chan&0xff:
+                      ip = '%d.%d.%d.%d'%((chan>>24)&0xff, (chan>>16)&0xff, (chan>>8)&0xff, chan&0xff)
+                      self.send_igmp_join([ip], delay = 0, ssm_load = False, iface = iface)
+                      self.count += 1
+                if self.complete == True:
+                      log.info('%d IGMP joins sent in %d seconds over %s' %(self.count, self.timeout, iface))
+                      self.df.callback(0)
+                else:
+                      reactor.callLater(0, igmp_join_rover, self)
+          reactor.callLater(0, igmp_join_rover, self)
+          return df
 
     @deferred(timeout=IGMP_QUERY_TIMEOUT + 10)
     def test_igmp_query(self):

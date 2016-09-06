@@ -33,10 +33,15 @@ def get_mac(iface = None, pad = 4):
         sep = ':'
     return '0'*pad + sep.join(['%02x' %ord(char) for char in info[18:24]])
 
+def get_controller():
+    controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
+    controller = controller.split(',')[0]
+    return controller
+
 class OnosCtrl:
 
     auth = ('karaf', 'karaf')
-    controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
+    controller = get_controller()
     cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
     maven_repo = 'http://central.maven.org/maven2/org/onosproject'
     applications_url = 'http://%s:8181/onos/v1/applications' %(controller)

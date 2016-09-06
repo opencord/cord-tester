@@ -107,7 +107,7 @@ class CordTester(Container):
                 return
             CordTester.switch_on_olt = True
             ovs_cmd += ' {0}'.format(self.ctlr_ip)
-            print('Starting OVS on the host')
+            print('Starting OVS on the host with controller: %s' %(self.ctlr_ip))
         else:
             print('Starting OVS on test container %s' %self.name)
         self.execute_switch(ovs_cmd)
@@ -457,6 +457,9 @@ def runTest(args):
         args.keep = True
     port_num = 0
     num_tests = len(tests_parallel)
+    if num_tests > 0 and num_tests < args.num_containers:
+        tests_parallel *= args.num_containers/num_tests
+        num_tests = len(tests_parallel)
     tests_per_container = max(1, num_tests/args.num_containers)
     test_slice_start = 0
     test_slice_end = test_slice_start + tests_per_container
@@ -591,11 +594,26 @@ def setupCordTester(args):
     Onos.IMAGE = onos_cnt['image']
     Onos.PREFIX = args.prefix
     Onos.TAG = onos_cnt['tag']
+    cluster_mode = True if args.onos_instances > 1 else False
+    onos = None
     if onos_ip is None:
-        onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60)
+        onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode)
         onos_ip = onos.ip()
 
-    print('Onos IP %s' %onos_ip)
+    num_onos_instances = args.onos_instances
+    onos_ips = [ onos_ip ]
+    if num_onos_instances > 1 and onos is not None:
+        onos_instances = []
+        onos_instances.append(onos)
+        for i in range(1, num_onos_instances):
+            name = '{}-{}'.format(Onos.NAME, i+1)
+            onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode)
+            onos_instances.append(onos)
+            onos_ips.append(onos.ipaddr)
+        Onos.setup_cluster(onos_instances)
+
+    ctlr_addr = ','.join(onos_ips)
+    print('Onos IP %s' %ctlr_addr)
     if use_manifest or args.test_controller:
         print('Installing ONOS cord apps')
         try:
@@ -604,7 +622,8 @@ def setupCordTester(args):
 
     print('Installing cord tester ONOS app %s' %onos_app_file)
     try:
-        OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+        for ip in onos_ips:
+            OnosCtrl.install_app(args.app, onos_ip = ip)
     except: pass
 
     ##Start Radius container if not started
@@ -634,7 +653,7 @@ def setupCordTester(args):
 
     #provision the test container
     if not args.dont_provision:
-        test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
+        test_cnt_env = { 'ONOS_CONTROLLER_IP' : ctlr_addr,
                          'ONOS_AAA_IP' : radius_ip,
                          'QUAGGA_IP': ip,
                          'CORD_TEST_HOST' : ip,
@@ -652,7 +671,7 @@ def setupCordTester(args):
             test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
         test_cnt = CordTester((),
-                              ctlr_ip = onos_ip,
+                              ctlr_ip = ctlr_addr,
                               image = nose_cnt['image'],
                               prefix = Container.IMAGE_PREFIX,
                               tag = nose_cnt['tag'],
@@ -677,6 +696,7 @@ def setupCordTester(args):
     return 0
 
 def cleanupTests(args):
+    image_name = args.onos
     prefix = args.prefix
     if prefix:
         prefix += '/'
@@ -686,6 +706,13 @@ def cleanupTests(args):
     if args.olt:
         print('Cleaning up test container OLT configuration')
         CordTester.cleanup_intfs()
+
+    onos_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == image_name ]
+    if len(onos_list) > 1:
+        for onos in onos_list:
+            Container.dckr.kill(onos)
+            Container.dckr.remove_container(onos, force=True)
+
     return 0
 
 def listTests(args):
@@ -866,6 +893,8 @@ if __name__ == '__main__':
     parser_setup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_setup.add_argument('-i', '--identity-file', default=identity_file_default,
                               type=str, help='ssh identity file to access compute nodes from test container')
+    parser_setup.add_argument('-n', '--onos-instances', default=1, type=int,
+                            help='Specify number of test onos instances to spawn')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_list = subparser.add_parser('list', help='List test cases')
@@ -893,6 +922,8 @@ if __name__ == '__main__':
     parser_cleanup = subparser.add_parser('cleanup', help='Cleanup test containers')
     parser_cleanup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_cleanup.add_argument('-l', '--olt', action = 'store_true', help = 'Cleanup OLT config')
+    parser_cleanup.add_argument('-o', '--onos', default=onos_image_default, type=str,
+                                help='ONOS container image to cleanup')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     c = Client(**(kwargs_from_env()))

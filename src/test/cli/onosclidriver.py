@@ -49,6 +49,7 @@ class OnosCliDriver( CLI ):
         self.home = None
         self.handle = None
         self.controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
+        self.controller = self.controller.split(',')[0]
         super( CLI, self ).__init__()
         if connect == True:
             self.connect_cli()

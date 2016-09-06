@@ -23,7 +23,7 @@ from OnosCtrl import OnosCtrl
 class OnosFlowCtrl:
 
     auth = ('karaf', 'karaf')
-    controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
+    controller = OnosCtrl.get_controller()
     cfg_url = 'http://%s:8181/onos/v1/flows/' %(controller)
 
     def __init__( self,

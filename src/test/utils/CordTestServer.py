@@ -53,7 +53,10 @@ class CordTestServer(object):
         if self.onos_cord:
             self.onos_cord.start(restart = True, network_cfg = config)
         else:
-            Onos(restart = True, network_cfg = config, image = Onos.IMAGE, tag = Onos.TAG)
+            if Onos.cluster_mode is True:
+                Onos.restart_cluster(network_cfg = config)
+            else:
+                Onos(restart = True, network_cfg = config, image = Onos.IMAGE, tag = Onos.TAG)
         return 'DONE'
 
     def restart_onos(self, kwargs):

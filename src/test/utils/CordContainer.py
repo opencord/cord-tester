@@ -117,9 +117,17 @@ class Container(object):
         return self.image_name in [ctn['RepoTags'][0] if ctn['RepoTags'] else '' for ctn in self.dckr.images()]
 
     def ip(self):
-        cnt_list = filter(lambda c: c['Image'] == self.image_name, self.dckr.containers())
+        cnt_list = filter(lambda c: c['Names'][0] == '/{}'.format(self.name), self.dckr.containers())
+        #if not cnt_list:
+        #    cnt_list = filter(lambda c: c['Image'] == self.image_name, self.dckr.containers())
         cnt_settings = cnt_list.pop()
         return cnt_settings['NetworkSettings']['Networks']['bridge']['IPAddress']
+
+    @classmethod
+    def ips(cls, image_name):
+        cnt_list = filter(lambda c: c['Image'] == image_name, cls.dckr.containers())
+        ips = [ cnt['NetworkSettings']['Networks']['bridge']['IPAddress'] for cnt in cnt_list ]
+        return ips
 
     def kill(self, remove = True):
         self.dckr.kill(self.name)
@@ -287,8 +295,12 @@ class Onos(Container):
     host_config_dir = os.path.join(setup_dir, 'onos-config')
     guest_config_dir = '/root/onos/config'
     onos_gen_partitions = os.path.join(setup_dir, 'onos-gen-partitions')
+    onos_form_cluster = os.path.join(setup_dir, 'onos-form-cluster')
     cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')
     host_guest_map = ( (host_config_dir, guest_config_dir), )
+    cluster_cfg = os.path.join(host_config_dir, 'cluster.json')
+    cluster_mode = False
+    cluster_instances = []
     NAME = 'cord-onos'
     ##the ip of ONOS in default cluster.json in setup/onos-config
     CLUSTER_CFG_IP = '172.17.0.2'
@@ -297,14 +309,26 @@ class Onos(Container):
     PREFIX = ''
 
     @classmethod
-    def onos_generate_cluster_cfg(cls, ip):
+    def generate_cluster_cfg(cls, ip):
+        if type(ip) in [ list, tuple ]:
+            ips = ' '.join(ip)
+        else:
+            ips = ip
         try:
-            cmd = '{} {}/cluster.json {}'.format(cls.onos_gen_partitions, cls.host_config_dir, ip)
+            cmd = '{} {} {}'.format(cls.onos_gen_partitions, cls.cluster_cfg, ips)
+            os.system(cmd)
+        except: pass
+
+    @classmethod
+    def form_cluster(cls, ips):
+        nodes = ' '.join(ips)
+        try:
+            cmd = '{} {}'.format(cls.onos_form_cluster, nodes)
             os.system(cmd)
         except: pass
 
     def __init__(self, name = NAME, image = 'onosproject/onos', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None):
+                 boot_delay = 60, restart = False, network_cfg = None, cluster = False):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -316,40 +340,145 @@ class Onos(Container):
                 except: pass
 
         super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.quagga_config)
+        self.boot_delay = boot_delay
+        if cluster is True:
+            self.ports = []
+            if os.access(self.cluster_cfg, os.F_OK):
+                try:
+                    os.unlink(self.cluster_cfg)
+                except: pass
+
+        self.host_config = self.create_host_config(port_list = self.ports,
+                                                   host_guest_map = self.host_guest_map)
+        self.volumes = []
+        for _,g in self.host_guest_map:
+            self.volumes.append(g)
+
         if restart is True and self.exists():
             self.kill()
+
         if not self.exists():
             self.remove_container(name, force=True)
-            host_config = self.create_host_config(port_list = self.ports,
-                                                  host_guest_map = self.host_guest_map)
-            volumes = []
-            for _,g in self.host_guest_map:
-                volumes.append(g)
             if network_cfg is not None:
                 json_data = json.dumps(network_cfg, indent=4)
                 with open('{}/network-cfg.json'.format(self.host_config_dir), 'w') as f:
                     f.write(json_data)
             print('Starting ONOS container %s' %self.name)
             self.start(ports = self.ports, environment = self.env,
-                       host_config = host_config, volumes = volumes, tty = True)
+                       host_config = self.host_config, volumes = self.volumes, tty = True)
             if not restart:
                 ##wait a bit before fetching IP to regenerate cluster cfg
                 time.sleep(5)
                 ip = self.ip()
                 ##Just a quick hack/check to ensure we don't regenerate in the common case.
                 ##As ONOS is usually the first test container that is started
-                if ip != self.CLUSTER_CFG_IP:
-                    print('Regenerating ONOS cluster cfg for ip %s' %ip)
-                    self.onos_generate_cluster_cfg(ip)
-                    self.kill()
-                    self.remove_container(self.name, force=True)
-                    print('Restarting ONOS container %s' %self.name)
-                    self.start(ports = self.ports, environment = self.env,
-                               host_config = host_config, volumes = volumes, tty = True)
+                if cluster is False:
+                    if ip != self.CLUSTER_CFG_IP or not os.access(self.cluster_cfg, os.F_OK):
+                        print('Regenerating ONOS cluster cfg for ip %s' %ip)
+                        self.generate_cluster_cfg(ip)
+                        self.kill()
+                        self.remove_container(self.name, force=True)
+                        print('Restarting ONOS container %s' %self.name)
+                        self.start(ports = self.ports, environment = self.env,
+                                   host_config = self.host_config, volumes = self.volumes, tty = True)
             print('Waiting %d seconds for ONOS to boot' %(boot_delay))
             time.sleep(boot_delay)
+        self.ipaddr = self.ip()
+        if cluster is False:
+            self.install_cord_apps(self.ipaddr)
 
-        self.install_cord_apps()
+    @classmethod
+    def setup_cluster_deprecated(cls, onos_instances, image_name = None):
+        if not onos_instances or len(onos_instances) < 2:
+            return
+        ips = []
+        if image_name is not None:
+            ips = Container.ips(image_name)
+        else:
+            for onos in onos_instances:
+                ips.append(onos.ipaddr)
+        Onos.cluster_instances = onos_instances
+        Onos.cluster_mode = True
+        ##regenerate the cluster json with the 3 instance ips before restarting them back
+        print('Generating cluster cfg for ONOS instances with ips %s' %ips)
+        Onos.generate_cluster_cfg(ips)
+        for onos in onos_instances:
+            onos.kill()
+            onos.remove_container(onos.name, force=True)
+            print('Restarting ONOS container %s for forming cluster' %onos.name)
+            onos.start(ports = onos.ports, environment = onos.env,
+                       host_config = onos.host_config, volumes = onos.volumes, tty = True)
+            print('Waiting %d seconds for ONOS %s to boot' %(onos.boot_delay, onos.name))
+            time.sleep(onos.boot_delay)
+            onos.ipaddr = onos.ip()
+            onos.install_cord_apps(onos.ipaddr)
+
+    @classmethod
+    def setup_cluster(cls, onos_instances, image_name = None):
+        if not onos_instances or len(onos_instances) < 2:
+            return
+        ips = []
+        if image_name is not None:
+            ips = Container.ips(image_name)
+        else:
+            for onos in onos_instances:
+                ips.append(onos.ipaddr)
+        Onos.cluster_instances = onos_instances
+        Onos.cluster_mode = True
+        ##regenerate the cluster json with the 3 instance ips before restarting them back
+        print('Forming cluster for ONOS instances with ips %s' %ips)
+        Onos.form_cluster(ips)
+        ##wait for the cluster to be formed
+        print('Waiting for the cluster to be formed')
+        time.sleep(60)
+        for onos in onos_instances:
+            onos.install_cord_apps(onos.ipaddr)
+
+    @classmethod
+    def restart_cluster(cls, network_cfg = None):
+        if cls.cluster_mode is False:
+            return
+        if not cls.cluster_instances:
+            return
+
+        if network_cfg is not None:
+            json_data = json.dumps(network_cfg, indent=4)
+            with open('{}/network-cfg.json'.format(cls.host_config_dir), 'w') as f:
+                f.write(json_data)
+
+        for onos in cls.cluster_instances:
+            if onos.exists():
+                onos.kill()
+            onos.remove_container(onos.name, force=True)
+            print('Restarting ONOS container %s' %onos.name)
+            onos.start(ports = onos.ports, environment = onos.env,
+                       host_config = onos.host_config, volumes = onos.volumes, tty = True)
+            print('Waiting %d seconds for ONOS %s to boot' %(onos.boot_delay, onos.name))
+            time.sleep(onos.boot_delay)
+            onos.ipaddr = onos.ip()
+
+        ##form the cluster
+        cls.setup_cluster(cls.cluster_instances)
+
+    @classmethod
+    def cluster_ips(cls):
+        if cls.cluster_mode is False:
+            return []
+        if not cls.cluster_instances:
+            return []
+        ips = [ onos.ipaddr for onos in cls.cluster_instances ]
+        return ips
+
+    @classmethod
+    def cleanup_cluster(cls):
+        if cls.cluster_mode is False:
+            return
+        if not cls.cluster_instances:
+            return
+        for onos in cls.cluster_instances:
+            if onos.exists():
+                onos.kill()
+            onos.remove_container(onos.name, force=True)
 
     @classmethod
     def install_cord_apps(cls, onos_ip = None):
