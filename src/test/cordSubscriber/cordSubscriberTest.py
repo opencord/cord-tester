@@ -321,8 +321,8 @@ yg==
             log.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
             OnosCtrl.install_app(cls.table_app_file)
             time.sleep(3)
-            onos_ctrl = OnosCtrl(cls.vtn_app)
-            onos_ctrl.deactivate()
+            #onos_ctrl = OnosCtrl(cls.vtn_app)
+            #onos_ctrl.deactivate()
 
       @classmethod
       def uninstall_app_table(cls):
@@ -331,8 +331,8 @@ yg==
             time.sleep(2)
             log.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
             OnosCtrl.install_app(cls.app_file)
-            onos_ctrl = OnosCtrl(cls.vtn_app)
-            onos_ctrl.activate()
+            #onos_ctrl = OnosCtrl(cls.vtn_app)
+            #onos_ctrl.activate()
 
       @classmethod
       def start_onos(cls, network_cfg = None):

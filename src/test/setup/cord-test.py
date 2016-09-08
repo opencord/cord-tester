@@ -410,7 +410,7 @@ def runTest(args):
             Onos.install_cord_apps(onos_ip = onos_ip)
         except: pass
 
-    print('Installing cord tester ONOS app %s' %onos_app_file)
+    print('Installing cord tester ONOS app %s' %args.app)
     try:
         OnosCtrl.install_app(args.app, onos_ip = onos_ip)
     except: pass
@@ -620,7 +620,7 @@ def setupCordTester(args):
             Onos.install_cord_apps(onos_ip = onos_ip)
         except: pass
 
-    print('Installing cord tester ONOS app %s' %onos_app_file)
+    print('Installing cord tester ONOS app %s' %args.app)
     try:
         for ip in onos_ips:
             OnosCtrl.install_app(args.app, onos_ip = ip)

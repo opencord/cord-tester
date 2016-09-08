@@ -1,0 +1,179 @@
+diff --git a/cbench/cbench.c b/cbench/cbench.c
+index 70fed93..cdf8492 100644
+--- a/cbench/cbench.c
++++ b/cbench/cbench.c
+@@ -45,6 +45,7 @@ struct myargs my_options[] = {
+     {"connect-group-size",  'I', "number of switches in a connection delay group", MYARGS_INTEGER, {.integer = 1}},
+     {"learn-dst-macs",  'L', "send gratuitious ARP replies to learn destination macs before testing", MYARGS_FLAG, {.flag = 1}},
+     {"dpid-offset",  'o', "switch DPID offset", MYARGS_INTEGER, {.integer = 1}},
++    {"igmp-test", 'g', "IGMP join leave test", MYARGS_FLAG, {.flag = 0}},
+     {0, 0, 0, 0}
+ };
+ 
+@@ -257,6 +258,7 @@ int main(int argc, char * argv[])
+     int     learn_dst_macs = myargs_get_default_flag(my_options, "learn-dst-macs");
+     int     dpid_offset = myargs_get_default_integer(my_options, "dpid-offset");
+     int     mode = MODE_LATENCY;
++    int     igmp_test = myargs_get_default_flag(my_options, "igmp-test");
+     int     i,j;
+ 
+     const struct option * long_opts = myargs_to_long(my_options);
+@@ -326,6 +328,9 @@ int main(int argc, char * argv[])
+             case 'o':
+                 dpid_offset = atoi(optarg);
+                 break;
++            case 'g':
++                igmp_test = 1;
++                break;
+             default: 
+                 myargs_usage(my_options, PROG_TITLE, "help message", NULL, 1);
+         }
+@@ -388,7 +393,8 @@ int main(int argc, char * argv[])
+         if(debug)
+             fprintf(stderr,"Initializing switch %d ... ", i+1);
+         fflush(stderr);
+-        fakeswitch_init(&fakeswitches[i],dpid_offset+i,sock,BUFLEN, debug, delay, mode, total_mac_addresses, learn_dst_macs);
++        fakeswitch_init(&fakeswitches[i],dpid_offset+i,sock,BUFLEN, debug, delay, mode, total_mac_addresses,
++                        learn_dst_macs, igmp_test);
+         if(debug)
+             fprintf(stderr," :: done.\n");
+         fflush(stderr);
+diff --git a/cbench/fakeswitch.c b/cbench/fakeswitch.c
+index a424d14..d3f16de 100644
+--- a/cbench/fakeswitch.c
++++ b/cbench/fakeswitch.c
+@@ -25,12 +25,14 @@ static int make_stats_desc_reply(struct ofp_stats_request * req, char * buf, int
+ static int parse_set_config(struct ofp_header * msg);
+ static int make_config_reply( int xid, char * buf, int buflen);
+ static int make_vendor_reply(int xid, char * buf, int buflen);
+-static int make_packet_in(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address);
+ static int packet_out_is_lldp(struct ofp_packet_out * po);
+ static void fakeswitch_handle_write(struct fakeswitch *fs);
+ static void fakeswitch_learn_dstmac(struct fakeswitch *fs);
+ void fakeswitch_change_status_now (struct fakeswitch *fs, int new_status);
+ void fakeswitch_change_status (struct fakeswitch *fs, int new_status);
++static int make_packet_in_default(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address);
++static int make_packet_in_igmp(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address);
++static int (*make_packet_in)(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address);
+ 
+ static struct ofp_switch_config Switch_config = {
+ 	.header = { 	OFP_VERSION,
+@@ -51,7 +53,7 @@ static inline uint64_t ntohll(uint64_t n)
+     return htonl(1) == 1 ? n : ((uint64_t) ntohl(n) << 32) | ntohl(n >> 32);
+ }
+ 
+-void fakeswitch_init(struct fakeswitch *fs, int dpid, int sock, int bufsize, int debug, int delay, enum test_mode mode, int total_mac_addresses, int learn_dstmac)
++void fakeswitch_init(struct fakeswitch *fs, int dpid, int sock, int bufsize, int debug, int delay, enum test_mode mode, int total_mac_addresses, int learn_dstmac, int igmp_test)
+ {
+     char buf[BUFLEN];
+     struct ofp_header ofph;
+@@ -62,6 +64,8 @@ void fakeswitch_init(struct fakeswitch *fs, int dpid, int sock, int bufsize, int
+     fs->outbuf = msgbuf_new(bufsize);
+     fs->probe_state = 0;
+     fs->mode = mode;
++    fs->igmp_test = igmp_test;
++    make_packet_in = igmp_test ? make_packet_in_igmp : make_packet_in_default;
+     fs->probe_size = make_packet_in(fs->id, 0, 0, buf, BUFLEN, fs->current_mac_address++);
+     fs->count = 0;
+     fs->switch_status = START;
+@@ -71,7 +75,6 @@ void fakeswitch_init(struct fakeswitch *fs, int dpid, int sock, int bufsize, int
+     fs->xid = 1;
+     fs->learn_dstmac = learn_dstmac;
+     fs->current_buffer_id = 1;
+-  
+     ofph.version = OFP_VERSION;
+     ofph.type = OFPT_HELLO;
+     ofph.length = htons(sizeof(ofph));
+@@ -289,8 +292,54 @@ static int packet_out_is_lldp(struct ofp_packet_out * po){
+ 	return ethertype == ETHERTYPE_LLDP;
+ }
+ 
++static int make_packet_in_igmp(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address)
++{
++    struct ofp_packet_in * pi;
++    struct ether_header * eth;
++    static char fake_igmp_join[] = {
++        0x97,0x0a,0x00,0x4c,0x00,0x00,0x00,0x00,0x00,0x00,0x01,
++        0x01,0x00,0x40,0x00,0x01,0x00,0x00,0x80,0x00,0x00,0x00,
++        0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x02,0x08,0x00,0x46,
++        0xc0,0x00,0x2c,0x00,0x01,0x00,0x00,0x01,0x02,0x3f,0x04,
++        0x01,0x02,0x03,0x04,0xe0,0x00,0x01,0x01,0x94,0x04,0x00,
++        0x00,0x22,0x00,0xf6,0xf5,0x00,0x00,0x00,0x01,0x01,0x00,
++        0x00,0x01,0xe2,0x00,0x00,0x01,0x01,0x02,0x03,0x04,
++    };
++    static char fake_igmp_leave[] = {
++        0x97,0x0a,0x00,0x4c,0x00,0x00,0x00,0x00,0x00,0x00,0x01,
++        0x01,0x00,0x40,0x00,0x01,0x00,0x00,0x80,0x00,0x00,0x00,
++        0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x02,0x08,0x00,0x46,
++        0xc0,0x00,0x2c,0x00,0x01,0x00,0x00,0x01,0x02,0x3f,0x04,
++        0x01,0x02,0x03,0x04,0xe0,0x00,0x01,0x01,0x94,0x04,0x00,
++        0x00,0x22,0x00,0xf5,0xf5,0x00,0x00,0x00,0x01,0x02,0x00,
++        0x00,0x01,0xe2,0x00,0x00,0x01,0x01,0x02,0x03,0x04,
++    };
++    static char *fake_bufs[2] = { fake_igmp_join, fake_igmp_leave };
++    static int fake_size_map[2] = { (int)sizeof(fake_igmp_join), (int)sizeof(fake_igmp_leave) };
++    static int idx;
++    int cur_idx = idx;
++    int buf_size = fake_size_map[cur_idx];
++    char *fake;
++    fake = fake_bufs[cur_idx];
++    idx ^= 1;
++    assert(buflen > buf_size);
++    memcpy(buf, fake, buf_size);
++    pi = (struct ofp_packet_in *) buf;
++    pi->header.version = OFP_VERSION;
++    pi->header.xid = htonl(xid);
++    pi->buffer_id = htonl(buffer_id);
++    eth = (struct ether_header * ) pi->data;
++    // copy into src mac addr; only 4 bytes, but should suffice to not confuse
++    // the controller; don't overwrite first byte
++    memcpy(&eth->ether_shost[1], &mac_address, sizeof(mac_address));
++    // mark this as coming from us, mostly for debug
++    eth->ether_dhost[5] = switch_id;
++    eth->ether_shost[5] = switch_id;
++    return buf_size;
++}
++
+ /***********************************************************************/
+-static int make_packet_in(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address)
++static int make_packet_in_default(int switch_id, int xid, int buffer_id, char * buf, int buflen, int mac_address)
+ {
+     struct ofp_packet_in * pi;
+     struct ether_header * eth;
+@@ -387,6 +436,7 @@ void fakeswitch_handle_read(struct fakeswitch *fs)
+                 if(fs->switch_status == READY_TO_SEND && (fm->command == htons(OFPFC_ADD) || 
+                         fm->command == htons(OFPFC_MODIFY_STRICT)))
+                 {
++                    debug_msg(fs, "Got FLOW MOD response\n");
+                     fs->count++;        // got response to what we went
+                     fs->probe_state--;
+                 }
+@@ -488,6 +538,7 @@ static void fakeswitch_handle_write(struct fakeswitch *fs)
+         else if ((fs->mode == MODE_THROUGHPUT) && 
+                 (msgbuf_count_buffered(fs->outbuf) < throughput_buffer))  // keep buffer full
+             send_count = (throughput_buffer - msgbuf_count_buffered(fs->outbuf)) / fs->probe_size;
++
+         for (i = 0; i < send_count; i++)
+         {
+             // queue up packet
+diff --git a/cbench/fakeswitch.h b/cbench/fakeswitch.h
+index d0352e7..26eb202 100644
+--- a/cbench/fakeswitch.h
++++ b/cbench/fakeswitch.h
+@@ -39,6 +39,7 @@ struct fakeswitch
+     int current_mac_address;
+     int learn_dstmac;
+     int current_buffer_id;
++    int igmp_test;
+ };
+ 
+ /*** Initialize an already allocated fakeswitch
+@@ -54,7 +55,7 @@ struct fakeswitch
+  * @param total_mac_addresses      The total number of unique mac addresses
+  *                                 to use for packet ins from this switch
+  */
+-void fakeswitch_init(struct fakeswitch *fs, int dpid, int sock, int bufsize, int debug, int delay, enum test_mode mode, int total_mac_addresses, int learn_dstmac);
++void fakeswitch_init(struct fakeswitch *fs, int dpid, int sock, int bufsize, int debug, int delay, enum test_mode mode, int total_mac_addresses, int learn_dstmac, int igmp_test);
+ 
+ 
+ /*** Set the desired flags for poll()
