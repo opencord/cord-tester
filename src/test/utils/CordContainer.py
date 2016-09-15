@@ -327,6 +327,16 @@ class Onos(Container):
             os.system(cmd)
         except: pass
 
+    @classmethod
+    def cleanup_runtime(cls):
+        '''Cleanup ONOS runtime generated files'''
+        files = ( Onos.cluster_cfg, os.path.join(Onos.host_config_dir, 'network-cfg.json') )
+        for f in files:
+            if os.access(f, os.F_OK):
+                try:
+                    os.unlink(f)
+                except: pass
+
     def __init__(self, name = NAME, image = 'onosproject/onos', prefix = '', tag = 'latest',
                  boot_delay = 60, restart = False, network_cfg = None, cluster = False):
         if restart is True:

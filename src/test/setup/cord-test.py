@@ -712,6 +712,7 @@ def cleanupTests(args):
         for onos in onos_list:
             Container.dckr.kill(onos)
             Container.dckr.remove_container(onos, force=True)
+        Onos.cleanup_runtime()
 
     return 0
 
