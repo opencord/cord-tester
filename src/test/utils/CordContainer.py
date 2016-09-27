@@ -620,10 +620,13 @@ class Xos(Container):
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
     TAG = 'latest'
     PREFIX = ''
+    host_guest_map = None
+    env = None
+    ports = None
+    volumes = None
 
-    def __init__(self, name, image, dockerfile = None, prefix = PREFIX, tag = TAG,
-                 boot_delay = 30, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
+    def __init__(self, name, image, prefix = PREFIX, tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -633,876 +636,132 @@ class Xos(Container):
                     image = image_name.split(':')[0]
                     tag = image_name.split(':')[1]
                 except: pass
-
         super(Xos, self).__init__(name, image, prefix = prefix, tag = tag)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, check github repo')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              print('Waiting %d seconds for XOS Base Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS base image %s' %image)
-        super(Xos, cls).build_image(self.dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_base(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8000,9998,9999 ]
-    env = { 'XOS_GIT_REPO' : 'https://github.com/opencord/xos.git', 'XOS_GIT_BRANCH' : 'master', 'NG_XOS_LIB_URL' : ' https://github.com/opencord/ng-xos-lib.git', 'NG_XOS_LIB_VERSION' : '1.0.0',}
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-base'
-    IMAGE = 'xosproject/xos-base'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-base', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_base, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS base container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS Base Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS base image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-base
-MAINTAINER chetan@ciena.com
-ADD local_certs.crt /usr/local/share/ca-certificates/local_certs.crt
-RUN update-ca-certificates
-RUN git clone $XOS_GIT_REPO -b $XOS_GIT_BRANCH /tmp/xos && \
-    mv /tmp/xos/xos /opt/ && \
-    chmod +x /opt/xos/tools/xos-manage && \
-    /opt/xos/tools/xos-manage genkeys
-
-RUN git clone $NG_XOS_LIB_URL /tmp/ng-xos-lib
-RUN cd /tmp/ng-xos-lib && git checkout tags/$NG_XOS_LIB_VERSION
-RUN cp /tmp/ng-xos-lib/dist/ngXosHelpers.min.js /opt/xos/core/xoslib/static/vendor/
-RUN cp /tmp/ng-xos-lib/dist/ngXosVendor.min.js /opt/xos/core/xoslib/static/vendor/
-WORKDIR /opt/xos
-CMD python /opt/xos/manage.py runserver 0.0.0.0:8000 --insecure --makemigrations
-'''
-        super(Xos_base, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_openstack(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 2375 ]
-    env = {'DOCKER_URL' : 'https://get.docker.com/builds/Linux/x86_64/docker-1.10.3', 'DOCKER_SHA256' : 'd0df512afa109006a450f41873634951e19ddabf8c7bd419caeb5a526032d86d', 'DOCKER_COMPOSE_URL' : ' https://github.com/docker/compose/releases/download/1.5.2/docker-compose-Linux-x86_64', 'DOCKER_COMPOSE_SHA256' : ' b6b975badc5389647ef1c16fe8a33bdc5935c61f6afd5a15a28ff765427d01e3' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-openstack'
-    IMAGE = 'xosproject/xos-synchronizer-openstack'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-openstack', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_openstack, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS Synchronizer Openstack container %s' %self.name)
-              self.start(environment = self.env,
-                       tty = True)
-              if not restart:
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS Synchronizer Openstack Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer Openstack image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-openstack
-RUN curl -fLsS $DOCKER_URL -o docker && \
-    echo "${DOCKER_SHA256}  docker" | sha256sum -c - && \
-    mv docker /usr/local/bin/docker && \
-    chmod +x /usr/local/bin/docker
-RUN curl -fLsS $DOCKER_COMPOSE_URL -o docker-compose && \
-    echo "${DOCKER_COMPOSE_SHA256}  docker-compose" | sha256sum -c - && \
-    mv docker-compose /usr/local/bin/docker-compose && \
-    chmod +x /usr/local/bin/docker-compose
-CMD /usr/bin/supervisord -c /etc/supervisor/conf.d/synchronizer.conf
-'''
-        super(Xos_sync_openstack, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_openvpn(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [8000]
-    env = {'DOCKER_URL' : 'https://get.docker.com/builds/Linux/x86_64/docker-1.10.3', 'DOCKER_SHA256' : 'd0df512afa109006a450f41873634951e19ddabf8c7bd419caeb5a526032d86d', 'DOCKER_COMPOSE_URL' : ' https://github.com/docker/compose/releases/download/1.5.2/docker-compose-Linux-x86_64', 'DOCKER_COMPOSE_SHA256' : ' b6b975badc5389647ef1c16fe8a33bdc5935c61f6afd5a15a28ff765427d01e3' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'openvpn'
-    IMAGE = 'xosproject/xos-synchronizer-openstack'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-openstack', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_openvpn, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS Openvpn container %s' %self.name)
-              self.start(ports = self.ports, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS Openvpn Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer Openstack image %s' %image)
-        dockerfile = '''
-FROM       xosproject/xos-synchronizer-openstack
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
-    openvpn
-RUN mkdir -p /opt/openvpn
-RUN chmod 777 /opt/openvpn
-RUN git clone https://github.com/OpenVPN/easy-rsa.git /opt/openvpn
-RUN git -C /opt/openvpn pull origin master
-RUN echo 'set_var EASYRSA	"/opt/openvpn/easyrsa3"' | tee /opt/openvpn/vars
-RUN echo 'set_var EASYRSA_BATCH	"true"' | tee -a /opt/openvpn/vars
-'''
-        super(Xos_openvpn, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_postgresql(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 5432 ]
-    NAME = 'xos-postgresql'
-    IMAGE = 'xosproject/xos-postgres'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'ubuntu', prefix = '', tag = '14.04',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_postgresql, self).__init__(name, image, prefix = prefix, tag = tag)
         if restart is True and self.exists():
             self.kill()
         if not self.exists():
             self.remove_container(name, force=True)
-            host_config = self.create_host_config(port_list = self.ports)
-            volumes = ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-            print('Starting Xos postgresql container %s' %self.name)
-            self.start(ports = self.ports, host_config = host_config, volumes = volumes, tty = True)
-            if not restart:
-                ##wait a bit before fetching IP to regenerate cluster cfg
-                time.sleep(5)
-                ip = self.ip()
-            print('Waiting %d seconds for Xos postgresql to boot' %(boot_delay))
+            host_config = self.create_host_config(port_list = self.ports,
+                                                  host_guest_map = self.host_guest_map,
+                                                  privileged = True)
+            print('Starting XOS container %s' %self.name)
+            self.start(ports = self.ports, environment = self.env, host_config = host_config,
+                       volumes = self.volumes, tty = True)
+            print('Waiting %d seconds for XOS Base Container to boot' %(boot_delay))
             time.sleep(boot_delay)
 
     @classmethod
-    def build_image(cls, image):
-        print('Building XOS postgresql image %s' %image)
-        dockerfile = '''
-FROM ubuntu:14.04
-RUN apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
-RUN echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    python-software-properties \
-    software-properties-common \
-    postgresql-9.3 \
-    postgresql-client-9.3 \
-    postgresql-contrib-9.3
+    def build_image(cls, image, dockerfile_path, image_target = 'build'):
+        cmd = 'cd {} && make {}'.format(dockerfile_path, image_target)
+        print('Building XOS %s' %image)
+        res = os.system(cmd)
+        print('Done building image %s. Image build %s' %(image, 'successful' if res == 0 else 'failed'))
+        return res
 
-RUN mkdir /etc/ssl/private-copy; mv /etc/ssl/private/* /etc/ssl/private-copy/; rm -r /etc/ssl/private; mv /etc/ssl/private-copy /etc/ssl/private; chmod -R 0700 /etc/ssl/private; chown -R postgres /etc/ssl/private
-USER postgres
-RUN /etc/init.d/postgresql start && \
-    psql --command "ALTER USER postgres WITH SUPERUSER PASSWORD 'password' " && \
-    psql --command "CREATE DATABASE xos"
-RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/9.3/main/pg_hba.conf
-RUN echo "host all  all    0.0.0.0/0  password" >> /etc/postgresql/9.3/main/pg_hba.conf
-RUN echo "listen_addresses='*'" >> /etc/postgresql/9.3/main/postgresql.conf
-VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-CMD ["/usr/lib/postgresql/9.3/bin/postgres", "-D", "/var/lib/postgresql/9.3/main", "-c", "config_file=/etc/postgresql/9.3/main/postgresql.conf"]
-'''
-        super(Xos_postgresql, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_synchronizer(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8000 ]
-    env = { 'XOS_GIT_REPO' : 'https://github.com/opencord/xos.git', 'XOS_GIT_BRANCH' : 'master', 'NG_XOS_LIB_URL' : ' https://github.com/opencord/ng-xos-lib.git', 'NG_XOS_LIB_VERSION' : '1.0.0',}
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos'
+class XosServer(Xos):
+    ports = [8000,9998,9999]
+    NAME = 'xos-server'
     IMAGE = 'xosproject/xos'
+    BASE_IMAGE = 'xosproject/xos-base'
     TAG = 'latest'
     PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'xos')
 
-    def __init__(self, name = NAME, image = 'xosproject/xos', prefix = '', tag = 'latest',
+    def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
                  boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_synchronizer, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS synchronizer container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS Synchronizer Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos
-MAINTAINER chetan@ciena.com
-COPY conf/synchronizer.conf /etc/supervisor/conf.d/
-CMD /usr/bin/supervisord -c /etc/supervisor/conf.d/synchronizer.conf
-'''
-        super(Xos_synchronizer, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
+    def build_image(cls, image = IMAGE):
+        ##build the base image and then build the server image
+        Xos.build_image(cls.BASE_IMAGE, cls.dockerfile_path, image_target = 'base')
+        Xos.build_image(image, cls.dockerfile_path)
 
-class Xos_syndicate_ms(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'syndicate-ms'
-    IMAGE = 'xosproject/syndicate-ms'
+class XosSynchronizerOpenstack(Xos):
+    ports = [2375,]
+    dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer')
+    NAME = 'xos-synchronizer'
+    IMAGE = 'xosproject/xos-synchronizer-openstack'
     TAG = 'latest'
     PREFIX = ''
+    host_guest_map = ( ('/usr/local/share/ca-certificates', '/usr/local/share/ca-certificates'),)
 
-    def __init__(self, name = NAME, image = 'ubuntu', prefix = '', tag = '14.04.4',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_syndicate_ms, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS syndicate-ms container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS syndicate-ms Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
+    def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
+                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
-    def build_image(cls, image):
-        print('Building XOS Syndicate-ms image %s' %image)
-        dockerfile = '''
-FROM ubuntu:14.04.4
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
+    def build_image(cls, image = IMAGE):
+        XosServer.build_image()
+        Xos.build_image(image, cls.dockerfile_path)
 
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_syndicate_ms, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_vtr(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-synchronizer-vtr'
-    IMAGE = 'xosproject/xos-synchronizer-vtr'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-vtr', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_vtr, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS xos-synchronizer-vtr container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS synchronizer-vtr Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer-vtr image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-vtr
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
-
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_sync_vtr, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_vsg(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-synchronizer-vsg'
-    IMAGE = 'xosproject/xos-synchronizer-vsg'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-vsg', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_vsg, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS xos-synchronizer-vsg container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS synchronizer-vsg Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer-vsg image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-vsg
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
-
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_sync_vsg, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_onos(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-synchronizer-onos'
-    IMAGE = 'xosproject/xos-synchronizer-onos'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-onos', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_onos, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS xos-synchronizer-onos container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS synchronizer-onos Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer-onos image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-onos
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
-
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_sync_onos, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_fabric(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-synchronizer-fabric'
-    IMAGE = 'xosproject/xos-synchronizer-fabric'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-fabric', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_fabric, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS xos-synchronizer-fabric container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS synchronizer-fabric Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer-fabric image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-fabric
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
-
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_sync_fabric, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_vtn(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
-    NAME = 'xos-synchronizer-vtn'
-    IMAGE = 'xosproject/xos-synchronizer-vtn'
-    TAG = 'latest'
-    PREFIX = ''
-
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-vtn', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_vtn, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS xos-synchronizer-vtn container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS synchronizer-vtn Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
-
-    @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer-vtn image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-vtn
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
-
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_sync_vtn, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
-
-class Xos_sync_onboarding(Container):
-    SYSTEM_MEMORY = (get_mem(),) * 2
-    ports = [ 8080 ]
-    env = { 'APT_KEY' : 'butler_opencloud_cs_arizona_edu_pub.gpg', 'MS_PORT': '8080', 'GAE_SDK' : 'google_appengine_1.9.35.zip', 'HOME' : '/home/syndicate' }
-    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
+class XosSynchronizerOnboarding(Xos):
     NAME = 'xos-synchronizer-onboarding'
     IMAGE = 'xosproject/xos-synchronizer-onboarding'
     TAG = 'latest'
     PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'onboarding_synchronizer')
+    host_guest_map = ( ('/usr/local/share/ca-certificates', '/usr/local/share/ca-certificates'),)
 
-    def __init__(self, name = NAME, image = 'xosproject/xos-synchronizer-onboarding', prefix = '', tag = 'latest',
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
-        GITHUB_ERROR = False
-        if restart is True:
-            ##Find the right image to restart
-            running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
-            if running_image:
-                image_name = running_image[0]['Image']
-                try:
-                    image = image_name.split(':')[0]
-                    tag = image_name.split(':')[1]
-                except: pass
-
-        super(Xos_sync_onboarding, self).__init__(name, image, prefix = prefix, tag = tag)
-        if update is True or not self.img_exists():
-            self.build_image(self.image_name)
-            if not self.img_exists():
-               print ('Xos base container image is not built on host, have to check github repository ')
-               GITHUB_ERROR = True
-        if GITHUB_ERROR is not True:
-           if restart is True and self.exists():
-              self.kill()
-           if not self.exists():
-              self.remove_container(name, force=True)
-              host_config = self.create_host_config(port_list = self.ports)
-              print('Starting XOS xos-synchronizer-onboarding container %s' %self.name)
-              self.start(ports = self.ports, environment = self.env, host_config = host_config,
-                       tty = True)
-              if not restart:
-                 ##wait a bit before fetching IP to regenerate cluster cfg
-                 time.sleep(5)
-                 ip = self.ip()
-              print('Waiting %d seconds for XOS synchronizer-onboarding Container to boot' %(boot_delay))
-              time.sleep(boot_delay)
+    def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
+                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
-    def build_image(cls, image):
-        print('Building XOS Synchronizer-onboarding image %s' %image)
-        dockerfile = '''
-FROM xosproject/xos-synchronizer-onboarding
-MAINTAINER chetan@ciena.com
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    apt-transport-https
-COPY butler.crt /usr/local/share/ca-certificates
-RUN update-ca-certificates
-COPY $APT_KEY /tmp/
-RUN apt-key add /tmp/$APT_KEY
-RUN echo "deb https://butler.opencloud.cs.arizona.edu/repos/release/syndicate syndicate main" > /etc/apt/sources.list.d/butler.list
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y --force-yes\
-    syndicate-core \
-    syndicate-ms \
-    wget \
-    unzip
+    def build_image(cls, image = IMAGE):
+        XosSynchronizerOpenstack.build_image()
+        Xos.build_image(image, cls.dockerfile_path)
 
-RUN groupadd -r syndicate && useradd -m -r -g syndicate syndicate
-USER syndicate
-ENV HOME /home/syndicate
-WORKDIR $HOME
-RUN wget -nv https://storage.googleapis.com/appengine-sdks/featured/$GAE_SDK
-RUN unzip -q $GAE_SDK
-RUN mkdir $HOME/datastore
-CMD $HOME/google_appengine/dev_appserver.py --admin_host=0.0.0.0 --host=0.0.0.0 --storage_path=$HOME/datastore --skip_sdk_update_check=true /usr/src/syndicate/ms
-'''
-        super(Xos_sync_onboarding, cls).build_image(dockerfile, image)
-        print('Done building image %s' %image)
+class XosSynchronizerOpenvpn(Xos):
+    NAME = 'xos-synchronizer-openvpn'
+    IMAGE = 'xosproject/xos-openvpn'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'openvpn')
+    host_guest_map = ( ('/usr/local/share/ca-certificates', '/usr/local/share/ca-certificates'),)
 
+    def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
+                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        XosSynchronizerOpenstack.build_image()
+        Xos.build_image(image, cls.dockerfile_path)
+
+class XosPostgresql(Xos):
+    ports = [5432,]
+    NAME = 'xos-db-postgres'
+    IMAGE = 'xosproject/xos-postgres'
+    TAG = 'latest'
+    PREFIX = ''
+    volumes = ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
+    dockerfile_path = os.path.join(Xos.setup_dir, 'postgresql')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
+                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
+
+class XosSyndicateMs(Xos):
+    ports = [8080,]
+    env = None
+    NAME = 'xos-syndicate-ms'
+    IMAGE = 'xosproject/syndicate-ms'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'syndicate-ms')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
 

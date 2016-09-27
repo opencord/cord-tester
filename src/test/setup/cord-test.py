@@ -844,57 +844,31 @@ def startImages(args):
     return 0
 
 def xosContainers(args):
-    update_map = {  'xos-base' : False, 'xos-synchronizer-openstack' : False, 'openvpn' : False, 'postgresql' :False,
-                    'xos' : False, 'syndicate-ms': False, 'xos-synchronizer-vtr' : False, 'xos-synchronizer-vsg' : False,
-                    'xos-synchronizer-onos' : False, 'xos-synchronizer-fabric' : False, 'xos-synchronizer-vtn' : False,
-                    'xos-synchronizer-onboarding' : False, }
+    update_map = {  'xos-server' : False, 'xos-synchronizer-openstack' : False, 'openvpn' : False, 'postgresql' :False,
+                    'syndicate-ms': False, 'xos-synchronizer-onboarding' : False }
 
-    if args.xosAllContainers == True or args.xosBase == True:
-        #Start xos base container. Builds container if required
-        xosBase = Xos_base(prefix = Container.IMAGE_PREFIX, update = update_map['xos-base'])
+    if args.xosAllContainers == True or args.xosServer == True:
+        xosServer = XosServer(prefix = Container.IMAGE_PREFIX, update = update_map['xos-server'])
 
-    if args.xosAllContainers == True or args.xosSynOpenstack == True:
+    if args.xosAllContainers == True or args.xosSyncOpenstack == True:
         #Start xos base container. Builds container if required
-        xosSynOpenstack = Xos_sync_openstack(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-openstack'])
+        xosSyncOpenstack = XosSynchronizerOpenstack(prefix = Container.IMAGE_PREFIX,
+                                                    update = update_map['xos-synchronizer-openstack'])
+
     if args.xosAllContainers == True or args.xosOpenvpn == True:
-        #Start xos base container. Builds container if required
-        xosOpenvpn = Xos_openvpn(prefix = Container.IMAGE_PREFIX, update = update_map['openvpn'])
+        xosOpenvpn = XosSynchronizerOpenvpn(prefix = Container.IMAGE_PREFIX, update = update_map['openvpn'])
 
     if args.xosAllContainers == True or args.xosPostgresql == True:
-        #Start xos postgresql container. Builds container if required
-        xosPostgresql = Xos_postgresql(prefix = Container.IMAGE_PREFIX, update = update_map['postgresql'])
-
-    if args.xosAllContainers == True or args.xosSynchronizer == True:
-        #Start xos synchronizer container. Builds container if required
-        xosSynchronizer = Xos_synchronizer(prefix = Container.IMAGE_PREFIX, update = update_map['xos'])
+        xosPostgresql = XosPostgresql(prefix = Container.IMAGE_PREFIX, update = update_map['postgresql'])
 
     if args.xosAllContainers == True or args.xosSyndicateMs == True:
         #Start xos syndicateMs container. Builds container if required
-        xosSyndicateMs = Xos_syndicate_ss(prefix = Container.IMAGE_PREFIX, update = update_map['syndicate-ms'])
+        xosSyndicateMs = XosSyndicateMs(prefix = Container.IMAGE_PREFIX, update = update_map['syndicate-ms'])
 
-    if args.xosAllContainers == True or args.xosSynVtr == True:
-        #Start xos synchronizer vtr container. Builds container if required
-        xosSynVtr = Xos_syn_vtr(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-vtr'])
-
-    if args.xosAllContainers == True or args.xosSynVsg == True:
-        #Start xos synchronizer vsg container. Builds container if required
-        xosSynVsg = Xos_syn_vsg(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-vsg'])
-
-    if args.xosAllContainers == True or args.xosSynOnos == True:
-        #Start xos synchronizer Onos container. Builds container if required
-        xosSynOnos = Xos_syn_onos(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-onos'])
-
-    if args.xosAllContainers == True or args.xosSynFabric == True:
-        #Start xos synchronizer fabric container. Builds container if required
-        xosSynFabric = Xos_syn_fabric(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-fabric'])
-
-    if args.xosAllContainers == True or args.xosSynVtn == True:
-        #Start xos synchronizer vtn container. Builds container if required
-        xosSynVtn = Xos_syn_vtn(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-vtn'])
-
-    if args.xosAllContainers == True or args.xosSynOnboarding == True:
+    if args.xosAllContainers == True or args.xosSyncOnboarding == True:
         #Start xos synchronizer Onboarding container. Builds container if required
-        xosSynOnboarding = Xos_syn_onboarding(prefix = Container.IMAGE_PREFIX, update = update_map['xos-synchronizer-onboarding'])
+        xosSyncOnboarding = XosSynchronizerOnboarding(prefix = Container.IMAGE_PREFIX,
+                                                      update = update_map['xos-synchronizer-onboarding'])
 
     print('Done building xos containers')
     return 0
@@ -957,17 +931,12 @@ if __name__ == '__main__':
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
     parser_xos.add_argument('-x', '--xosAllContainers', action='store_true',help='Provision all containers of XOS for CORD')
-    parser_xos.add_argument('-xb', '--xosBase',action='store_true',help='Provision xos base container')
+    parser_xos.add_argument('-xserver', '--xosServer',action='store_true',help='Provision xos server container')
     parser_xos.add_argument('-xsos', '--xosSyncOpenstack',action='store_true',help='Provision xos synchronizer openstack container')
     parser_xos.add_argument('-xo', '--xosOpenvpn',action='store_true',help='Provision xos openvpn container')
     parser_xos.add_argument('-xp', '--xosPostgresql',action='store_true',help='Provision xos postgresql')
     parser_xos.add_argument('-xs', '--xosSynchronizer',action='store_true',help='Provision xos synchronizer')
     parser_xos.add_argument('-xsm', '--xosSyndicateMs',action='store_true',help='Provision xos syndicate-ms')
-    parser_xos.add_argument('-xsvtr', '--xosSyncVtr',action='store_true',help='Provision xos synchronizer vtr container')
-    parser_xos.add_argument('-xsvsg', '--xosSyncVsg',action='store_true',help='Provision xos synchronizer vsg container')
-    parser_xos.add_argument('-xsonos', '--xosSyncOnos',action='store_true',help='Provision xos synchronizer onos container')
-    parser_xos.add_argument('-xsfabric', '--xosSyncFabric',action='store_true',help='Provision xos synchronizer fabric container')
-    parser_xos.add_argument('-xsvtn', '--xosSyncVtn',action='store_true',help='Provision xos synchronizer vtn container')
     parser_xos.add_argument('-xsonb', '--xosSyncOnboarding',action='store_true',help='Provision xos synchronizer onboarding container')
     parser_xos.set_defaults(func=xosContainers)
 

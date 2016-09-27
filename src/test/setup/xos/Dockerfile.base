@@ -1,0 +1,84 @@
+# Dockerfile.base
+# This image isn't used, but installs the prereqs for the other XOS images
+
+FROM ubuntu:14.04.5
+MAINTAINER Zack Williams <zdw@cs.arizona.edu>
+
+# Install apt packages
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
+    apt-transport-https \
+    curl \
+    gcc \
+    geoip-database \
+    git \
+    graphviz \
+    graphviz-dev \
+    libcurl4-gnutls-dev \
+    libffi-dev \
+    libgeoip1 \
+    libpq-dev \
+    libxslt1-dev \
+    libxslt1.1 \
+    libyaml-dev \
+    m4 \
+    openssh-client \
+    pkg-config \
+    python-dev \
+    python-pip \
+    rsync \
+    software-properties-common \
+    supervisor \
+    unzip \
+    wget \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir /var/xos \
+ && pip freeze > /var/xos/pip_freeze_apt_`date -u +%Y%m%dT%H%M%S`
+
+# Install python packages with pip
+COPY pip_requirements.txt /tmp/pip_requirements.txt
+
+RUN pip install --no-deps -r /tmp/pip_requirements.txt \
+ && pip freeze > /var/xos/pip_freeze_pip_up_`date -u +%Y%m%dT%H%M%S`
+
+# Copy over ansible hosts
+COPY ansible-hosts /etc/ansible/hosts
+
+# Install jQuery
+ENV JQUERY_DL_URL http://code.jquery.com/jquery-1.12.4.min.js
+ENV JQUERY_SHA256 668b046d12db350ccba6728890476b3efee53b2f42dbb84743e5e9f1ae0cc404
+
+RUN curl -fLsS $JQUERY_DL_URL -o jquery.min.js && \
+    echo "$JQUERY_SHA256  jquery.min.js" | sha256sum -c - && \
+    mv jquery.min.js /usr/local/lib/python2.7/dist-packages/suit/static/suit/js/
+
+# Install jQueryUI
+ENV JQUERYUI_DL_URL https://jqueryui.com/resources/download/jquery-ui-1.11.4.zip
+ENV JQUERYUI_SHA256 503e4c0f109bf627aff87a424edc760608ec15e4a6e37f217a083ca682543e32
+
+RUN curl -fLsS $JQUERYUI_DL_URL -o jquery-ui.zip && \
+    echo "$JQUERYUI_SHA256  jquery-ui.zip" | sha256sum -c - && \
+    unzip jquery-ui.zip && \
+    mv jquery-ui-*/jquery-ui.min.js /usr/local/lib/python2.7/dist-packages/suit/static/suit/js/ && \
+    rm -rf jquery-ui.zip jquery-ui-*
+
+ENV JQUERYUI_THEMES_DL_URL http://jqueryui.com/resources/download/jquery-ui-themes-1.11.4.zip
+ENV JQUERYUI_THEMES_SHA256 df2b9cb084095ea24129a6a54587a1d9d7ae4bcd68bf5ea2957eb3d4d18fe884
+
+RUN curl -fLsS $JQUERYUI_THEMES_DL_URL -o jquery-ui-themes.zip && \
+    echo "$JQUERYUI_THEMES_SHA256  jquery-ui-themes.zip" | sha256sum -c - && \
+    unzip jquery-ui-themes.zip && \
+    mv jquery-ui-themes-*/themes/smoothness/jquery-ui.min.css /usr/local/lib/python2.7/dist-packages/suit/static/suit/css/ && \
+    rm -rf jquery-ui-themes.zip jquery-ui-themes-*
+
+# Install heat-translator for TOSCA support
+ENV HT_REPO_URL https://github.com/openstack/heat-translator.git
+ENV HT_REF a951b93c16e54046ed2d233d814860181c772e30
+
+RUN git clone $HT_REPO_URL /tmp/heat-translator && \
+    cd /tmp/heat-translator && \
+    git checkout $HT_REF && \
+    mkdir -p /opt/tosca && \
+    mv /tmp/heat-translator/translator /opt/tosca/translator && \
+    echo > /opt/tosca/translator/__init__.py && \
+    rm -rf /tmp/heat-translator
+
