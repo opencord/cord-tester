@@ -715,6 +715,24 @@ def cleanupTests(args):
             Container.dckr.kill(onos)
             Container.dckr.remove_container(onos, force=True)
         Onos.cleanup_runtime()
+    if args.xos:
+        ##cleanup XOS images
+        xos_images = ( '{}:{}'.format(XosServer.IMAGE,XosServer.TAG),
+                       '{}:{}'.format(XosSynchronizerOpenstack.IMAGE,
+                                      XosSynchronizerOpenstack.TAG),
+                       '{}:{}'.format(XosSynchronizerOnboarding.IMAGE,
+                                      XosSynchronizerOnboarding.TAG),
+                       '{}:{}'.format(XosSynchronizerOpenvpn.IMAGE,
+                                      XosSynchronizerOpenvpn.TAG),
+                       '{}:{}'.format(XosPostgresql.IMAGE,
+                                      XosPostgresql.TAG),
+                       '{}:{}'.format(XosSyndicateMs.IMAGE,
+                                      XosSyndicateMs.TAG),
+                       )
+        for img in xos_images:
+            print('Cleaning up XOS image: %s' %img)
+            Container.cleanup(img)
+
     return 0
 
 def listTests(args):
@@ -949,7 +967,7 @@ if __name__ == '__main__':
 
     parser_build = subparser.add_parser('build', help='Build cord test container images')
     parser_build.add_argument('image', choices=['quagga', 'radius', 'test','all'])
-    parser_build.add_argument('-p', '--prefix', default='xosproject', type=str, help='Provide container image prefix')
+    parser_build.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_build.set_defaults(func=buildImages)
 
     parser_metrics = subparser.add_parser('metrics', help='Info of container')
@@ -967,6 +985,9 @@ if __name__ == '__main__':
     parser_cleanup.add_argument('-l', '--olt', action = 'store_true', help = 'Cleanup OLT config')
     parser_cleanup.add_argument('-o', '--onos', default=onos_image_default, type=str,
                                 help='ONOS container image to cleanup')
+    parser_cleanup.add_argument('-x', '--xos', action='store_true',
+                                help='Cleanup XOS containers')
+
     parser_cleanup.set_defaults(func=cleanupTests)
 
     c = Client(**(kwargs_from_env()))
