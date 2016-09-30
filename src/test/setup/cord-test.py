@@ -23,7 +23,7 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from threadPool import ThreadPool
 from CordContainer import *
-from CordTestServer import cord_test_server_start, cord_test_server_stop, CORD_TEST_HOST, CORD_TEST_PORT
+from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_test_server_shutdown,CORD_TEST_HOST,CORD_TEST_PORT
 from TestManifest import TestManifest
 from docker import Client
 from docker.utils import kwargs_from_env
@@ -733,6 +733,12 @@ def cleanupTests(args):
             print('Cleaning up XOS image: %s' %img)
             Container.cleanup(img)
 
+    server_params = args.server.split(':')
+    server_host = server_params[0]
+    server_port = CORD_TEST_PORT
+    if len(server_params) > 1:
+        server_port = int(server_params[1])
+    cord_test_server_shutdown(server_host, server_port)
     return 0
 
 def listTests(args):
@@ -987,7 +993,8 @@ if __name__ == '__main__':
                                 help='ONOS container image to cleanup')
     parser_cleanup.add_argument('-x', '--xos', action='store_true',
                                 help='Cleanup XOS containers')
-
+    parser_cleanup.add_argument('-r', '--server', default=cord_test_server_address, type=str,
+                                help='ip:port address for cord test server to cleanup')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     c = Client(**(kwargs_from_env()))

@@ -19,6 +19,7 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer
 import daemon
 import xmlrpclib
 import os
+import signal
 import json
 import time
 import threading
@@ -53,10 +54,7 @@ class CordTestServer(object):
         if self.onos_cord:
             self.onos_cord.start(restart = True, network_cfg = config)
         else:
-            if Onos.cluster_mode is True:
-                Onos.restart_cluster(network_cfg = config)
-            else:
-                Onos(restart = True, network_cfg = config, image = Onos.IMAGE, tag = Onos.TAG)
+            Onos(restart = True, network_cfg = config, image = Onos.IMAGE, tag = Onos.TAG)
         return 'DONE'
 
     def restart_onos(self, kwargs):
@@ -107,6 +105,11 @@ class CordTestServer(object):
     def restart_radius(self):
         print('Restarting RADIUS Server')
         Radius(prefix = Container.IMAGE_PREFIX, restart = True)
+        return 'DONE'
+
+    def shutdown(self):
+        print('Shutting down cord test server')
+        os.kill(0, signal.SIGKILL)
         return 'DONE'
 
 @nottest
@@ -201,3 +204,13 @@ def cord_test_radius_restart():
     if data == 'DONE':
         return True
     return False
+
+@nottest
+def cord_test_server_shutdown(host, port):
+    '''Shutdown the cord test server'''
+    rpc_server = 'http://{}:{}'.format(host, port)
+    try:
+        xmlrpclib.Server(rpc_server, allow_none = True).shutdown()
+    except: pass
+
+    return True
