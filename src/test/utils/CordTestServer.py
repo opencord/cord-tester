@@ -40,7 +40,7 @@ class CordTestServer(object):
 
     onos_cord = None
 
-    def __restart_onos(self, config = None):
+    def __restart_onos(self, node = None, config = None):
         if self.onos_cord:
             onos_config = '{}/network-cfg.json'.format(OnosCord.onos_config_dir)
         else:
@@ -54,7 +54,7 @@ class CordTestServer(object):
         if self.onos_cord:
             self.onos_cord.start(restart = True, network_cfg = config)
         else:
-            Onos(restart = True, network_cfg = config, image = Onos.IMAGE, tag = Onos.TAG)
+            Onos.restart_node(node = node, network_cfg = config)
         return 'DONE'
 
     def restart_onos(self, kwargs):
@@ -153,9 +153,9 @@ def __cord_test_onos_restart(**kwargs):
     return rpc_server_instance().restart_onos(kwargs)
 
 @nottest
-def cord_test_onos_restart(config = None):
+def cord_test_onos_restart(node = None, config = None):
     '''Send ONOS restart to server'''
-    data = __cord_test_onos_restart(config = config)
+    data = __cord_test_onos_restart(node = node, config = config)
     if data == 'DONE':
         return True
     return False

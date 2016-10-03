@@ -496,6 +496,25 @@ class Onos(Container):
             onos.remove_container(onos.name, force=True)
 
     @classmethod
+    def restart_node(cls, node = None, network_cfg = None):
+        if node is None:
+            cls(restart = True, network_cfg = network_cfg, image = cls.IMAGE, tag = cls.TAG)
+        else:
+            #Restarts a node in the cluster
+            valid_node = filter(lambda onos: node in [ onos.ipaddr, onos.name ], cls.cluster_instances)
+            if valid_node:
+                onos = valid_node.pop()
+                if onos.exists():
+                    onos.kill()
+                onos.remove_container(onos.name, force=True)
+                print('Restarting ONOS container %s' %onos.name)
+                onos.start(ports = onos.ports, environment = onos.env,
+                           host_config = onos.host_config, volumes = onos.volumes, tty = True)
+                print('Waiting %d seconds for ONOS %s to boot' %(onos.boot_delay, onos.name))
+                time.sleep(onos.boot_delay)
+                onos.ipaddr = onos.ip()
+
+    @classmethod
     def install_cord_apps(cls, onos_ip = None):
         for app, version in cls.onos_cord_apps:
             app_file = '{}/{}-{}.oar'.format(cls.cord_apps_dir, app, version)
