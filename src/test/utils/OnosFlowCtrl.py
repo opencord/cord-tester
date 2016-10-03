@@ -18,12 +18,12 @@ import requests
 import os,sys,time
 from nose.tools import *
 from scapy.all import *
-from OnosCtrl import OnosCtrl
+from OnosCtrl import OnosCtrl, get_controller
 
 class OnosFlowCtrl:
 
     auth = ('karaf', 'karaf')
-    controller = OnosCtrl.get_controller()
+    controller = get_controller()
     cfg_url = 'http://%s:8181/onos/v1/flows/' %(controller)
 
     def __init__( self,

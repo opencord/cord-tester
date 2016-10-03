@@ -17,7 +17,7 @@ import json
 import requests
 import os,sys,time
 from scapy.all import *
-from OnosCtrl import OnosCtrl, get_mac
+from OnosCtrl import OnosCtrl, get_mac, get_controller
 from OnosFlowCtrl import OnosFlowCtrl
 
 conf.verb = 0 # Disable Scapy verbosity
@@ -26,7 +26,7 @@ conf.checkIPaddr = 0 # Don't check response packets for matching destination IPs
 class ACLTest:
 
     auth = ('karaf', 'karaf')
-    controller = OnosCtrl.get_controller()
+    controller = get_controller()
     add_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
     remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(controller, id)
     clear_all_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
