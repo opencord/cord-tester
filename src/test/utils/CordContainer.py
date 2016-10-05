@@ -784,3 +784,90 @@ class XosSyndicateMs(Xos):
     def build_image(cls, image = IMAGE):
         Xos.build_image(image, cls.dockerfile_path)
 
+
+class XosSyncVtn(Xos):
+    ports = [8080,]
+    env = None
+    NAME = 'xos-synchronizer-vtn'
+    IMAGE = 'xosproject/xos-synchronizer-vtn'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-vtn')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
+
+class XosSyncVtr(Xos):
+    ports = [8080,]
+    env = None
+    NAME = 'xos-synchronizer-vtr'
+    IMAGE = 'xosproject/xos-synchronizer-vtr'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-vtr')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
+
+class XosSyncVsg(Xos):
+    ports = [8080,]
+    env = None
+    NAME = 'xos-synchronizer-vsg'
+    IMAGE = 'xosproject/xos-synchronizer-vsg'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-vsg')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
+
+
+class XosSyncOnos(Xos):
+    ports = [8080,]
+    env = None
+    NAME = 'xos-synchronizer-onos'
+    IMAGE = 'xosproject/xos-synchronizer-onos'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-onos')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
+
+class XosSyncFabric(Xos):
+    ports = [8080,]
+    env = None
+    NAME = 'xos-synchronizer-fabric'
+    IMAGE = 'xosproject/xos-synchronizer-fabric'
+    TAG = 'latest'
+    PREFIX = ''
+    dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-fabric')
+
+    def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
+                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+        Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
+
+    @classmethod
+    def build_image(cls, image = IMAGE):
+        Xos.build_image(image, cls.dockerfile_path)
+
