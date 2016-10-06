@@ -34,7 +34,6 @@ log.setLevel('INFO')
 class acl_exchange(unittest.TestCase):
 
     app = ('org.onosproject.acl')
-    device_id = 'of:' + get_mac('ovsbr0')
     test_path = os.path.dirname(os.path.realpath(__file__))
     onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     GATEWAY = '192.168.10.50'
@@ -65,7 +64,6 @@ class acl_exchange(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the acl app'''
-
 
     def setUp(self):
         ''' Activate the acl app'''

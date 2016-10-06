@@ -31,7 +31,7 @@ class ACLTest:
     remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(controller, id)
     clear_all_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
     iface_create_onos_url = 'http://%s:8181/onos/v1/network/configuration' %(controller)
-    device_id = 'of:' + get_mac('ovsbr0')
+    device_id = 'of:' + get_mac()
     MAX_PORTS = 100
 
     def __init__(self, ipv4Prefix ='v4', srcIp ='null', dstIp ='null', ipProto = 'null', dstTpPort = 0, action = 'null', ingress_iface = 1, egress_iface = 2,iface_num = 0, iface_name = 'null', iface_count = 0, iface_ip = 'null'):
@@ -47,6 +47,7 @@ class ACLTest:
         self.iface_num = iface_num
         self.iface_name = iface_name
         self.iface_ip = iface_ip
+        self.device_id = OnosCtrl.get_device_id()
 
     def adding_acl_rule(self, ipv4Prefix, srcIp, dstIp, ipProto ='null', dstTpPort='null', action= 'include'):
         '''This function is generating ACL json file and post to ONOS for creating a ACL rule'''
