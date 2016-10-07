@@ -465,6 +465,18 @@ class Onos(Container):
             onos.install_cord_apps(onos.ipaddr)
 
     @classmethod
+    def add_cluster(cls, count = 1, network_cfg = None):
+        if not cls.cluster_instances or Onos.cluster_mode is False:
+            return
+        for i in range(count):
+            name = '{}-{}'.format(Onos.NAME, len(cls.cluster_instances)+1)
+            onos = cls(name = name, image = Onos.IMAGE, tag = Onos.TAG, prefix = Container.IMAGE_PREFIX,
+                       cluster = True, network_cfg = network_cfg)
+            cls.cluster_instances.append(onos)
+
+        cls.setup_cluster(cls.cluster_instances)
+
+    @classmethod
     def restart_cluster(cls, network_cfg = None):
         if cls.cluster_mode is False:
             return

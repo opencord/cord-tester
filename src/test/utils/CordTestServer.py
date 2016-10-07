@@ -63,6 +63,13 @@ class CordTestServer(object):
     def shutdown_onos(self, kwargs):
         return self.__shutdown_onos(**kwargs)
 
+    def __add_cluster_onos(self, count = 1, config = None):
+        Onos.add_cluster(count = count, network_cfg = config)
+        return 'DONE'
+
+    def add_cluster_onos(self, kwargs):
+        return self.__add_cluster_onos(self, **kwargs)
+
     def __restart_quagga(self, config = None, boot_delay = 30 ):
         config_file = Quagga.quagga_config_file
         if config is not None:
@@ -170,6 +177,17 @@ def __cord_test_onos_shutdown(**kwargs):
 @nottest
 def cord_test_onos_shutdown(node = None):
     data = __cord_test_onos_shutdown(node = node)
+    if data == 'DONE':
+        return True
+    return False
+
+@nottest
+def __cord_test_onos_add_cluster(**kwargs):
+    return rpc_server_instance().add_cluster_onos(kwargs)
+
+@nottest
+def cord_test_onos_add_cluster(count = 1, config = None):
+    data = __cord_test_onos_add_cluster(count = count, config = config)
     if data == 'DONE':
         return True
     return False
