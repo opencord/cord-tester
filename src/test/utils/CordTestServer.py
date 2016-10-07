@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from CordContainer import Container, Onos, OnosCord, Quagga, Radius, reinitContainerClients
+from CordContainer import Container, Onos, OnosStopWrapper, OnosCord, OnosCordStopWrapper, Quagga, QuaggaStopWrapper, Radius, reinitContainerClients
 from nose.tools import nottest
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import daemon
@@ -29,12 +29,6 @@ import threading
 
 CORD_TEST_HOST = '172.17.0.1'
 CORD_TEST_PORT = 25000
-
-class QuaggaStopWrapper(Container):
-    def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'candidate'):
-        super(QuaggaStopWrapper, self).__init__(name, image, prefix = Container.IMAGE_PREFIX, tag = tag)
-        if self.exists():
-            self.kill()
 
 class CordTestServer(object):
 
@@ -59,6 +53,15 @@ class CordTestServer(object):
 
     def restart_onos(self, kwargs):
         return self.__restart_onos(**kwargs)
+
+    def __shutdown_onos(self, node = None):
+        if node is None:
+            node = Onos.NAME
+        OnosStopWrapper(node)
+        return 'DONE'
+
+    def shutdown_onos(self, kwargs):
+        return self.__shutdown_onos(**kwargs)
 
     def __restart_quagga(self, config = None, boot_delay = 30 ):
         config_file = Quagga.quagga_config_file
@@ -156,6 +159,17 @@ def __cord_test_onos_restart(**kwargs):
 def cord_test_onos_restart(node = None, config = None):
     '''Send ONOS restart to server'''
     data = __cord_test_onos_restart(node = node, config = config)
+    if data == 'DONE':
+        return True
+    return False
+
+@nottest
+def __cord_test_onos_shutdown(**kwargs):
+    return rpc_server_instance().shutdown_onos(kwargs)
+
+@nottest
+def cord_test_onos_shutdown(node = None):
+    data = __cord_test_onos_shutdown(node = node)
     if data == 'DONE':
         return True
     return False
