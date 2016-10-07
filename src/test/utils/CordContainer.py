@@ -279,6 +279,21 @@ class OnosCord(Container):
         build_cmd = 'cd {} && docker-compose build'.format(self.onos_cord_dir)
         os.system(build_cmd)
 
+class OnosCordStopWrapper(Container):
+    onos_cord_dir = os.path.join(os.getenv('HOME'), 'cord-tester-cord')
+    docker_yaml = os.path.join(onos_cord_dir, 'docker-compose.yml')
+
+    def __init__(self):
+        if os.access(self.docker_yaml, os.F_OK):
+            with open(self.docker_yaml, 'r') as f:
+                yaml_config = yaml.load(f)
+                image = yaml_config['services'].keys()[0]
+                name = 'cordtestercord_{}_1'.format(image)
+            super(OnosCordStopWrapper, self).__init__(name, image, tag = '')
+            if self.exists():
+                print('Killing container %s' %self.name)
+                self.kill()
+
 class Onos(Container):
 
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
@@ -337,7 +352,7 @@ class Onos(Container):
                     os.unlink(f)
                 except: pass
 
-    def __init__(self, name = NAME, image = 'onosproject/onos', prefix = '', tag = 'latest',
+    def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
                  boot_delay = 60, restart = False, network_cfg = None, cluster = False):
         if restart is True:
             ##Find the right image to restart
@@ -525,6 +540,19 @@ class Onos(Container):
             print('ONOS app %s, version %s %s' %(app, version, 'installed' if ok else 'failed to install'))
             time.sleep(2)
 
+class OnosStopWrapper(Container):
+    def __init__(self, name):
+        super(OnosStopWrapper, self).__init__(name, Onos.IMAGE, tag = Onos.TAG, prefix = Container.IMAGE_PREFIX)
+        if self.exists():
+            self.kill()
+        else:
+            if Onos.cluster_mode is True:
+                valid_node = filter(lambda onos: name in [ onos.ipaddr, onos.name ], Onos.cluster_instances)
+                if valid_node:
+                    onos = valid_node.pop()
+                    if onos.exists():
+                        onos.kill()
+
 class Radius(Container):
     ports = [ 1812, 1813 ]
     env = {'TIMEZONE':'America/Los_Angeles',
@@ -630,6 +658,13 @@ RUN ldconfig
 '''.format(onos_quagga_ip)
         super(Quagga, cls).build_image(dockerfile, image)
         print('Done building image %s' %image)
+
+class QuaggaStopWrapper(Container):
+    def __init__(self, name = Quagga.NAME, image = Quagga.IMAGE, tag = 'candidate'):
+        super(QuaggaStopWrapper, self).__init__(name, image, prefix = Container.IMAGE_PREFIX, tag = tag)
+        if self.exists():
+            self.kill()
+
 
 def reinitContainerClients():
     docker_netns.dckr = Client()
@@ -784,7 +819,6 @@ class XosSyndicateMs(Xos):
     def build_image(cls, image = IMAGE):
         Xos.build_image(image, cls.dockerfile_path)
 
-
 class XosSyncVtn(Xos):
     ports = [8080,]
     env = None
@@ -870,4 +904,3 @@ class XosSyncFabric(Xos):
     @classmethod
     def build_image(cls, image = IMAGE):
         Xos.build_image(image, cls.dockerfile_path)
-
