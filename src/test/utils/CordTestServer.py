@@ -68,7 +68,7 @@ class CordTestServer(object):
         return 'DONE'
 
     def add_cluster_onos(self, kwargs):
-        return self.__add_cluster_onos(self, **kwargs)
+        return self.__add_cluster_onos(**kwargs)
 
     def __restart_quagga(self, config = None, boot_delay = 30 ):
         config_file = Quagga.quagga_config_file
