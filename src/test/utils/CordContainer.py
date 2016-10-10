@@ -691,8 +691,13 @@ class Xos(Container):
     ports = None
     volumes = None
 
+    @classmethod
+    def get_cmd(cls, img_name):
+        cmd = cls.dckr.inspect_image(img_name)['Config']['Cmd']
+        return ' '.join(cmd)
+
     def __init__(self, name, image, prefix = PREFIX, tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 20, restart = False, network_cfg = None, update = False):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -705,6 +710,7 @@ class Xos(Container):
         super(Xos, self).__init__(name, image, prefix = prefix, tag = tag)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
+        self.command = self.get_cmd(self.image_name).strip() or None
         if restart is True and self.exists():
             self.kill()
         if not self.exists():
@@ -736,7 +742,7 @@ class XosServer(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'xos')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -755,7 +761,7 @@ class XosSynchronizerOpenstack(Xos):
     host_guest_map = ( ('/usr/local/share/ca-certificates', '/usr/local/share/ca-certificates'),)
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
-                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 tag = TAG, boot_delay = 20, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -772,7 +778,7 @@ class XosSynchronizerOnboarding(Xos):
     host_guest_map = ( ('/usr/local/share/ca-certificates', '/usr/local/share/ca-certificates'),)
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
-                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 tag = TAG, boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -789,7 +795,7 @@ class XosSynchronizerOpenvpn(Xos):
     host_guest_map = ( ('/usr/local/share/ca-certificates', '/usr/local/share/ca-certificates'),)
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
-                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 tag = TAG, boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -807,7 +813,7 @@ class XosPostgresql(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'postgresql')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX,
-                 tag = TAG, boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 tag = TAG, boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -824,7 +830,7 @@ class XosSyndicateMs(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'syndicate-ms')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -841,7 +847,7 @@ class XosSyncVtn(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-vtn')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -858,7 +864,7 @@ class XosSyncVtr(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-vtr')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -875,7 +881,7 @@ class XosSyncVsg(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-vsg')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 10, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -893,7 +899,7 @@ class XosSyncOnos(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-onos')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 30, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
@@ -910,7 +916,7 @@ class XosSyncFabric(Xos):
     dockerfile_path = os.path.join(Xos.setup_dir, 'synchronizer-fabric')
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, update = False):
+                 boot_delay = 30, restart = False, network_cfg = None, update = False):
         Xos.__init__(self, name, image, prefix, tag, boot_delay, restart, network_cfg, update)
 
     @classmethod
