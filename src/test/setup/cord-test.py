@@ -19,6 +19,7 @@ import os,sys,time,socket,errno
 import shutil, platform, re
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
 sys.path.append(utils_dir)
+sys.path.insert(1, '/usr/local/lib/python2.7/dist-packages')
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from threadPool import ThreadPool
