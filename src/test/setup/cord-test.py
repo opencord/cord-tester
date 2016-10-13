@@ -28,7 +28,7 @@ from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_tes
 from TestManifest import TestManifest
 from docker import Client
 from docker.utils import kwargs_from_env
-
+from Xos import XosServiceProfile
 try:
     from Fabric import FabricMAAS
 except:
@@ -868,34 +868,18 @@ def startImages(args):
 
     return 0
 
-def xosContainers(args):
-    update_map = {  'xos-server' : False, 'xos-synchronizer-openstack' : False, 'openvpn' : False, 'postgresql' :False,
-                    'syndicate-ms': False, 'xos-synchronizer-onboarding' : False }
-
-    if args.xosAllContainers == True or args.xosServer == True:
-        xosServer = XosServer(prefix = Container.IMAGE_PREFIX, update = update_map['xos-server'])
-
-    if args.xosAllContainers == True or args.xosSyncOpenstack == True:
-        #Start xos base container. Builds container if required
-        xosSyncOpenstack = XosSynchronizerOpenstack(prefix = Container.IMAGE_PREFIX,
-                                                    update = update_map['xos-synchronizer-openstack'])
-
-    if args.xosAllContainers == True or args.xosOpenvpn == True:
-        xosOpenvpn = XosSynchronizerOpenvpn(prefix = Container.IMAGE_PREFIX, update = update_map['openvpn'])
-
-    if args.xosAllContainers == True or args.xosPostgresql == True:
-        xosPostgresql = XosPostgresql(prefix = Container.IMAGE_PREFIX, update = update_map['postgresql'])
-
-    if args.xosAllContainers == True or args.xosSyndicateMs == True:
-        #Start xos syndicateMs container. Builds container if required
-        xosSyndicateMs = XosSyndicateMs(prefix = Container.IMAGE_PREFIX, update = update_map['syndicate-ms'])
-
-    if args.xosAllContainers == True or args.xosSyncOnboarding == True:
-        #Start xos synchronizer Onboarding container. Builds container if required
-        xosSyncOnboarding = XosSynchronizerOnboarding(prefix = Container.IMAGE_PREFIX,
-                                                      update = update_map['xos-synchronizer-onboarding'])
-
-    print('Done building xos containers')
+def xosCommand(args):
+    update = False
+    profile = args.profile
+    if args.command == 'update':
+        update = True
+    xos = XosServiceProfile(profile = profile, update = update)
+    if args.command == 'build':
+        xos.build_images(force = True)
+    if args.command == 'start':
+        xos.start_services()
+    if args.command == 'stop':
+        xos.stop_services(rm = True)
     return 0
 
 if __name__ == '__main__':
@@ -955,15 +939,9 @@ if __name__ == '__main__':
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
-    parser_xos.add_argument('-x', '--xosAllContainers', action='store_true',help='Provision all containers of XOS for CORD')
-    parser_xos.add_argument('-xserver', '--xosServer',action='store_true',help='Provision xos server container')
-    parser_xos.add_argument('-xsos', '--xosSyncOpenstack',action='store_true',help='Provision xos synchronizer openstack container')
-    parser_xos.add_argument('-xo', '--xosOpenvpn',action='store_true',help='Provision xos openvpn container')
-    parser_xos.add_argument('-xp', '--xosPostgresql',action='store_true',help='Provision xos postgresql')
-    parser_xos.add_argument('-xs', '--xosSynchronizer',action='store_true',help='Provision xos synchronizer')
-    parser_xos.add_argument('-xsm', '--xosSyndicateMs',action='store_true',help='Provision xos syndicate-ms')
-    parser_xos.add_argument('-xsonb', '--xosSyncOnboarding',action='store_true',help='Provision xos synchronizer onboarding container')
-    parser_xos.set_defaults(func=xosContainers)
+    parser_xos.add_argument('command', choices=['build', 'update', 'start', 'stop'])
+    parser_xos.add_argument('-p', '--profile', default='cord-pod', type=str, help='Provide service profile')
+    parser_xos.set_defaults(func=xosCommand)
 
     parser_list = subparser.add_parser('list', help='List test cases')
     parser_list.add_argument('-t', '--test', default='all', help='Specify test type to list test cases. '
