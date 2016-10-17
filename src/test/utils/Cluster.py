@@ -33,7 +33,6 @@ import random
 import collections
 import requests
 log.setLevel('INFO')
-
 class cluster_igmp(object):
     V_INF1 = 'veth0'
     V_INF2 = 'veth1'
@@ -63,33 +62,33 @@ class cluster_igmp(object):
     ROVER_JOIN_TIMEOUT = 60
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls,controller=None):
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           cls.port_map, _ = cls.olt.olt_port_map()
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
+          OnosCtrl.cord_olt_config(cls.olt.olt_device_data(),controller=controller)
 
     @classmethod
     def tearDownClass(cls): pass
 
-    def setUp(self):
-	self.setUpClass()
+    def setUp(self,controller=None):
+	self.setUpClass(controller=controller)
 	self.get_igmp_intf()
         ''' Activate the igmp app'''
-        self.onos_ctrl = OnosCtrl(self.app)
+        self.onos_ctrl = OnosCtrl(self.app,controller=controller)
         self.onos_ctrl.activate()
-        self.igmp_channel = IgmpChannel()
+        self.igmp_channel = IgmpChannel(controller=controller)
 
     def tearDown(self): pass
 
-    def onos_load_config(self, config):
+    def onos_load_config(self, config,controller=None):
         log.info('onos load config is %s'%config)
-        status, code = OnosCtrl.config(config)
+        status, code = OnosCtrl(self.app).config(config,controller=controller)
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
         time.sleep(2)
 
-    def onos_ssm_table_load(self, groups, src_list = ['1.2.3.4'],flag = False):
+    def onos_ssm_table_load(self, groups, src_list = ['1.2.3.4'],controller=None,flag = False):
           ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
           if flag: #to maintain seperate group-source pair.
@@ -105,7 +104,7 @@ class cluster_igmp(object):
                       d['source'] = s or '0.0.0.0'
                       d['group'] = g
                       ssm_xlate_list.append(d)
-          self.onos_load_config(ssm_dict)
+          self.onos_load_config(ssm_dict,controller=controller)
           cord_port_map = {}
           for g in groups:
                 cord_port_map[g] = (self.PORT_TX_DEFAULT, self.PORT_RX_DEFAULT)
@@ -294,22 +293,24 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 -----END CERTIFICATE-----'''
     def __init__(self):
 	pass
-    def setUp(self):
-        self.onos_ctrl = OnosCtrl(self.eap_app)
-        self.onos_aaa_config()
+    def setUp(self,controller=None):
+        self.onos_ctrl = OnosCtrl(self.eap_app,controller=controller)
+        self.onos_aaa_config(controller=controller)
 
-    def onos_aaa_config(self):
+    def onos_aaa_config(self,controller=None):
+	log.info('controller in onos_aaa_config is %s'%controller)
         aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
                                                                    'radiusIp': '172.17.0.2' } } } }
         radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
         aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
         self.onos_ctrl.activate()
         time.sleep(2)
-        self.onos_load_config(aaa_dict)
+        self.onos_load_config(aaa_dict,controller=controller)
 
-    def onos_load_config(self, config):
+    def onos_load_config(self, config,controller=None):
+	log.info('controller in onos_load_config is %s'%controller)
         log.info('onos load config is %s'%config)
-        status, code = OnosCtrl.config(config)
+        status, code = OnosCtrl(self.eap_app).config(config,controller=controller)
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
@@ -421,7 +422,8 @@ class cluster_flows():
         cls.device_id = OnosCtrl.get_device_id()
 
 class cluster_proxyarp():
-    apps = ('org.onosproject.vrouter','org.onosproject.proxyarp')
+    #apps = ('org.onosproject.vrouter','org.onosproject.proxyarp')
+    app = 'org.onosproject.proxyarp'
     device_id = 'of:' + get_mac()
     device_dict = { "devices" : {
                 "{}".format(device_id) : {
@@ -489,14 +491,14 @@ class cluster_proxyarp():
         else:
             config = interface_cfg
         cfg = json.dumps(config)
-        with open('{}/network-cfg.json'.format(cls.onos_config_path), 'w') as f:
-            f.write(cfg)
-        return cord_test_onos_restart(config=config)
+        #with open('{}/network-cfg.json'.format(cls.onos_config_path), 'w') as f:
+        #    f.write(cfg)
+        #return cord_test_onos_restart(config=config)
 
     @classmethod
-    def host_config_load(cls, host_config = None):
+    def host_config_load(cls, host_config = None, controller=None):
         for host in host_config:
-            status, code = OnosCtrl.host_config(host)
+            status, code = OnosCtrl(cls.app).host_config(host,onos_ip=controller)
             if status is False:
                 log.info('JSON request returned status %d' %code)
                 assert_equal(status, True)
@@ -547,9 +549,9 @@ class cluster_proxyarp():
         return hosts_dict.values()
 
     @classmethod
-    def proxyarp_activate(cls, deactivate = False):
+    def proxyarp_activate(cls, deactivate = False,controller=None):
         app = 'org.onosproject.proxyarp'
-        onos_ctrl = OnosCtrl(app)
+        onos_ctrl = OnosCtrl(app,controller=controller)
         if deactivate is True:
             onos_ctrl.deactivate()
         else:
@@ -557,11 +559,11 @@ class cluster_proxyarp():
         time.sleep(3)
 
     @classmethod
-    def proxyarp_config(cls, hosts = 1):
+    def proxyarp_config(cls, hosts = 1,controller=None):
         proxyarp_configs = cls.generate_interface_config(hosts = hosts)
         cls.interface_config_load(interface_cfg = proxyarp_configs)
         hostcfg = cls.generate_host_config()
-        cls.host_config_load(host_config = hostcfg)
+        cls.host_config_load(host_config = hostcfg,controller=controller)
         return proxyarp_configs
 
     def proxyarp_arpreply_verify(self, ingress, hostip, hostmac, PositiveTest=True):
@@ -672,10 +674,10 @@ line vty
             },
         }
 
-    def cliEnter(self):
+    def cliEnter(self,controller=None):
         retries = 0
         while retries < 3:
-            self.cli = OnosCliDriver(connect = True)
+            self.cli = OnosCliDriver(connect = True,controller=controller)
             if self.cli.handle:
                 break
             else:
@@ -686,8 +688,8 @@ line vty
         self.cli.disconnect()
 
     @classmethod
-    def onos_load_config(cls, config):
-        status, code = OnosCtrl.config(config)
+    def onos_load_config(cls, config,controller=None):
+        status, code = OnosCtrl.config(config,controller=controller)
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
@@ -700,6 +702,25 @@ line vty
         return vrouter_configs
 
     @classmethod
+    def vrouter_host_load(cls,peer_address = None,controller=None):
+        index = 1
+        hosts_dict = {}
+	peer_info = peer_address if peer_address is not None else cls.peer_list
+        for host,_ in peer_info:
+	    #iface = cls.port_map[index]
+	    mac = RandMAC()._fix()
+            #port = num + 1 if num < cls.MAX_PORTS - 1 else cls.MAX_PORTS - 1
+	    log.info('creating host with ip %s and mac %s'%(host,mac))
+            hosts_dict[host] = {'mac':mac, 'vlan':'none', 'ipAddresses':[host], 'location':{ 'elementId' : '{}'.format(cls.device_id), 'port': index}}
+	    index += 1
+	for host in hosts_dict.values():
+            status, code = OnosCtrl.host_config(host,onos_ip=controller)
+            if status is False:
+                log.info('JSON request returned status %d' %code)
+                return False
+        return True
+
+    """@classmethod
     def vrouter_host_load(cls, peer_address = None):
 	#cls.setUpClass()
         index = 1
@@ -715,7 +736,7 @@ line vty
                             )
             for cmd in config_cmds:
                 os.system(cmd)
-
+    """
     @classmethod
     def vrouter_host_unload(cls, peer_address = None):
         index = 1
@@ -737,9 +758,12 @@ line vty
             config = dict(res)
         else:
             config = network_cfg
+	cfg = json.dumps(config)
         log.info('Restarting ONOS with new network configuration %s'%config)
-        #return CordTestServer().restart_onos(config)
-        return cord_test_onos_restart(config = config)
+        #return cord_test_onos_restart(config = config)
+	with open('{}/network-cfg.json'.format(cls.onos_config_path), 'w') as f:
+            f.write(cfg)
+        return cord_test_onos_restart(config=config)
 
     @classmethod
     def start_quagga(cls, networks = 4, peer_address = None, router_address = None):
@@ -841,9 +865,9 @@ line vty
         return cls.zebra_conf + zebra_routes
 
     @classmethod
-    def vrouter_activate(cls, deactivate = False):
+    def vrouter_activate(cls, deactivate = False,controller=None):
         app = 'org.onosproject.vrouter'
-        onos_ctrl = OnosCtrl(app)
+        onos_ctrl = OnosCtrl(app,controller=controller)
         if deactivate is True:
             onos_ctrl.deactivate()
         else:
@@ -852,11 +876,11 @@ line vty
 
     @classmethod
     def vrouter_configure(cls, networks = 4, peers = 1, peer_address = None,
-                          route_update = None, router_address = None, time_expire = None, adding_new_routes = None):
+                          route_update = None, router_address = None, time_expire = None, adding_new_routes = None,controller=None):
         vrouter_configs = cls.vrouter_config_get(networks = networks, peers = peers,
                                                  peer_address = peer_address, route_update = route_update)
         cls.start_onos(network_cfg = vrouter_configs)
-        cls.vrouter_host_load()
+        cls.vrouter_host_load(controller=controller)
         ##Start quagga
         cls.start_quagga(networks = networks, peer_address = peer_address, router_address = router_address)
         return vrouter_configs
@@ -920,15 +944,16 @@ line vty
     def vrouter_network_verify(self, networks, peers = 1, positive_test = True,
                                  start_network = None, start_peer_address = None, route_update = None,
                                  invalid_peers = None, time_expire = None, unreachable_route_traffic = None,
-                                 deactivate_activate_vrouter = None, adding_new_routes = None):
+                                 deactivate_activate_vrouter = None, adding_new_routes = None,controller=None):
 
         _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers,
                                                           peer_address = start_peer_address,
                                                           route_update = route_update,
                                                           router_address = start_network,
                                                           time_expire = time_expire,
-                                                          adding_new_routes = adding_new_routes)
-        self.cliEnter()
+                                                          adding_new_routes = adding_new_routes,
+							  controller=controller)
+        self.cliEnter(controller=controller)
         ##Now verify
         hosts = json.loads(self.cli.hosts(jsonFormat = True))
         log.info('Discovered hosts: %s' %hosts)
@@ -1000,7 +1025,7 @@ line vty
         return cord_test_quagga_shell(quagga_cmd)
 
 class cluster_acl(object):
-    app = ('org.onosproject.acl')
+    app = 'org.onosproject.acl'
     device_id = 'of:' + get_mac('ovsbr0')
     test_path = os.path.dirname(os.path.realpath(__file__))
     onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
@@ -1032,11 +1057,11 @@ class cluster_acl(object):
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the acl app'''
-    def setUp(self):
+    def setUp(self,controller=None):
 	self.setUpClass()
         ''' Activate the acl app'''
         self.maxDiff = None ##for assert_equal compare outputs on failure
-        self.onos_ctrl = OnosCtrl(self.app)
+        self.onos_ctrl = OnosCtrl(self.app,controller=controller)
         status, _ = self.onos_ctrl.activate()
         assert_equal(status, True)
         time.sleep(1)
@@ -1132,8 +1157,8 @@ class cluster_acl(object):
         assert_equal(self.success, True)
 
     @classmethod
-    def onos_load_config(cls, config):
-        status, code = OnosCtrl.config(config)
+    def onos_load_config(cls, config,controller=None):
+        status, code = OnosCtrl.config(config,controller=controller)
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
@@ -1176,31 +1201,33 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls,controller=None):
+	log.info('controller ip in dhcp setup def is %s'%controller)
         ''' Activate the dhcprelay app'''
-        OnosCtrl(cls.app_dhcp).deactivate()
+        OnosCtrl(cls.app_dhcp,controller=controller).deactivate()
         time.sleep(3)
-        cls.onos_ctrl = OnosCtrl(cls.app)
+        cls.onos_ctrl = OnosCtrl(cls.app,controller=controller)
         status, _ = cls.onos_ctrl.activate()
         assert_equal(status, True)
         time.sleep(3)
-        cls.dhcp_relay_setup()
+        cls.dhcp_relay_setup(controller=controller)
         ##start dhcpd initially with default config
-        cls.dhcpd_start()
+        cls.dhcpd_start(controller=controller)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls,controller=None):
         '''Deactivate the dhcp relay app'''
         try:
             os.unlink('{}/dhcpd.conf'.format(cls.dhcp_data_dir))
             os.unlink('{}/dhcpd.leases'.format(cls.dhcp_data_dir))
         except: pass
-        cls.onos_ctrl.deactivate()
+	OnosCtrl(cls.app,controller=controller).deactivate()
+        #cls.onos_ctrl.deactivate()
         cls.dhcpd_stop()
-        cls.dhcp_relay_cleanup()
+        #cls.dhcp_relay_cleanup()
 
     @classmethod
-    def dhcp_relay_setup(cls):
+    def dhcp_relay_setup(cls,controller=None):
         did = OnosCtrl.get_device_id()
         cls.relay_device_id = did
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
@@ -1232,7 +1259,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             relay_ip = cls.get_host_ip(interface_list[0][0])
             relay_mac = cls.get_mac(cls.port_map[cls.relay_interface_port])
             interface_list.append((cls.relay_interface_port, relay_ip, relay_mac))
-            cls.onos_interface_load(interface_list)
+            cls.onos_interface_load(interface_list,controller=controller)
 
     @classmethod
     def dhcp_relay_cleanup(cls):
@@ -1242,15 +1269,16 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             return cord_test_onos_restart(config = {})
 
     @classmethod
-    def onos_load_config(cls, config):
-        status, code = OnosCtrl.config(config)
+    def onos_load_config(cls, config,controller=None):
+	log.info('loading onos config in controller %s'%controller)
+        status, code = OnosCtrl.config(config,controller=controller)
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
         time.sleep(2)
 
     @classmethod
-    def onos_interface_load(cls, interface_list):
+    def onos_interface_load(cls, interface_list,controller=None):
         interface_dict = { 'ports': {} }
         for port_num, ip, mac in interface_list:
             port_map = interface_dict['ports']
@@ -1263,10 +1291,10 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                             }
             interface_list.append(interface_map)
 
-        cls.onos_load_config(interface_dict)
+        cls.onos_load_config(interface_dict,controller=controller)
 
     @classmethod
-    def onos_dhcp_relay_load(cls, server_ip, server_mac):
+    def onos_dhcp_relay_load(cls, server_ip, server_mac,controller=None):
         relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
         dhcp_dict = {'apps':{'org.onosproject.dhcp-relay':{'dhcprelay':
                                                           {'dhcpserverConnectPoint':relay_device_map,
@@ -1276,7 +1304,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                                                            }
                              }
                      }
-        cls.onos_load_config(dhcp_dict)
+        cls.onos_load_config(dhcp_dict,controller=controller)
 
     @classmethod
     def get_host_ip(cls, port):
@@ -1317,7 +1345,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     @classmethod
     def dhcpd_start(cls, intf_list = None,
                     config = default_config, options = default_options,
-                    subnet = default_subnet_config):
+                    subnet = default_subnet_config,controller=None):
         '''Start the dhcpd server by generating the conf file'''
         if intf_list is None:
             intf_list = cls.relay_interfaces
@@ -1352,7 +1380,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         time.sleep(3)
         cls.relay_interfaces_last = cls.relay_interfaces
         cls.relay_interfaces = intf_list
-        cls.onos_dhcp_relay_load(*intf_info[0])
+        cls.onos_dhcp_relay_load(*intf_info[0],controller=controller)
 
     @classmethod
     def dhcpd_stop(cls):
@@ -1658,7 +1686,8 @@ yg==
             return did
 
       @classmethod
-      def setUpClass(cls):
+      def setUpClass(cls,controller=None):
+	  log.info('controller ip in cluster.py setupclass is %s'%controller)
           '''Load the OLT config and activate relevant apps'''
           did = cls.load_device_id()
           network_cfg = { "devices" : {
@@ -1677,47 +1706,47 @@ yg==
           #   log.info('JSON config request for app %s returned status %d' %(app, code))
           #assert_equal(status, True)
           #time.sleep(2)
-          cls.install_app_table()
+          cls.install_app_table(controller=controller)
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
+          OnosCtrl.cord_olt_config(cls.olt.olt_device_data(),controller=controller)
           cls.port_map, cls.port_list = cls.olt.olt_port_map()
-          cls.activate_apps(cls.apps + cls.olt_apps)
+          cls.activate_apps(cls.apps + cls.olt_apps,controller=controller)
 
       @classmethod
-      def tearDownClass(cls):
+      def tearDownClass(cls,controller=None):
           '''Deactivate the olt apps and restart OVS back'''
           apps = cls.olt_apps + ( cls.table_app,)
           for app in apps:
-              onos_ctrl = OnosCtrl(app)
+              onos_ctrl = OnosCtrl(app,controller=controller)
               onos_ctrl.deactivate()
           cls.uninstall_app_table()
-          #cls.start_onos(network_cfg = {})
+          cls.start_onos(network_cfg = {})
 
       @classmethod
-      def activate_apps(cls, apps):
+      def activate_apps(cls, apps,controller=None):
             for app in apps:
-                  onos_ctrl = OnosCtrl(app)
+                  onos_ctrl = OnosCtrl(app,controller=controller)
                   status, _ = onos_ctrl.activate()
                   assert_equal(status, True)
                   time.sleep(2)
       @classmethod
-      def install_app_table(cls):
+      def install_app_table(cls,controller=None):
             ##Uninstall the existing app if any
-            OnosCtrl.uninstall_app(cls.table_app)
+            OnosCtrl.uninstall_app(cls.table_app,onos_ip=controller)
             time.sleep(2)
             log.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
-            OnosCtrl.install_app(cls.table_app_file)
+            OnosCtrl.install_app(cls.table_app_file,onos_ip=controller)
             time.sleep(3)
             #onos_ctrl = OnosCtrl(cls.vtn_app)
             #onos_ctrl.deactivate()
 
       @classmethod
-      def uninstall_app_table(cls):
+      def uninstall_app_table(cls,controller=None):
             ##Uninstall the table app on class exit
-            OnosCtrl.uninstall_app(cls.table_app)
+            OnosCtrl.uninstall_app(cls.table_app,onos_ip=controller)
             time.sleep(2)
             log.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
-            OnosCtrl.install_app(cls.app_file)
+            OnosCtrl.install_app(cls.app_file,onos_ip=controller)
             #onos_ctrl = OnosCtrl(cls.vtn_app)
             #onos_ctrl.activate()
 
@@ -1737,7 +1766,7 @@ yg==
             else:
                   config = network_cfg
             log.info('Restarting ONOS with new network configuration')
-            return cord_test_onos_restart(config = config)
+            #return cord_test_onos_restart(config = config)
 
       @classmethod
       def remove_onos_config(cls):
@@ -1772,27 +1801,30 @@ yg==
                   os.system(cmd)
             except: pass
 
-      def onos_aaa_load(self):
+      def onos_aaa_load(self,controller=None):
+	    log.info('controller ip in cluster.py onos_aaa_load is %s'%controller)
             if self.aaa_loaded:
                   return
             aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
                                                                        'radiusIp': '172.17.0.2' } } } }
             radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
             aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
-            self.onos_load_config('org.onosproject.aaa', aaa_dict)
+            self.onos_load_config('org.onosproject.aaa', aaa_dict,controller=controller)
             self.aaa_loaded = True
 
-      def onos_dhcp_table_load(self, config = None):
+      def onos_dhcp_table_load(self, config = None,controller=None):
+	  log.info('controller ip in cluster.py onos_dhcp_table_load is %s'%controller)
           dhcp_dict = {'apps' : { 'org.onosproject.dhcp' : { 'dhcp' : copy.copy(self.dhcp_server_config) } } }
           dhcp_config = dhcp_dict['apps']['org.onosproject.dhcp']['dhcp']
           if config:
               for k in config.keys():
                   if dhcp_config.has_key(k):
                       dhcp_config[k] = config[k]
-          self.onos_load_config('org.onosproject.dhcp', dhcp_dict)
+          self.onos_load_config('org.onosproject.dhcp', dhcp_dict,controller=controller)
 
-      def onos_load_config(self, app, config):
-          status, code = OnosCtrl.config(config)
+      def onos_load_config(self, app, config,controller=None):
+	  log.info('controller ip in cluster.py onos_load_config is %s'%controller)
+          status, code = OnosCtrl(controller=controller).config(config)
           if status is False:
              log.info('JSON config request for app %s returned status %d' %(app, code))
              assert_equal(status, True)
@@ -1942,7 +1974,7 @@ yg==
       def generate_port_list(self, subscribers, channels):
             return self.port_list[:subscribers]
 
-      def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0, port_list = []):
+      def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0, port_list = [],controller=None):
             '''Load the subscriber from the database'''
             self.subscriber_db = SubscriberDB(create = create, services = self.test_services)
             if create is True:
@@ -1966,19 +1998,20 @@ yg==
                   index += 1
 
             #load the ssm list for all subscriber channels
-            igmpChannel = IgmpChannel()
+            igmpChannel = IgmpChannel(controller=controller)
             ssm_groups = map(lambda sub: sub.channels, self.subscriber_list)
             ssm_list = reduce(lambda ssm1, ssm2: ssm1+ssm2, ssm_groups)
             igmpChannel.igmp_load_ssm_config(ssm_list)
       def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1,
-                                  channel_start = 0, cbs = None, port_list = [], negative_subscriber_auth = None):
+                                  channel_start = 0, cbs = None, port_list = [], negative_subscriber_auth = None,controller=None):
+	  log.info('controller ip in cluster.py subscriber_join_verify is %s'%controller)
           self.test_status = False
           self.ovs_cleanup()
           subscribers_count = num_subscribers
           sub_loop_count =  num_subscribers
           self.subscriber_load(create = True, num = num_subscribers,
-                               num_channels = num_channels, channel_start = channel_start, port_list = port_list)
-          self.onos_aaa_load()
+                               num_channels = num_channels, channel_start = channel_start, port_list = port_list,controller=controller)
+          self.onos_aaa_load(controller=controller)
           self.thread_pool = ThreadPool(min(100, subscribers_count), queue_size=1, wait_timeout=1)
 
           chan_leave = False #for single channel, multiple subscribers
@@ -2492,7 +2525,6 @@ yg==
               subscriber.src_list = ['10.10.10.{}'.format(subscriber.rx_port)]
               self.test_status = True
               return self.test_status
-
       def subscriber_dhcp_specific_lease_packet(self, iface = INTF_RX_DEFAULT):
           ''' Client sends DHCP Discover packet for particular lease time.'''
           config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',

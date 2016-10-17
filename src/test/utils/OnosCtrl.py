@@ -56,10 +56,16 @@ class OnosCtrl:
         self.auth = ('karaf', 'karaf')
 
     @classmethod
-    def config(cls, config):
+    def config(cls, config,controller=None):
         if config is not None:
             json_data = json.dumps(config)
-            resp = requests.post(cls.cfg_url, auth = cls.auth, data = json_data)
+	    if controller is None:
+	        print('default Onos config url is %s'%cls.cfg_url)
+                resp = requests.post(cls.cfg_url, auth = cls.auth, data = json_data)
+	    else:
+		cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
+		print('non-default Onos config url is %s'%cfg_url)
+	        resp = requests.post(cfg_url, auth = cls.auth, data = json_data)
             return resp.ok, resp.status_code
         return False, 400
 
@@ -99,15 +105,19 @@ class OnosCtrl:
         return did
 
     @classmethod
-    def get_flows(cls, device_id):
-        url = 'http://%s:8181/onos/v1/flows/' %(cls.controller) + device_id
+    def get_flows(cls, device_id,controller=None):
+        if controller is None:
+		url = 'http://%s:8181/onos/v1/flows/' %(cls.controller) + device_id
+	else:
+		url = 'http://%s:8181/onos/v1/flows/' %(controller) + device_id
+	print('get flows url is %s'%url)
         result = requests.get(url, auth = cls.auth)
         if result.ok:
             return result.json()['flows']
         return None
 
     @classmethod
-    def cord_olt_config(cls, olt_device_data = None):
+    def cord_olt_config(cls, olt_device_data = None,controller=None):
         '''Configures OLT data for existing devices/switches'''
         if olt_device_data is None:
             return
@@ -123,7 +133,7 @@ class OnosCtrl:
             did_dict[did] = access_device_dict
 
         ##configure the device list with access information
-        return cls.config(config)
+        return cls.config(config,controller=controller)
 
     @classmethod
     def install_app(cls, app_file, onos_ip = None):
@@ -134,6 +144,7 @@ class OnosCtrl:
             result = requests.post(url, auth = cls.auth,
                                    params = params, headers = headers,
                                    data = payload)
+	print('result.ok, result.status_code are %s and %s'%(result.ok, result.status_code))
         return result.ok, result.status_code
 
     @classmethod
@@ -159,9 +170,10 @@ class OnosCtrl:
         return resp.ok, resp.status_code
 
     @classmethod
-    def host_config(cls, config):
+    def host_config(cls, config,onos_ip=None):
         if config:
            json_data = json.dumps(config)
+	   url = cls.host_cfg_url if onos_ip is None else 'http://%s:8181/onos/v1/hosts/'.format(onos_ip)
            resp = requests.post(cls.host_cfg_url, auth = cls.auth, data = json_data)
            return resp.ok, resp.status_code
         return False, 400
