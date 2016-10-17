@@ -38,12 +38,13 @@ class IgmpChannel:
     igmp_ip = IP(dst = IP_DST, src = IP_SRC)
     ssm_list = []
 
-    def __init__(self, iface = 'veth0', ssm_list = [], src_list = ['1.2.3.4'], delay = 2):
+    def __init__(self, iface = 'veth0', ssm_list = [], src_list = ['1.2.3.4'], delay = 2,controller=None):
+	self.controller=controller
         self.iface = iface
         self.ssm_list += ssm_list
         self.src_list = src_list
         self.delay = delay
-        self.onos_ctrl = OnosCtrl('org.onosproject.igmp')
+        self.onos_ctrl = OnosCtrl('org.onosproject.igmp',controller=self.controller)
         self.onos_ctrl.activate()
 
     def igmp_load_ssm_config(self, ssm_list = []):
@@ -80,7 +81,7 @@ class IgmpChannel:
             time.sleep(self.delay)
 
     def onos_load_config(self, config):
-        status, code = OnosCtrl.config(config)
+        status, code = OnosCtrl.config(config,controller=self.controller)
         if status is False:
             log.info('JSON config request returned status %d' %code)
         time.sleep(2)

@@ -19,6 +19,7 @@ import os,sys,time
 from scapy.all import *
 from OnosCtrl import OnosCtrl, get_mac, get_controller
 from OnosFlowCtrl import OnosFlowCtrl
+log.setLevel('INFO')
 
 conf.verb = 0 # Disable Scapy verbosity
 conf.checkIPaddr = 0 # Don't check response packets for matching destination IPs
@@ -49,7 +50,7 @@ class ACLTest:
         self.iface_ip = iface_ip
         self.device_id = OnosCtrl.get_device_id()
 
-    def adding_acl_rule(self, ipv4Prefix, srcIp, dstIp, ipProto ='null', dstTpPort='null', action= 'include'):
+    def adding_acl_rule(self, ipv4Prefix, srcIp, dstIp, ipProto ='null', dstTpPort='null', action= 'include',controller=None):
         '''This function is generating ACL json file and post to ONOS for creating a ACL rule'''
         if ipv4Prefix is 'v4':
            acl_dict = {}
@@ -62,21 +63,39 @@ class ACLTest:
            if dstTpPort is not 'null':
               acl_dict['dstTpPort'] = '{}'.format(dstTpPort)
         json_data = json.dumps(acl_dict)
-        resp = requests.post(self.add_acl_rule_url, auth = self.auth, data = json_data)
+	if controller is None:
+	    # if controller  ip is not passed, it will default controller ip
+            resp = requests.post(self.add_acl_rule_url, auth = self.auth, data = json_data)
+	else:
+	    add_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
+	    log.info('add_acl_rule_acl url is %s'%add_acl_rule_url)
+            resp = requests.post(add_acl_rule_url, auth = self.auth, data = json_data)
         return resp.ok, resp.status_code
 
-    def get_acl_rules(self):
+    def get_acl_rules(self,controller=None):
         '''This function is getting a ACL rules from ONOS with json formate'''
-        resp = requests.get(self.add_acl_rule_url, auth = self.auth)
+	if controller is None:
+            resp = requests.get(self.add_acl_rule_url, auth = self.auth)
+	else:
+	    add_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
+	    log.info('get_acl_rule_url is %s'%add_acl_rule_url)
+	    resp = requests.get(add_acl_rule_url, auth = self.auth)
         return resp
 
     @classmethod
-    def remove_acl_rule(cls,id = None):
+    def remove_acl_rule(cls,id = None,controller=None):
         '''This function is delete one or all  ACL rules in ONOS'''
         if id is None:
-           remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(cls.controller)
+	    if controller is None:
+                remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(cls.controller)
+	    else:
+		remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
         else:
-           remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(cls.controller, id)
+	    if controller is None:
+                remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(cls.controller, id)
+	    else:
+		remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(controller, id)
+	log.info('remove_acl_rule_url is %s'%remove_acl_rule_url)
         resp = requests.delete(remove_acl_rule_url, auth = cls.auth)
         return resp.ok, resp.status_code
 
