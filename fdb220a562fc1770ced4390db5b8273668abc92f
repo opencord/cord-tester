@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_13905294",
+        "filename": "src/test/cord-api/Tests/Robot-TemplateTest.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-10-19T21:55:21Z",
+      "side": 1,
+      "message": "I just see ../Framework/utils.py\nas per the commit layout.\nNo Framework/restapi seems to exist.\nMaybe you missed something?\nThanks",
+      "revId": "fdb220a562fc1770ced4390db5b8273668abc92f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_33934ea5",
+        "filename": "src/test/cord-api/Tests/Robot-TemplateTest.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 48,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2016-10-19T21:55:21Z",
+      "side": 1,
+      "message": "Shouldn\u0027t RestApiTest.TestGet be invoked with ${listindex} ?\n${json_result}\u003d    RestApiTest.TestGet    ${listindex}\nperhaps?\nAlso I don\u0027t see the file/layout: RestApiTest.py under Framework/restapi in the commit. Maybe you missed adding it to the commit ?",
+      "revId": "fdb220a562fc1770ced4390db5b8273668abc92f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
