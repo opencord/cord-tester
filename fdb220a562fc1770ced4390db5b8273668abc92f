@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "1a014df3_b3ee3e21",
+        "filename": "src/test/cord-api/Tests/Robot-TemplateTest.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 11,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2016-10-19T22:49:33Z",
+      "side": 1,
+      "message": "Karthick,  These files are checked-in as templates only and the real code we will check-in after we write on API.  Please check the directory structure and provide comments on the structure.  \nI agree that most of the paths in these template files will be incorrect due to the changed directory structures that we used during our demo.\nThanks\nSuchitra",
+      "parentUuid": "1a014df3_13905294",
+      "revId": "fdb220a562fc1770ced4390db5b8273668abc92f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "1a014df3_33934ea5",
         "filename": "src/test/cord-api/Tests/Robot-TemplateTest.txt",
         "patchSetId": 1
