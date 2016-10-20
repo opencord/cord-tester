@@ -520,7 +520,7 @@ def runTest(args):
                 test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
             test_cnt.setup_intfs(port_num = port_num)
-        test_cnt.run_tests()
+        status = test_cnt.run_tests()
 
     if test_server:
         cord_test_server_stop(test_server)
