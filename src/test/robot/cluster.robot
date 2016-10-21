@@ -1,8 +1,11 @@
 *** Settings ***
-Documentation  Run Cord verification test cases
+Documentation  Run Cord verification test cases for Cluster
 Resource  cord_resource.robot
-Suite Setup  Cord Setup
+Suite Setup  Cord Cluster Setup
 Suite Teardown  Cord Teardown
+
+*** Variables ***
+${NODES}          3
 
 *** Test Cases ***
 Verify Onos DHCP Server Functionality
@@ -34,3 +37,9 @@ Verify Cord VROUTER Functionality
   [Documentation]  Start Quagga container, connect it to ONOS before validating ONOS routing works
   ${rc}=  Run Cord Tester  vrouter:vrouter_exchange.test_vrouter_with_5_routes
   Should Be Equal As Integers  ${rc}  0
+
+*** Keywords ***
+Cord Cluster Setup
+  [Documentation]  Configure a ${NODES} node ONOS cluster for cord tester
+  ${output}  Run  sudo docker ps |grep cord-onos | tr -s ' ' | awk '{print $NF}' | xargs docker kill
+  Cord Setup
