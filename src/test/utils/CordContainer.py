@@ -460,7 +460,7 @@ RUN mkdir /var/log/quagga && chown quagga:quagga /var/log/quagga
 RUN mkdir /var/run/quagga && chown quagga:quagga /var/run/quagga
 RUN apt-get update && apt-get install -qy git autoconf libtool gawk make telnet libreadline6-dev pkg-config protobuf-c-compiler
 RUN git clone git://git.savannah.nongnu.org/quagga.git quagga && \
-(cd quagga && git checkout HEAD && ./bootstrap.sh && \
+(cd quagga && git checkout quagga-1.0.20160315 && ./bootstrap.sh && \
 sed -i -r 's,htonl.*?\(INADDR_LOOPBACK\),inet_addr\("{0}"\),g' zebra/zebra_fpm.c && \
 ./configure --enable-fpm --disable-doc --localstatedir=/var/run/quagga && make && make install)
 RUN ldconfig
