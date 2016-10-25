@@ -1,2 +1,44 @@
-# Test data
-
+{
+    "SubscriberInfo" : [
+    {
+        "humanReadableName": "cordSubscriber-2",
+        "id": 2,
+        "features": {
+            "cdn": true,
+            "uplink_speed": 1000000000,
+            "downlink_speed": 1000000000,
+            "uverse": true,
+            "status": "enabled"
+        },
+        "identity": {
+            "account_num": "20",
+            "name": "My House"
+        }
+    },
+    {
+        "humanReadableName": "cordSubscriber-3",
+        "id": 3,
+        "features": {
+            "cdn": false,
+            "uplink_speed": 500000000,
+            "downlink_speed": 500000000,
+            "uverse": false,
+            "status": "enabled"
+        },
+        "identity": {
+            "account_num": "21",
+            "name": "My House"
+        }
+    },
+    {
+        "features": {
+            "cdn": true,
+            "uplink_speed": 500000000
+        },
+        "identity": {
+            "account_num": "22",
+            "name": "My House"
+        }
+    }
+  ]
+}
