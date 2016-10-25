@@ -1,0 +1,34 @@
+{
+    "SubscriberInfo" : [
+    {
+        "features": {
+            "uplink_speed": 2000000000,
+            "downlink_speed": 2000000000
+        },
+        "identity": {
+            "account_num": "20",
+            "name": "My House - edited"
+        }
+    },
+    {
+        "features": {
+            "cdn": true,
+            "downlink_speed": 100000000,
+            "status": "enabled"
+        },
+        "identity": {
+            "account_num": "21",
+            "name": "My House2 - Edited"
+        }
+    },
+    {
+        "features": {
+            "cdn": false
+        },
+        "identity": {
+            "account_num": "22",
+            "name": "My House3 - Edited"
+        }
+    }
+  ]
+}

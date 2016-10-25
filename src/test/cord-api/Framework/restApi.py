@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-import requests, json, sys, time
-sys.path.append('utils')
+import requests, json, os, sys, time
+#sys.path.append('common-utils')
+sys.path.append(os.path.join(sys.path[0],'utils'))
 from readProperties import readProperties
 
-class RestApi(object):
+class restApi(object):
     '''
     Functions for testing CORD API with POST, GET, PUT, DELETE method
     '''
@@ -42,8 +43,16 @@ class RestApi(object):
         else:
             print "Test failed: " + str(resp.status_code) + ": " + resp.text
             return False
+    '''
+    @method getAccountNum
+    @Returns AccountNumber for the subscriber
+    @params: jsonData is Dictionary
+    '''
+    def getAccountNum(self, jsonData):
+        print type(str(jsonData['identity']['account_num']))
+        return jsonData['identity']['account_num']
 
-    def getSubscriberIdFromAccountNum(self, jsonDataList, accountNum):
+    def getSubscriberId(self, jsonDataList, accountNum):
         '''
         Search in each json data in the given list to find and return the
         subscriber id that corresponds to the given account number.
@@ -55,9 +64,25 @@ class RestApi(object):
                 if jsonData["identity"]["account_num"] == str(accountNum):
                     subscriberId = jsonData["id"]
                     break
-            return subscriberId
+            return str(subscriberId)
         except KeyError:
             print "Something wrong with the json data provided: ", jsonData
+            return -1
+    '''
+     Retrieve the correct jsonDict from the List of json objects returned
+     from Get Reponse
+     Account Number is the one used to post "Data"
+    '''
+    def getJsonDictOfAcctNum(self, getResponseList, AccountNum):
+        getJsonDict = {}
+        try:
+            for data in getResponseList:
+                if data['identity']['account_num'] == AccountNum:
+                   getJsonDict = data
+                   break
+            return getJsonDict
+        except KeyError:
+            print "Could not find the related account number in Get Resonse Data"
             return -1
 
     def ApiPost(self, key, jsonData):
@@ -77,7 +102,7 @@ class RestApi(object):
             return resp.json()
 
     def ApiPut(self, key, jsonData, urlSuffix=""):
-        url = self.getURL(key) + urlSuffix
+        url = self.getURL(key) + urlSuffix + "/"
         data = json.dumps(jsonData)
         resp = requests.put(url, data=data, headers=self.jsonHeader, auth=(self.user, self.password))
         passed = self.checkResult(resp, requests.codes.ok)
@@ -89,6 +114,8 @@ class RestApi(object):
         passed = self.checkResult(resp, requests.codes.no_content)
         return passed
 
+#test
+'''
 if __name__ == '__main__':
     test = RestApi()
     key = "TENANT_SUBSCRIBER"
@@ -102,3 +129,11 @@ if __name__ == '__main__':
     result = test.ApiPut(key, {"identity":{"name":"My House 2"}}, urlSuffix)
     time.sleep(5)
     result = test.ApiDelete(key, urlSuffix)
+'''
+'''
+test = restApi()
+key = "TENANT_SUBSCRIBER"
+#jsonGetData = test.ApiGet(key,"71")
+jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
+print "========="
+'''

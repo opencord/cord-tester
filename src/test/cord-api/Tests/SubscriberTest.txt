@@ -1,0 +1,106 @@
+*** Settings ***
+Documentation     Test suite for Subscriber verification
+Suite Setup       Read InputFile
+Test Template     Verify Subscriber functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Subscriber.json
+${PATHFILE2}      ${CURDIR}/data/putSubscriber.json
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Subscriber-1     CREATE      0
+
+Test Get_Subscriber-1
+                      RETRIEVE    0
+
+Test Edit Subscriber-1
+                      PUT         0
+
+Test Delete Subscriber Data-1
+                      DELETE      0
+
+Test Subscriber-2     CREATE      1
+
+Test Get_Subscriber-2
+                      RETRIEVE    1
+
+Test Edit Subscriber Data-2
+                      PUT         1
+
+Test Delete Subscriber-2
+                      DELETE      1
+
+Test Subscriber-3     CREATE      2
+
+Test Get_Subcriber-3
+                      RETRIEVE    2
+
+Test Edit Subscriber-3
+                      PUT         2
+
+Test Delete Subscriber-3
+                      DELETE      2
+
+*** Keywords ***
+Read InputFile
+    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    Set Suite Variable    ${slist}    ${subscriberList}
+    ${putSubscriberList}=    utils.jsonToList    ${PATHFILE2}    SubscriberInfo
+    Set Suite Variable    ${putList}    ${putSubscriberList}
+
+Verify Subscriber functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Subscriber API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Subscriber API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Subscriber API    ${listIndex}
+    Run Keyword If    "${type}" == "PUT"    Test Edit Subscriber API    ${listIndex}
+
+Test Post Subscriber API
+    [Arguments]    ${listIndex}
+    ${subscriberList} =    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    TENANT_SUBSCRIBER    ${subscriberDict}
+    Should Be True    ${api_result}
+
+Test Get Subscriber API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    Log    ${json_result}
+    ${subscriberList}=    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${AccountNum}=    restApi.getAccountNum    ${subscriberDict}
+    ${getJsonDict}=    restApi.getJsonDictOfAcctNum    ${json_result}    ${AccountNum}
+    ${test_result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
+    Should Be True    ${test_result}
+
+Test Edit Subscriber API
+    [Arguments]    ${listIndex}
+    ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    ${putSubscriberList}=    Get Variable Value    ${putList}
+    ${putSubscriberDict}=    utils.listToDict    ${putSubscriberList}    ${listIndex}
+    ${AcctNum}=    restApi.getAccountNum    ${putSubscriberDict}
+    ${subscriberID}=    restApi.getSubscriberId    ${get_result}    ${AcctNum}
+    ${api_result}=    restApi.ApiPut    TENANT_SUBSCRIBER    ${putSubscriberDict}    ${subscriberID}
+    Should Be True    ${api_result}
+    ${getResultAfterPut}=    restApi.ApiGet    TENANT_SUBSCRIBER    ${subscriberID}
+    ${test_result}=    utils.compare_dict    ${putSubscriberDict}    ${getResultAfterPut}
+    Should Be True    ${test_result}
+
+Test Delete Subscriber API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    ${subscriberList}=    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${AcctNum}=    restApi.getAccountNum    ${subscriberDict}
+    ${subscriberId}=    restApi.getSubscriberId    ${json_result}    ${AcctNum}
+    ${test_result}=    restApi.ApiDelete    TENANT_SUBSCRIBER    ${subscriberId}
+    Should Be True    ${test_result}
