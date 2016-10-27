@@ -53,7 +53,8 @@ class OnosFlowCtrl:
 		  ipv6_target="",
 		  ipv6_sll="",
 		  ipv6_tll="",
-		  ipv6_extension=""):
+		  ipv6_extension="",
+		  controller=None):
         self.deviceId = deviceId
         self.appId = appId
         self.ingressPort = ingressPort
@@ -81,10 +82,13 @@ class OnosFlowCtrl:
 	self.ipv6_sll = ipv6_sll
 	self.ipv6_tll = ipv6_tll
 	self.ipv6_extension = ipv6_extension
+	if controller is not None:
+		self.controller=controller
+		self.cfg_url = 'http://%s:8181/onos/v1/flows/' %(self.controller)
 
     @classmethod
-    def get_flows(cls, device_id):
-        return OnosCtrl.get_flows(device_id)
+    def get_flows(cls, device_id,controller=None):
+        return OnosCtrl.get_flows(device_id,controller=controller)
 
     def addFlow(self):
         """
@@ -257,7 +261,7 @@ class OnosFlowCtrl:
         return True
 
     def findFlow(self, deviceId, **criterias):
-        flows = self.get_flows(deviceId)
+        flows = self.get_flows(deviceId,controller=self.controller)
         match_keys = criterias.keys()
         matches = len(match_keys)
         num_matched = 0
