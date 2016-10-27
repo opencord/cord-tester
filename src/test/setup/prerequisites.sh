@@ -26,9 +26,9 @@ if [ $on_cord -eq 0 ]; then
     docker pull onosproject/onos:1.5 || exit 127
     apt-get -y install openvswitch-common openvswitch-switch
 fi
-apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect tcpdump arping
+apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect python-maas-client tcpdump arping libssl-dev
 easy_install nose
-pip install -U scapy
+pip install scapy==2.3.2
 pip install monotonic
 pip install configObj
 pip install -U docker-py
@@ -37,10 +37,11 @@ pip install -U nsenter
 pip install -U pyroute2
 pip install -U netaddr
 pip install -U python-daemon
-pip install scapy-ssl_tls
+pip install scapy-ssl_tls==1.2.2
 pip install -U robotframework
 pip install -U robotframework-requests
 pip install -U robotframework-sshlibrary
+pip install paramiko
 ( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
 ## Special mode to pull cord-tester repo in case prereqs was installed by hand instead of repo
 if [ "$1" = "--test" ]; then
