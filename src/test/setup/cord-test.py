@@ -389,6 +389,7 @@ def runTest(args):
             radius_ip = None
 
     Container.IMAGE_PREFIX = args.prefix
+    cluster_mode = True if args.onos_instances > 1 else False
     if onos_ip is None:
         image_names = args.onos.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
@@ -405,6 +406,23 @@ def runTest(args):
         onos = Onos(image = Onos.IMAGE,
                     tag = Onos.TAG, boot_delay = 60)
         onos_ip = onos.ip()
+    onos_ips = [ onos_ip ]
+    num_onos_instances = args.onos_instances
+    if num_onos_instances > 1 and onos is not None:
+        onos_instances = []
+        onos_instances.append(onos)
+        for i in range(1, num_onos_instances):
+            name = '{}-{}'.format(Onos.NAME, i+1)
+            onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode)
+            onos_instances.append(onos)
+            onos_ips.append(onos.ipaddr)
+        try:
+            for ip in onos_ips:
+                print('Installing cord tester ONOS app %s in ONOS instance %s' %(args.app,ip))
+                OnosCtrl.install_app(args.app, onos_ip = ip)
+        except: pass
+        Onos.setup_cluster(onos_instances)
+    ctlr_addr = ','.join(onos_ips)
 
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
     if use_manifest or args.test_controller:
@@ -413,10 +431,12 @@ def runTest(args):
             Onos.install_cord_apps(onos_ip = onos_ip)
         except: pass
 
-    print('Installing cord tester ONOS app %s' %args.app)
-    try:
-        OnosCtrl.install_app(args.app, onos_ip = onos_ip)
-    except: pass
+    if not cluster_mode:
+        print('Installing cord tester ONOS app %s' %args.app)
+        try:
+	    for ip in onos_ips:
+                OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+        except: pass
 
     if radius_ip is None:
         ##Start Radius container
@@ -435,7 +455,7 @@ def runTest(args):
         maas_api_key = 'UNKNOWN'
 
     ssh_key_file = set_ssh_key_file(args.identity_file)
-    test_cnt_env = { 'ONOS_CONTROLLER_IP' : onos_ip,
+    test_cnt_env = { 'ONOS_CONTROLLER_IP' : ctlr_addr,
                      'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
                      'QUAGGA_IP': test_host,
                      'CORD_TEST_HOST' : test_host,
@@ -472,7 +492,7 @@ def runTest(args):
     for container in range(num_test_containers):
         test_cnt = CordTester(tests_parallel[test_slice_start:test_slice_end],
                               instance = container, num_instances = num_test_containers,
-                              ctlr_ip = onos_ip,
+                              ctlr_ip = ctlr_addr,
                               name = args.container,
                               image = nose_cnt['image'],
                               prefix = Container.IMAGE_PREFIX,
@@ -494,10 +514,13 @@ def runTest(args):
 
     status = 0
     if len(test_containers) > 1:
-        thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
-        for test_cnt in test_containers:
-            thread_pool.addTask(test_cnt.run_tests)
-        thread_pool.cleanUpThreads()
+	if True:
+	    status = test_containers[0].run_tests()
+	else:
+            thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
+            for test_cnt in test_containers:
+                thread_pool.addTask(test_cnt.run_tests)
+                thread_pool.cleanUpThreads()
     else:
         if test_containers:
             status = test_containers[0].run_tests()
@@ -505,7 +528,7 @@ def runTest(args):
     ##Run the linear tests
     if tests_not_parallel:
         test_cnt = CordTester(tests_not_parallel,
-                              ctlr_ip = onos_ip,
+                              ctlr_ip = ctlr_addr,
                               name = args.container,
                               image = nose_cnt['image'],
                               prefix = Container.IMAGE_PREFIX,
@@ -520,7 +543,7 @@ def runTest(args):
                 test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
             test_cnt.setup_intfs(port_num = port_num)
-        status = test_cnt.run_tests()
+        test_cnt.run_tests()
 
     if test_server:
         cord_test_server_stop(test_server)
@@ -910,6 +933,8 @@ if __name__ == '__main__':
     parser_run.add_argument('-d', '--no-switch', action='store_true', help='Dont start test switch.')
     parser_run.add_argument('-i', '--identity-file', default=identity_file_default,
                             type=str, help='ssh identity file to access compute nodes from test container')
+    parser_run.add_argument('-j', '--onos-instances', default=1, type=int,
+                            help='Specify number to test onos instances to form cluster')
     parser_run.set_defaults(func=runTest)
 
 
