@@ -100,7 +100,7 @@ optional arguments:
 ```
 * If you want to run cord-tester without Vagrant and already have a Ubuntu 14.04 server installed.
 ```
-$ git clone https://github.cyanoptics.com/cord-lab/cord-tester.git
+$ git clone https://github.com/opencord/cord-tester.git
 $ cd cord-tester/src/test/setup/
 $ sudo ./prerequisites.sh
 ```
