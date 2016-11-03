@@ -31,7 +31,7 @@ easy_install nose
 pip install scapy==2.3.2
 pip install monotonic
 pip install configObj
-pip install -U docker-py
+pip install docker-py==1.9.0
 pip install -U pyyaml
 pip install -U nsenter
 pip install -U pyroute2

@@ -172,7 +172,7 @@ class Container(object):
                     ip.link('set', index=guest, state='up')
                 index += 1
 
-    def execute(self, cmd, tty = True, stream = False, shell = True):
+    def execute(self, cmd, tty = True, stream = False, shell = False):
         res = 0
         if type(cmd) == str:
             cmds = (cmd,)
