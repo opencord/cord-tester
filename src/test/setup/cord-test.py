@@ -92,7 +92,7 @@ class CordTester(Container):
             self.start(rm = False, volumes = volumes, environment = env,
                        host_config = host_config, tty = True)
 
-    def execute_switch(self, cmd, shell = False):
+    def execute_switch(self, cmd, shell = True):
         if self.olt:
             return os.system(cmd)
         return self.execute(cmd, shell = shell)
@@ -240,7 +240,7 @@ RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/open
  cd openvswitch-{} && \
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
-RUN pip install -U scapy scapy-ssl_tls monotonic configObj docker-py pyyaml nsenter pyroute2 netaddr python-daemon
+RUN pip install scapy==2.3.2 scapy-ssl_tls==1.2.2 monotonic configObj docker-py pyyaml nsenter pyroute2 netaddr python-daemon
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 RUN mv /usr/sbin/dhcpd /sbin/
