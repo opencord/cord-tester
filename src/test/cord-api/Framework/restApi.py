@@ -88,12 +88,13 @@ class restApi(object):
     def ApiPost(self, key, jsonData):
         url = self.getURL(key)
         data = json.dumps(jsonData)
+        print "url, data..", url, data
         resp = requests.post(url, data=data, headers=self.jsonHeader, auth=(self.user, self.password))
         passed = self.checkResult(resp, requests.codes.created)
         return passed
 
     def ApiGet(self, key, urlSuffix=""):
-        url = self.getURL(key) + urlSuffix
+        url = self.getURL(key) + str(urlSuffix)
         resp = requests.get(url, auth=(self.user, self.password))
         passed = self.checkResult(resp, requests.codes.ok)
         if not passed:
@@ -102,14 +103,15 @@ class restApi(object):
             return resp.json()
 
     def ApiPut(self, key, jsonData, urlSuffix=""):
-        url = self.getURL(key) + urlSuffix + "/"
+        print "urlSuffix....",type(urlSuffix)
+        url = self.getURL(key) + str(urlSuffix) + "/"
         data = json.dumps(jsonData)
         resp = requests.put(url, data=data, headers=self.jsonHeader, auth=(self.user, self.password))
         passed = self.checkResult(resp, requests.codes.ok)
         return passed
 
     def ApiDelete(self, key, urlSuffix=""):
-        url = self.getURL(key) + urlSuffix
+        url = self.getURL(key) + str(urlSuffix)
         resp = requests.delete(url, auth=(self.user, self.password))
         passed = self.checkResult(resp, requests.codes.no_content)
         return passed
@@ -132,8 +134,11 @@ if __name__ == '__main__':
 '''
 '''
 test = restApi()
-key = "TENANT_SUBSCRIBER"
-#jsonGetData = test.ApiGet(key,"71")
-jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
+key = "UTILS_SYNCHRONIZER"
+#key = "TENANT_SUBSCRIBER"
+jsonGetData = test.ApiGet(key)
+#jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
+#jsonResponse = test.ApiPost(key,{"name":"test-2"})
+jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
 print "========="
 '''

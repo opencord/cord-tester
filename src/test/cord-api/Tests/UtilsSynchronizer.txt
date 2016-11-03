@@ -1,0 +1,84 @@
+*** Settings ***
+Documentation     Test suite for Utility Synchronizer API
+Suite Setup       Read InputFile
+Test Template     Verify Utility Synchronizer functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/UtilsSynchronizer.json
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Add Synchronizer-1
+                      CREATE      0
+
+Test Get Synchronizer-1
+                      RETRIEVE    0
+
+Test Delete Synchronizer-1
+                      DELETE      0
+
+Test Add Synchronizer-2
+                      CREATE      1
+
+Test Get Synchronizer-2
+                      RETRIEVE    1
+
+Test Delete Synchronizer-2
+                      DELETE      1
+
+Test Add Synchronizer-3
+                      CREATE      2
+
+Test Get Synchronizer-3
+                      RETRIEVE    2
+
+Test Delete Synchronizer-3
+                      DELETE      2
+
+*** Keywords ***
+Read InputFile
+    ${syncList} =    utils.jsonToList    ${PATHFILE}    SynchronizerInfo
+    Set Suite Variable    ${sList}    ${syncList}
+
+Verify Utility Synchronizer functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Utils Synchronizer API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Utils Synchronizer API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Utils Synchronizer API    ${listIndex}
+
+Test Post Utils Synchronizer API
+    [Arguments]    ${listIndex}
+    ${syncList} =    Get Variable Value    ${sList}
+    ${syncDict}=    utils.listToDict    ${syncList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    UTILS_SYNCHRONIZER    ${syncDict}
+    Should Be True    ${api_result}
+
+Test Get Utils Synchronizer API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    UTILS_SYNCHRONIZER
+    Log    ${json_result}
+    ${syncList}=    Get Variable Value    ${sList}
+    ${syncDict}=    utils.listToDict    ${syncList}    ${listIndex}
+    ${syncName}=    utils.getFieldValueFromDict    ${syncDict}    name
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${syncName}
+    ${test_result}=    utils.compare_dict    ${syncDict}    ${getJsonDict}
+    Should Be True    ${json_result}
+
+Test Delete Utils Synchronizer API
+    [Arguments]    ${listIndex}
+    ${json_getresult}=    restApi.ApiGet    UTILS_SYNCHRONIZER
+    ${syncList}=    Get Variable Value    ${sList}
+    ${syncDict}=    utils.listToDict    ${syncList}    ${listIndex}
+    ${syncName}=    utils.getFieldValueFromDict    ${syncDict}    name
+    ${getSyncDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${syncName}
+    ${syncID}=    utils.getFieldValueFromDict    ${getSyncDict}    id
+    ${test_result}=    restApi.ApiDelete    UTILS_SYNCHRONIZER    ${syncID}
+    Should be True    ${test_result}

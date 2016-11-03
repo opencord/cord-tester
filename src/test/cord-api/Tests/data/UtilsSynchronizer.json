@@ -1,0 +1,13 @@
+{
+    "SynchronizerInfo" : [
+        {
+            "name": "vsg"
+        },
+        {
+            "name": "sample-service1"
+        },
+        {
+            "name": "sample-service2"
+        }
+  ]
+}
