@@ -95,7 +95,7 @@ class CordTester(Container):
             self.start(rm = False, volumes = volumes, environment = env,
                        host_config = host_config, tty = True)
 
-    def execute_switch(self, cmd, shell = True):
+    def execute_switch(self, cmd, shell = False):
         if self.olt:
             return os.system(cmd)
         return self.execute(cmd, shell = shell)
@@ -197,7 +197,8 @@ class CordTester(Container):
                     cmds = ('brctl delif {} {}'.format(intf_host, local_if),
                             'ip link del {}'.format(local_if))
                 else:
-                    cmds = ('ovs-vsctl del-port {} {}'.format(intf_host, local_if),)
+                    cmds = ('ovs-vsctl del-port {} {}'.format(intf_host, local_if),
+                            'ip link del {}'.format(local_if))
 
             for cmd in cmds:
                 res += os.system(cmd)
