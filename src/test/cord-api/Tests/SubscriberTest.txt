@@ -77,8 +77,8 @@ Test Get Subscriber API
     Log    ${json_result}
     ${subscriberList}=    Get Variable Value    ${slist}
     ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${AccountNum}=    restApi.getAccountNum    ${subscriberDict}
-    ${getJsonDict}=    restApi.getJsonDictOfAcctNum    ${json_result}    ${AccountNum}
+    ${AccountNum}=    utils.getFieldValueFromDict    ${subscriberDict}    account_num
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    account_num    ${AccountNum}
     ${test_result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
@@ -87,8 +87,9 @@ Test Edit Subscriber API
     ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
     ${putSubscriberList}=    Get Variable Value    ${putList}
     ${putSubscriberDict}=    utils.listToDict    ${putSubscriberList}    ${listIndex}
-    ${AcctNum}=    restApi.getAccountNum    ${putSubscriberDict}
-    ${subscriberID}=    restApi.getSubscriberId    ${get_result}    ${AcctNum}
+    ${AcctNum}=    utils.getFieldValueFromDict    ${putSubscriberDict}    account_num
+    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result}    account_num    ${AcctNum}
+    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
     ${api_result}=    restApi.ApiPut    TENANT_SUBSCRIBER    ${putSubscriberDict}    ${subscriberID}
     Should Be True    ${api_result}
     ${getResultAfterPut}=    restApi.ApiGet    TENANT_SUBSCRIBER    ${subscriberID}
@@ -100,7 +101,11 @@ Test Delete Subscriber API
     ${json_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
     ${subscriberList}=    Get Variable Value    ${slist}
     ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${AcctNum}=    restApi.getAccountNum    ${subscriberDict}
-    ${subscriberId}=    restApi.getSubscriberId    ${json_result}    ${AcctNum}
+    ${AcctNum}=    utils.getFieldValueFromDict    ${subscriberDict}    account_num
+    Log    ${AcctNum}
+    ${subscriberDict}=    utils.getDictFromListofDict    ${json_result}    account_num    ${AcctNum}
+    Log    ${subscriberDict}
+    ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    Log    ${subscriberId}
     ${test_result}=    restApi.ApiDelete    TENANT_SUBSCRIBER    ${subscriberId}
     Should Be True    ${test_result}
