@@ -35,6 +35,7 @@ from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
 from CordTestServer import cord_test_onos_restart, cord_test_shell
+from CordLogger import CordLogger
 
 log.setLevel('INFO')
 
@@ -179,7 +180,7 @@ class subscriber_pool:
             self.test_status = True
 
 
-class subscriber_exchange(unittest.TestCase):
+class subscriber_exchange(CordLogger):
 
       apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
       olt_apps = () #'org.opencord.cordmcast')

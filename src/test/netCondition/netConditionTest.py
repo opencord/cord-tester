@@ -44,6 +44,7 @@ import struct
 import scapy
 from CordTestBase import CordTester
 from CordContainer import *
+from CordLogger import CordLogger
 import re
 from random import randint
 from time import sleep
@@ -75,7 +76,7 @@ class IGMPTestState:
       def update_state(self):
           self.state = self.state ^ 1
 
-class netCondition_exchange(unittest.TestCase):
+class netCondition_exchange(CordLogger):
 
     V_INF1 = 'veth0'
     V_INF2 = 'veth1'

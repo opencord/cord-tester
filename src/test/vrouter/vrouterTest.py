@@ -24,6 +24,7 @@ from onosclidriver import OnosCliDriver
 from CordContainer import Container, Onos, Quagga
 from CordTestServer import cord_test_onos_restart, cord_test_quagga_restart, cord_test_quagga_stop, cord_test_quagga_shell
 from portmaps import g_subscriber_port_map
+from CordLogger import CordLogger
 import threading
 import time
 import os
@@ -38,7 +39,7 @@ import pexpect
 
 log.setLevel('INFO')
 
-class vrouter_exchange(unittest.TestCase):
+class vrouter_exchange(CordLogger):
 
     apps = ('org.onosproject.vrouter', 'org.onosproject.fwd')
     device_id = 'of:' + get_mac()

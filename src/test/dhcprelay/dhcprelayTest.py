@@ -24,12 +24,13 @@ from DHCP import DHCPTest
 from OnosCtrl import OnosCtrl, get_mac
 from OltConfig import OltConfig
 from CordTestServer import cord_test_onos_restart
+from CordLogger import CordLogger
 from portmaps import g_subscriber_port_map
 import threading, random
 from threading import current_thread
 log.setLevel('INFO')
 
-class dhcprelay_exchange(unittest.TestCase):
+class dhcprelay_exchange(CordLogger):
 
     app = 'org.onosproject.dhcprelay'
     app_dhcp = 'org.onosproject.dhcp'

@@ -33,6 +33,8 @@ from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
 from CordContainer import *
+from CordTestServer import cord_test_radius_restart
+from CordLogger import CordLogger
 import copy
 log.setLevel('INFO')
 DEFAULT_NO_CHANNELS = 1
@@ -167,7 +169,7 @@ class subscriber_pool:
             log.info('This Subscriber is tested for multiple service elgibility ')
             self.test_status = True
 
-class subscriber_exchange(unittest.TestCase):
+class subscriber_exchange(CordLogger):
 
       apps = [ 'org.opencord.aaa', 'org.onosproject.dhcp' ]
 
@@ -236,6 +238,7 @@ yg==
 
       def setUp(self):
           '''Load the OLT config and activate relevant apps'''
+          super(subscriber_exchange, self).setUp()
           self.olt = OltConfig()
           self.port_map, _ = self.olt.olt_port_map()
           ##if no olt config, fall back to ovs port map
@@ -249,19 +252,15 @@ yg==
 
           self.activate_apps(self.apps)
 
-      def teardown(self):
+      def tearDown(self):
           '''Deactivate the dhcp app'''
+          super(subscriber_exchange, self).tearDown()
           for app in self.apps:
               onos_ctrl = OnosCtrl(app)
               onos_ctrl.deactivate()
           log.info('Restarting the Radius container in the setup after running every subscriber test cases by default')
-          rest = Container('cord-radius', 'cord-test/radius',)
-          rest.restart('cord-radius','10')
-          radius = Radius()
-          radius_ip = radius.ip()
-          print('Radius server is running with IP %s' %radius_ip)
+          cord_test_radius_restart()
           #os.system('ifconfig '+INTF_RX_DEFAULT+' up')
-
 
       def activate_apps(self, apps):
             for app in apps:

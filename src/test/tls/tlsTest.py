@@ -21,12 +21,13 @@ from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from EapTLS import TLSAuthTest
 from OnosCtrl import OnosCtrl
+from CordLogger import CordLogger
 from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
 log.setLevel('INFO')
 
-class eap_auth_exchange(unittest.TestCase):
+class eap_auth_exchange(CordLogger):
 
     app = 'org.opencord.aaa'
     TLS_TIMEOUT = 20
@@ -72,6 +73,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                              'TLS_DH_anon_WITH_AES_256_CBC_SHA256']
 
     def setUp(self):
+        super(eap_auth_exchange, self).setUp()
         self.onos_ctrl = OnosCtrl(self.app)
         self.onos_aaa_config()
 

@@ -9,25 +9,29 @@ class SSHTestAgent(object):
     user = 'ubuntu'
     password = None
 
-    def __init__(self, user = user, password = password):
+    def __init__(self, host = host, user = user, password = password, port = 22):
+        self.host = host
         self.user = user
         self.password = password
+        self.port = port
         self.client = SSHClient()
-        self.client.load_system_host_keys()
         self.client.set_missing_host_key_policy(AutoAddPolicy())
 
     def run_cmd(self, cmd, timeout = 5):
         """Run the command on the test host"""
         try:
             self.client.connect(self.host, username = self.user, password = self.password,
-                                key_filename = self.key_file, timeout=timeout)
+                                key_filename = self.key_file, timeout=timeout, port = self.port)
         except:
             log.error('Unable to connect to test host %s' %self.host)
             return False, None
         
         channel = self.client.get_transport().open_session()
         channel.exec_command(cmd)
-        status = channel.recv_exit_status()
+        if channel.exit_status_ready():
+            status = channel.recv_exit_status()
+        else:
+            status = 0
         output = None
         st = status == 0
         if st:

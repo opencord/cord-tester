@@ -24,9 +24,10 @@ from DHCP import DHCPTest
 from OltConfig import *
 from OnosCtrl import OnosCtrl
 from portmaps import g_subscriber_port_map
+from CordLogger import CordLogger
 log.setLevel('INFO')
 
-class dhcp_exchange(unittest.TestCase):
+class dhcp_exchange(CordLogger):
 
     dhcp_server_config = {
         "ip": "10.1.11.50",
@@ -64,15 +65,17 @@ class dhcp_exchange(unittest.TestCase):
 
     def setUp(self):
         ''' Activate the dhcp app'''
+        super(dhcp_exchange, self).setUp()
         self.maxDiff = None ##for assert_equal compare outputs on failure
         self.onos_ctrl = OnosCtrl(self.app)
         status, _ = self.onos_ctrl.activate()
         assert_equal(status, True)
         time.sleep(3)
 
-    def teardown(self):
+    def tearDown(self):
         '''Deactivate the dhcp app'''
         self.onos_ctrl.deactivate()
+        super(dhcp_exchange, self).tearDown()
 
     def onos_load_config(self, config):
         status, code = OnosCtrl.config(config)

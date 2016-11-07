@@ -25,12 +25,13 @@ import os
 from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 from OltConfig import OltConfig
+from CordLogger import CordLogger
 import random
 from threading import current_thread
 import collections
 log.setLevel('INFO')
 
-class flows_exchange(unittest.TestCase):
+class flows_exchange(CordLogger):
 
     #Use the first available device id as our device id to program flows
     app = 'org.onosproject.cli'

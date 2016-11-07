@@ -29,6 +29,7 @@ from Stats import Stats
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from Channels import IgmpChannel
+from CordLogger import CordLogger
 log.setLevel('INFO')
 
 class IGMPTestState:
@@ -52,7 +53,7 @@ class IGMPTestState:
       def update_state(self):
           self.state = self.state ^ 1
 
-class igmp_exchange(unittest.TestCase):
+class igmp_exchange(CordLogger):
 
     V_INF1 = 'veth0'
     V_INF2 = 'veth1'
@@ -92,11 +93,13 @@ class igmp_exchange(unittest.TestCase):
 
     def setUp(self):
         ''' Activate the igmp app'''
+        super(igmp_exchange, self).setUp()
         self.onos_ctrl = OnosCtrl(self.app)
 	self.onos_ctrl.activate()
         self.igmp_channel = IgmpChannel()
 
-    def tearDown(self): pass
+    def tearDown(self):
+        super(igmp_exchange, self).tearDown()
 
     def onos_load_config(self, config):
 	log.info('onos load config is %s'%config)
