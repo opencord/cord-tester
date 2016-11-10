@@ -1,11 +1,11 @@
 import os, sys
 from paramiko import SSHClient, WarningPolicy, AutoAddPolicy
-from CordTestServer import CORD_TEST_HOST
 from scapy.all import *
 
 class SSHTestAgent(object):
     key_file = os.getenv('SSH_KEY_FILE', None)
-    host = os.getenv('CORD_TEST_HOST', CORD_TEST_HOST)
+    host = os.getenv('CORD_TEST_HOST', '172.17.0.1')
+    hosts_file = os.path.join(os.getenv('HOME'), '.ssh', 'known_hosts')
     user = 'ubuntu'
     password = None
 
@@ -19,7 +19,9 @@ class SSHTestAgent(object):
 
     def run_cmd(self, cmd, timeout = 5):
         """Run the command on the test host"""
+        host_remove = 'ssh-keygen -f "%s" -R [%s]:8101' %(self.hosts_file, self.host)
         try:
+            os.system(host_remove)
             self.client.connect(self.host, username = self.user, password = self.password,
                                 key_filename = self.key_file, timeout=timeout, port = self.port)
         except:

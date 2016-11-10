@@ -23,6 +23,7 @@ from nsenter import Namespace
 from docker import Client
 from shutil import copy
 from OnosCtrl import OnosCtrl
+from OnosLog import OnosLog
 
 class docker_netns(object):
 
@@ -353,7 +354,7 @@ class Onos(Container):
                 except: pass
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
-                 boot_delay = 60, restart = False, network_cfg = None, cluster = False):
+                 boot_delay = 20, restart = False, network_cfg = None, cluster = False):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -411,11 +412,30 @@ class Onos(Container):
                         print('Restarting ONOS container %s' %self.name)
                         self.start(ports = self.ports, environment = self.env,
                                    host_config = self.host_config, volumes = self.volumes, tty = True)
-            print('Waiting %d seconds for ONOS to boot' %(boot_delay))
+            print('Waiting for ONOS to boot')
             time.sleep(boot_delay)
+            self.wait_for_onos_start(self.ip())
+
         self.ipaddr = self.ip()
         if cluster is False:
             self.install_cord_apps(self.ipaddr)
+
+    @classmethod
+    def wait_for_onos_start(cls, ip, tries = 30):
+        onos_log = OnosLog(host = ip)
+        num_tries = 0
+        started = None
+        while not started and num_tries < tries:
+            time.sleep(3)
+            started = onos_log.search_log_pattern('ApplicationManager .* Started')
+            num_tries += 1
+
+        onos_log.close()
+        if not started:
+            print('ONOS did not start')
+        else:
+            print('ONOS started')
+        return started
 
     @classmethod
     def setup_cluster_deprecated(cls, onos_instances, image_name = None):
@@ -922,3 +942,6 @@ class XosSyncFabric(Xos):
     @classmethod
     def build_image(cls, image = IMAGE):
         Xos.build_image(image, cls.dockerfile_path)
+
+if __name__ == '__main__':
+    onos = Onos(boot_delay = 10, restart = True)

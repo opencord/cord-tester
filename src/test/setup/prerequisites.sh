@@ -41,7 +41,7 @@ pip install scapy-ssl_tls==1.2.2
 pip install -U robotframework
 pip install -U robotframework-requests
 pip install -U robotframework-sshlibrary
-pip install paramiko
+pip install paramiko==1.10.1
 ( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
 ## Special mode to pull cord-tester repo in case prereqs was installed by hand instead of repo
 if [ "$1" = "--test" ]; then
