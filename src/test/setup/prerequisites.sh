@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 apt-get update
 on_cord=0
+release=$(lsb_release -cs)
 if [ "$1" = "--cord" ]; then
     echo "Skipping installation of Docker and ONOS"
     on_cord=1
@@ -9,7 +10,7 @@ if [ $on_cord -eq 0 ]; then
     apt-get -y install apt-transport-https ca-certificates
     apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
     if [ ! -f /etc/apt/sources.list.d/docker.list ]; then
-        echo deb https://apt.dockerproject.org/repo ubuntu-trusty main |  tee /etc/apt/sources.list.d/docker.list
+        echo deb https://apt.dockerproject.org/repo ubuntu-$release main |  tee /etc/apt/sources.list.d/docker.list
     fi
     apt-get update
     apt-get purge lxc-docker || true

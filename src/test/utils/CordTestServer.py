@@ -123,8 +123,11 @@ class CordTestServer(object):
         return 'DONE'
 
 @nottest
-def cord_test_server_start(daemonize = True, cord_test_host = CORD_TEST_HOST,
-                           cord_test_port = CORD_TEST_PORT, onos_cord = None):
+def cord_test_server_start(daemonize = True,
+                           cord_test_host = CORD_TEST_HOST,
+                           cord_test_port = CORD_TEST_PORT,
+                           onos_cord = None,
+                           foreground=False):
     server = SimpleXMLRPCServer( (cord_test_host, cord_test_port) )
     server.register_instance(CordTestServer())
     CordTestServer.onos_cord = onos_cord
@@ -135,10 +138,16 @@ def cord_test_server_start(daemonize = True, cord_test_host = CORD_TEST_HOST,
             reinitContainerClients()
             server.serve_forever()
     else:
-        task = threading.Thread(target = server.serve_forever)
-        ##terminate when main thread exits
-        task.daemon = True
-        task.start()
+        if foreground:
+            try:
+                server.serve_forever()
+            except KeyboardInterrupt:
+                return server
+        else:
+            task = threading.Thread(target = server.serve_forever)
+            ##terminate when main thread exits
+            task.daemon = True
+            task.start()
     return server
 
 @nottest

@@ -714,8 +714,8 @@ def setupCordTester(args):
 
     #Finally start the test server and daemonize
     try:
-        cord_test_server_start(daemonize = True, cord_test_host = ip, cord_test_port = port,
-                               onos_cord = onos_cord)
+        cord_test_server_start(daemonize = not args.foreground, cord_test_host = ip, cord_test_port = port,
+                               onos_cord = onos_cord, foreground = args.foreground)
     except socket.error, e:
         #the test agent address could be remote or already running. Exit gracefully
         sys.exit(0)
@@ -961,7 +961,8 @@ if __name__ == '__main__':
     parser_setup.add_argument('-i', '--identity-file', default=identity_file_default,
                               type=str, help='ssh identity file to access compute nodes from test container')
     parser_setup.add_argument('-n', '--onos-instances', default=1, type=int,
-                            help='Specify number of test onos instances to spawn')
+                              help='Specify number of test onos instances to spawn')
+    parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')

@@ -68,6 +68,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     total_failure = 0
     #just in case we want to reset ONOS to default network cfg after relay tests
     onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
+    configs = {}
 
     @classmethod
     def setUpClass(cls):
@@ -131,9 +132,11 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     @classmethod
     def dhcp_relay_cleanup(cls):
         ##reset the ONOS port configuration back to default
-        if cls.onos_restartable is True:
-            log.info('Cleaning up dhcp relay config by restarting ONOS with default network cfg')
-            return cord_test_onos_restart(config = {})
+        for config in cls.configs.items():
+            OnosCtrl.delete(config)
+        # if cls.onos_restartable is True:
+        #     log.info('Cleaning up dhcp relay config by restarting ONOS with default network cfg')
+        #     return cord_test_onos_restart(config = {})
 
     @classmethod
     def onos_load_config(cls, config):
@@ -158,6 +161,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             interface_list.append(interface_map)
 
         cls.onos_load_config(interface_dict)
+        cls.configs['interface_config'] = interface_dict
 
     @classmethod
     def onos_dhcp_relay_load(cls, server_ip, server_mac):
@@ -171,6 +175,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                              }
                      }
         cls.onos_load_config(dhcp_dict)
+        cls.configs['relay_config'] = dhcp_dict
 
     @classmethod
     def get_host_ip(cls, port):
