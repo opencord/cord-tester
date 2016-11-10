@@ -23,6 +23,7 @@ import time, monotonic
 import os, sys
 import tempfile
 import random
+import Queue
 import threading
 from IGMP import *
 from McastTraffic import *
@@ -364,6 +365,40 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         if delay != 0:
             time.sleep(delay)
 
+
+    def send_igmp_join_negative(self, groups, src_list = ['1.2.3.4'], record_type=IGMP_V3_GR_TYPE_INCLUDE,
+                       ip_pkt = None, iface = 'veth0', ssm_load = False, delay = 1, ip_src = None, invalid_igmp_join = None ):
+        if ssm_load is True:
+              self.onos_ssm_table_load(groups, src_list)
+        if invalid_igmp_join == 'igmp_type':
+              igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT_NEGATIVE, max_resp_code=30,
+                            gaddr=self.IP_DST)
+        else:
+              igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
+                      gaddr=self.IP_DST)
+        if invalid_igmp_join == 'record_type':
+           record_type = IGMP_V3_GR_TYPE_INCLUDE_NEGATIVE
+
+        for g in groups:
+              gr = IGMPv3gr(rtype= record_type, mcaddr=g)
+              gr.sources = src_list
+              igmp.grps.append(gr)
+        if ip_pkt is None:
+              if ip_src is None:
+                 ip_pkt = self.igmp_eth/self.igmp_ip
+              else:
+                 igmp_ip_src = IP(dst = self.IP_DST, src = ip_src)
+                 ip_pkt = self.igmp_eth/igmp_ip_src
+        pkt = ip_pkt/igmp
+        if invalid_igmp_join == 'ttl':
+           set_ttl = 10
+           IGMPv3.fixup(pkt,invalid_ttl = set_ttl)
+        else:
+           IGMPv3.fixup(pkt)
+        sendp(pkt, iface=iface)
+        if delay != 0:
+            time.sleep(delay)
+
     def send_igmp_join_recvQuery(self, groups, rec_queryCount = None, src_list = ['1.2.3.4'], ip_pkt = None, iface = 'veth0', delay = 2):
         self.onos_ssm_table_load(groups, src_list)
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
@@ -533,7 +568,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     def igmp_not_recv_task(self, intf, groups, join_state):
-	  log.info('entering igmp not recv task loop')
+	  log.info('Entering igmp not recv task loop')
           recv_socket = L2Socket(iface = intf, type = ETH_P_IP)
           group_map = {}
           for g in groups:
@@ -658,7 +693,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TEST_TIMEOUT_DELAY+50)
-    def test_netCondition_in_eap_tls_with_no_cert_delay_between_IdReq_and_HelloReq(self):
+    def test_netCondition_in_eap_tls_with_no_cert_and_delay_between_IdReq_and_HelloReq(self):
         self.setUp_tls()
         randomDelay = randint(10,300)
         df = defer.Deferred()
@@ -865,7 +900,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                 tls._eapTlsCertReq()
                 tls._eapTlsChangeCipherSpec()
                 tls._eapTlsFinished()
-                log.info('Authentication successfull for user %d'%i)
+                log.info('Authentication successful for user %d'%i)
            # Sending multiple tls clients and making random delay in between client and server packets.
            for i in xrange(clients):
              thread = threading.Thread(target = multiple_tls_random_delay)
@@ -880,7 +915,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TEST_TIMEOUT_DELAY+450)
-    def test_netCondition_multiple_authentications_tls_with_delay_between_every_auth_complete(self):
+    def test_netCondition_with_multiple_authentication_and_delay_between_complete_authentication(self):
         self.setUp_tls()
         df = defer.Deferred()
         threads = []
@@ -899,7 +934,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                 tls._eapTlsCertReq()
                 tls._eapTlsChangeCipherSpec()
                 tls._eapTlsFinished()
-                log.info('Authentication successfull for user %d'%i)
+                log.info('Authentication successful for user %d'%i)
            # Client authendicating multiple times one after other and making random delay in between authendication.
            for i in xrange(clients):
 #            thread = threading.Thread(target = multiple_tls_random_delay)
@@ -910,7 +945,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TEST_TIMEOUT_DELAY+450)
-    def test_netCondition_multiple_authentications_tls_with_delay_between_every_100_tls_burst(self):
+    def test_netCondition_with_multiple_authentication_and_delay_between_every_100_tls_burst(self):
         self.setUp_tls()
         randomDelay = randint(10,300)
         df = defer.Deferred()
@@ -940,7 +975,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                 for x in xrange(clients):
                    tls[x]._eapTlsFinished()
                 for x in xrange(clients):
-                   log.info('Authentication successfull for user %d'%i)
+                   log.info('Authentication successful for user %d'%i)
            # Client authendicating multiple times one after other and making random delay in between authendication.
            for i in xrange(2):
              multiple_tls_random_delay()
@@ -1070,7 +1105,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             sendp(pkt, count=50, iface = self.port_map[ingress])
             thread.join()
             assert_equal(self.success, True)
-            df.callback(0)
+        #    df.callback(0)
 
         def creating_tcp_flow(df):
             flow = OnosFlowCtrl(deviceId = self.device_id,
@@ -1085,9 +1120,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             time.sleep(1)
             self.success = False
             thread.start()
-            randomDelay = randint(10,300)
-            log.info('Holding a packet to verify if flows are active after {} secs'.format(randomDelay))
-            t = Timer(randomDelay, send_flow_tcp_pkt_delay)
+            log.info('Holding a packet to verify if flows are active after {} sec, delay started'.format(Randomdelay))
+            t = Timer(Randomdelay, send_flow_tcp_pkt_delay)
             t.start()
         df.callback(0)
         reactor.callLater(0, creating_tcp_flow, df)
@@ -1141,5 +1175,561 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
         df.callback(0)
         reactor.callLater(0, creating_udp_flow, df)
+        return df
+
+    def netCondition_with_delay_between_multiple_igmp_joins_and_data(self,users,group_end_ip,source_list_end_ip,user_src_end_ip, data_pkt =50):
+        self.setUp_igmp()
+        Randomdelay = []
+        groups = []
+        sources = []
+        subscribers_src_ip = []
+        status = []
+        join_threads = []
+        delay_threads = []
+        data_threads = []
+        threads = []
+        subscriber = users
+        count = 1
+        mcastips = self.mcast_ip_range(start_ip = '229.0.0.1',end_ip = group_end_ip)
+        sourceips = self.source_ip_range(start_ip = '10.10.0.1',end_ip = source_list_end_ip)
+        subscriber_sourceips = self.source_ip_range(start_ip = '20.20.0.1',end_ip = user_src_end_ip)
+        while count<=subscriber:
+            group = random.choice(mcastips)
+            source = random.choice(sourceips)
+            subscriber_sourceip = random.choice(subscriber_sourceips)
+            if group in groups:
+                pass
+            else:
+                log.info('group = %s source list = %s and subscriber source ip in join = %s'%(group,source, subscriber_sourceip))
+                groups.append(group)
+                sources.append(source)
+                subscribers_src_ip.append(subscriber_sourceip)
+                count += 1
+        self.onos_ssm_table_load(groups,src_list=sources,flag=True)
+
+        def multiple_joins_send_in_threads(group, source, subscriber_src_ip,data_pkt = data_pkt):
+            self.send_igmp_join(groups = [group], src_list = [source],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                         iface = self.V_INF1, ip_src = [subscriber_src_ip])
+            Randomdelay_in_thread = randint(10,30)
+            log.info('This is running in a thread, with  igmp join sent and delay started {}'.format(Randomdelay_in_thread))
+            time.sleep(Randomdelay_in_thread)
+            log.info('This is running in a thread, with igmp join sent and delay ended {}'.format(Randomdelay_in_thread))
+            status = self.verify_igmp_data_traffic_in_thread(group,intf=self.V_INF1,source=source, data_pkt = data_pkt)
+            #assert_equal(status, True)
+            log.info('Data received for group %s from source %s and status is %s '%(group,source,status))
+            self.igmp_threads_result.append(status)
+
+        for i in range(subscriber):
+            thread = threading.Thread(target = multiple_joins_send_in_threads, args = (groups[i], sources[i], subscribers_src_ip[i]))
+            time.sleep(randint(1,2))
+            thread.start()
+            threads.append(thread)
+
+#        time.sleep(50)
+        for thread in threads:
+            thread.join()
+
+    def verify_igmp_data_traffic_in_thread(self, group, intf='veth0', source='1.2.3.4', data_pkt =50, negative = None):
+        log.info('Verifying multicast traffic for group %s from source %s'%(group,source))
+        self.success = False
+        def recv_task():
+            def igmp_recv_cb(pkt):
+                #log.info('received multicast data packet is %s'%pkt.show())
+                log.info('Multicast data received for group %s from source %s'%(group,source))
+                self.success = True
+            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].dst == group and p[IP].src == source, count=1,timeout = 2, iface='veth0')
+        t = threading.Thread(target = recv_task)
+        t.start()
+        self.send_multicast_data_traffic_from_thread(group,source=source, data_pkt=data_pkt)
+        t.join()
+        if (negative is None) and self.success is True:
+           return self.success
+        elif (negative is not None) and self.success is True:
+           log.info('Multicast traffic should not received because this is negative scenario, but it is received')
+           self.success = False
+        elif (negative is not None) and self.success is False:
+           log.info('Multicast traffic should is not received because this is negative scenario, hence status is True')
+           self.success = True
+        return self.success
+
+    def send_multicast_data_traffic_from_thread(self, group, intf= 'veth2',source = '1.2.3.4', data_pkt = 50):
+        dst_mac = self.iptomac_convert(group)
+        eth = Ether(dst= dst_mac)
+        ip = IP(dst=group,src=source)
+        data = repr(monotonic.monotonic())
+        log.info('Sending %s number of multicast packet to the multicast group %s'%(data_pkt, group))
+        sendp(eth/ip/data,count=data_pkt, iface = intf)
+        pkt = (eth/ip/data)
+        #log.info('multicast traffic packet %s'%pkt.show())
+
+    def iptomac_convert(self, mcast_ip):
+        mcast_mac =  '01:00:5e:'
+        octets = mcast_ip.split('.')
+        second_oct = int(octets[1]) & 127
+        third_oct = int(octets[2])
+        fourth_oct = int(octets[3])
+        mcast_mac = mcast_mac + format(second_oct,'02x') + ':' + format(third_oct, '02x') + ':' + format(fourth_oct, '02x')
+        return mcast_mac
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_delay_between_multiple_igmp_joins_and_data_for_multiple_subscribers(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            no_users = 10
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_delay_between_multiple_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip,
+                                                                          source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_delay_between_multiple_igmp_joins_and_data_from_multiple_subscribers_with_low_multicast_data_rate(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            no_users = 10
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_delay_between_multiple_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip,
+                                             source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip, data_pkt = 20)
+            log.info('IGMP Thread status after running igmp thread %s '%(self.igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_delay_between_multiple_igmp_joins_and_data_for_same_subscriber(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            no_users = 5
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.0.1'
+            self.netCondition_with_delay_between_multiple_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip,
+                                                                          source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_delay_between_same_igmp_joins_and_data_from_multiple_subscriber(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            no_users = 100
+            group_end_ip = '229.0.0.1'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_delay_between_multiple_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip,
+                                                                          source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_delay_between_multiple_igmp_joins_and_data_from_same_sourcelist_for_multiple_subscriber(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            no_users = 20
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.0.1'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_delay_between_multiple_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip,
+                                                                          source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+
+    def netCondition_with_multiple_scenarios_igmp_joins_and_data(self,users,group_end_ip,source_list_end_ip,user_src_end_ip,bunch_traffic, data_pkt =50,invalid_joins = None):
+        self.setUp_igmp()
+        Randomdelay = []
+        groups = []
+        sources = []
+        subscribers_src_ip = []
+        status = []
+        join_threads = []
+        delay_threads = []
+        data_threads = []
+        threads = []
+        subscriber = users
+        count = 1
+        j = 1
+        negative_traffic = None
+        mcastips = self.mcast_ip_range(start_ip = '229.0.0.1',end_ip = group_end_ip)
+        sourceips = self.source_ip_range(start_ip = '10.10.0.1',end_ip = source_list_end_ip)
+        subscriber_sourceips = self.source_ip_range(start_ip = '20.20.0.1',end_ip = user_src_end_ip)
+        while count<=subscriber:
+            group = random.choice(mcastips)
+            source = random.choice(sourceips)
+            subscriber_sourceip = random.choice(subscriber_sourceips)
+            if group in groups:
+                pass
+            else:
+                log.info('group = %s source list = %s and subscriber source ip in join = %s'%(group,source, subscriber_sourceip))
+                groups.append(group)
+                sources.append(source)
+                subscribers_src_ip.append(subscriber_sourceip)
+                count += 1
+        self.onos_ssm_table_load(groups,src_list=sources,flag=True)
+
+        def multiple_joins_send_in_threads(group, source, subscriber_src_ip,invalid_igmp_join,data_pkt = data_pkt):
+            if invalid_igmp_join is None:
+               self.send_igmp_join(groups = [group], src_list = [source],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                         iface = self.V_INF1, ip_src = [subscriber_src_ip])
+            else:
+               negative_traffic = True
+               self.send_igmp_join_negative(groups = [group], src_list = [source],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                           iface = self.V_INF1, ip_src = [subscriber_src_ip], invalid_igmp_join = invalid_igmp_join)
+            Randomdelay_in_thread = randint(10,30)
+            log.info('This is running in thread and igmp join sent and delay started {}'.format(Randomdelay_in_thread))
+            time.sleep(Randomdelay_in_thread)
+            log.info('This is running in thread and igmp join sent and delay ended {}'.format(Randomdelay_in_thread))
+            status = self.verify_igmp_data_traffic_in_thread(group,intf=self.V_INF1,source=source, data_pkt = data_pkt,negative=negative_traffic)
+            #assert_equal(status, True)
+            log.info('data received for group %s from source %s and status is %s '%(group,source,status))
+            self.igmp_threads_result.append(status)
+
+        for i in range(subscriber):
+            thread = threading.Thread(target = multiple_joins_send_in_threads, args = (groups[i], sources[i], subscribers_src_ip[i], invalid_joins))
+            if bunch_traffic ==  'yes':
+               if j == 10:
+                  log.info('Here we are throttle traffic for 100 sec of delay and agian creating igmp threads')
+                  time.sleep(randint(100,110))
+                  j = 1
+               else:
+                  j = j+ 1
+            time.sleep(randint(1,2))
+            thread.start()
+            threads.append(thread)
+
+#        time.sleep(250)
+        for thread in threads:
+            thread.join()
+
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_throttle_between_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            batch_traffic_run = 'yes'
+            no_users = 11
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_multiple_scenarios_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip, source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip, bunch_traffic = batch_traffic_run, data_pkt = 50 )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_invalid_igmp_type_and_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            batch_traffic_run = 'no'
+            invalid_igmp_join = 'igmp_type'
+            no_users = 11
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_multiple_scenarios_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip, source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip, bunch_traffic = batch_traffic_run, data_pkt = 50, invalid_joins = invalid_igmp_join )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_invalid_record_type_and_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            batch_traffic_run = 'no'
+            invalid_igmp_join = 'record_type'
+            no_users = 11
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_multiple_scenarios_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip, source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip, bunch_traffic = batch_traffic_run, data_pkt = 50, invalid_joins = invalid_igmp_join )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_with_invalid_ttl_and_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
+        def netCondition_multiple_igmp_joins_and_data(df):
+            ### Start ips of multicast, source list and subscriber source ip are '229.0.0.1', '10.10.0.1' and '20.20.0.1' respectively
+            batch_traffic_run = 'no'
+            invalid_igmp_join = 'ttl_type'
+            no_users = 11
+            group_end_ip = '229.0.30.254'
+            source_list_end_ip = '10.10.30.254'
+            subscriber_src_end_ip = '20.20.20.254'
+            self.netCondition_with_multiple_scenarios_igmp_joins_and_data(users = no_users, group_end_ip = group_end_ip, source_list_end_ip = source_list_end_ip, user_src_end_ip = subscriber_src_end_ip, bunch_traffic = batch_traffic_run, data_pkt = 10, invalid_joins = invalid_igmp_join )
+            log.info('IGMP Thread status after running igmp thread %s '%(self. igmp_threads_result))
+            for i in xrange(no_users):
+               log.info('IGMP Thread %s status is %s after running igmp thread '%(i,self.igmp_threads_result[i]))
+               if assert_equal(self.igmp_threads_result[i], True) is True:
+                  df.callback(0)
+            df.callback(0)
+        reactor.callLater(0, netCondition_multiple_igmp_joins_and_data, df)
+        return df
+
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_multiple_eap_tls_sessions_with_out_of_order_exchanges_between_serverHello_and_client_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        threads = []
+        clients = 1
+        def eap_tls_eapTlsHelloReq_pkt_delay(df):
+           def multiple_tls_random_delay():
+                Randomdelay = randint(10,300)
+                tls = TLSAuthTest(src_mac = 'random')
+                tls._eapSetup()
+                tls.tlsEventTable.EVT_EAP_SETUP
+                tls._eapStart()
+                tls.tlsEventTable.EVT_EAP_START
+                tls._eapIdReq()
+                tls.tlsEventTable.EVT_EAP_ID_REQ
+                tls._eapTlsCertReq()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsHelloReq()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsChangeCipherSpec()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsFinished()
+                assert_equal(tls.failTest, True)
+                log.info('Authentication successful for user %d'%i)
+           # Sending multiple tls clients and making random delay in between client and server packets.
+           for i in xrange(clients):
+             thread = threading.Thread(target = multiple_tls_random_delay)
+             time.sleep(randint(1,2))
+             thread.start()
+             threads.append(thread)
+           time.sleep(300)
+           for thread in threads:
+               thread.join()
+               #df.callback(0)
+        reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_multiple_eap_tls_session_with_out_of_order_exchanges_in_eapTlsCertReq_packets(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        threads = []
+        clients = 1
+        def eap_tls_eapTlsHelloReq_pkt_delay(df):
+           def multiple_tls_random_delay():
+                Randomdelay = randint(10,300)
+                tls = TLSAuthTest(src_mac = 'random')
+                tls._eapSetup()
+                tls.tlsEventTable.EVT_EAP_SETUP
+                tls._eapStart()
+                tls.tlsEventTable.EVT_EAP_START
+                tls._eapTlsCertReq()
+                assert_equal(tls.failTest, True)
+                tls._eapIdReq()
+                tls.tlsEventTable.EVT_EAP_ID_REQ
+                assert_equal(tls.failTest, True)
+                tls._eapTlsCertReq()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsHelloReq()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsChangeCipherSpec()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsFinished()
+                assert_equal(tls.failTest, True)
+                log.info('Authentication successful for user %d'%i)
+           # Sending multiple tls clients and making random delay in between client and server packets.
+           for i in xrange(clients):
+             thread = threading.Thread(target = multiple_tls_random_delay)
+             time.sleep(randint(1,2))
+             thread.start()
+             threads.append(thread)
+           time.sleep(300)
+           for thread in threads:
+               thread.join()
+               #df.callback(0)
+        reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_multiple_eap_tls_sessions_with_out_of_order_eapTlsChangeCipherSpec_packets(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        threads = []
+        clients = 1
+        def eap_tls_eapTlsHelloReq_pkt_delay(df):
+           def multiple_tls_random_delay():
+                Randomdelay = randint(10,300)
+                tls = TLSAuthTest(src_mac = 'random')
+                tls._eapSetup()
+                tls.tlsEventTable.EVT_EAP_SETUP
+                tls._eapStart()
+                tls.tlsEventTable.EVT_EAP_START
+                tls._eapTlsChangeCipherSpec()
+                tls.failTest = False
+                tls._eapIdReq()
+                tls.tlsEventTable.EVT_EAP_ID_REQ
+                assert_equal(tls.failTest, True)
+                tls._eapTlsHelloReq()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsCertReq()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsChangeCipherSpec()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsFinished()
+                assert_equal(tls.failTest, True)
+                log.info('Authentication successful for user %d'%i)
+           # Sending multiple tls clients and making random delay in between client and server packets.
+           for i in xrange(clients):
+             thread = threading.Thread(target = multiple_tls_random_delay)
+             time.sleep(randint(1,2))
+             thread.start()
+             threads.append(thread)
+           time.sleep(300)
+           for thread in threads:
+               thread.join()
+               #df.callback(0)
+        reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_multiple_eap_tls_sessions_dropping_eapTlsHelloReq_packets(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        threads = []
+        clients = 1
+        def eap_tls_eapTlsHelloReq_pkt_delay(df):
+           def multiple_tls_random_delay():
+                Randomdelay = randint(10,300)
+                tls = TLSAuthTest(src_mac = 'random')
+                tls._eapSetup()
+                tls.tlsEventTable.EVT_EAP_SETUP
+                tls._eapStart()
+                tls.tlsEventTable.EVT_EAP_START
+                tls._eapIdReq()
+                tls.tlsEventTable.EVT_EAP_ID_REQ
+                #tls._eapTlsHelloReq()
+                tls._eapTlsCertReq()
+                tls._eapTlsChangeCipherSpec()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsFinished()
+                log.info('Authentication successful for user %d'%i)
+           # Sending multiple tls clients and making random delay in between client and server packets.
+           for i in xrange(clients):
+             thread = threading.Thread(target = multiple_tls_random_delay)
+             time.sleep(randint(1,2))
+             thread.start()
+             threads.append(thread)
+           time.sleep(300)
+           for thread in threads:
+               thread.join()
+               #df.callback(0)
+        reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_multiple_eap_tls_sessions_dropping_eapTlsChangeCipherSpec_packets(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        threads = []
+        clients = 1
+        def eap_tls_eapTlsHelloReq_pkt_delay(df):
+           def multiple_tls_random_delay():
+                Randomdelay = randint(10,300)
+                tls = TLSAuthTest(src_mac = 'random')
+                tls._eapSetup()
+                tls.tlsEventTable.EVT_EAP_SETUP
+                tls._eapStart()
+                tls.tlsEventTable.EVT_EAP_START
+                tls._eapIdReq()
+                tls.tlsEventTable.EVT_EAP_ID_REQ
+                tls._eapTlsHelloReq()
+                tls._eapTlsCertReq()
+                #tls._eapTlsChangeCipherSpec()
+                assert_equal(tls.failTest, True)
+                tls._eapTlsFinished()
+                log.info('Authentication successful for user %d'%i)
+           # Sending multiple tls clients and making random delay in between client and server packets.
+           for i in xrange(clients):
+             thread = threading.Thread(target = multiple_tls_random_delay)
+             time.sleep(randint(1,2))
+             thread.start()
+             threads.append(thread)
+           time.sleep(300)
+           for thread in threads:
+               thread.join()
+               #df.callback(0)
+        reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
         return df
 
