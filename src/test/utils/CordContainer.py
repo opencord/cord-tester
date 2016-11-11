@@ -430,7 +430,6 @@ class Onos(Container):
             started = onos_log.search_log_pattern('ApplicationManager .* Started')
             num_tries += 1
 
-        onos_log.close()
         if not started:
             print('ONOS did not start')
         else:

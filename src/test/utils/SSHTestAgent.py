@@ -22,6 +22,9 @@ class SSHTestAgent(object):
         host_remove = 'ssh-keygen -f "%s" -R [%s]:8101' %(self.hosts_file, self.host)
         try:
             os.system(host_remove)
+        except: pass
+
+        try:
             self.client.connect(self.host, username = self.user, password = self.password,
                                 key_filename = self.key_file, timeout=timeout, port = self.port)
         except:
@@ -45,6 +48,7 @@ class SSHTestAgent(object):
                 else:
                     break
         channel.close()
+        self.client.close()
         return st, output
 
 if __name__ == '__main__':

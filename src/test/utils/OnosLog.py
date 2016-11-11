@@ -15,10 +15,6 @@ class OnosLog(object):
         if not OnosLog.last_snapshot_map.has_key(host):
             OnosLog.last_snapshot_map[host] = []
 
-    #should be the last function to call for tearing down the log session
-    def close(self):
-        self.ssh_agent.client.close()
-
     @classmethod
     def get_last_snapshot(cls, host):
         if cls.last_snapshot_map.has_key(host):
@@ -83,7 +79,6 @@ if __name__ == '__main__':
     print('Checking for ERROR and INFO')
     st, output = onos_log.get_log(('ERROR', 'INFO'))
     print(st, output)
-    onos_log.close()
     pat = onos_log.search_log_pattern('ApplicationManager .* Started')
     if pat:
         print(pat)
