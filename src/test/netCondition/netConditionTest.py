@@ -821,7 +821,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             log.info('TLS authentication failed with invalid certificate')
         tls = TLSAuthTest(fail_cb = tls_invalid_cert_cb, client_cert = self.CLIENT_CERT_INVALID)
         def eap_tls_eapTlsHelloReq_pkt_delay():
-            log.info('Holding eapTlsCertReq packet with invalid cert for a period of random delay = {} sec, delay ended'.format(randomDelay))
+            log.info('Holding eapTlsCertReq packet with invalid cert for a period of random delay = {} sec, delay'.format(randomDelay))
             tls._eapTlsCertReq_delay()
             tls._eapTlsChangeCipherSpec()
             assert_equal(tls.failTest, True)
@@ -1120,8 +1120,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             time.sleep(1)
             self.success = False
             thread.start()
-            log.info('Holding a packet to verify if flows are active after {} sec, delay started'.format(Randomdelay))
-            t = Timer(Randomdelay, send_flow_tcp_pkt_delay)
+            log.info('Holding a packet to verify if flows are active after {} sec, delay'.format(randomDelay))
+            t = Timer(randomDelay, send_flow_tcp_pkt_delay)
             t.start()
         df.callback(0)
         reactor.callLater(0, creating_tcp_flow, df)
@@ -1179,7 +1179,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     def netCondition_with_delay_between_multiple_igmp_joins_and_data(self,users,group_end_ip,source_list_end_ip,user_src_end_ip, data_pkt =50):
         self.setUp_igmp()
-        Randomdelay = []
+        randomDelay = []
         groups = []
         sources = []
         subscribers_src_ip = []
@@ -1210,10 +1210,10 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         def multiple_joins_send_in_threads(group, source, subscriber_src_ip,data_pkt = data_pkt):
             self.send_igmp_join(groups = [group], src_list = [source],record_type = IGMP_V3_GR_TYPE_INCLUDE,
                                          iface = self.V_INF1, ip_src = [subscriber_src_ip])
-            Randomdelay_in_thread = randint(10,30)
-            log.info('This is running in a thread, with  igmp join sent and delay started {}'.format(Randomdelay_in_thread))
-            time.sleep(Randomdelay_in_thread)
-            log.info('This is running in a thread, with igmp join sent and delay ended {}'.format(Randomdelay_in_thread))
+            randomDelay_in_thread = randint(10,30)
+            log.info('This is running in a thread, with  igmp join sent and delay {}'.format(randomDelay_in_thread))
+            time.sleep(randomDelay_in_thread)
+            log.info('This is running in a thread, with igmp join sent and delay {}'.format(randomDelay_in_thread))
             status = self.verify_igmp_data_traffic_in_thread(group,intf=self.V_INF1,source=source, data_pkt = data_pkt)
             #assert_equal(status, True)
             log.info('Data received for group %s from source %s and status is %s '%(group,source,status))
@@ -1385,7 +1385,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     def netCondition_with_multiple_scenarios_igmp_joins_and_data(self,users,group_end_ip,source_list_end_ip,user_src_end_ip,bunch_traffic, data_pkt =50,invalid_joins = None):
         self.setUp_igmp()
-        Randomdelay = []
+        randomDelay = []
         groups = []
         sources = []
         subscribers_src_ip = []
@@ -1423,10 +1423,10 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                negative_traffic = True
                self.send_igmp_join_negative(groups = [group], src_list = [source],record_type = IGMP_V3_GR_TYPE_INCLUDE,
                                            iface = self.V_INF1, ip_src = [subscriber_src_ip], invalid_igmp_join = invalid_igmp_join)
-            Randomdelay_in_thread = randint(10,30)
-            log.info('This is running in thread and igmp join sent and delay started {}'.format(Randomdelay_in_thread))
-            time.sleep(Randomdelay_in_thread)
-            log.info('This is running in thread and igmp join sent and delay ended {}'.format(Randomdelay_in_thread))
+            randomDelay_in_thread = randint(10,30)
+            log.info('This is running in thread with igmp join sent and delay {}'.format(randomDelay_in_thread))
+            time.sleep(randomDelay_in_thread)
+            log.info('This is running in thread with igmp join sent and delay {}'.format(randomDelay_in_thread))
             status = self.verify_igmp_data_traffic_in_thread(group,intf=self.V_INF1,source=source, data_pkt = data_pkt,negative=negative_traffic)
             #assert_equal(status, True)
             log.info('data received for group %s from source %s and status is %s '%(group,source,status))
@@ -1551,7 +1551,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         clients = 1
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
-                Randomdelay = randint(10,300)
+                randomDelay = randint(10,300)
                 tls = TLSAuthTest(src_mac = 'random')
                 tls._eapSetup()
                 tls.tlsEventTable.EVT_EAP_SETUP
@@ -1589,7 +1589,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         clients = 1
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
-                Randomdelay = randint(10,300)
+                randomDelay = randint(10,300)
                 tls = TLSAuthTest(src_mac = 'random')
                 tls._eapSetup()
                 tls.tlsEventTable.EVT_EAP_SETUP
@@ -1630,7 +1630,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         clients = 1
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
-                Randomdelay = randint(10,300)
+                randomDelay = randint(10,300)
                 tls = TLSAuthTest(src_mac = 'random')
                 tls._eapSetup()
                 tls.tlsEventTable.EVT_EAP_SETUP
@@ -1671,7 +1671,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         clients = 1
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
-                Randomdelay = randint(10,300)
+                randomDelay = randint(10,300)
                 tls = TLSAuthTest(src_mac = 'random')
                 tls._eapSetup()
                 tls.tlsEventTable.EVT_EAP_SETUP
@@ -1706,7 +1706,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         clients = 1
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
-                Randomdelay = randint(10,300)
+                randomDelay = randint(10,300)
                 tls = TLSAuthTest(src_mac = 'random')
                 tls._eapSetup()
                 tls.tlsEventTable.EVT_EAP_SETUP
