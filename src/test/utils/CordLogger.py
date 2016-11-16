@@ -9,7 +9,6 @@ class CordLogger(unittest.TestCase):
         try:
             onosLog = OnosLog()
             st, output = onosLog.get_log()
-            onosLog.close()
         except: pass
 
     def tearDown(self):
@@ -17,7 +16,6 @@ class CordLogger(unittest.TestCase):
         try:
             onosLog = OnosLog()
             st, output = onosLog.get_log( ('ERROR','WARN') )
-            onosLog.close()
             if st and output:
                 log.info('\nTest %s has errors and warnings\n' %self._testMethodName)
                 log.info('%s' %output)
