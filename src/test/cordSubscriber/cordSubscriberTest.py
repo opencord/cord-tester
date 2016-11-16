@@ -303,8 +303,8 @@ yg==
           for app in apps:
               onos_ctrl = OnosCtrl(app)
               onos_ctrl.deactivate()
-          cls.uninstall_app_table()
           cls.start_onos(network_cfg = {})
+          cls.install_app_igmp()
 
       @classmethod
       def activate_apps(cls, apps):
@@ -326,7 +326,7 @@ yg==
             #onos_ctrl.deactivate()
 
       @classmethod
-      def uninstall_app_table(cls):
+      def install_app_igmp(cls):
             ##Uninstall the table app on class exit
             OnosCtrl.uninstall_app(cls.table_app)
             time.sleep(2)
