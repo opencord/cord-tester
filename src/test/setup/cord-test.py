@@ -184,10 +184,8 @@ class CordTester(Container):
                 intf_type = 2
         cmds = ()
         res = 0
-        for port in port_map['ports']:
+        for port in port_map['ports'] + port_map['relay_ports']:
             local_if = '{0}_{1}'.format(port, port_num+1)
-            if wan and port_map[uplink] == port:
-                    continue
             if intf_type == 0:
                 if start_vlan != 0:
                     cmds = ('ip link del {}.{}'.format(intf_host, start_vlan),)
