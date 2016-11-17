@@ -71,9 +71,19 @@ class utils(object):
                  key_value, found = self.search_dictionary(input_dict[key],search_key)
                  if found == True:
                     break
+            elif type(input_dict[key]) == list:
+                 if not input_dict[key]:
+                    found = False
+                    break
+                 for item in input_dict[key]:
+                     if isinstance(item, dict):
+                        key_value, found = self.search_dictionary(item, search_key)
+                        if found == True:
+                           break
         return key_value,found
     '''
-    @method getDictFromGetJsonList
+    @method getDictFromListOfDict
+        return key_value,found
     @Description: Searches for the dictionary in the provided list of dictionaries
                   that matches the value of the key provided
     @params : List of dictionaries(getResponse Data from the URL),
@@ -119,20 +129,23 @@ class utils(object):
     @Returns: Returns the value of the Key that was provided
     '''
     def getFieldValueFromDict(self,search_dict, field):
-        fields_found = []
         results = ''
         found = False
         input_keys = search_dict.keys()
         for key in input_keys:
             if key == field:
                results = search_dict[key]
-               found = True
-               break
+               if not results:
+                  found = True
+                  break
             elif type(search_dict[key]) == dict:
                  results, found = self.search_dictionary(search_dict[key],field)
                  if found == True:
                     break
             elif type(search_dict[key]) == list:
+                 if not search_dict[key]:
+                    found = False
+                    break
                  for item in search_dict[key]:
                      if isinstance(item, dict):
                         results, found = self.search_dictionary(item, field)
@@ -147,6 +160,8 @@ test = utils()
 #data=test.jsonToList("Subscribers.json","SubscriberInfo")
 #print  test.jsonToList("Subscribers.json","SubscriberInfo")
 #print "index 1...",test.listToDict(data,1)
+#result = test.getDictFromListOfDict(dict_list,"email",21)
+result = test.getFieldValueFromDict(dict_list,"id")
 result = test.getDictFromListOfDict(dict_list,"account_num",21)
 print "finalllllll result....", result
 '''

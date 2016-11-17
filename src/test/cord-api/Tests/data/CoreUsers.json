@@ -1,0 +1,26 @@
+{
+  "UserInfo": [
+  {
+   "firstname" : "TestUser001",
+   "lastname" : "User001",
+   "password" : "TestUser001",
+   "email" : "TestUser001@onlab.us",
+   "site": "http://localhost:8000/api/core/sites/1/"
+   },
+  {
+   "firstname" : "TestUser002",
+   "lastname" : "User002",
+   "password" : "TestUser002",
+   "email" : "TestUser002@onlab.us",
+   "site": "http://localhost:8000/api/core/sites/1/"
+   },
+  {
+   "firstname" : "TestUser003",
+   "lastname" : "User003",
+   "password" : "TestUser003",
+   "email" : "TestUser003@onlab.us",
+   "site": "http://localhost:8000/api/core/sites/1/"
+   }
+ ]
+}
+
