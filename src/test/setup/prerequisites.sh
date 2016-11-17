@@ -18,7 +18,7 @@ if [ $on_cord -eq 0 ]; then
     apt-get -y install apparmor
     echo "Installing Docker"
     apt-get -y install docker-engine
-    service docker start
+    service docker restart
     echo "Verifying Docker installation"
     docker run --rm hello-world || exit 127
     docker rmi hello-world
