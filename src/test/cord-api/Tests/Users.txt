@@ -1,0 +1,84 @@
+*** Settings ***
+Documentation     Test suite for Utility Synchronizer API
+Suite Setup       Read InputFile
+Test Template     Verify User functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/CoreUsers.json
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Add User-1       CREATE      0
+
+Test Get User-1       RETRIEVE    0
+
+Test Delete User-1    DELETE      0
+
+Test Add Synchronizer-2
+                      CREATE      1
+
+Test Get Synchronizer-2
+                      RETRIEVE    1
+
+Test Delete Synchronizer-2
+                      DELETE      1
+
+Test Add Synchronizer-3
+                      CREATE      2
+
+Test Get Synchronizer-3
+                      RETRIEVE    2
+
+Test Delete Synchronizer-3
+                      DELETE      2
+
+*** Keywords ***
+Read InputFile
+    ${userList} =    utils.jsonToList    ${PATHFILE}    UserInfo
+    Set Suite Variable    ${uList}    ${userList}
+
+Verify User functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Users API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Users API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Users API    ${listIndex}
+
+Test Post Users API
+    [Arguments]    ${listIndex}
+    ${userList} =    Get Variable Value    ${uList}
+    ${userDict}=    utils.listToDict    ${userList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    CORE_USERS    ${userDict}
+    Should Be True    ${api_result}
+
+Test Get Users API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CORE_USERS
+    Log    ${json_result}
+    ${userList}=    Get Variable Value    ${uList}
+    ${inputDict}=    utils.listToDict    ${userList}    ${listIndex}
+    ${email}=    utils.getFieldValueFromDict    ${inputDict}    email
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    email    ${email}
+    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    Should Be True    ${json_result}
+
+Test Delete Users API
+    [Arguments]    ${listIndex}
+    ${json_getresult}=    restApi.ApiGet    CORE_USERS
+    ${userList}=    Get Variable Value    ${uList}
+    ${userDict}=    utils.listToDict    ${uList}    ${listIndex}
+    ${email}=    utils.getFieldValueFromDict    ${userDict}    email
+    Log    ${email}
+    ${getUserDict}=    utils.getDictFromListofDict    ${json_getresult}    email    ${email}
+    Log    ${getUserDict}
+    ${userID}=    utils.getFieldValueFromDict    ${getUserDict}    id
+    Log    ${userID}
+    ${test_result}=    restApi.ApiDelete    CORE_USERS    ${userID}
+    Should be True    ${test_result}
