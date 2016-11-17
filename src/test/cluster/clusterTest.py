@@ -61,7 +61,7 @@ class cluster_exchange(CordLogger):
     acl = cluster_acl()
     dhcprelay = cluster_dhcprelay()
     subscriber = cluster_subscriber()
-    testcaseLoggers = ('test_cluster_controller_kills',)
+    testcaseLoggers = ('test_cluster_controller_restarts',)
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
@@ -114,6 +114,11 @@ class cluster_exchange(CordLogger):
             leaders = self.get_leader(controller = controller)
             result.append(leaders)
         return result
+
+    def verify_leaders(self, controller = None):
+        leaders = self.get_leaders(controller = controller)
+        failed = filter(lambda l: l == None, leaders)
+        return failed
 
     def verify_cluster_status(self,controller = None,onos_instances=ONOS_INSTANCES,verify=False):
 	tries = 0
@@ -303,7 +308,7 @@ class cluster_exchange(CordLogger):
 	log.info('Cluster new master is %s'%new_master_ip)
 	return True
 
-    def test_cluster_controller_kills(self):
+    def test_cluster_controller_restarts(self):
         '''Test the cluster by repeatedly killing the controllers'''
         controllers = self.get_controllers()
         ctlr_len = len(controllers)
@@ -314,7 +319,7 @@ class cluster_exchange(CordLogger):
         #this call would verify the cluster for once
         onos_map = self.get_cluster_container_names_ips()
 
-        def check_storage_exception(controller = None):
+        def check_exception(controller = None):
             adjacent_controller = None
             adjacent_controllers = None
             if controller:
@@ -324,23 +329,27 @@ class cluster_exchange(CordLogger):
                 onosLog = OnosLog(host = node)
                 ##check the logs for storage exception
                 _, output = onosLog.get_log(('ERROR', 'Exception',))
-                if output and output.find('StorageException') >= 0:
-                    log.info('Storage Exception found on node: %s' %node)
+                if output and output.find('StorageException$Timeout') >= 0:
+                    log.info('\nStorage Exception Timeout found on node: %s\n' %node)
+                    log.info('Dumping the ERROR and Exception logs for node: %s\n' %node)
+                    log.info('\n' + '-' * 50 + '\n')
                     log.info('%s' %output)
-                    assert_equal('Storage Exception on node {}'.format(node), False)
+                    log.info('\n' + '-' * 50 + '\n')
+                    failed = self.verify_leaders(controllers)
+                    if failed:
+                        log.info('Leaders command failed on node: %s' %node)
+                        assert_equal(len(failed), 0)
                     return controller
 
             try:
-                ips = self.get_cluster_current_member_ips(controller = controller)
+                ips = self.get_cluster_current_member_ips(controller = adjacent_controller)
                 print('ONOS cluster formed with controllers: %s' %ips)
                 st = True
             except:
                 st = False
 
-            leaders = self.get_leaders(controllers)
-            failed = filter(lambda l: l == None, leaders)
+            failed = self.verify_leaders(controllers)
             assert_equal(len(failed), 0)
-
             if st is False:
                 log.info('No storage exception and ONOS cluster was not formed successfully')
             else:
@@ -361,7 +370,7 @@ class cluster_exchange(CordLogger):
             except:
                 time.sleep(5)
                 continue
-            next_controller = check_storage_exception(controller = controller)
+            next_controller = check_exception(controller = controller)
 
     #pass
     def test_cluster_formation_and_verification(self,onos_instances = ONOS_INSTANCES):

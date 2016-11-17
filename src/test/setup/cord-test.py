@@ -402,8 +402,9 @@ def runTest(args):
         Onos.IMAGE = onos_cnt['image']
         Onos.PREFIX = args.prefix
         Onos.TAG = onos_cnt['tag']
+        data_volume = '{}-data'.format(Onos.NAME)
         onos = Onos(image = Onos.IMAGE,
-                    tag = Onos.TAG, boot_delay = 60)
+                    tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode, data_volume = data_volume)
         onos_ip = onos.ip()
     onos_ips = [ onos_ip ]
     num_onos_instances = args.onos_instances
@@ -412,7 +413,9 @@ def runTest(args):
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
-            onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode)
+            data_volume = '{}-data'.format(name)
+            onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
+                        data_volume = data_volume)
             onos_instances.append(onos)
             onos_ips.append(onos.ipaddr)
         try:
@@ -622,7 +625,9 @@ def setupCordTester(args):
     cluster_mode = True if args.onos_instances > 1 else False
     onos = None
     if onos_ip is None:
-        onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode)
+        data_volume = '{}-data'.format(Onos.NAME)
+        onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
+                    data_volume = data_volume)
         onos_ip = onos.ip()
 
     num_onos_instances = args.onos_instances
@@ -632,7 +637,9 @@ def setupCordTester(args):
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
-            onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode)
+            data_volume = '{}-data'.format(name)
+            onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
+                        data_volume = data_volume)
             onos_instances.append(onos)
             onos_ips.append(onos.ipaddr)
         Onos.setup_cluster(onos_instances)
@@ -737,7 +744,11 @@ def cleanupTests(args):
         for onos in onos_list:
             Container.dckr.kill(onos)
             Container.dckr.remove_container(onos, force=True)
+        for index in range(len(onos_list)):
+            volume = '{}-data'.format(Onos.NAME) if index == 0 else '{}-{}-data'.format(Onos.NAME, index+1)
+            Onos.remove_data_map(volume, Onos.guest_data_dir)
         Onos.cleanup_runtime()
+
     if args.xos:
         ##cleanup XOS images
         xos_images = ( '{}:{}'.format(XosServer.IMAGE,XosServer.TAG),

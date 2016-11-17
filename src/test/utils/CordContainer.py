@@ -21,7 +21,7 @@ from pyroute2 import IPRoute
 from itertools import chain
 from nsenter import Namespace
 from docker import Client
-from shutil import copy
+from shutil import rmtree
 from OnosCtrl import OnosCtrl
 from OnosLog import OnosLog
 
@@ -314,6 +314,7 @@ class Onos(Container):
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
     host_config_dir = os.path.join(setup_dir, 'onos-config')
     guest_config_dir = '/root/onos/config'
+    guest_data_dir = '/root/onos/apache-karaf-3.0.5/data'
     onos_gen_partitions = os.path.join(setup_dir, 'onos-gen-partitions')
     onos_form_cluster = os.path.join(setup_dir, 'onos-form-cluster')
     cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')
@@ -357,8 +358,26 @@ class Onos(Container):
                     os.unlink(f)
                 except: pass
 
+    @classmethod
+    def get_data_map(cls, host_volume, guest_volume_dir):
+        host_volume_dir = os.path.join(cls.setup_dir, os.path.basename(host_volume))
+        if not os.path.exists(host_volume_dir):
+            os.mkdir(host_volume_dir)
+        return ( (host_volume_dir, guest_volume_dir), )
+
+    @classmethod
+    def remove_data_map(cls, host_volume, guest_volume_dir):
+        host_volume_dir = os.path.join(cls.setup_dir, os.path.basename(host_volume))
+        if os.path.exists(host_volume_dir):
+            rmtree(host_volume_dir)
+
+    def remove_data_volume(self):
+        if self.data_map is not None:
+            self.remove_data_map(*self.data_map)
+
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
-                 boot_delay = 20, restart = False, network_cfg = None, cluster = False):
+                 boot_delay = 20, restart = False, network_cfg = None,
+                 cluster = False, data_volume = None):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -371,9 +390,13 @@ class Onos(Container):
 
         super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.quagga_config)
         self.boot_delay = boot_delay
+        self.data_map = None
         if cluster is True:
             self.ports = []
             self.env['JAVA_OPTS'] = self.JAVA_OPTS_CLUSTER
+            if data_volume is not None:
+                self.data_map = self.get_data_map(data_volume, self.guest_data_dir)
+                self.host_guest_map = self.host_guest_map + self.data_map
             if os.access(self.cluster_cfg, os.F_OK):
                 try:
                     os.unlink(self.cluster_cfg)
@@ -561,6 +584,8 @@ class Onos(Container):
                 print('Restarting ONOS container %s' %onos.name)
                 onos.start(ports = onos.ports, environment = onos.env,
                            host_config = onos.host_config, volumes = onos.volumes, tty = True)
+                #onos.ipaddr = onos.ip()
+                #onos.wait_for_onos_start(onos.ipaddr)
                 print('Waiting %d seconds for ONOS %s to boot' %(onos.boot_delay, onos.name))
                 time.sleep(onos.boot_delay)
                 onos.ipaddr = onos.ip()
