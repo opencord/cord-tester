@@ -201,7 +201,9 @@ class Container(object):
     def restart(self, timeout =10):
         return self.dckr.restart(self.name, timeout)
 
-def get_mem():
+def get_mem(instances = 1):
+    if instances <= 0:
+        instances = 1
     with open('/proc/meminfo', 'r') as fd:
         meminfo = fd.readlines()
         mem = 0
@@ -209,7 +211,7 @@ def get_mem():
             if m.startswith('MemTotal:') or m.startswith('SwapTotal:'):
                 mem += int(m.split(':')[1].strip().split()[0])
 
-        mem = max(mem/1024/1024/2, 1)
+        mem = max(mem/1024/1024/2/instances, 1)
         mem = min(mem, 16)
         return str(mem) + 'G'
 
@@ -299,7 +301,9 @@ class Onos(Container):
 
     quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, )
     SYSTEM_MEMORY = (get_mem(),) * 2
+    INSTANCE_MEMORY = (get_mem(instances=3),) * 2
     JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
+    JAVA_OPTS_CLUSTER = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
     onos_cord_apps = ( ('cord-config', '1.0-SNAPSHOT'),
                        ('aaa', '1.0-SNAPSHOT'),
@@ -369,6 +373,7 @@ class Onos(Container):
         self.boot_delay = boot_delay
         if cluster is True:
             self.ports = []
+            self.env['JAVA_OPTS'] = self.JAVA_OPTS_CLUSTER
             if os.access(self.cluster_cfg, os.F_OK):
                 try:
                     os.unlink(self.cluster_cfg)

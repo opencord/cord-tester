@@ -32,13 +32,15 @@ from threading import current_thread
 from Cluster import *
 from EapTLS import TLSAuthTest
 from ACL import ACLTest
+from OnosLog import OnosLog
+from CordLogger import CordLogger
 import os
 import json
 import random
 import collections
 log.setLevel('INFO')
 
-class cluster_exchange(unittest.TestCase):
+class cluster_exchange(CordLogger):
     test_path = os.path.dirname(os.path.realpath(__file__))
     onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     mac = RandMAC()._fix()
@@ -59,11 +61,25 @@ class cluster_exchange(unittest.TestCase):
     acl = cluster_acl()
     dhcprelay = cluster_dhcprelay()
     subscriber = cluster_subscriber()
+    testcaseLoggers = ('test_cluster_controller_kills',)
+
+    def setUp(self):
+        if self._testMethodName not in self.testcaseLoggers:
+            super(cluster_exchange, self).setUp()
+
+    def tearDown(self):
+        if self._testMethodName not in self.testcaseLoggers:
+            super(cluster_exchange, self).tearDown()
 
     def get_controller(self):
         controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
         controller = controller.split(',')[0]
         return controller
+
+    @classmethod
+    def get_controllers(cls):
+        controllers = os.getenv('ONOS_CONTROLLER_IP') or ''
+        return controllers.split(',')
 
     def cliEnter(self,controller = None):
         retries = 0
@@ -77,6 +93,27 @@ class cluster_exchange(unittest.TestCase):
 
     def cliExit(self):
         self.cli.disconnect()
+
+    def get_leader(self, controller = None):
+        self.cliEnter(controller = controller)
+        result = json.loads(self.cli.leaders(jsonFormat = True))
+        if result is None:
+            log.info('Leaders command failure for controller %s' %controller)
+        else:
+            log.info('Leaders returned: %s' %result)
+        self.cliExit()
+        return result
+
+    def get_leaders(self, controller = None):
+        result = []
+        if type(controller) in [ list, tuple ]:
+            for c in controller:
+                leaders = self.get_leader(controller = c)
+                result.append(leaders)
+        else:
+            leaders = self.get_leader(controller = controller)
+            result.append(leaders)
+        return result
 
     def verify_cluster_status(self,controller = None,onos_instances=ONOS_INSTANCES,verify=False):
 	tries = 0
@@ -132,14 +169,14 @@ class cluster_exchange(unittest.TestCase):
             return cluster_ips
 
     def get_cluster_container_names_ips(self,controller=None):
-	onos_names_ips = {}
-	onos_ips = self.get_cluster_current_member_ips(controller=controller)
-	#onos_names = [Onos.NAME]
-	onos_names_ips[onos_ips[0]] = Onos.NAME
-	for i in range(1,len(onos_ips)):
-	    name = '{0}-{1}'.format(Onos.NAME,i+1)
-	    onos_names_ips[onos_ips[i]] = name
-	    #onos_names.append(name)
+        onos_names_ips = {}
+        onos_ips = self.get_cluster_current_member_ips(controller=controller)
+        onos_names_ips[onos_ips[0]] = Onos.NAME
+        onos_names_ips[Onos.NAME] = onos_ips[0]
+        for i in range(1,len(onos_ips)):
+            name = '{0}-{1}'.format(Onos.NAME,i+1)
+            onos_names_ips[onos_ips[i]] = name
+            onos_names_ips[name] = onos_ips[i]
 
         return onos_names_ips
 
@@ -265,6 +302,66 @@ class cluster_exchange(unittest.TestCase):
 	log.info('Device-role of device %s successfully changed to none for controller %s'%(device_id,master_ip))
 	log.info('Cluster new master is %s'%new_master_ip)
 	return True
+
+    def test_cluster_controller_kills(self):
+        '''Test the cluster by repeatedly killing the controllers'''
+        controllers = self.get_controllers()
+        ctlr_len = len(controllers)
+        if ctlr_len <= 1:
+            log.info('ONOS is not running in cluster mode. This test only works for cluster mode')
+            assert_greater(ctlr_len, 1)
+
+        #this call would verify the cluster for once
+        onos_map = self.get_cluster_container_names_ips()
+
+        def check_storage_exception(controller = None):
+            adjacent_controller = None
+            adjacent_controllers = None
+            if controller:
+                adjacent_controllers = set(controllers) - set( [controller] )
+                adjacent_controller = next(iter(adjacent_controllers))
+            for node in controllers:
+                onosLog = OnosLog(host = node)
+                ##check the logs for storage exception
+                _, output = onosLog.get_log(('ERROR', 'Exception',))
+                if output and output.find('StorageException') >= 0:
+                    log.info('Storage Exception found on node: %s' %node)
+                    log.info('%s' %output)
+                    assert_equal('Storage Exception on node {}'.format(node), False)
+                    return controller
+
+            try:
+                ips = self.get_cluster_current_member_ips(controller = controller)
+                print('ONOS cluster formed with controllers: %s' %ips)
+                st = True
+            except:
+                st = False
+
+            leaders = self.get_leaders(controllers)
+            failed = filter(lambda l: l == None, leaders)
+            assert_equal(len(failed), 0)
+
+            if st is False:
+                log.info('No storage exception and ONOS cluster was not formed successfully')
+            else:
+                controller = None
+
+            return controller
+
+        next_controller = None
+        tries = 10
+        for num in range(tries):
+            index = num % ctlr_len
+            #index = random.randrange(0, ctlr_len)
+            controller = onos_map[controllers[index]] if next_controller is None else next_controller
+            log.info('Restarting Controller %s' %controller)
+            try:
+                cord_test_onos_restart(node = controller)
+                time.sleep(30)
+            except:
+                time.sleep(5)
+                continue
+            next_controller = check_storage_exception(controller = controller)
 
     #pass
     def test_cluster_formation_and_verification(self,onos_instances = ONOS_INSTANCES):

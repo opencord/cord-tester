@@ -6,7 +6,7 @@ class OnosLog(object):
     CLI_USER = 'karaf'
     CLI_PASSWD = 'karaf'
     CLI_PORT = 8101
-    HOST = os.getenv('ONOS_CONTROLLER_IP', '172.17.0.2')
+    HOST = os.getenv('ONOS_CONTROLLER_IP', '172.17.0.2').split(',')[0]
     last_snapshot_map = {}
 
     def __init__(self, host = HOST):
@@ -30,7 +30,7 @@ class OnosLog(object):
         cmd = 'cat /root/onos/apache-karaf-3.0.5/data/log/karaf.log'
         st, output = self.ssh_agent.run_cmd(cmd)
         if st is False:
-            return output
+            return st, output
         exception_map = {'Exception' : [] }
         last_snapshot = self.get_last_snapshot(self.ssh_agent.host)
         lines = output.splitlines()
