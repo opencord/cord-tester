@@ -389,6 +389,8 @@ def runTest(args):
 
     Container.IMAGE_PREFIX = args.prefix
     cluster_mode = True if args.onos_instances > 1 else False
+    existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
+    setup_cluster = False if len(existing_list) == args.onos_instances else True
     if onos_ip is None:
         image_names = args.onos.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
@@ -423,7 +425,10 @@ def runTest(args):
                 print('Installing cord tester ONOS app %s in ONOS instance %s' %(args.app,ip))
                 OnosCtrl.install_app(args.app, onos_ip = ip)
         except: pass
-        Onos.setup_cluster(onos_instances)
+        if setup_cluster is True:
+            Onos.setup_cluster(onos_instances)
+        else:
+            print('ONOS instances already running. Skipping ONOS form cluster for %d instances' %num_onos_instances)
     ctlr_addr = ','.join(onos_ips)
 
     print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))

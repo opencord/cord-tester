@@ -363,7 +363,7 @@ class cluster_exchange(CordLogger):
             index = num % ctlr_len
             #index = random.randrange(0, ctlr_len)
             controller = onos_map[controllers[index]] if next_controller is None else next_controller
-            log.info('Restarting Controller %s' %controller)
+            log.info('ITERATION: %d. Restarting Controller %s' %(num + 1, controller))
             try:
                 cord_test_onos_restart(node = controller)
                 time.sleep(30)
