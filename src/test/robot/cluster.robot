@@ -6,6 +6,7 @@ Suite Teardown  Cord Teardown
 
 *** Variables ***
 ${NODES}          3
+${EXTRA_OPTS}     -v
 
 *** Test Cases ***
 Verify Onos DHCP Server Functionality

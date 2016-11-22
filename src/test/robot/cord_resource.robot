@@ -8,12 +8,13 @@ Library  RequestsLibrary
 ${CORD_TESTER}    %{HOME}/cord-tester/src/test/setup/cord-test.py
 ${RESTPORT}  8181
 ${NODES}  1
+${EXTRA_OPTS}
 
 *** Keywords ***
 Cord Setup
   [Documentation]  Setup the cord tester
   Cord Teardown
-  ${rc}=  Run and Return RC  sudo ${CORD_TESTER} setup --olt --start-switch -n ${NODES}
+  ${rc}=  Run and Return RC  sudo ${CORD_TESTER} setup --olt --start-switch -n ${NODES} ${EXTRA_OPTS}
   Should Be Equal As Integers  ${rc}  0
   ${test_container}=  Run  sudo docker ps | grep cord-tester | tail -1 | tr -s ' ' | awk '{print $NF}'
   ${controllers}=  Run  sudo docker ps | grep cord-onos | tr -s ' ' | awk '{print $NF}' | tr -s '\n' ' '
@@ -53,6 +54,6 @@ ONOS Get
 
 Run Cord Tester
   [Arguments]   ${test_case}
-  ${status}  ${output}=  Run and Return RC and Output  sudo ${CORD_TESTER} run --container=${test_container} -t ${test_case}
+  ${status}  ${output}=  Run and Return RC and Output  sudo ${CORD_TESTER} run --onos-instances=${NODES} --container=${test_container} -t ${test_case}
   Log  ${output}
   [Return]    ${status}

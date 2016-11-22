@@ -117,7 +117,7 @@ class CordTester(Container):
         status = 1
         ## Wait for the LLDP flows to be added to the switch
         tries = 0
-        while status != 0 and tries < 200:
+        while status != 0 and tries < 500:
             cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(self.switch)
             status = self.execute_switch(cmd, shell = True)
             tries += 1
@@ -628,6 +628,8 @@ def setupCordTester(args):
     Onos.PREFIX = args.prefix
     Onos.TAG = onos_cnt['tag']
     cluster_mode = True if args.onos_instances > 1 else False
+    existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
+    setup_cluster = False if len(existing_list) == args.onos_instances else True
     onos = None
     if onos_ip is None:
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
@@ -647,7 +649,8 @@ def setupCordTester(args):
                         data_volume = data_volume)
             onos_instances.append(onos)
             onos_ips.append(onos.ipaddr)
-        Onos.setup_cluster(onos_instances)
+        if setup_cluster is True:
+            Onos.setup_cluster(onos_instances)
 
     ctlr_addr = ','.join(onos_ips)
     print('Onos IP %s' %ctlr_addr)
