@@ -404,7 +404,7 @@ def runTest(args):
         Onos.IMAGE = onos_cnt['image']
         Onos.PREFIX = args.prefix
         Onos.TAG = onos_cnt['tag']
-        data_volume = '{}-data'.format(Onos.NAME)
+        data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE,
                     tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode, data_volume = data_volume)
         onos_ip = onos.ip()
@@ -415,7 +415,7 @@ def runTest(args):
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
-            data_volume = '{}-data'.format(name)
+            data_volume = '{}-data'.format(name) if args.shared_volume else None
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume)
             onos_instances.append(onos)
@@ -630,7 +630,7 @@ def setupCordTester(args):
     cluster_mode = True if args.onos_instances > 1 else False
     onos = None
     if onos_ip is None:
-        data_volume = '{}-data'.format(Onos.NAME)
+        data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                     data_volume = data_volume)
         onos_ip = onos.ip()
@@ -642,7 +642,7 @@ def setupCordTester(args):
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
-            data_volume = '{}-data'.format(name)
+            data_volume = '{}-data'.format(name) if args.shared_volume else None
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume)
             onos_instances.append(onos)
@@ -950,6 +950,7 @@ if __name__ == '__main__':
                             type=str, help='ssh identity file to access compute nodes from test container')
     parser_run.add_argument('-j', '--onos-instances', default=1, type=int,
                             help='Specify number to test onos instances to form cluster')
+    parser_run.add_argument('-v', '--shared-volume', action='store_true', help='Start ONOS cluster instances with shared volume')
     parser_run.set_defaults(func=runTest)
 
 
@@ -976,6 +977,8 @@ if __name__ == '__main__':
                               type=str, help='ssh identity file to access compute nodes from test container')
     parser_setup.add_argument('-n', '--onos-instances', default=1, type=int,
                               help='Specify number of test onos instances to spawn')
+    parser_setup.add_argument('-v', '--shared-volume', action='store_true',
+                              help='Start ONOS cluster instances with shared volume')
     parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
     parser_setup.set_defaults(func=setupCordTester)
 
