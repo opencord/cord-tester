@@ -1,8 +1,6 @@
 {
     "SubscriberInfo" : [
     {
-        "humanReadableName": "cordSubscriber-2",
-        "id": 2,
         "features": {
             "cdn": true,
             "uplink_speed": 1000000000,
@@ -16,8 +14,6 @@
         }
     },
     {
-        "humanReadableName": "cordSubscriber-3",
-        "id": 3,
         "features": {
             "cdn": false,
             "uplink_speed": 500000000,

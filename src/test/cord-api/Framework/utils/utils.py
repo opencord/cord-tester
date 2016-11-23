@@ -129,12 +129,16 @@ class utils(object):
     @Returns: Returns the value of the Key that was provided
     '''
     def getFieldValueFromDict(self,search_dict, field):
+        print "search_dict", search_dict, "field...", field
         results = ''
         found = False
         input_keys = search_dict.keys()
         for key in input_keys:
+            print "key...", key
             if key == field:
+               print "entered if..."
                results = search_dict[key]
+               print "results...", results
                if not results:
                   found = True
                   break
@@ -151,17 +155,44 @@ class utils(object):
                         results, found = self.search_dictionary(item, field)
                         if found == True:
                            break
+            if results:
+               break
 
         return results
 
+    def setFieldValueInDict(self,input_dict,field,field_value):
+        input_dict[field]=field_value
+        return input_dict
+
 '''
 #Test
+dict_list = {
+ "humanReadableName": "cordSubscriber-17",
+        "id": 17,
+        "features": {
+            "uplink_speed": 1000000000,
+            "downlink_speed": 1000000000,
+            "status": "enabled"
+        },
+        "identity": {
+            "account_num": "20",
+            "name": "My House"
+        },
+        "related": {}
+    }
+input_dict = {
+ "s_tag" : "111",
+ "c_tag" : "222",
+ "subscriber" : ""
+ }
+new_value = 3
 test = utils()
 #data=test.jsonToList("Subscribers.json","SubscriberInfo")
 #print  test.jsonToList("Subscribers.json","SubscriberInfo")
 #print "index 1...",test.listToDict(data,1)
 #result = test.getDictFromListOfDict(dict_list,"email",21)
-result = test.getFieldValueFromDict(dict_list,"id")
-result = test.getDictFromListOfDict(dict_list,"account_num",21)
+#result = test.getFieldValueFromDict(dict_list,"id")
+#result = test.getDictFromListOfDict(dict_list,"account_num",21)
+result = test.setFieldValueInDict(input_dict,"subscriber",new_value)
 print "finalllllll result....", result
 '''

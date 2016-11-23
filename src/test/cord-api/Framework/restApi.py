@@ -133,23 +133,31 @@ if __name__ == '__main__':
     time.sleep(5)
     result = test.ApiDelete(key, urlSuffix)
 '''
+'''
 test = restApi()
 #key = "UTILS_SYNCHRONIZER"
-key = "CORE_USERS"
-key2 = "UTILS_LOGIN"
+#key = "CORE_USERS"
+#key2 = "UTILS_LOGIN"
 #key = "TENANT_SUBSCRIBER"
 #jsonGetData = test.ApiGet(key)
-#jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
-jsonResponse = test.ApiPost(key,{"firstname":"Test002","lastname":"User002","email":"test002@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"})
+#jsonResponse = test.ApiPost(key,{"identity":{"name":"My House 22"}})
+#jsonResponse = test.ApiPost(key,{"firstname":"Test002","lastname":"User002","email":"test002@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"})
 #jsonResponse = test.ApiDelete(key,15)
 #jsonResponse = test.ApiPut(key,{"firstname":"Test002","lastname":"User002","email":"test002update@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"},14)
 #jsonResponse = test.ApiPost(key2,{"username":"test002update@onlab.us","password":"TestUser002"})
 #jsonResponse = test.ApiPost(key2,{"username":"padmin@vicci.org","password":"letmein"})
 #jsonResponse = test.ApiPut(key,{"username":"testuser","password":"TestUser001"},"9")
-key = "UTILS_SYNCHRONIZER"
-#key = "TENANT_SUBSCRIBER"
-jsonGetData = test.ApiGet(key)
+#key = "UTILS_SYNCHRONIZER"
+key = "TENANT_VOLT"
+#input_dict = { "s_tag" : "111", "c_tag" : "222", "subscriber" : 23}
+#jsonResponse = test.ApiPost(key,input_dict)
+#jsonGetData = test.ApiGet(key)
+print "========="
+#print jsonGetData
+#jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"7")
+jsonO = test.ApiDelete(key,"36")
 #jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
 #jsonResponse = test.ApiPost(key,{"name":"test-2"})
-jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
+#jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
 print "========="
+'''
