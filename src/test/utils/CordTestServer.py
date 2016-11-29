@@ -16,6 +16,7 @@
 from CordContainer import Container, Onos, OnosStopWrapper, OnosCord, OnosCordStopWrapper, Quagga, QuaggaStopWrapper, Radius, reinitContainerClients
 from nose.tools import nottest
 from SimpleXMLRPCServer import SimpleXMLRPCServer
+from resource import getrlimit, RLIMIT_NOFILE
 import daemon
 import xmlrpclib
 import os
@@ -122,6 +123,24 @@ class CordTestServer(object):
         os.kill(0, signal.SIGKILL)
         return 'DONE'
 
+def find_files_by_path(*paths):
+    wanted = []
+    for p in paths:
+        try:
+            fd = os.open(p, os.O_RDONLY)
+            wanted.append(os.fstat(fd)[1:3])
+        finally:
+            os.close(fd)
+
+    def fd_wanted(fd):
+        try:
+            return os.fstat(fd)[1:3] in wanted
+        except OSError:
+            return False
+
+    max_fd = getrlimit(RLIMIT_NOFILE)[1]
+    return [ fd for fd in xrange(max_fd) if fd_wanted(fd) ]
+
 @nottest
 def cord_test_server_start(daemonize = True,
                            cord_test_host = CORD_TEST_HOST,
@@ -132,7 +151,10 @@ def cord_test_server_start(daemonize = True,
     server.register_instance(CordTestServer())
     CordTestServer.onos_cord = onos_cord
     if daemonize is True:
-        d = daemon.DaemonContext(files_preserve = [server],
+        ##before daemonizing, preserve urandom needed by paramiko
+        preserve_list = find_files_by_path('/dev/urandom')
+        preserve_list.append(server)
+        d = daemon.DaemonContext(files_preserve = preserve_list,
                                  detach_process = True)
         with d:
             reinitContainerClients()
