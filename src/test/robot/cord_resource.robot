@@ -2,6 +2,7 @@
 Documentation  Common definitions of variables and keywords for running cord tester
 Library  OperatingSystem
 Library  Collections
+Library  String
 Library  RequestsLibrary
 
 *** Variables ***
@@ -18,7 +19,7 @@ Cord Setup
   Should Be Equal As Integers  ${rc}  0
   ${test_container}=  Run  sudo docker ps | grep cord-tester | tail -1 | tr -s ' ' | awk '{print $NF}'
   ${controllers}=  Run  sudo docker ps | grep cord-onos | tr -s ' ' | awk '{print $NF}' | tr -s '\n' ' '
-  @{controller_names}=  Create List  ${controllers}
+  @{controller_names}=  Split String  ${controllers}
   @{controller_list}=  Create List
   : FOR  ${controller}  IN  @{controller_names}
   \  ${ip}=  Run  sudo docker inspect -f '{{.NetworkSettings.Networks.bridge.IPAddress}}' ${controller}
