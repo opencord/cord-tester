@@ -109,19 +109,21 @@ class cluster_exchange(CordLogger):
         return result
 
     def get_leaders(self, controller = None):
-        result = []
+        result_map = {}
+        if controller is None:
+            controller = self.get_controller()
         if type(controller) in [ list, tuple ]:
             for c in controller:
                 leaders = self.get_leader(controller = c)
-                result.append(leaders)
+                result_map[c] = leaders
         else:
             leaders = self.get_leader(controller = controller)
-            result.append(leaders)
-        return result
+            result_map[controller] = leaders
+        return result_map
 
     def verify_leaders(self, controller = None):
-        leaders = self.get_leaders(controller = controller)
-        failed = filter(lambda l: l == None, leaders)
+        leaders_map = self.get_leaders(controller = controller)
+        failed = [ k for k,v in leaders_map.items() if v == None ]
         return failed
 
     def verify_cluster_status(self,controller = None,onos_instances=ONOS_INSTANCES,verify=False):
@@ -156,7 +158,7 @@ class cluster_exchange(CordLogger):
             raise Exception('Failed to get cluster members')
 	    return False
 
-    def get_cluster_current_member_ips(self,controller = None):
+    def get_cluster_current_member_ips(self, controller = None, nodes_filter = None):
         tries = 0
 	cluster_ips = []
         try:
@@ -165,6 +167,8 @@ class cluster_exchange(CordLogger):
                 cluster_nodes = json.loads(self.cli.nodes(jsonFormat = True))
                 if cluster_nodes:
                     log.info("cluster 'nodes' output is %s"%cluster_nodes)
+                    if nodes_filter:
+                        cluster_nodes = nodes_filter(cluster_nodes)
                     cluster_ips = map(lambda c: c['id'], cluster_nodes)
 		    self.cliExit()
                     cluster_ips.sort(lambda i1,i2: int(i1.split('.')[-1]) - int(i2.split('.')[-1]))
@@ -327,8 +331,8 @@ class cluster_exchange(CordLogger):
             adjacent_controller = None
             adjacent_controllers = None
             if controller:
-                adjacent_controllers = set(controllers) - set( [controller] )
-                adjacent_controller = next(iter(adjacent_controllers))
+                adjacent_controllers = list(set(controllers) - set([controller]))
+                adjacent_controller = adjacent_controllers[0]
             for node in controllers:
                 onosLog = OnosLog(host = node)
                 ##check the logs for storage exception
@@ -341,13 +345,13 @@ class cluster_exchange(CordLogger):
                     log.info('\n' + '-' * 50 + '\n')
                     failed = self.verify_leaders(controllers)
                     if failed:
-                        log.info('Leaders command failed on node: %s' %node)
+                        log.info('Leaders command failed on nodes: %s' %failed)
                         assert_equal(len(failed), 0)
                     return controller
 
             try:
                 ips = self.get_cluster_current_member_ips(controller = adjacent_controller)
-                print('ONOS cluster formed with controllers: %s' %ips)
+                log.info('ONOS cluster formed with controllers: %s' %ips)
                 st = True
             except:
                 st = False
@@ -366,15 +370,85 @@ class cluster_exchange(CordLogger):
         for num in range(tries):
             index = num % ctlr_len
             #index = random.randrange(0, ctlr_len)
-            controller = onos_map[controllers[index]] if next_controller is None else next_controller
-            log.info('ITERATION: %d. Restarting Controller %s' %(num + 1, controller))
+            controller_name = onos_map[controllers[index]] if next_controller is None else onos_map[next_controller]
+            controller = onos_map[controller_name]
+            log.info('ITERATION: %d. Restarting Controller %s' %(num + 1, controller_name))
             try:
-                cord_test_onos_restart(node = controller)
+                cord_test_onos_restart(node = controller_name, timeout = 0)
                 time.sleep(60)
             except:
                 time.sleep(5)
                 continue
             next_controller = check_exception(controller = controller)
+
+    def test_cluster_single_controller_restarts(self):
+        '''Test the cluster by repeatedly restarting the same controller'''
+        controllers = self.get_controllers()
+        ctlr_len = len(controllers)
+        if ctlr_len <= 1:
+            log.info('ONOS is not running in cluster mode. This test only works for cluster mode')
+            assert_greater(ctlr_len, 1)
+
+        #this call would verify the cluster for once
+        onos_map = self.get_cluster_container_names_ips()
+
+        def check_exception(controller, inclusive = False):
+            adjacent_controllers = list(set(controllers) - set([controller]))
+            adjacent_controller = adjacent_controllers[0]
+            controller_list = adjacent_controllers if inclusive == False else controllers
+            storage_exceptions = []
+            for node in controller_list:
+                onosLog = OnosLog(host = node)
+                ##check the logs for storage exception
+                _, output = onosLog.get_log(('ERROR', 'Exception',))
+                if output and output.find('StorageException$Timeout') >= 0:
+                    log.info('\nStorage Exception Timeout found on node: %s\n' %node)
+                    log.info('Dumping the ERROR and Exception logs for node: %s\n' %node)
+                    log.info('\n' + '-' * 50 + '\n')
+                    log.info('%s' %output)
+                    log.info('\n' + '-' * 50 + '\n')
+                    storage_exceptions.append(node)
+
+            failed = self.verify_leaders(controller_list)
+            if failed:
+                log.info('Leaders command failed on nodes: %s' %failed)
+                if storage_exceptions:
+                    log.info('Storage exception seen on nodes: %s' %storage_exceptions)
+                    assert_equal(len(failed), 0)
+                    return controller
+
+            for ctlr in controller_list:
+                ips = self.get_cluster_current_member_ips(controller = ctlr,
+                                                          nodes_filter = \
+                                                          lambda nodes: [ n for n in nodes if n['state'] in [ 'ACTIVE', 'READY'] ])
+                log.info('ONOS cluster on node %s formed with controllers: %s' %(ctlr, ips))
+                if controller in ips and inclusive is False:
+                    log.info('Controller %s still ACTIVE on Node %s after it was shutdown' %(controller, ctlr))
+                if controller not in ips and inclusive is True:
+                    log.info('Controller %s still INACTIVE on Node %s after it was shutdown' %(controller, ctlr))
+
+            return controller
+
+        tries = 10
+        #chose a random controller for shutdown/restarts
+        controller = controllers[random.randrange(0, ctlr_len)]
+        controller_name = onos_map[controller]
+        for num in range(tries):
+            index = num % ctlr_len
+            log.info('ITERATION: %d. Shutting down Controller %s' %(num + 1, controller_name))
+            try:
+                cord_test_onos_shutdown(node = controller_name)
+                time.sleep(20)
+            except:
+                time.sleep(5)
+                continue
+            #check for exceptions on the adjacent nodes
+            check_exception(controller)
+            #Now restart the controller back
+            log.info('Restarting back the controller %s' %controller_name)
+            cord_test_onos_restart(node = controller_name)
+            time.sleep(60)
+            check_exception(controller, inclusive = True)
 
     #pass
     def test_cluster_formation_and_verification(self,onos_instances = ONOS_INSTANCES):
@@ -1644,4 +1718,3 @@ class cluster_exchange(CordLogger):
         for master in master_count.keys():
             total_devices += master_count[master]['size']
         assert_equal(total_devices,onos_instances)
-
