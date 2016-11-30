@@ -19,6 +19,11 @@ Verify Onos Single Controller Restart Functionality
   ${rc}=  Run Cord Tester  cluster:cluster_exchange.test_cluster_single_controller_restarts
   Should Be Equal As Integers  ${rc}  0
 
+Verify Onos Cluster Restart Functionality
+  [Documentation]  Verify ONOS cluster by restarting the entire cluster
+  ${rc}=  Run Cord Tester  cluster:cluster_exchange.test_cluster_restarts
+  Should Be Equal As Integers  ${rc}  0
+
 *** Keywords ***
 Cord Cluster Setup
   [Documentation]  Configure a ${NODES} node ONOS cluster for cord tester

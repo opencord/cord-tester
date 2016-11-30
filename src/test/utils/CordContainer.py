@@ -524,7 +524,7 @@ class Onos(Container):
         cls.setup_cluster(cls.cluster_instances)
 
     @classmethod
-    def restart_cluster(cls, network_cfg = None):
+    def restart_cluster(cls, network_cfg = None, timeout = 10, setup = False):
         if cls.cluster_mode is False:
             return
         if not cls.cluster_instances:
@@ -535,19 +535,21 @@ class Onos(Container):
             with open('{}/network-cfg.json'.format(cls.host_config_dir), 'w') as f:
                 f.write(json_data)
 
+        cls.cleanup_cluster()
+        if timeout > 0:
+            time.sleep(timeout)
+
         for onos in cls.cluster_instances:
-            if onos.exists():
-                onos.kill()
-            onos.remove_container(onos.name, force=True)
             print('Restarting ONOS container %s' %onos.name)
             onos.start(ports = onos.ports, environment = onos.env,
                        host_config = onos.host_config, volumes = onos.volumes, tty = True)
-            print('Waiting %d seconds for ONOS %s to boot' %(onos.boot_delay, onos.name))
-            time.sleep(onos.boot_delay)
             onos.ipaddr = onos.ip()
+            onos.wait_for_onos_start(onos.ipaddr)
+            onos.install_cord_apps(onos.ipaddr)
 
-        ##form the cluster
-        cls.setup_cluster(cls.cluster_instances)
+        ##form the cluster as appropriate
+        if setup is True:
+            cls.setup_cluster(cls.cluster_instances)
 
     @classmethod
     def cluster_ips(cls):
@@ -586,11 +588,9 @@ class Onos(Container):
                 print('Restarting ONOS container %s' %onos.name)
                 onos.start(ports = onos.ports, environment = onos.env,
                            host_config = onos.host_config, volumes = onos.volumes, tty = True)
-                #onos.ipaddr = onos.ip()
-                #onos.wait_for_onos_start(onos.ipaddr)
-                print('Waiting %d seconds for ONOS %s to boot' %(onos.boot_delay, onos.name))
-                time.sleep(onos.boot_delay)
                 onos.ipaddr = onos.ip()
+                onos.wait_for_onos_start(onos.ipaddr)
+                onos.install_cord_apps(onos.ipaddr)
 
     @classmethod
     def install_cord_apps(cls, onos_ip = None):

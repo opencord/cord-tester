@@ -23,7 +23,7 @@ from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from onosclidriver import OnosCliDriver
 from CordContainer import Container, Onos, Quagga
-from CordTestServer import cord_test_onos_restart, cord_test_onos_shutdown, cord_test_onos_add_cluster, cord_test_quagga_restart
+from CordTestServer import cord_test_onos_restart, cord_test_onos_shutdown, cord_test_onos_add_cluster, cord_test_quagga_restart, cord_test_restart_cluster
 from portmaps import g_subscriber_port_map
 from scapy.all import *
 import time, monotonic
@@ -61,7 +61,7 @@ class cluster_exchange(CordLogger):
     acl = cluster_acl()
     dhcprelay = cluster_dhcprelay()
     subscriber = cluster_subscriber()
-    testcaseLoggers = ('test_cluster_controller_restarts',)
+    testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_single_controller_restarts', 'test_cluster_restarts')
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
@@ -449,6 +449,60 @@ class cluster_exchange(CordLogger):
             cord_test_onos_restart(node = controller_name)
             time.sleep(60)
             check_exception(controller, inclusive = True)
+
+    def test_cluster_restarts(self):
+        '''Test the cluster by repeatedly restarting the entire cluster'''
+        controllers = self.get_controllers()
+        ctlr_len = len(controllers)
+        if ctlr_len <= 1:
+            log.info('ONOS is not running in cluster mode. This test only works for cluster mode')
+            assert_greater(ctlr_len, 1)
+
+        #this call would verify the cluster for once
+        onos_map = self.get_cluster_container_names_ips()
+
+        def check_exception():
+            controller_list = controllers
+            storage_exceptions = []
+            for node in controller_list:
+                onosLog = OnosLog(host = node)
+                ##check the logs for storage exception
+                _, output = onosLog.get_log(('ERROR', 'Exception',))
+                if output and output.find('StorageException$Timeout') >= 0:
+                    log.info('\nStorage Exception Timeout found on node: %s\n' %node)
+                    log.info('Dumping the ERROR and Exception logs for node: %s\n' %node)
+                    log.info('\n' + '-' * 50 + '\n')
+                    log.info('%s' %output)
+                    log.info('\n' + '-' * 50 + '\n')
+                    storage_exceptions.append(node)
+
+            failed = self.verify_leaders(controller_list)
+            if failed:
+                log.info('Leaders command failed on nodes: %s' %failed)
+                if storage_exceptions:
+                    log.info('Storage exception seen on nodes: %s' %storage_exceptions)
+                    assert_equal(len(failed), 0)
+                    return
+
+            for ctlr in controller_list:
+                ips = self.get_cluster_current_member_ips(controller = ctlr,
+                                                          nodes_filter = \
+                                                          lambda nodes: [ n for n in nodes if n['state'] in [ 'ACTIVE', 'READY'] ])
+                log.info('ONOS cluster on node %s formed with controllers: %s' %(ctlr, ips))
+                assert_equal(len(ips), len(controllers))
+
+        tries = 10
+        for num in range(tries):
+            log.info('ITERATION: %d. Restarting cluster with controllers at %s' %(num+1, controllers))
+            try:
+                cord_test_restart_cluster()
+                log.info('Delaying before verifying cluster status')
+                time.sleep(60)
+            except:
+                time.sleep(10)
+                continue
+            #check for exceptions on the adjacent nodes
+            check_exception()
 
     #pass
     def test_cluster_formation_and_verification(self,onos_instances = ONOS_INSTANCES):

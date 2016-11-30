@@ -64,6 +64,13 @@ class CordTestServer(object):
     def shutdown_onos(self, kwargs):
         return self.__shutdown_onos(**kwargs)
 
+    def __restart_cluster(self, config = None, timeout = 10, setup = False):
+        Onos.restart_cluster(network_cfg = config, timeout = timeout, setup = setup)
+        return 'DONE'
+
+    def restart_cluster(self, kwargs):
+        return self.__restart_cluster(**kwargs)
+
     def __add_cluster_onos(self, count = 1, config = None):
         Onos.add_cluster(count = count, network_cfg = config)
         return 'DONE'
@@ -208,6 +215,17 @@ def __cord_test_onos_shutdown(**kwargs):
 @nottest
 def cord_test_onos_shutdown(node = None):
     data = __cord_test_onos_shutdown(node = node)
+    if data == 'DONE':
+        return True
+    return False
+
+@nottest
+def __cord_test_restart_cluster(**kwargs):
+    return rpc_server_instance().restart_cluster(kwargs)
+
+@nottest
+def cord_test_restart_cluster(config = None, timeout = 10, setup = False):
+    data = __cord_test_restart_cluster(config = config, timeout = timeout, setup = setup)
     if data == 'DONE':
         return True
     return False
