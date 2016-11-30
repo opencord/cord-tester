@@ -96,7 +96,11 @@ class cluster_exchange(CordLogger):
 
     def get_leader(self, controller = None):
         self.cliEnter(controller = controller)
-        result = json.loads(self.cli.leaders(jsonFormat = True))
+        try:
+            result = json.loads(self.cli.leaders(jsonFormat = True))
+        except:
+            result = None
+
         if result is None:
             log.info('Leaders command failure for controller %s' %controller)
         else:
@@ -366,7 +370,7 @@ class cluster_exchange(CordLogger):
             log.info('ITERATION: %d. Restarting Controller %s' %(num + 1, controller))
             try:
                 cord_test_onos_restart(node = controller)
-                time.sleep(30)
+                time.sleep(60)
             except:
                 time.sleep(5)
                 continue

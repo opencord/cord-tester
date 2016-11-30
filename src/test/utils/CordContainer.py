@@ -570,7 +570,7 @@ class Onos(Container):
             onos.remove_container(onos.name, force=True)
 
     @classmethod
-    def restart_node(cls, node = None, network_cfg = None):
+    def restart_node(cls, node = None, network_cfg = None, timeout = 10):
         if node is None:
             cls(restart = True, network_cfg = network_cfg, image = cls.IMAGE, tag = cls.TAG)
         else:
@@ -581,6 +581,8 @@ class Onos(Container):
                 if onos.exists():
                     onos.kill()
                 onos.remove_container(onos.name, force=True)
+                if timeout > 0:
+                    time.sleep(timeout)
                 print('Restarting ONOS container %s' %onos.name)
                 onos.start(ports = onos.ports, environment = onos.env,
                            host_config = onos.host_config, volumes = onos.volumes, tty = True)
