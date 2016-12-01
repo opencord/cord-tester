@@ -305,10 +305,10 @@ class Onos(Container):
     JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
-    onos_cord_apps = ( ('cord-config', '1.0-SNAPSHOT'),
-                       ('aaa', '1.0-SNAPSHOT'),
-                       ('igmp', '1.0-SNAPSHOT'),
-                       #('vtn', '1.0-SNAPSHOT'),
+    onos_cord_apps = ( ('cord-config', '1.1-SNAPSHOT'),
+                       ('aaa', '1.1-SNAPSHOT'),
+                       ('igmp', '1.1-SNAPSHOT'),
+                       #('vtn', '1.1-SNAPSHOT'),
                        )
     ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
