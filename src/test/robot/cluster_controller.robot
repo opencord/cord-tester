@@ -16,11 +16,13 @@ Verify Onos Controllers Restart Functionality
 
 Verify Onos Single Controller Restart Functionality
   [Documentation]  Verify ONOS cluster by restarting the same controller
+  Cord Setup
   ${rc}=  Run Cord Tester  cluster:cluster_exchange.test_cluster_single_controller_restarts
   Should Be Equal As Integers  ${rc}  0
 
 Verify Onos Cluster Restart Functionality
   [Documentation]  Verify ONOS cluster by restarting the entire cluster
+  Cord Setup
   ${rc}=  Run Cord Tester  cluster:cluster_exchange.test_cluster_restarts
   Should Be Equal As Integers  ${rc}  0
 
