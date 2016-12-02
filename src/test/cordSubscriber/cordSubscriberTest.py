@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -602,7 +602,7 @@ yg==
           self.thread_pool = ThreadPool(min(100, subscribers_count), queue_size=1, wait_timeout=1)
 
           chan_leave = False #for single channel, multiple subscribers
-          if None in (cbs, negative_subscriber_auth):
+          if cbs is None:
                 cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify, self.traffic_verify)
                 chan_leave = True
           cbs_negative = cbs
