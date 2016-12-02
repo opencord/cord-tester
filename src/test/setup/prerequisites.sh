@@ -43,8 +43,44 @@ pip install -U robotframework-requests
 pip install -U robotframework-sshlibrary
 pip install paramiko==1.10.1
 ( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
+
 ## Special mode to pull cord-tester repo in case prereqs was installed by hand instead of repo
 if [ "$1" = "--test" ]; then
     rm -rf cord-tester
     git clone https://github.com/opencord/cord-tester.git
+fi
+
+install_ovs() {
+    mkdir -p /root/ovs
+    wget http://openvswitch.org/releases/openvswitch-2.5.0.tar.gz -O /root/ovs/openvswitch-2.5.0.tar.gz && \
+    ( cd /root/ovs && tar zxpvf openvswitch-2.5.0.tar.gz && \
+      cd openvswitch-2.5.0 && \
+      ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install
+    )
+}
+
+ovs_install=0
+
+if [ -f /usr/bin/ovs-vsctl ] || [ -f /usr/local/bin/ovs-vsctl ]; then
+    ##find the version. Install if ovs version less than 2.5
+    version=`sudo ovs-vsctl --version | head -1  | awk '/[1-9].[0-9].[0-9]/ {print $NF}'`
+    major=$(echo $version | cut -d "." -f1)
+    minor=$(echo $version | cut -d "." -f2)
+    if [ $major -le 2 ]; then
+        if [ $major -lt 2 ]; then
+            ovs_install=1
+        else
+            if [ $minor -lt 5 ]; then
+                ovs_install=1
+            fi
+        fi
+    fi
+else
+    ovs_install=1
+fi
+
+if [ $ovs_install -eq 1 ]; then
+    echo "Installing OVS 2.5.0"
+    service openvswitch-switch stop
+    install_ovs
 fi
