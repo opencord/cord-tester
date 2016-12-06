@@ -1,1 +1,1 @@
-{ "olt" : false , "port_map" : { "num_ports" : 11, "host" : "br-int", "start_vlan" : 1000 }, "uplink" : 2, "vlan" : 0 }
+{ "olt" : false , "port_map" : { "num_ports" : 11, "start_vlan" : 1000, "nr_switches": 1 }, "uplink" : 2, "vlan" : 0 }

@@ -81,12 +81,10 @@ class CordTester(Container):
         olt_config = OltConfig(olt_conf_file)
         self.port_map, _ = olt_config.olt_port_map()
         #Try using the host interface in olt conf to setup the switch
-        if self.port_map.has_key('host'):
-            self.switch = self.port_map['host']
-        else:
-            self.switch = 'ovsbr0'
+        self.switches = self.port_map['switches']
         if env is not None:
-            env['TEST_SWITCH'] = self.switch
+            env['TEST_SWITCH'] = self.switches[0]
+            env['TEST_SWITCHES'] = ','.join(self.switches)
             env['TEST_HOST'] = self.name
             env['TEST_INSTANCE'] = instance
             env['TEST_INSTANCES'] = num_instances
@@ -104,32 +102,36 @@ class CordTester(Container):
         """Start OVS"""
         ##Determine if OVS has to be started locally or not
         s_file,s_sandbox = ('of-bridge-local.sh',self.tester_base) if self.olt else ('of-bridge.sh',self.sandbox_setup)
-        ovs_cmd = os.path.join(s_sandbox, s_file) + ' {0}'.format(self.switch)
+        ovs_cmd = os.path.join(s_sandbox, s_file)
         if self.olt:
             if CordTester.switch_on_olt is True:
                 return
             CordTester.switch_on_olt = True
-            ovs_cmd += ' {0}'.format(self.ctlr_ip)
-            print('Starting OVS on the host with controller: %s' %(self.ctlr_ip))
+            ovs_cmd += ' {} {}'.format(len(self.switches), self.ctlr_ip)
+            print('Starting OVS on the host with %d switches for controller: %s' %(len(self.switches), self.ctlr_ip))
         else:
-            print('Starting OVS on test container %s' %self.name)
+            ovs_cmd += ' {}'.format(self.switches[0])
+            print('Starting OVS on test container %s for controller: %s' %(self.name, self.ctlr_ip))
         self.execute_switch(ovs_cmd)
-        status = 1
         ## Wait for the LLDP flows to be added to the switch
-        tries = 0
-        while status != 0 and tries < 500:
-            cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(self.switch)
-            status = self.execute_switch(cmd, shell = True)
-            tries += 1
-            if tries % 10 == 0:
-                print('Waiting for test switch to be connected to ONOS controller ...')
+        for switch in self.switches:
+            status = 1
+            tries = 0
+            while status != 0 and tries < 500:
+                cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(switch)
+                status = self.execute_switch(cmd, shell = True)
+                tries += 1
+                if tries % 10 == 0:
+                    print('Waiting for test switch %s to be connected to ONOS controller ...' %switch)
 
-        if status != 0:
-            print('Test Switch not connected to ONOS container.'
-                  'Please remove ONOS container and restart the test')
-            if self.rm:
-                self.kill()
-            sys.exit(1)
+            if status != 0:
+                print('Test Switch %s not connected to ONOS container.'
+                      'Please remove ONOS container and restart the test' %switch)
+                if self.rm:
+                    self.kill()
+                sys.exit(1)
+            else:
+                print('Test Switch %s connected to ONOS container.' %switch)
 
         if boot_delay:
             time.sleep(boot_delay)
@@ -137,32 +139,47 @@ class CordTester(Container):
     def setup_intfs(self, port_num = 0):
         tester_intf_subnet = '192.168.100'
         res = 0
-        host_intf = self.port_map['host']
+        switches = self.port_map['switches']
         start_vlan = self.port_map['start_vlan']
         start_vlan += port_num
         uplink = self.port_map['uplink']
         wan = self.port_map['wan']
-        port_list = self.port_map['ports'] + self.port_map['relay_ports']
-        for port in port_list:
-            guest_if = port
-            local_if = '{0}_{1}'.format(guest_if, port_num+1)
-            guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
-            ##Use pipeworks to configure container interfaces on host/bridge interfaces
-            pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
-                                                                       local_if, self.name, guest_ip)
-            #if the wan interface is specified for uplink, then use it instead
-            if wan and port == self.port_map[uplink]:
-                pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(wan, guest_if,
+        port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
+        for host_intf, ports in port_list:
+            uplink = self.port_map[host_intf]['uplink']
+            for port in ports:
+                guest_if = port
+                local_if = '{0}_{1}'.format(guest_if, port_num+1)
+                guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
+                ##Use pipeworks to configure container interfaces on host/bridge interfaces
+                pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
                                                                            local_if, self.name, guest_ip)
-            else:
-                if start_vlan != 0:
-                    pipework_cmd += ' @{}'.format(start_vlan)
-                    start_vlan += 1
-
-            res += os.system(pipework_cmd)
-            port_num += 1
+                #if the wan interface is specified for uplink, then use it instead
+                if wan and port == self.port_map[uplink]:
+                    pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(wan, guest_if,
+                                                                               local_if, self.name, guest_ip)
+                else:
+                    if start_vlan != 0:
+                        pipework_cmd += ' @{}'.format(start_vlan)
+                        start_vlan += 1
+                #print('Running PIPEWORK cmd: %s' %pipework_cmd)
+                res += os.system(pipework_cmd)
+                port_num += 1
 
         return res, port_num
+
+    @classmethod
+    def get_intf_type(cls, intf):
+        intf_type = 0
+        if os.path.isdir('/sys/class/net/{}/bridge'.format(intf)):
+            intf_type = 1 ##linux bridge
+        else:
+            cmd = 'ovs-vsctl list-br | grep -q "^{0}$"'.format(intf)
+            res = os.system(cmd)
+            if res == 0: ##ovs bridge
+                intf_type = 2
+
+        return intf_type
 
     @classmethod
     def cleanup_intfs(cls):
@@ -170,38 +187,30 @@ class CordTester(Container):
         olt_config = OltConfig(olt_conf_file)
         port_map, _ = olt_config.olt_port_map()
         port_num = 0
-        intf_host = port_map['host']
         start_vlan = port_map['start_vlan']
-        uplink = port_map['uplink']
         wan = port_map['wan']
-        intf_type = 0
-        if os.path.isdir('/sys/class/net/{}/bridge'.format(intf_host)):
-            intf_type = 1 ##linux bridge
-        else:
-            cmd = 'ovs-vsctl list-br | grep -q "^{0}$"'.format(intf_host)
-            res = os.system(cmd)
-            if res == 0: ##ovs bridge
-                intf_type = 2
         cmds = ()
         res = 0
-        for port in port_map['ports'] + port_map['relay_ports']:
-            local_if = '{0}_{1}'.format(port, port_num+1)
-            if intf_type == 0:
-                if start_vlan != 0:
-                    cmds = ('ip link del {}.{}'.format(intf_host, start_vlan),)
-                    start_vlan += 1
-            else:
-                if intf_type == 1:
-                    cmds = ('brctl delif {} {}'.format(intf_host, local_if),
-                            'ip link del {}'.format(local_if))
+        port_list = port_map['switch_port_list'] + port_map['switch_relay_port_list']
+        for intf_host, ports in port_list:
+            intf_type = cls.get_intf_type(intf_host)
+            for port in ports:
+                local_if = '{0}_{1}'.format(port, port_num+1)
+                if intf_type == 0:
+                    if start_vlan != 0:
+                        cmds = ('ip link del {}.{}'.format(intf_host, start_vlan),)
+                        start_vlan += 1
                 else:
-                    cmds = ('ovs-vsctl del-port {} {}'.format(intf_host, local_if),
-                            'ip link del {}'.format(local_if))
+                    if intf_type == 1:
+                        cmds = ('brctl delif {} {}'.format(intf_host, local_if),
+                                'ip link del {}'.format(local_if))
+                    else:
+                        cmds = ('ovs-vsctl del-port {} {}'.format(intf_host, local_if),
+                                'ip link del {}'.format(local_if))
 
-            for cmd in cmds:
-                res += os.system(cmd)
-
-            port_num += 1
+                for cmd in cmds:
+                    res += os.system(cmd)
+                port_num += 1
 
     @classmethod
     def get_name(cls):
