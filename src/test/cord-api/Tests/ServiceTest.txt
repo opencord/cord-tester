@@ -1,0 +1,94 @@
+*** Settings ***
+Documentation     Test suite for Service verification
+Suite Setup       Read InputFile
+Test Template     Verify Service functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Service.json
+${PATHFILE2}      ${CURDIR}/data/putService.json
+
+*** Test Cases ***      TYPE        LISTINDEX
+Test Post Service-1     CREATE      0
+
+Test Get Service-1      RETRIEVE    0
+
+Test Edit Service-1     PUT         0
+
+Test Delete Service-1   DELETE      0
+
+Test Post Service-2     CREATE      1
+
+Test Get Service-2      RETRIEVE    1
+
+Test Edit Service-2     PUT         1
+
+Test Delete Service-2   DELETE      1
+
+*** Keywords ***
+Read InputFile
+    ${serviceList}=    utils.jsonToList    ${PATHFILE}    ServiceInfo
+    Set Suite Variable    ${slist}    ${serviceList}
+    ${putServiceList}=    utils.jsonToList    ${PATHFILE2}    ServiceInfo
+    Set Suite Variable    ${putList}    ${putServiceList}
+
+Verify Service functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Service API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Service API    ${listIndex}
+    Run Keyword If    "${type}" == "PUT"    Test Edit Service API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Service API    ${listIndex}
+
+Test Post Service API
+    [Arguments]    ${listIndex}
+    ${serviceList} =    Get Variable Value    ${slist}
+    ${serviceDict}=    utils.listToDict    ${serviceList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    CORE_SERVICES    ${serviceDict}
+    Should Be True    ${api_result}
+
+Test Get Service API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet   CORE_SERVICES
+    Log    ${json_result}
+    ${serviceList}=    Get Variable Value    ${slist}
+    ${serviceDict}=    utils.listToDict    ${serviceList}    ${listIndex}
+    ${name}=    utils.getFieldValueFromDict    ${serviceDict}   name
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${name}
+    ${test_result}=    utils.compare_dict    ${serviceDict}    ${getJsonDict}
+    Should Be True    ${test_result}
+
+Test Edit Service API
+    [Arguments]    ${listIndex}
+    ${get_result}=    restApi.ApiGet    CORE_SERVICES
+    ${putServiceList}=    Get Variable Value    ${putList}
+    ${putServiceDict}=    utils.listToDict    ${putServiceList}    ${listIndex}
+    ${name}=    utils.getFieldValueFromDict    ${putServiceDict}    name
+    ${serviceDict}=    utils.getDictFromListofDict    ${get_result}    name    ${name}
+    ${serviceID}=    utils.getFieldValueFromDict    ${serviceDict}    id
+    ${api_result}=    restApi.ApiPut    CORE_SERVICES    ${putServiceDict}    ${serviceID}
+    Should Be True    ${api_result}
+    ${getResultAfterPut}=    restApi.ApiGet    CORE_SERVICES    ${serviceID}
+    ${test_result}=    utils.compare_dict    ${putServiceDict}    ${getResultAfterPut}
+    Should Be True    ${test_result}
+
+Test Delete Service API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CORE_SERVICES
+    ${serviceList}=    Get Variable Value    ${slist}
+    ${serviceDict}=    utils.listToDict    ${serviceList}    ${listIndex}
+    ${name}=    utils.getFieldValueFromDict    ${serviceDict}    name
+    Log    ${name}
+    ${serviceDict}=    utils.getDictFromListofDict    ${json_result}    name  ${name}
+    Log    ${serviceDict}
+    ${serviceId}=    utils.getFieldValueFromDict    ${serviceDict}    id
+    Log    ${serviceId}
+    ${test_result}=    restApi.ApiDelete    CORE_SERVICES    ${serviceId}
+    Should Be True    ${test_result}
