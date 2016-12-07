@@ -108,6 +108,13 @@ class cluster_exchange(CordLogger):
         self.cliExit()
         return result
 
+    def log_set(self, level = "INFO", app = "org.onosproject", controller = None):
+        self.cliEnter(controller = controller)
+        try:
+            self.cli.logSet(level = level, app = app)
+        except: pass
+        self.cliExit()
+
     def get_leaders(self, controller = None):
         result_map = {}
         if controller is None:
@@ -374,7 +381,16 @@ class cluster_exchange(CordLogger):
             controller = onos_map[controller_name]
             log.info('ITERATION: %d. Restarting Controller %s' %(num + 1, controller_name))
             try:
+                #enable debug log for the other controllers before restarting this controller
+                for ctlr in controllers:
+                    if ctlr == controller:
+                        continue
+                    log.info('Enabling DEBUG log for controller: %s' %ctlr)
+                    self.log_set(level="DEBUG", controller = ctlr)
+                    self.log_set(level="DEBUG", app = "io.atomix", controller = ctlr)
                 cord_test_onos_restart(node = controller_name, timeout = 0)
+                self.log_set(level="DEBUG", controller = controller)
+                self.log_set(level="DEBUG", app = "io.atomix", controller = controller)
                 time.sleep(60)
             except:
                 time.sleep(5)

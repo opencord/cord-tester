@@ -328,6 +328,37 @@ class OnosCliDriver( CLI ):
             main.cleanup()
             main.exit()
 
+    def logSet( self, level="INFO", app="org.onosproject" ):
+        """
+        Set the logging level to lvl for a specific app
+        returns main.TRUE on success
+        returns main.FALSE if Error occurred
+        if noExit is True, TestON will not exit, but clean up
+        Available level: DEBUG, TRACE, INFO, WARN, ERROR
+        Level defaults to INFO
+        """
+        try:
+            self.handle.sendline( "log:set %s %s" %( level, app ) )
+            self.handle.expect( "onos>" )
+
+            response = self.handle.before
+            if re.search( "Error", response ):
+                return main.FALSE
+            return main.TRUE
+        except pexpect.TIMEOUT:
+            main.log.exception( self.name + ": TIMEOUT exception found" )
+            main.cleanup()
+            main.exit()
+        except pexpect.EOF:
+            main.log.error( self.name + ": EOF exception found" )
+            main.log.error( self.name + ":    " + self.handle.before )
+            main.cleanup()
+            main.exit()
+        except Exception:
+            main.log.exception( self.name + ": Uncaught exception!" )
+            main.cleanup()
+            main.exit()
+
     def log( self, cmdStr, level="" ):
         """
             log  the commands in the onos CLI.
