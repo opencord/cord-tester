@@ -24,6 +24,7 @@ import novaclient.v1_1.client as novaclient
 from multiprocessing import Pool
 from nose.tools import assert_equal
 from CordLogger import CordLogger
+log.setLevel('INFO')
 
 class cordvtn_exchange(CordLogger):
 
@@ -134,6 +135,69 @@ class cordvtn_exchange(CordLogger):
             pool.apply_async(create_network, (i, ))
         pool.close()
         pool.join()
+
+    def test_cordvtn_for_create_network(self):
+        network = {'name': self.network_name, 'admin_state_up': True}
+        self.neutron.create_network({'network':network})
+        log.info("Created network:{0}".format(self.network_name))
+
+    def test_cordvtn_to_create_net_work_with_subnet(self):
+        network_name = self.network_name
+        network = {'name': network_name, 'admin_state_up': True}
+        network_info = self.neutron.create_network({'network':network})
+	network_id = network_info['network']['id']
+
+	log.info("Created network:{0}".format(network_id))
+        self.network_ids.append(network_id)
+	subnet_count = 1
+	for cidr in self.subnet_cidrs:
+            gateway_ip = str(list(cidr)[1])
+	    subnet = {"network_id": network_id, "ip_version":4,
+	              "cidr":str(cidr), "enable_dhcp":True,
+		      "host_routes":[{"destination":"0.0.0.0/0", "nexthop":gateway_ip}]
+	             }
+            subnet = {"name":"subnet-"+str(subnet_count), "network_id": network_id, "ip_version":4, "cidr":str(cidr), "enable_dhcp":True}
+            print subnet
+            self.neutron.create_subnet({'subnet':subnet})
+            log.info("Created subnet:{0}".format(str(cidr)))
+            if not self.number_of_subnet - 1:
+                break
+        self.number_of_subnet -= 1
+        subnet_count += 1
+
+    def test_cordvtn_subnet_limit(self):
+        network_name = uuid.uuid4().get_hex()
+        network = {'name': network_name, 'admin_state_up': True}
+        network_info = self.neutron.create_network({'network':network})
+        log.info("Created network:{0}".format(network_name))
+        network_id = network_info['network']['id']
+        self.network_ids.append(network_id)
+        subnet_cidrs = ['11.2.2.0/29',  '11.2.2.8/29']
+        for cidr in subnet_cidrs:
+	    subnet = {"network_id": network_id, "ip_version":4, "cidr": cidr}
+	    subnet_info = self.neutron.create_subnet({'subnet':subnet})
+	    subnet_id = subnet_info['subnet']['id']
+	    log.info("Created subnet:{0}".format(cidr))
+        while True:
+	    port = {"network_id": network_id, "admin_state_up": True}
+	    port_info = self.neutron.create_port({'port':port})
+	    port_id = port_info['port']['id']
+	    self.port_ids.append(port_id)
+	    log.info("Created Port:{0}".format(port_info['port']['id']))
+	    if not self.quota_limit:
+               break
+	    self.quota_limit -= 1
+
+    def test_cordvtn_floatingip_limit(self):
+	while True:
+	    floatingip = {"floating_network_id": self.floating_nw_id}
+	    fip_info = self.neutron.create_floatingip({'floatingip':floatingip})
+	    fip_id = fip_info['floatingip']['id']
+	    log.info("Created Floating IP:{0}".format(fip_id))
+	    self.fip_ids.append(fip_id)
+	    if not self.quota_limit:
+               break
+	    self.quota_limit -= 1
 
     def test_cordvtn_basic_tenant(self):
         pass
