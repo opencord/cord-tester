@@ -84,7 +84,7 @@ class igmp_exchange(CordLogger):
     def setUpClass(cls):
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           cls.port_map, _ = cls.olt.olt_port_map()
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
+          OnosCtrl.cord_olt_config(cls.olt)
 
     @classmethod
     def tearDownClass(cls): pass

@@ -247,7 +247,7 @@ yg==
           else:
                 log.info('Using OLT Port configuration for test setup')
                 log.info('Configuring CORD OLT access device information')
-                OnosCtrl.cord_olt_config(self.olt.olt_device_data())
+                OnosCtrl.cord_olt_config(self.olt)
                 self.activate_apps(self.olt_apps)
 
           self.activate_apps(self.apps)

@@ -65,7 +65,7 @@ class cluster_igmp(object):
     def setUpClass(cls,controller=None):
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           cls.port_map, _ = cls.olt.olt_port_map()
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data(),controller=controller)
+          OnosCtrl.cord_olt_config(cls.olt, controller=controller)
 
     @classmethod
     def tearDownClass(cls): pass
@@ -1708,7 +1708,7 @@ yg==
           #time.sleep(2)
           cls.install_app_table(controller=controller)
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data(),controller=controller)
+          OnosCtrl.cord_olt_config(cls.olt, controller=controller)
           cls.port_map, cls.port_list = cls.olt.olt_port_map()
           cls.activate_apps(cls.apps + cls.olt_apps,controller=controller)
 

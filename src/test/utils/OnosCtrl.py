@@ -119,6 +119,21 @@ class OnosCtrl:
         return did
 
     @classmethod
+    def get_device_ids(cls):
+        '''If running under olt, we get the first switch connected to onos'''
+        olt = OltConfig()
+        did = 'of:' + get_mac()
+        device_ids = []
+        if olt.on_olt():
+            devices = cls.get_devices()
+            if devices:
+                device_ids = map(lambda d: d['id'], devices)
+        else:
+            device_ids.append(did)
+
+        return device_ids
+
+    @classmethod
     def get_flows(cls, device_id,controller=None):
         if controller is None:
 		url = 'http://%s:8181/onos/v1/flows/' %(cls.controller) + device_id
@@ -131,23 +146,73 @@ class OnosCtrl:
         return None
 
     @classmethod
-    def cord_olt_config(cls, olt_device_data = None,controller=None):
+    def get_ports_device(cls, device_id, controller = None):
+        if controller is None:
+            url = 'http://{}:8181/onos/v1/devices/{}/ports'.format(cls.controller, device_id)
+        else:
+            url = 'http://{}:8181/onos/v1/devices/{}/ports'.format(controller, device_id)
+
+        result = requests.get(url, auth = cls.auth)
+        if result.ok:
+            return result.json()['ports']
+        return None
+
+    @classmethod
+    def cord_olt_device_map(cls, olt_config, controller = None):
+        olt_device_list = []
+        olt_port_map, _ = olt_config.olt_port_map()
+        switches = olt_port_map['switches']
+        if len(switches) > 1:
+            device_ids = cls.get_device_ids()
+        else:
+            did = cls.get_device_id()
+            if did is None:
+                return olt_device_list
+            uplink_dict = {}
+            uplink_dict['did'] = did
+            uplink_dict['switch'] = switches[0]
+            uplink_dict['uplink'] = str(olt_config.olt_conf['uplink'])
+            uplink_dict['vlan'] = str(olt_config.olt_conf['vlan'])
+            olt_device_list.append(uplink_dict)
+            return olt_device_list
+
+        for did in device_ids:
+            ports = cls.get_ports_device(did, controller = controller)
+            if ports:
+                matched = False
+                for port in ports:
+                    for switch in switches:
+                        if port['annotations']['portName'] == switch:
+                            uplink_dict = {}
+                            uplink = olt_port_map[switch]['uplink']
+                            uplink_dict['did'] = did
+                            uplink_dict['switch'] = switch
+                            uplink_dict['uplink'] = str(uplink)
+                            uplink_dict['vlan'] = str(olt_config.olt_conf['vlan'])
+                            olt_device_list.append(uplink_dict)
+                            matched = True
+                            break
+                    if matched == True:
+                        break
+
+        return olt_device_list
+
+    @classmethod
+    def cord_olt_config(cls, olt_config, controller=None):
         '''Configures OLT data for existing devices/switches'''
-        if olt_device_data is None:
-            return
         did_dict = {}
         config = { 'devices' : did_dict }
-        devices = cls.get_devices()
-        if not devices:
+        olt_device_list = cls.cord_olt_device_map(olt_config, controller = controller)
+        if not olt_device_list:
             return
-        device_ids = map(lambda d: d['id'], devices)
-        for did in device_ids:
+        for olt_map in olt_device_list:
             access_device_dict = {}
-            access_device_dict['accessDevice'] = olt_device_data
-            did_dict[did] = access_device_dict
+            device_data = {'uplink': olt_map['uplink'], 'vlan': olt_map['vlan']}
+            access_device_dict['accessDevice'] = device_data
+            did_dict[olt_map['did']] = access_device_dict
 
         ##configure the device list with access information
-        return cls.config(config,controller=controller)
+        return cls.config(config, controller=controller)
 
     @classmethod
     def install_app(cls, app_file, onos_ip = None):

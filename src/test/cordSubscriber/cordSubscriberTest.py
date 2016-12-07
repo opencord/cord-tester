@@ -279,21 +279,22 @@ yg==
       @classmethod
       def setUpClass(cls):
           '''Load the OLT config and activate relevant apps'''
-          did = cls.load_device_id()
-          network_cfg = { "devices" : {
-                  "{}".format(did) : {
-                        "basic" : {
-                              "driver" : "pmc-olt"
-                              }
-                        }
-                  },
-          }
+          dids = OnosCtrl.get_device_ids()
+          device_map = {}
+          for did in dids:
+                device_map[did] = { 'basic' : { 'driver' : 'pmc-olt' } }
+          network_cfg = {}
+          network_cfg = { 'devices' : device_map }
           ## Restart ONOS with cpqd driver config for OVS
           cls.start_onos(network_cfg = network_cfg)
           cls.install_app_table()
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
+          OnosCtrl.cord_olt_config(cls.olt)
           cls.port_map, cls.port_list = cls.olt.olt_port_map()
+          cls.switches = cls.port_map['switches']
+          cls.num_ports = cls.port_map['num_ports']
+          if cls.num_ports > 1:
+                cls.num_ports -= 1 ##account for the tx port
           cls.activate_apps(cls.apps + cls.olt_apps)
 
       @classmethod
@@ -1161,7 +1162,7 @@ yg==
 
       def test_cord_subscriber_join_jump(self):
           """Test subscriber join jump for channel surfing"""
-          self.num_subscribers = 5
+          self.num_subscribers = self.num_ports * len(self.switches)
           self.num_channels = 10
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
                                                     num_channels = self.num_channels,
@@ -1173,7 +1174,7 @@ yg==
 
       def test_cord_subscriber_join_next(self):
           """Test subscriber join next for channel surfing"""
-          self.num_subscribers = 5
+          self.num_subscribers = self.num_ports * len(self.switches)
           self.num_channels = 10
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
                                                     num_channels = self.num_channels,

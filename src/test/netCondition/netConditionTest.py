@@ -158,7 +158,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
     def setUpClass(cls):
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           cls.port_map, _ = cls.olt.olt_port_map()
-          OnosCtrl.cord_olt_config(cls.olt.olt_device_data())
+          OnosCtrl.cord_olt_config(cls.olt)
           cls.device_id = OnosCtrl.get_device_id()
 
     @classmethod
