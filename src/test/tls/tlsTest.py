@@ -144,7 +144,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_session_id(self):
+    def test_eap_tls_with_invalid_session_id(self):
         df = defer.Deferred()
         def eap_tls_invalid_session_id(df):
             def tls_invalid_session_id_cb():
@@ -157,7 +157,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_random_gmt_unix_time(self):
+    def test_eap_tls_with_random_gmt_unix_time(self):
         df = defer.Deferred()
         def eap_tls_invalid_gmt_unix_time(df):
             def eap_tls_invalid_gmt_unix_time_cb():
@@ -172,7 +172,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_content_type(self,Positive_Test=True):
+    def test_eap_tls_with_invalid_content_type(self,Positive_Test=True):
         df = defer.Deferred()
         def eap_tls_invalid_content_type(df):
             def tls_invalid_content_type_cb():
@@ -185,7 +185,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_record_fragment_length(self):
+    def test_eap_tls_with_invalid_record_fragment_length(self):
         df = defer.Deferred()
         def eap_tls_invalid_record_fragment_length(df):
             def eap_tls_invalid_record_fragment_length_cb():
@@ -242,7 +242,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_aaa_app_deactivate(self):
+    def test_eap_tls_with_aaa_app_deactivation(self):
         df = defer.Deferred()
         def eap_tls_aaa_app_deactivate(df):
             def tls_aaa_app_deactivate_cb():
@@ -251,13 +251,14 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             self.onos_ctrl.deactivate()
             tls.runTest()
             assert_equal(tls.failTest, True)
+	    self.onos_ctrl.activate()
             df.callback(0)
         reactor.callLater(0, eap_tls_aaa_app_deactivate, df)
         return df
 
     #keeping cipher suite length as zero but including cipher suite key which is more than zero length in client hello packet
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_incorrect_cipher_suite_length_field(self):
+    def test_eap_tls_with_incorrect_cipher_suite_length_field(self):
         df = defer.Deferred()
         def eap_tls_incorrect_cipher_suite_length_field(df):
             def tls_incorrect_cipher_suite_length_field_cb():
@@ -271,7 +272,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #keeping compression methods length to zero but sending compression method of more than 0 zero length in client hello packet
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_incorrect_compression_methods_length_field(self):
+    def test_eap_tls_with_incorrect_compression_methods_length_field(self):
         df = defer.Deferred()
         def eap_tls_incorrect_compression_methods_length_field(df):
             def tls_incorrect_compression_methods_length_field_cb():
@@ -285,7 +286,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #checking with broadcast source mac of EAPOL packet
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_source_mac_broadcast(self):
+    def test_eap_tls_with_invalid_source_mac_broadcast(self):
         df = defer.Deferred()
         def eap_tls_invalid_source_mac_broadcast(df):
             def tls_invalid_source_mac_broadcast_cb():
@@ -299,7 +300,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #checking with multicast source mac of EAPOL packet
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_source_mac_multicast(self):
+    def test_eap_tls_with_invalid_source_mac_multicast(self):
         df = defer.Deferred()
         def eap_tls_invalid_source_mac_multicast(df):
             def tls_invalid_source_mac_multicast_cb():
@@ -313,7 +314,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #checking with zero source mac of EAPOL packet
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_source_mac_zero(self):
+    def test_eap_tls_with_invalid_source_mac_zero(self):
         df = defer.Deferred()
         def eap_tls_invalid_source_mac_zero(df):
             def tls_invalid_source_mac_zero_cb():
@@ -327,7 +328,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #Restarting Radius server after sending client hello
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_restart_radius_server(self):
+    def test_eap_tls_with_restart_of_radius_server(self):
         df = defer.Deferred()
         def eap_tls_restart_radius_server(df):
             def tls_restart_radius_server_cb():
@@ -382,7 +383,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #Sending client hello with zero lenght field in Handshake protocol
     @deferred(TLS_TIMEOUT)
-    def test_eap_tls_invalid_handshake_length_client_hello(self):
+    def test_eap_tls_with_invalid_handshake_length_client_hello(self):
         df = defer.Deferred()
         def eap_tls_invalid_handshake_length_client_hello(df):
             def tls_invalid_handshake_length_client_hello_cb():
@@ -409,7 +410,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     #simulating authentication for multiple users, 1K in this test case
     @deferred(TEST_TIMEOUT)
-    def test_eap_tls_1k_with_diff_mac(self):
+    def test_eap_tls_1k_sessions_with_diff_mac(self):
         df = defer.Deferred()
         def eap_tls_1k_with_diff_mac(df):
             for i in xrange(1000):
@@ -421,8 +422,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     #simulating authentication for multiple users, 5K in this test case
-    @deferred(TEST_TIMEOUT)
-    def test_eap_tls_5k_with_diff_mac(self):
+    @deferred(TEST_TIMEOUT+1800)
+    def test_eap_tls_5k_sessions_with_diff_mac(self):
         df = defer.Deferred()
         def eap_tls_5k_with_diff_mac(df):
             for i in xrange(5000):

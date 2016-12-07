@@ -293,6 +293,7 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
 	#if self.src_mac == 'mcast': self.setup(src_mac='mcast')
 	#if self.src_mac == 'zeros': self.setup(src_mac='zeros')
 	#if self.src_mac == 'default': self.setup(src_mac='default')
+	log.info('source mac is %s'%self.src_mac)
 	self.setup(src_mac=self.src_mac)
         self.nextEvent = self.tlsEventTable.EVT_EAP_START
 
@@ -307,7 +308,11 @@ fM2med+fZ0+bh4DZ3O8BUJ1+6dxHngF/86GlwxTK4iSRkLIv6n3YSA==
                 log.info('Got EAPOL packet with type id and code request')
                 log.info('Packet code: %d, type: %d, id: %d', pkt[EAP].code, pkt[EAP].type, pkt[EAP].id)
                 log.info("<====== Send EAP Response with identity = %s ================>" % USER)
-                self.eapol_id_req(pkt[EAP].id, USER)
+		if self.id_mismatch_in_identifier_response_packet:
+		    log.info('\nSending invalid id field in EAP Identity Response packet')
+                    self.eapol_id_req(pkt[EAP].id+10, USER)
+		else:
+		    self.eapol_id_req(pkt[EAP].id, USER)
 
         r = self.eapol_scapy_recv(cb = eapol_cb,
                                   lfilter =
