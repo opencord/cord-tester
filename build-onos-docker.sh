@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function show_help {
-    echo "Usage: ${0#*/} -h | this help -o <onos source path> -t <onos docker tag> -p <onos package> -b | build onos package"
+    echo "Usage: ${0#*/} -h | this help -o <onos source path> -t <onos docker tag> -p <onos package> -b | build onos package -u |update onos source"
     exit 1
 }
 
@@ -10,8 +10,9 @@ onos_src_dir="$HOME/onos"
 onos_tag="test/onos:clustertest"
 onos_package=
 onos_build=0
+onos_update=0
 
-while getopts "h?o:t:p:b" opt; do
+while getopts "h?o:t:p:bu" opt; do
     case "$opt" in
         h|\?)
             show_help
@@ -27,6 +28,9 @@ while getopts "h?o:t:p:b" opt; do
             ;;
         b)
             onos_build=1
+            ;;
+        u)
+            onos_update=1
             ;;
         *)
             show_help
@@ -56,7 +60,10 @@ if [ $onos_build -eq 1 ]; then
         onos_cloned=1
       ( cd $onos_src_dir && git clone http://github.com/opennetworkinglab/onos.git . )
     else
-      ( cd $onos_src_dir && git pull --ff-only origin master || git clone http://github.com/opennetworkinglab/onos.git . )
+      if [ $onos_update -eq 1 ]; then
+          echo "Updating ONOS source"
+          ( cd $onos_src_dir && git pull --ff-only origin master || git clone http://github.com/opennetworkinglab/onos.git . )
+      fi
     fi
     ( cd $onos_src_dir && tools/build/onos-buck build onos ) && echo "ONOS build success" || {
       echo "ONOS build failure. Exiting ..." && exit 1
