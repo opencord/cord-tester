@@ -139,16 +139,13 @@ class utils(object):
     @Returns: Returns the value of the Key that was provided
     '''
     def getFieldValueFromDict(self,search_dict, field):
-        print "search_dict", search_dict, "field...", field
         results = ''
         found = False
         input_keys = search_dict.keys()
         for key in input_keys:
             print "key...", key
             if key == field:
-               print "entered if..."
                results = search_dict[key]
-               print "results...", results
                if not results:
                   found = True
                   break
@@ -174,6 +171,29 @@ class utils(object):
         input_dict[field]=field_value
         return input_dict
 
+    '''
+    @method getAllFieldValues
+    @params : getJsonDataDictList - List of dictionaries to be searched
+             fieldName - Key to be searched for (ex: instance_id)
+    @Returns: Returns the unique value of the Key that was provided
+    '''   
+
+    def getAllFieldValues(self, getJsonDataDictList, fieldName):
+        value_list = []
+        uniqValue = ''
+        uniq_list = []
+        for data in getJsonDataDictList:
+            fieldValue = ''
+            fieldValue = self.getFieldValueFromDict(data, fieldName)
+            value_list.append(fieldValue)
+        uniq_list = sorted(set(value_list))
+        if len(uniq_list) == 1:
+           uniqValue = uniq_list[0]
+        else:
+           print "list of values found for ", fieldName, ";", uniq_list
+        return fieldValue
+        
+        
 '''
 #Test
 dict_list = {
@@ -203,6 +223,7 @@ test = utils()
 #result = test.getDictFromListOfDict(dict_list,"email",21)
 #result = test.getFieldValueFromDict(dict_list,"id")
 #result = test.getDictFromListOfDict(dict_list,"account_num",21)
-result = test.setFieldValueInDict(input_dict,"subscriber",new_value)
+#result = test.setFieldValueInDict(input_dict,"subscriber",new_value)
+result = test.getAllFieldValues(list1,"instance_name")
 print "finalllllll result....", result
 '''

@@ -154,8 +154,8 @@ key = "TENANT_VOLT"
 #jsonGetData = test.ApiGet(key)
 print "========="
 #print jsonGetData
-#jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"7")
-jsonO = test.ApiDelete(key,"36")
+jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"30")
+#jsonO = test.ApiDelete(key,"36")
 #jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
 #jsonResponse = test.ApiPost(key,{"name":"test-2"})
 #jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
