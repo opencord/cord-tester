@@ -319,6 +319,7 @@ cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 cord_test_server_address = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
 identity_file_default = '/etc/maas/ansible/id_rsa'
+onos_log_level = 'INFO'
 
 ##sets up the ssh key file for the test container
 def set_ssh_key_file(identity_file):
@@ -339,6 +340,7 @@ def runTest(args):
     test_server_params = args.server.split(':')
     test_host = test_server_params[0]
     test_port = CORD_TEST_PORT
+    log_level = args.log_level.upper()
     if len(test_server_params) > 1:
         test_port = int(test_server_params[1])
     try:
@@ -477,6 +479,7 @@ def runTest(args):
                      'CORD_TEST_HOST' : test_host,
                      'CORD_TEST_PORT' : test_port,
                      'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
+                     'LOG_LEVEL': log_level,
                      'MANIFEST': int(use_manifest),
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key
@@ -572,7 +575,7 @@ def setupCordTester(args):
     nose_cnt = {'image': CordTester.IMAGE, 'tag': 'candidate'}
     update_map = { 'quagga' : False, 'radius' : False, 'test': False }
     update_map[args.update.lower()] = True
-
+    log_level = args.log_level.upper()
     if args.update.lower() == 'all':
        for c in update_map.keys():
            update_map[c] = True
@@ -708,6 +711,7 @@ def setupCordTester(args):
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
                          'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
+                         'LOG_LEVEL': log_level,
                          'MANIFEST': int(use_manifest),
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                          'MAAS_API_KEY': maas_api_key
@@ -963,6 +967,10 @@ if __name__ == '__main__':
     parser_run.add_argument('-j', '--onos-instances', default=1, type=int,
                             help='Specify number to test onos instances to form cluster')
     parser_run.add_argument('-v', '--shared-volume', action='store_true', help='Start ONOS cluster instances with shared volume')
+    parser_run.add_argument('-log', '--log-level', default=onos_log_level,
+                            choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
+                            type=str,
+                            help='Specify the log level for the test cases')
     parser_run.set_defaults(func=runTest)
 
 
@@ -980,6 +988,9 @@ if __name__ == '__main__':
                         '    --update=all to rebuild all cord tester images.')
     parser_setup.add_argument('-d', '--dont-provision', action='store_true', help='Dont start test container.')
     parser_setup.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
+    parser_setup.add_argument('-log', '--log-level', default=onos_log_level, type=str,
+                              choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
+                              help='Specify the log level for the test cases')
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
     parser_setup.add_argument('-c', '--onos-cord', default='', type=str,
                               help='Specify cord location for ONOS cord when running on podd')

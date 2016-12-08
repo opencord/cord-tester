@@ -22,4 +22,5 @@ subscriber_dir = os.path.join(working_dir, '../subscriber')
 __path__.append(utils_dir)
 __path__.append(fsm_dir)
 __path__.append(subscriber_dir)
-
+cli_dir = os.path.join(working_dir, '../cli')
+__path__.append(cli_dir)
