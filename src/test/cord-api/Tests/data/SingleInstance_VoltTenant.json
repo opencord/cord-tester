@@ -1,0 +1,31 @@
+{
+    "voltSubscriberInfo" : [
+    {
+      "voltTenant" : 
+       {
+         "s_tag" : "111",
+         "c_tag" : "222",
+         "subscriber" : ""
+       },
+       "account_num" : 20
+    },
+    {
+     "voltTenant" : 
+      {
+        "s_tag" : "111",
+        "c_tag" : "333",
+        "subscriber" : ""
+      },
+      "account_num" : 21
+    },
+    {
+     "voltTenant" :
+      {
+        "s_tag" : "111",
+        "c_tag" : "444",
+        "subscriber" : ""
+      },
+     "account_num" : 22
+    }
+ ]
+} 
