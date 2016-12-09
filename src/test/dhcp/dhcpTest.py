@@ -147,16 +147,46 @@ class dhcp_exchange(CordLogger):
                   'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = self.iface)
-        self.send_recv()
+        self.send_recv(mac=mac)
 
-    def test_dhcp_Nrequest(self):
+    def test_dhcp_1request_with_invalid_source_mac_broadcast(self):
+        config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
+                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = self.iface)
+	cip, sip, mac, _ = self.dhcp.only_discover(mac='ff:ff:ff:ff:ff:ff')
+	assert_equal(cip,None)
+	log.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
+
+    def test_dhcp_1request_with_invalid_source_mac_multicast(self):
+        config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
+                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = self.iface)
+        cip, sip, mac, _ = self.dhcp.only_discover(mac='01:80:c2:91:02:e4')
+        assert_equal(cip,None)
+        log.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
+
+    def test_dhcp_1request_with_invalid_source_mac_zero(self):
+        config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
+                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+        self.onos_dhcp_table_load(config)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = self.iface)
+        cip, sip, mac, _ = self.dhcp.only_discover(mac='00:00:00:00:00:00')
+        assert_equal(cip,None)
+        log.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
+
+    def test_dhcp_Nrequest(self,requests=10):
         config = {'startip':'192.168.1.20', 'endip':'192.168.1.69',
                   'ip':'192.168.1.2', 'mac': "ca:fe:ca:fe:cc:fe",
                   'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
         self.onos_dhcp_table_load(config)
-        self.dhcp = DHCPTest(seed_ip = '192.169.1.1', iface = self.iface)
+        self.dhcp = DHCPTest(seed_ip = '192.168.1.1', iface = self.iface)
         ip_map = {}
-        for i in range(10):
+        for i in range(requests):
             cip, sip = self.send_recv(update_seed = True)
             if ip_map.has_key(cip):
                 log.info('IP %s given out multiple times' %cip)
@@ -164,7 +194,7 @@ class dhcp_exchange(CordLogger):
             ip_map[cip] = sip
 
     def test_dhcp_1release(self):
-        config = {'startip':'10.10.100.20', 'endip':'10.10.100.21',
+        config = {'startip':'10.10.100.20', 'endip':'10.10.100.230',
                   'ip':'10.10.100.2', 'mac': "ca:fe:ca:fe:8a:fe",
                   'subnet': '255.255.255.0', 'broadcast':'10.10.100.255', 'router':'10.10.100.1'}
         self.onos_dhcp_table_load(config)
@@ -180,7 +210,7 @@ class dhcp_exchange(CordLogger):
         assert_equal(self.dhcp.release(cip2), True)
 
     def test_dhcp_Nrelease(self):
-        config = {'startip':'192.170.1.20', 'endip':'192.170.1.30',
+        config = {'startip':'192.170.1.20', 'endip':'192.170.1.230',
                   'ip':'192.170.1.2', 'mac': "ca:fe:ca:fe:9a:fe",
                   'subnet': '255.255.255.0', 'broadcast':'192.170.1.255', 'router': '192.170.1.1'}
         self.onos_dhcp_table_load(config)
@@ -210,7 +240,7 @@ class dhcp_exchange(CordLogger):
         assert_equal(ip_map, ip_map2)
 
 
-    def test_dhcp_starvation(self):
+    def test_dhcp_starvation_positive(self):
         config = {'startip':'193.170.1.20', 'endip':'193.170.1.69',
                   'ip':'193.170.1.2', 'mac': "ca:fe:c2:fe:cc:fe",
                   'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
@@ -225,17 +255,17 @@ class dhcp_exchange(CordLogger):
             ip_map[cip] = sip
 
 
-    def test_dhcp_starvation(self):
+    def test_dhcp_starvation_negative(self):
         config = {'startip':'182.17.0.20', 'endip':'182.17.0.69',
                   'ip':'182.17.0.2', 'mac': "ca:fe:c3:fe:ca:fe",
                   'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = self.iface)
-        log.info('Verifying 1 ')
+        log.info('Verifying passitive case')
         for x in xrange(50):
             mac = RandMAC()._fix()
             self.send_recv(mac = mac)
-        log.info('Verifying 2 ')
+        log.info('Verifying negative case')
         cip, sip = self.send_recv(update_seed = True, validate = False)
         assert_equal(cip, None)
         assert_equal(sip, None)
@@ -250,15 +280,11 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %
 		  (cip, sip, mac) )
+	assert_not_equal(cip, None)
 	log.info('Triggering DHCP discover again.')
 	new_cip, new_sip, new_mac, _ = self.dhcp.only_discover()
-	if cip == new_cip:
-		log.info('Got same ip for 2nd DHCP discover for client IP %s from server %s for mac %s. Triggering DHCP Request. '
-			  % (new_cip, new_sip, new_mac) )
-	elif cip != new_cip:
-		log.info('Ip after 1st discover %s' %cip)
-                log.info('Map after 2nd discover %s' %new_cip)
-		assert_equal(cip, new_cip)
+	assert_equal(new_cip, cip)
+	log.info('client got same IP as expected when sent 2nd discovery')
 
 
     def test_dhcp_same_client_multiple_request(self):
@@ -272,54 +298,35 @@ class dhcp_exchange(CordLogger):
 	mac = self.dhcp.get_mac(cip)[0]
 	log.info("Sending DHCP request again.")
 	new_cip, new_sip = self.dhcp.only_request(cip, mac)
-	if (new_cip,new_sip) == (cip,sip):
-		log.info('Got same ip for 2nd DHCP Request for client IP %s from server %s for mac %s.'
-			  % (new_cip, new_sip, mac) )
-	elif (new_cip,new_sip):
-                log.info('No DHCP ACK')
-                assert_equal(new_cip, None)
-                assert_equal(new_sip, None)
-	else:
-		log.info('Something went wrong.')
+	assert_equal(new_cip,cip)
+	log.info('server offered same IP to clain for multiple requests, as expected')
 
     def test_dhcp_client_desired_address(self):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
-        self.dhcp = DHCPTest(seed_ip = '20.20.20.31', iface = self.iface)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.50', iface = self.iface)
 	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
+	assert_not_equal(cip, None)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
-		  (cip, sip, mac) )
-	if cip == self.dhcp.seed_ip:
-		log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %
-		  (cip, sip, mac) )
-	elif cip != self.dhcp.seed_ip:
-		log.info('Got dhcp client IP %s from server %s for mac %s .' %
-		  (cip, sip, mac) )
-		log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
-		assert_equal(cip, self.dhcp.seed_ip)
+		  (cip, sip, mac))
+	assert_equal(cip,self.dhcp.seed_ip)
+	log.info('ONOS dhcp server offered client requested IP %s as expected'%self.dhcp.seed_ip)
 
+    #test failing, server not returns NAK when requested out of pool IP
     def test_dhcp_client_desired_address_out_of_pool(self):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
-        self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = self.iface)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.75', iface = self.iface)
 	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
+	assert_not_equal(cip, None)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-	if cip == self.dhcp.seed_ip:
-		log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %
-		  (cip, sip, mac) )
-		assert_equal(cip, self.dhcp.seed_ip) #Negative Test Case
-	elif cip != self.dhcp.seed_ip:
-		log.info('Got dhcp client IP %s from server %s for mac %s .' %
-		  (cip, sip, mac) )
-		log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
-		assert_not_equal(cip, self.dhcp.seed_ip)
-	elif cip == None:
-		log.info('Got DHCP NAK')
+	assert_not_equal(cip,self.dhcp.seed_ip)
+	log.info('server offered IP from its pool of IPs when requested out of pool IP, as expected')
 
 
     def test_dhcp_server_nak_packet(self):
@@ -331,36 +338,24 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-	else:
-		new_cip, new_sip = self.dhcp.only_request('20.20.20.31', mac)
-		if new_cip == None:
-
-			log.info("Got DHCP server NAK.")
-			assert_equal(new_cip, None)  #Negative Test Case
+	assert_not_equal(cip, None)
+	new_cip, new_sip = self.dhcp.only_request('20.20.20.31', mac)
+        assert_equal(new_cip, None)  #Negative Test Case
+	log.info('dhcp servers sent NAK as expected when requested different IP from  same client')
 
 
-    def test_dhcp_lease_packet(self):
+    #test_dhcp_lease_packet
+    def test_dhcp_client_requests_specific_lease_time_in_discover(self,lease_time = 700):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = self.iface)
+	self.dhcp.return_option = 'lease'
 	log.info('Sending DHCP discover with lease time of 700')
-	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True)
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-	elif lval != 700:
-		log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %
-		 	 (cip, sip, mac, lval) )
-		assert_not_equal(lval, 700)
+	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True, lease_value = lease_time)
+        assert_equal(lval, 700)
+	log.info('dhcp server offered IP address with client requested lease  time')
 
     def test_dhcp_client_request_after_reboot(self):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
@@ -371,35 +366,15 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	else:
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
-		if new_cip == None:
-			log.info("Got DHCP server NAK.")
-		os.system('ifconfig '+self.iface+' down')
-		log.info('Client goes down.')
-		log.info('Delay for 5 seconds.')
-
-		time.sleep(5)
-
-		os.system('ifconfig '+self.iface+' up')
-		log.info('Client is up now.')
-
-		new_cip, new_sip = self.dhcp.only_request(cip, mac, cl_reboot = True)
-		if new_cip == None:
-			log.info("Got DHCP server NAK.")
-			assert_not_equal(new_cip, None)
-		elif new_cip != None:
-			log.info("Got DHCP ACK.")
-		os.system('ifconfig '+self.iface+' up')
-
-
+	assert_not_equal(cip,None)
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	log.info('verifying client IP after reboot')
+	os.system('ifconfig '+self.iface+' down')
+	time.sleep(5)
+	os.system('ifconfig '+self.iface+' up')
+	new_cip, new_sip = self.dhcp.only_request(cip, mac, cl_reboot = True)
+	assert_equal(new_cip,cip)
+	log.info('client got same ip after reboot, as expected')
 
 
     def test_dhcp_server_after_reboot(self):
@@ -411,77 +386,36 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
+	assert_not_equal(cip, None)
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	self.onos_ctrl.deactivate()
+	new_cip1, new_sip = self.dhcp.only_request(cip, mac)
+	assert_equal(new_cip1,None)
+	status, _ = self.onos_ctrl.activate()
+        assert_equal(status, True)
+	time.sleep(3)
+	new_cip2, new_sip = self.dhcp.only_request(cip, mac)
+	assert_equal(new_cip2,cip)
+	log.info('client got same ip after server reboot, as expected')
 
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	else:
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
-		if new_cip == None:
-			log.info("Got DHCP server NAK.")
-			assert_not_equal(new_cip, None)
-		log.info('Getting DHCP server Down.')
-
-		self.onos_ctrl.deactivate()
-
-		for i in range(0,4):
-			log.info("Sending DHCP Request.")
-			log.info('')
-			new_cip, new_sip = self.dhcp.only_request(cip, mac)
-			if new_cip == None and new_sip == None:
-				log.info('')
-				log.info("DHCP Request timed out.")
-			elif new_cip and new_sip:
-				log.info("Got Reply from DHCP server.")
-				assert_equal(new_cip,None) #Neagtive Test Case
-
-		log.info('Getting DHCP server Up.')
-
-		status, _ = self.onos_ctrl.activate()
-        	assert_equal(status, True)
-        	time.sleep(3)
-
-		for i in range(0,4):
-			log.info("Sending DHCP Request after DHCP server is up.")
-			log.info('')
-			new_cip, new_sip = self.dhcp.only_request(cip, mac)
-			if new_cip == None and new_sip == None:
-				log.info('')
-				log.info("DHCP Request timed out.")
-			elif new_cip and new_sip:
-				log.info("Got Reply from DHCP server.")
-				assert_equal(new_cip,None) #Neagtive Test Case
-
-
-    def test_dhcp_specific_lease_packet(self):
+    def test_dhcp_specific_lease_time_only_in_discover_but_not_in_request_packet(self,lease_time=700):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = self.iface)
 	log.info('Sending DHCP discover with lease time of 700')
-	cip, sip, mac, _ = self.dhcp.only_discover(lease_time = True)
+	cip, sip, mac, _ = self.dhcp.only_discover(lease_time = True,lease_value=lease_time)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-	elif cip and sip and mac:
-
-		log.info("Triggering DHCP Request.")
-		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True)
-		log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %
-		 	 (new_cip, new_sip, mac, lval) )
-		assert_not_equal(lval, 700) #Negative Test Case
+	assert_not_equal(cip, None)
+	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True)
+	assert_equal(new_cip,cip)
+	assert_not_equal(lval, lease_time) #Negative Test Case
+	log.info('client requested lease time only in discover but not in request, not seen in server ACK packet as expected')
 
 
-
-    def test_dhcp_lease_packet(self):
+    def test_dhcp_specific_lease_time_only_in_request_but_not_in_discover_packet(self,lease_time=800):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                  'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
                  'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
@@ -490,24 +424,10 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		log.info("Triggering DHCP Request.")
-		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True)
-		if lval == 600:
-			log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s.' %
-		 		 (new_cip, new_sip, mac, lval) )
-		else:
-			log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s.' %
-		 		 (new_cip, new_sip, mac, lval) )
-			log.info('The lease time suppossed to be 600 secs or 10 mins.')
-			assert_equal(lval, 600)
+	assert_not_equal(cip, None)
+	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True, lease_value=lease_time)
+	assert_equal(lval, lease_time)
+	log.info('client requested lease time in request packet, seen in server ACK packet as expected')
 
     def test_dhcp_client_renew_time(self):
 
@@ -519,38 +439,13 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		log.info("Triggering DHCP Request.")
-		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
-
-		if new_cip and new_sip and lval:
-
-			log.info("Clinet 's Renewal time is :%s",lval)
-			log.info("Generating delay till renewal time.")
-			time.sleep(lval)
-
-			log.info("Client Sending Unicast DHCP request.")
-			latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac, unicast = True)
-
-			if latest_cip and latest_sip:
-				log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
-						(latest_cip, mac, latest_sip) )
-
-			elif latest_cip == None:
-				log.info("Got DHCP NAK. Lease not renewed.")
-
-		elif new_cip == None or new_sip == None or lval == None:
-
-			log.info("Got DHCP NAK.")
-
-
+	assert_not_equal(cip, None)
+	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
+	log.info('waiting renew  time %d seconds to send next request packet'%lval)
+	time.sleep(lval)
+	latest_cip, latest_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
+	assert_equal(latest_cip,cip)
+	log.info('client got same IP after renew time, as expected')
 
     def test_dhcp_client_rebind_time(self):
 
@@ -562,40 +457,13 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		log.info("Triggering DHCP Request.")
-		new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, rebind_time = True)
-
-		if new_cip and new_sip and lval:
-
-			log.info("Clinet 's Rebind time is :%s",lval)
-			log.info("Generating delay till rebind time.")
-			time.sleep(lval)
-
-			log.info("Client Sending broadcast DHCP requests for renewing lease or for getting new ip.")
-
-			for i in range(0,4):
-				latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac)
-
-				if latest_cip and latest_sip:
-					log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
-							(latest_cip, mac, latest_sip) )
-					break
-
-				elif latest_cip == None:
-					log.info("Got DHCP NAK. Lease not renewed.")
-			assert_not_equal(latest_cip, None)
-		elif new_cip == None or new_sip == None or lval == None:
-
-			log.info("Got DHCP NAK.Lease not Renewed.")
-
+	assert_not_equal(cip, None)
+	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, rebind_time = True)
+	log.info('waiting rebind time %d seconds to send next request packet'%lval)
+	time.sleep(lval)
+	latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac)
+	assert_equal(latest_cip,cip)
+	log.info('client got same IP after rebind time, as expected')
 
     def test_dhcp_client_expected_subnet_mask(self):
 
@@ -606,25 +474,12 @@ class dhcp_exchange(CordLogger):
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = self.iface)
 	expected_subnet = '255.255.255.0'
 	self.dhcp.return_option = 'subnet'
-
-	cip, sip, mac, subnet_value = self.dhcp.only_discover()
+	cip, sip, mac, subnet_mask = self.dhcp.only_discover()
+	assert_equal(subnet_mask, expected_subnet)
+	assert_not_equal(cip, None)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		if expected_subnet == subnet_value:
-			log.info("Got same subnet as passed in DHCP server configuration.")
-
-		elif expected_subnet != subnet_value:
-			log.info("Not getting same subnet as passed in DHCP server configuration.")
-			assert_equal(expected_subnet, subnet_value)
-
+	log.info('seen expected subnet mask %s in dhcp offer packet'%subnet_mask)
 
     def test_dhcp_client_sends_dhcp_request_with_wrong_subnet_mask(self):
 
@@ -637,26 +492,11 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		self.dhcp.send_different_option = 'subnet'
-		log.info("Sending DHCP Request with wrong subnet mask.")
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
-		if new_cip == None:
-
-			log.info("Got DHCP NAK.")
-			assert_not_equal(new_cip, None)
-
-		elif new_cip and new_sip:
-
-			log.info("Got DHCP Ack despite of specifying wrong Subnet Mask in DHCP Request.")
-			log.info("Getting subnet mask as per server 's configuration.")
+	assert_not_equal(cip, None)
+	self.dhcp.send_different_option = 'subnet'
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	assert_equal(new_cip, cip)
+	log.info("Got DHCP Ack despite of specifying wrong Subnet Mask in DHCP Request.")
 
 
     def test_dhcp_client_expected_router_address(self):
@@ -669,24 +509,12 @@ class dhcp_exchange(CordLogger):
 	expected_router_address = '20.20.20.1'
 	self.dhcp.return_option = 'router'
 
-	cip, sip, mac, router_address_value = self.dhcp.only_discover()
+	cip, sip, mac, router_address_ip = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		if expected_router_address == router_address_value:
-			log.info("Got same router address as passed in DHCP server configuration.")
-
-		elif expected_router_address != router_address_value:
-			log.info("Not getting same router address as passed in DHCP server configuration.")
-			assert_equal(expected_router_address, router_address_value)
-
+	assert_not_equal(cip, None)
+	assert_equal(expected_router_address, router_address_ip)
+	log.info('seen expected rouer address %s ip in dhcp offer packet'%router_address_ip)
 
     def test_dhcp_client_sends_dhcp_request_with_wrong_router_address(self):
 
@@ -699,26 +527,11 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		self.dhcp.send_different_option = 'router'
-		log.info("Sending DHCP Request with wrong router address.")
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
-		if new_cip == None:
-
-			log.info("Got DHCP NAK.")
-			assert_not_equal(new_cip, None)
-
-		elif new_cip and new_sip:
-
-			log.info("Got DHCP Ack despite of specifying wrong Router Address in DHCP Request.")
-			log.info("Getting Router Address as per server 's configuration.")
+	assert_not_equal(cip, None)
+	self.dhcp.send_different_option = 'router'
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	assert_equal(new_cip, cip)
+	log.info("Got DHCP Ack despite of specifying wrong Router Address in DHCP Request.")
 
 
     def test_dhcp_client_expected_broadcast_address(self):
@@ -731,24 +544,12 @@ class dhcp_exchange(CordLogger):
 	expected_broadcast_address = '20.20.20.255'
 	self.dhcp.return_option = 'broadcast_address'
 
-	cip, sip, mac, broadcast_address_value = self.dhcp.only_discover()
+	cip, sip, mac, broadcast_address = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		if expected_broadcast_address == broadcast_address_value:
-			log.info("Got same router address as passed in DHCP server configuration.")
-
-		elif expected_broadcast_address != broadcast_address_value:
-			log.info("Not getting same router address as passed in DHCP server configuration.")
-			assert_equal(expected_broadcast_address, broadcast_address_value)
-
+	assert_not_equal(cip, None)
+	assert_equal(expected_broadcast_address, broadcast_address)
+	log.info('seen expected broadcast address %s in dhcp offer packet'%broadcast_address)
 
     def test_dhcp_client_sends_dhcp_request_with_wrong_broadcast_address(self):
 
@@ -761,26 +562,11 @@ class dhcp_exchange(CordLogger):
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		self.dhcp.send_different_option = 'broadcast_address'
-		log.info("Sending DHCP Request with wrong broadcast address.")
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
-		if new_cip == None:
-
-			log.info("Got DHCP NAK.")
-			assert_not_equal(new_cip, None)
-
-		elif new_cip and new_sip:
-
-			log.info("Got DHCP Ack despite of specifying wrong Broadcast Address in DHCP Request.")
-			log.info("Getting Broadcast Address as per server 's configuration.")
+	assert_not_equal(cip, None)
+	self.dhcp.send_different_option = 'broadcast_address'
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	assert_equal(new_cip, cip)
+	log.info("Got DHCP Ack despite of specifying wrong Broadcast Address in DHCP Request.")
 
     def test_dhcp_client_expected_dns_address(self):
 
@@ -792,24 +578,12 @@ class dhcp_exchange(CordLogger):
 	expected_dns_address = '8.8.8.8'
 	self.dhcp.return_option = 'dns'
 
-	cip, sip, mac, dns_address_value = self.dhcp.only_discover()
+	cip, sip, mac, dns_address = self.dhcp.only_discover()
+	assert_not_equal(cip, None)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		if expected_dns_address == dns_address_value:
-			log.info("Got same DNS address as passed in DHCP server configuration.")
-
-		elif expected_dns_address != dns_address_value:
-			log.info("Not getting same DNS address as passed in DHCP server configuration.")
-			assert_equal(expected_dns_address, dns_address_value)
-
+	assert_equal(expected_dns_address, dns_address)
+	log.info('seen expected DNS ip address %s in dhcp offer packet'%dns_address)
 
     def test_dhcp_client_sends_request_with_wrong_dns_address(self):
 
@@ -820,25 +594,13 @@ class dhcp_exchange(CordLogger):
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = self.iface)
 
 	cip, sip, mac, _ = self.dhcp.only_discover()
+	assert_not_equal(cip, None)
 	log.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
-
-	log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
-	if (cip == None and mac != None):
-		log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
-		assert_not_equal(cip, None)
-
-	elif cip and sip and mac:
-
-		self.dhcp.send_different_option = 'dns'
-		log.info("Sending DHCP Request with wrong DNS address.")
-		new_cip, new_sip = self.dhcp.only_request(cip, mac)
-		if new_cip == None:
-			log.info("Got DHCP NAK.")
-			assert_not_equal(new_cip, None)
-		elif new_cip and new_sip:
-			log.info("Got DHCP Ack despite of specifying wrong DNS Address in DHCP Request.")
-			log.info("Getting DNS Address as per server 's configuration.")
+	self.dhcp.send_different_option = 'dns'
+	new_cip, new_sip = self.dhcp.only_request(cip, mac)
+	assert_equal(new_cip, cip)
+	log.info("Got DHCP Ack despite of specifying wrong DNS Address in DHCP Request.")
 
     def test_dhcp_server_transactions_per_second(self):
 
@@ -925,3 +687,4 @@ class dhcp_exchange(CordLogger):
 	log.info("----------------------------------------------------------------------------------")
 	log.info("Average no. of consecutive successful clients per second: %d", round(self.total_success/self.running_time,0))
 	log.info("----------------------------------------------------------------------------------")
+

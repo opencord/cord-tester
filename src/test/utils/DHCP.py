@@ -20,10 +20,11 @@ conf.checkIPaddr = 0 # Don't check response packets for matching destination IPs
 
 class DHCPTest:
 
-    def __init__(self, seed_ip = '192.168.1.1', iface = 'veth0'):
+    def __init__(self, seed_ip = '192.168.1.1', iface = 'veth0',lease_time=600):
         self.seed_ip = seed_ip
         self.seed_mac = self.ipToMac(self.seed_ip)
         self.iface = iface
+	self.lease_time = lease_time
         self.mac_map = {}
         self.mac_inverse_map = {}
 	self.bootpmac = None
@@ -49,6 +50,7 @@ class DHCPTest:
                 mac = self.seed_mac
 
         chmac = self.macToChaddr(mac)
+	#log.info('mac and chmac are %s %s'%(mac, chmac))
 	self.bootpmac = chmac
         L2 = Ether(dst="ff:ff:ff:ff:ff:ff", src=mac)
         L3 = IP(src="0.0.0.0", dst="255.255.255.255")
@@ -56,7 +58,9 @@ class DHCPTest:
         L5 = BOOTP(chaddr=chmac)
         L6 = DHCP(options=[("message-type","discover"),"end"])
         resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
+	#log.info('dhcp discover packet is %s'%(L2/L3/L4/L5/L6).show())
         self.dhcpresp = resp
+	#log.info('discover response is %s'%resp.show())
         try:
             srcIP = resp.yiaddr
             serverIP = resp.siaddr
@@ -77,12 +81,13 @@ class DHCPTest:
         L5 = BOOTP(chaddr=chmac, yiaddr=srcIP)
         L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
                            ("subnet_mask",subnet_mask), ("requested_addr",srcIP), "end"])
-        srp(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
+        resp2 = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
+	#log.info('request response is %s'%resp2.show())
         self.mac_map[mac] = (srcIP, serverIP)
         self.mac_inverse_map[srcIP] = (mac, serverIP)
         return (srcIP, serverIP)
 
-    def only_discover(self, mac = None, desired = False, lease_time = False, multiple = False):
+    def only_discover(self, mac = None, desired = False, lease_time = False, lease_value=600, multiple = False):
         '''Send a DHCP discover'''
 
         if mac is None:
@@ -102,15 +107,17 @@ class DHCPTest:
 		L6 = DHCP(options=[("message-type","discover"),("requested_addr",self.seed_ip),"end"])
 
 	elif lease_time:
-		L6 = DHCP(options=[("message-type","discover"),("lease_time",700),"end"])
+		L6 = DHCP(options=[("message-type","discover"),("lease_time",lease_value),"end"])
 
 	else:
 	        L6 = DHCP(options=[("message-type","discover"),"end"])
-
+	#log.info('only discover packet is %s'%(L2/L3/L4/L5/L6).show())
 
         resp = srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
+	#log.info('discovery packet is %s'%(L2/L3/L4/L5/L6).show())
 	if resp == None:
                 return (None, None, mac, None)
+	#log.info('only discover response is %s'%resp.show())
 
 	self.dhcpresp = resp
         for x in resp.lastlayer().options:
@@ -159,7 +166,7 @@ class DHCPTest:
 			return (None, None, mac, None)
 
 
-    def only_request(self, cip, mac, cl_reboot = False, lease_time = False, renew_time = False, rebind_time = False, unicast = False):
+    def only_request(self, cip, mac, cl_reboot = False, lease_time = False, lease_value=600, renew_time = False, rebind_time = False, unicast = False):
         '''Send a DHCP offer'''
 
 	subnet_mask = "0.0.0.0"
@@ -194,7 +201,7 @@ class DHCPTest:
 	elif self.send_different_option:
 		if self.send_different_option == 'subnet':
 	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
-        	                   	("subnet_mask",'255.255.252.0'), ("requested_addr",cip), "end"])
+        	                   	("subnet_mask",'255.255.252.252'), ("requested_addr",cip), "end"])
 		elif self.send_different_option == 'router':
 	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
         	                   	("subnet_mask",subnet_mask), ("router",'1.1.1.1'), ("requested_addr",cip), "end"])
@@ -206,14 +213,16 @@ class DHCPTest:
 	       		L6 = DHCP(options=[("message-type","request"),("server_id",server_id),
         	                   	("subnet_mask",subnet_mask), ("name_server",'1.1.1.1'), ("requested_addr",cip), "end"])
 
-	elif self.specific_lease:
+	elif lease_time:
              L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
-                                ("subnet_mask",subnet_mask), ("requested_addr",cip),("lease_time",self.specific_lease), "end"])
+                                ("subnet_mask",subnet_mask), ("requested_addr",cip),("lease_time",lease_value), "end"])
 	else:
              L6 = DHCP(options=[("message-type","request"), ("server_id",server_id),
                            	("subnet_mask",subnet_mask), ("requested_addr",cip), "end"])
 
 	resp=srp1(L2/L3/L4/L5/L6, filter="udp and port 68", timeout=10, iface=self.iface)
+	#log.info('request packet is %s'%(L2/L3/L4/L5/L6).show())
+	#log.info('response packet is %s'%resp.show())
 	if resp == None:
         	return (None, None)
 
@@ -289,7 +298,8 @@ class DHCPTest:
         L4 = UDP(sport=68, dport=67)
         L5 = BOOTP(chaddr=chmac, ciaddr = ip)
         L6 = DHCP(options=[("message-type","release"), ("server_id", server_ip), "end"])
-        sendp(L2/L3/L4/L5/L6, iface = self.iface)
+        sendp(L2/L3/L4/L5/L6, iface = self.iface, count=2)
+	#log.info('release response is %s'%resp)
         del self.mac_map[mac]
         del self.mac_inverse_map[ip]
         return True
@@ -340,3 +350,4 @@ class DHCPTest:
 
         n -= 1
         return self.incIP(".".join(o), n)
+
