@@ -12,6 +12,8 @@ class CordLogger(unittest.TestCase):
     onosLogLevel = 'INFO'
     curLogLevel = onosLogLevel
     testLogLevel = os.getenv('LOG_LEVEL', onosLogLevel)
+    setup_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../setup')
+    archive_dir = os.path.join(setup_dir, 'test_logs')
 
     @classmethod
     def cliSessionEnter(cls):
@@ -61,6 +63,42 @@ class CordLogger(unittest.TestCase):
             else:
                 log.info('\nTest %s has no errors and warnings in the logs' %self._testMethodName)
         except: pass
+        try:
+            self.archive_results(self._testMethodName)
+        except: pass
+
+    @classmethod
+    def archive_results(cls, testName, controllers = None, iteration = None, cache_result = False):
+        log_map = {}
+        if controllers is None:
+            controllers = cls.controllers
+        else:
+            if type(controllers) in [ str, unicode ]:
+                controllers = [ controllers ]
+        try:
+            for controller in controllers:
+                onosLog = OnosLog(host = controller)
+                st, output = onosLog.get_log(cache_result = cache_result)
+                log_map[controller] = (st, output)
+        except:
+            return
+
+        if not os.path.exists(cls.archive_dir):
+            os.mkdir(cls.archive_dir)
+        for controller, results in log_map.items():
+            st, output = results
+            if st and output:
+                iteration_str = '' if iteration is None else '_{}'.format(iteration)
+                archive_file = os.path.join(cls.archive_dir,
+                                            'logs_{}_{}{}'.format(controller, testName, iteration_str))
+                archive_cmd = 'gzip -9 -f {}'.format(archive_file)
+                if os.access(archive_file, os.F_OK):
+                    os.unlink(archive_file)
+                with open(archive_file, 'w') as fd:
+                    fd.write(output)
+                try:
+                    os.system(archive_cmd)
+                except: pass
 
     @classmethod
     def logSet(cls, level = None, app = 'org.onosproject', controllers = None, forced = False):

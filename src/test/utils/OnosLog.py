@@ -25,7 +25,7 @@ class OnosLog(object):
     def update_last_snapshot(cls, host, res):
         cls.last_snapshot_map[host] = res
 
-    def get_log(self, search_terms = None, exception = True):
+    def get_log(self, search_terms = None, exception = True, cache_result = True):
         """Run the command on the test host"""
         cmd = 'cat /root/onos/apache-karaf-3.0.5/data/log/karaf.log'
         st, output = self.ssh_agent.run_cmd(cmd)
@@ -56,7 +56,8 @@ class OnosLog(object):
             output += '\n'.join(exception_map['Exception'])
 
         #update the last snapshot
-        self.update_last_snapshot(self.ssh_agent.host, lines)
+        if cache_result is True:
+            self.update_last_snapshot(self.ssh_agent.host, lines)
         return st, output
 
     def search_log_pattern(self, pattern):

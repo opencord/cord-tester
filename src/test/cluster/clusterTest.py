@@ -388,6 +388,11 @@ class cluster_exchange(CordLogger):
             except:
                 time.sleep(5)
                 continue
+
+            #first archive the test case logs for this run
+            CordLogger.archive_results('test_cluster_controller_restarts',
+                                       controllers = controllers,
+                                       iteration = 'iteration_{}'.format(num+1))
             next_controller = check_exception(controller = controller)
 
     def test_cluster_single_controller_restarts(self):
@@ -457,6 +462,10 @@ class cluster_exchange(CordLogger):
             log.info('Restarting back the controller %s' %controller_name)
             cord_test_onos_restart(node = controller_name)
             time.sleep(60)
+            #archive the logs for this run
+            CordLogger.archive_results('test_cluster_single_controller_restarts',
+                                       controllers = controllers,
+                                       iteration = 'iteration_{}'.format(num+1))
             check_exception(controller, inclusive = True)
 
     def test_cluster_restarts(self):
@@ -510,6 +519,11 @@ class cluster_exchange(CordLogger):
             except:
                 time.sleep(10)
                 continue
+
+            #archive the logs for this run before verification
+            CordLogger.archive_results('test_cluster_restarts',
+                                       controllers = controllers,
+                                       iteration = 'iteration_{}'.format(num+1))
             #check for exceptions on the adjacent nodes
             check_exception()
 
