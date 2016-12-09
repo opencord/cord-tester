@@ -203,9 +203,14 @@ def __cord_test_onos_restart(**kwargs):
 @nottest
 def cord_test_onos_restart(node = None, config = None, timeout = 10):
     '''Send ONOS restart to server'''
-    data = __cord_test_onos_restart(node = node, config = config, timeout = timeout)
-    if data == 'DONE':
-        return True
+    for i in range(3):
+        try:
+            data = __cord_test_onos_restart(node = node, config = config, timeout = timeout)
+            if data == 'DONE':
+                return True
+        except:
+            time.sleep(2)
+
     return False
 
 @nottest
@@ -225,9 +230,14 @@ def __cord_test_restart_cluster(**kwargs):
 
 @nottest
 def cord_test_restart_cluster(config = None, timeout = 10, setup = False):
-    data = __cord_test_restart_cluster(config = config, timeout = timeout, setup = setup)
-    if data == 'DONE':
-        return True
+    for i in range(3):
+        try:
+            data = __cord_test_restart_cluster(config = config, timeout = timeout, setup = setup)
+            if data == 'DONE':
+                return True
+        except:
+            time.sleep(2)
+
     return False
 
 @nottest

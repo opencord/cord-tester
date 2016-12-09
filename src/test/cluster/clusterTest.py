@@ -81,10 +81,10 @@ class cluster_exchange(CordLogger):
         controllers = os.getenv('ONOS_CONTROLLER_IP') or ''
         return controllers.split(',')
 
-    def cliEnter(self,controller = None):
+    def cliEnter(self, controller = None):
         retries = 0
-        while retries < 3:
-            self.cli = OnosCliDriver(controller = controller,connect = True)
+        while retries < 30:
+            self.cli = OnosCliDriver(controller = controller, connect = True)
             if self.cli.handle:
                 break
             else:
@@ -439,7 +439,7 @@ class cluster_exchange(CordLogger):
                 if controller in ips and inclusive is False:
                     log.info('Controller %s still ACTIVE on Node %s after it was shutdown' %(controller, ctlr))
                 if controller not in ips and inclusive is True:
-                    log.info('Controller %s still INACTIVE on Node %s after it was shutdown' %(controller, ctlr))
+                    log.info('Controller %s still INACTIVE on Node %s after it was restarted' %(controller, ctlr))
 
             return controller
 
@@ -447,8 +447,10 @@ class cluster_exchange(CordLogger):
         #chose a random controller for shutdown/restarts
         controller = controllers[random.randrange(0, ctlr_len)]
         controller_name = onos_map[controller]
+        ##enable the log level for the controllers
+        self.log_set(controllers = controllers)
+        self.log_set(app = 'io.atomix', controllers = controllers)
         for num in range(tries):
-            index = num % ctlr_len
             log.info('ITERATION: %d. Shutting down Controller %s' %(num + 1, controller_name))
             try:
                 cord_test_onos_shutdown(node = controller_name)
@@ -461,6 +463,8 @@ class cluster_exchange(CordLogger):
             #Now restart the controller back
             log.info('Restarting back the controller %s' %controller_name)
             cord_test_onos_restart(node = controller_name)
+            self.log_set(controllers = controller)
+            self.log_set(app = 'io.atomix', controllers = controller)
             time.sleep(60)
             #archive the logs for this run
             CordLogger.archive_results('test_cluster_single_controller_restarts',
@@ -514,6 +518,8 @@ class cluster_exchange(CordLogger):
             log.info('ITERATION: %d. Restarting cluster with controllers at %s' %(num+1, controllers))
             try:
                 cord_test_restart_cluster()
+                self.log_set(controllers = controllers)
+                self.log_set(app = 'io.atomix', controllers = controllers)
                 log.info('Delaying before verifying cluster status')
                 time.sleep(60)
             except:

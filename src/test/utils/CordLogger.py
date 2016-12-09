@@ -22,7 +22,7 @@ class CordLogger(unittest.TestCase):
                 if not controller:
                     continue
                 retries = 0
-                while retries < 3:
+                while retries < 30:
                     cli = OnosCliDriver(controller = controller, connect = True)
                     if cli.handle:
                         cls.cliSessions[controller] = cli
