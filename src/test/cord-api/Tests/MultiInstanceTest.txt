@@ -1,0 +1,100 @@
+*** Settings ***
+Documentation     Test suite for Instance creation for multiple subscribers with different "s_tags"
+Suite Setup       Read InputFile
+Test Template     Verify Instance Functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Subscriber.json
+${PATHFILE2}      ${CURDIR}/data/VoltTenant.json
+
+*** Test Cases ***    TYPE                 LISTINDEX
+Test Create Instance-1
+                      SUBSCRIBER_CREATE    0
+
+Test Create Subscriber-2
+                      SUBSCRIBER_CREATE    1
+
+Test Create Subscriber-3
+                      SUBSCRIBER_CREATE    2
+
+Test Create Tenant-1
+                      TENANT_CREATE        0
+
+Test Create Tenant-2
+                      TENANT_CREATE        1
+
+Test Create Tenant-3
+                      TENANT_CREATE        2
+
+Test Instance creation validation-1
+                      INSTANCE_VALIDATE    0
+
+Test Instance creation validation-2
+                      INSTANCE_VALIDATE    1
+
+Test Instance creation validation-3
+                      INSTANCE_VALIDATE    2
+
+*** Keywords ***
+Read InputFile
+    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    Set Suite Variable    ${slist}    ${subscriberList}
+    ${voltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
+    Set Suite Variable    ${vlist}    ${voltList}
+
+Verify Instance functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "SUBSCRIBER_CREATE"    Test Post Subscriber Create    ${listIndex}
+    Run Keyword If    "${type}" == "TENANT_CREATE"    Test Post volt Tenant Create    ${listIndex}
+    Run Keyword If    "${type}" == "INSTANCE_VALIDATE"    Test Instance Validation    ${listIndex}
+
+Test Post Subscriber Create
+    [Arguments]    ${listIndex}
+    ${subscriberList} =    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    TENANT_SUBSCRIBER    ${subscriberDict}
+    Should Be True    ${api_result}
+
+Test Post volt Tenant Create
+    [Arguments]    ${listIndex}
+    ${voltTenantList} =    Get Variable Value    ${vlist}
+    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
+    ${account_num}=    Get From Dictionary    ${voltTenantDict}    account_num
+    ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result}    account_num    ${account_num}
+    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    ${updatedVoltDict}=    utils.setFieldValueInDict    ${voltDict}    subscriber    ${subscriberID}
+    ${api_result}=    restApi.ApiPost    TENANT_VOLT    ${updatedVoltDict}
+    Should Be True    ${api_result}
+    # Verifying Get operation after POST
+    ${getVolt_result}=    restApi.ApiGet    TENANT_VOLT
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result}    subscriber    ${subscriberID}
+    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    Should Be True    ${test_result}
+
+Test Instance Validation
+    [Arguments]    ${listIndex}
+    ${voltTenantList}=    Get Variable Value    ${vlist}
+    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
+    ${input_sTag}=    Get From Dictionary    ${voltDict}    s_tag
+    ${get_result}=    restApi.ApiGet    TENANT_VOLT
+    ${tenantDict}=    utils.getDictFromListofDict    ${get_result}    s_tag    ${input_sTag}
+    Log    ${tenantDict}
+    ${instance_id_fromvolt}=    utils.getFieldValueFromDict    ${tenantDict}    instance_id
+    ${instance_name}=    utils.getFieldValueFromDict    ${tenantDict}    instance_name
+    ${instance_id_name}=    Catenate    SEPARATOR=-    ${instance_name}    ${instance_id_fromvolt}
+    ${get_instanceresult}=    restApi.ApiGet    CORE_INSTANCES
+    ${instanceDict}=    utils.getDictFromListofDict    ${get_instanceresult}    instance_name    ${instance_id_name}
+    ${instance_id_fromCore}=    utils.getFieldValueFromDict    ${instanceDict}    id
+    Should Be Equal As Strings    ${instance_id_fromvolt}    ${instance_id_fromCore}
