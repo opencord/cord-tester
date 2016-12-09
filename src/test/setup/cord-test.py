@@ -642,6 +642,14 @@ def setupCordTester(args):
     cluster_mode = True if args.onos_instances > 1 else False
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
     setup_cluster = False if len(existing_list) == args.onos_instances else True
+    #cleanup existing volumes before forming a new cluster
+    if setup_cluster is True:
+        print('Cleaning up existing cluster volumes')
+        data_dir = os.path.join(Onos.setup_dir, 'cord-onos*-data')
+        try:
+            os.system('rm -rf {}'.format(data_dir))
+        except: pass
+
     onos = None
     if onos_ip is None:
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
