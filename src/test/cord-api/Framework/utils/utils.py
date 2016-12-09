@@ -60,6 +60,26 @@ class utils(object):
         return True
 
     '''
+    @method compare_list_of_dicts
+    @Description: validates if contents of dicts in list1 exists in dicts of list2
+    returns True if for each dict in list1, there's a dict in list2 that contains its content
+    '''
+    def compare_list_of_dicts(self, list1, list2):
+        for dict1 in list1:
+            if dict1 == {}:
+                continue
+            key = dict1.keys()[0]
+            value = dict1[key]
+            dict2 = self.getDictFromListOfDict(list2, key, value)
+            if dict2 == {}:
+                print "Comparison failed: no dictionaries found in list2 with key", key, "and value", value
+                return False
+            if self.compare_dict(dict1, dict2) == False:
+                print "Comparison failed: dictionary", dict1, "is not a subset of dictionary", dict2
+                return False
+        return True
+
+    '''
     @method search_dictionary
     @Description: Searches for a key in the provided nested dictionary
     @params: input_dict = dictionary to be searched

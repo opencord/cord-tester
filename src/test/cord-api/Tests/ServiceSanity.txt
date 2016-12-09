@@ -1,0 +1,35 @@
+*** Settings ***
+Documentation     Test suite for Service sanity verification
+Suite Setup       Read InputFile
+Test Template     Verify Service Sanity
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/defaultServices.json
+
+*** Test Cases ***      TYPE
+Test Service Sanity     SANITY
+
+*** Keywords ***
+Read InputFile
+    ${serviceList}=    utils.jsonToList    ${PATHFILE}    ServiceInfo
+    Set Suite Variable    ${slist}    ${serviceList}
+
+Verify Service Sanity
+    [Arguments]    ${type}
+    Run Keyword If    "${type}" == "SANITY"    Test Service Sanity
+
+Test Service Sanity
+    ${json_result}=    restApi.ApiGet   CORE_SERVICES
+    Log    ${json_result}
+    ${serviceList}=    Get Variable Value    ${slist}
+    ${test_result}=    utils.compare_list_of_dicts    ${serviceList}    ${json_result}
+    Should Be True    ${test_result}
