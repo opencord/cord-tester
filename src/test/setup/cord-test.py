@@ -400,8 +400,10 @@ def runTest(args):
 
     Container.IMAGE_PREFIX = args.prefix
     cluster_mode = True if args.onos_instances > 1 else False
+    async_mode = cluster_mode and args.async_mode
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
     setup_cluster = False if len(existing_list) == args.onos_instances else True
+    onos_ips = []
     if onos_ip is None:
         image_names = args.onos.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
@@ -417,9 +419,14 @@ def runTest(args):
         Onos.TAG = onos_cnt['tag']
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE,
-                    tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode, data_volume = data_volume)
-        onos_ip = onos.ip()
-    onos_ips = [ onos_ip ]
+                    tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
+                    data_volume = data_volume, async = async_mode)
+        if onos.running:
+            onos_ip = onos.ipaddr
+            onos_ips.append(onos_ip)
+    else:
+        onos_ips.append(onos_ip)
+
     num_onos_instances = args.onos_instances
     if num_onos_instances > 1 and onos is not None:
         onos_instances = []
@@ -427,10 +434,17 @@ def runTest(args):
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
             data_volume = '{}-data'.format(name) if args.shared_volume else None
+            quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                        data_volume = data_volume)
+                        data_volume = data_volume, async = async_mode, quagga_config = quagga_config)
             onos_instances.append(onos)
-            onos_ips.append(onos.ipaddr)
+            if onos.running:
+                onos_ips.append(onos.ipaddr)
+        if async_mode is True:
+            Onos.start_cluster_async(onos_instances)
+        if not onos_ips:
+            for onos in onos_instances:
+                onos_ips.append(onos.ipaddr)
         try:
             for ip in onos_ips:
                 print('Installing cord tester ONOS app %s in ONOS instance %s' %(args.app,ip))
@@ -640,6 +654,7 @@ def setupCordTester(args):
     Onos.PREFIX = args.prefix
     Onos.TAG = onos_cnt['tag']
     cluster_mode = True if args.onos_instances > 1 else False
+    async_mode = cluster_mode and args.async_mode
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
     setup_cluster = False if len(existing_list) == args.onos_instances else True
     #cleanup existing volumes before forming a new cluster
@@ -651,24 +666,35 @@ def setupCordTester(args):
         except: pass
 
     onos = None
+    onos_ips = []
     if onos_ip is None:
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume)
-        onos_ip = onos.ip()
+                    data_volume = data_volume, async = async_mode)
+        if onos.running:
+            onos_ip = onos.ipaddr
+            onos_ips.append(onos_ip)
+    else:
+        onos_ips.append(onos_ip)
 
     num_onos_instances = args.onos_instances
-    onos_ips = [ onos_ip ]
     if num_onos_instances > 1 and onos is not None:
         onos_instances = []
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
             data_volume = '{}-data'.format(name) if args.shared_volume else None
+            quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                        data_volume = data_volume)
+                        data_volume = data_volume, async = async_mode, quagga_config = quagga_config)
             onos_instances.append(onos)
-            onos_ips.append(onos.ipaddr)
+            if onos.running:
+                onos_ips.append(onos.ipaddr)
+        if async_mode is True:
+            Onos.start_cluster_async(onos_instances)
+        if not onos_ips:
+            for onos in onos_instances:
+                onos_ips.append(onos.ipaddr)
         if setup_cluster is True:
             Onos.setup_cluster(onos_instances)
 
@@ -975,6 +1001,8 @@ if __name__ == '__main__':
     parser_run.add_argument('-j', '--onos-instances', default=1, type=int,
                             help='Specify number to test onos instances to form cluster')
     parser_run.add_argument('-v', '--shared-volume', action='store_true', help='Start ONOS cluster instances with shared volume')
+    parser_run.add_argument('-async', '--async-mode', action='store_true',
+                            help='Start ONOS cluster instances in async mode')
     parser_run.add_argument('-log', '--log-level', default=onos_log_level,
                             choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                             type=str,
@@ -1010,6 +1038,8 @@ if __name__ == '__main__':
                               help='Specify number of test onos instances to spawn')
     parser_setup.add_argument('-v', '--shared-volume', action='store_true',
                               help='Start ONOS cluster instances with shared volume')
+    parser_setup.add_argument('-async', '--async-mode', action='store_true',
+                              help='Start ONOS cluster instances in async mode')
     parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
     parser_setup.set_defaults(func=setupCordTester)
 
