@@ -71,6 +71,35 @@ ext {
 
 }
 
+List.metaClass.asParam = { prefix, sep ->
+  if (delegate.size() == 0) {
+    ""
+  }
+  String result = "--" + prefix + "="
+  String p = ""
+  delegate.each {
+    result += p + "${it}"
+    p = sep
+  }
+  result
+}
+
+List.metaClass.p = { value, name ->
+  if (value != null && value != "") {
+      delegate << name + "=" + value
+  } else {
+      delegate
+  }
+}
+
+List.metaClass.p = { spec ->
+  if (spec != null && spec != "") {
+      delegate += spec
+  } else {
+      delegate
+  }
+}
+
 // ~~~~~~~~~~~~~~~~~~~ Global tasks ~~~~~~~~~~~~~~~~~~~~~~~
 
 // To be used to fetch upstream binaries, clone repos, etc.
