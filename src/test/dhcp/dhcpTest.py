@@ -147,7 +147,7 @@ class dhcp_exchange(CordLogger):
                   'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
         self.onos_dhcp_table_load(config)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = self.iface)
-        self.send_recv(mac=mac)
+        self.send_recv()
 
     def test_dhcp_1request_with_invalid_source_mac_broadcast(self):
         config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
@@ -240,7 +240,7 @@ class dhcp_exchange(CordLogger):
         assert_equal(ip_map, ip_map2)
 
 
-    def test_dhcp_starvation_positive(self):
+    def test_dhcp_starvation_passitive(self):
         config = {'startip':'193.170.1.20', 'endip':'193.170.1.69',
                   'ip':'193.170.1.2', 'mac': "ca:fe:c2:fe:cc:fe",
                   'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
@@ -353,7 +353,7 @@ class dhcp_exchange(CordLogger):
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = self.iface)
 	self.dhcp.return_option = 'lease'
 	log.info('Sending DHCP discover with lease time of 700')
-	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True, lease_value = lease_time)
+	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True, lease_value = lease_time)	
         assert_equal(lval, 700)
 	log.info('dhcp server offered IP address with client requested lease  time')
 
@@ -375,7 +375,7 @@ class dhcp_exchange(CordLogger):
 	new_cip, new_sip = self.dhcp.only_request(cip, mac, cl_reboot = True)
 	assert_equal(new_cip,cip)
 	log.info('client got same ip after reboot, as expected')
-
+	
 
     def test_dhcp_server_after_reboot(self):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
@@ -441,7 +441,7 @@ class dhcp_exchange(CordLogger):
 		  (cip, sip, mac) )
 	assert_not_equal(cip, None)
 	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
-	log.info('waiting renew  time %d seconds to send next request packet'%lval)
+	log.info('waiting renew  time %d seconds to send next request packet'%lval) 
 	time.sleep(lval)
 	latest_cip, latest_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
 	assert_equal(latest_cip,cip)
