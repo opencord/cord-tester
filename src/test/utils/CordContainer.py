@@ -314,7 +314,7 @@ class Onos(Container):
     INSTANCE_MEMORY = (get_mem(instances=3),) * 2
     JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*INSTANCE_MEMORY)
-    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
+    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter,fwd', 'JAVA_OPTS' : JAVA_OPTS }
     onos_cord_apps = ( ('cord-config', '1.1-SNAPSHOT'),
                        ('aaa', '1.1-SNAPSHOT'),
                        ('igmp', '1.1-SNAPSHOT'),
