@@ -223,3 +223,45 @@ class EapolPacket(object):
         code, id, eaplen = unpack("!BBH", p[4:8])
         return code
 
+    @classmethod
+    def eap_invalid_tls_packets_info(self, invalid_field_name = None, invalid_field_value = None):
+        log.info( 'Changing invalid field values in tls auth packets' )
+        if invalid_field_name == 'eapolTlsVersion':
+           global EAPOL_VERSION
+           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+           EAPOL_VERSION = invalid_field_value
+        if invalid_field_name == 'eapolTlsType':
+           global EAP_TYPE_TLS
+           log.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
+           EAP_TYPE_TLS = invalid_field_value
+        if invalid_field_name == 'eapolTypeID':
+           global EAP_TYPE_ID
+           log.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
+           EAP_TYPE_ID = invalid_field_value
+        if invalid_field_name == 'eapolResponse':
+           global EAP_RESPONSE
+           log.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
+           EAP_RESPONSE = invalid_field_value
+
+
+    @classmethod
+    def eap_tls_packets_field_value_replace(self, invalid_field_name = None):
+        log.info( 'Changing invalid field values in tls auth packets' )
+        if invalid_field_name == 'eapolTlsVersion':
+           global EAPOL_VERSION
+           EAPOL_VERSION = 1
+           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+        if invalid_field_name == 'eapolTlsType':
+           global EAP_TYPE_TLS
+           EAP_TYPE_TLS = 13
+           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+        if invalid_field_name == 'eapolTypeID':
+           global EAP_TYPE_ID
+           EAP_TYPE_ID = 1
+           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+        if invalid_field_name == 'eapolResponse':
+           global EAP_RESPONSE
+           EAP_RESPONSE = 2
+           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+
+
