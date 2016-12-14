@@ -7,7 +7,8 @@
 # default install path
 docker_tools_path: '/usr/local/bin'
 docker_tools_pipework_exe_url: https://raw.githubusercontent.com/jpetazzo/pipework/master/pipework
-
+openvswitch_url: http://openvswitch.org/releases
+openvswitch_version: '2.5.0'
 #docker variables
 docker:
     registry: "{{ docker_registry | default('docker-registry:5000') }}"

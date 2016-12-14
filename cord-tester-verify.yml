@@ -1,6 +1,15 @@
 ---
 - hosts: all
+  sudo: True
   tasks:
     - name: Run fabric tests using cord-tester
       become: yes
-      command: "/home/{{ ansible_user }}/cord-tester/src/test/setup/cord-test.py run -e onos-fabric/onos-fabric --no-switch --prefix=docker-registry:5000 -t fabric"
+      shell: "{{ item }}"
+      args:
+        chdir: "/home/{{ ansible_user }}/cord-tester/src/test/setup"
+      with_items:
+        - ./cord-test.py run -e onos-fabric/onos-fabric --no-switch --prefix=docker-registry:5000 -t fabric
+        #- ./cord-test.py run --prefix=docker-registry:5000 --onos=docker-registry:5000/onosproject/onos:candidate --olt --start-switch -t cordSubscriber:subscriber_exchange.cord_test_subscriber_join_jump
+        - ./cord-test.py cleanup --olt --prefix=docker-registry:5000 --onos=docker-registry:5000/onosproject/onos:candidate
+        - docker kill cord-onos 2>/dev/null || true
+        - docker kill cord-radius 2>/dev/null || true

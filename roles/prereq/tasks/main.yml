@@ -11,22 +11,67 @@
     - python-scapy
     - python-pexpect
     - openvswitch-switch
+    - libssl-dev
+    - libffi-dev
 
 - name: Install Python Prerequisites for cord tester
   become: yes
   pip: name={{ item }} state=latest
   with_items:
     - nose
-    - scapy
     - monotonic
     - configObj
-    - docker-py
     - pyyaml
     - nsenter
     - pyroute2
     - netaddr
     - python-daemon
-    - scapy-ssl_tls
+    - robotframework
+    - robotframework-requests
+    - robotframework-sshlibrary
+
+- name: Install scapy
+  pip: name=scapy version=2.3.2 state=present
+
+- name: Install scapy-ssl_tls
+  pip: name=scapy-ssl_tls version=1.2.2 state=present
+
+- name: Install docker-py
+  pip: name=docker-py version=1.9.0 state=present
+
+- name: Install paramiko
+  pip: name=paramiko version=1.10.1 state=present
+
+- name: Download Openvswitch {{ openvswitch_version }}
+  become:  yes
+  get_url:
+    url: "{{ openvswitch_url }}/openvswitch-{{ openvswitch_version }}.tar.gz"
+    dest: "/home/{{ ansible_user }}/openvswitch-{{ openvswitch_version }}.tar.gz"
+    force: yes
+
+- name:  Untar Openvswitch {{ openvswitch_version }}
+  become: yes
+  unarchive:
+    src=openvswitch-{{ openvswitch_version }}.tar.gz
+    dest=/home/{{ ansible_user }}
+
+- name: Build Openvswitch {{ openvswitch_version }}
+  become: yes
+  shell: "{{ item }}"
+  args:
+    chdir: "/home/{{ ansible_user }}/openvswitch-{{ openvswitch_version }}"
+  with_items:
+    - ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl
+    - make
+    - make install
+
+- name: Remove build files for Openvswitch {{ openvswitch_version }}
+  file:
+    path=/home/{{ ansible_user }}/{{ item }}
+    state=absent
+  with_items:
+    - "openvswitch-{{ openvswitch_version }}.tar.gz"
+    - "openvswitch-{{ openvswitch_version }}"
 
 - name: install Pipework
   sudo: True
@@ -57,5 +102,13 @@
   docker:
     name: cord-quagga
     image: "{{ docker.registry }}/cord-test/quagga:{{ docker.image_version }}"
+    pull: always
+    state: absent
+
+- name: Pull onosproject
+  become: yes
+  docker:
+    name: cord-test-onos
+    image: "{{ docker.registry }}/onosproject/onos:{{ docker.image_version }}"
     pull: always
     state: absent
