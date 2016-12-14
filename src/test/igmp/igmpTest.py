@@ -1033,7 +1033,7 @@ class igmp_exchange(CordLogger):
         groups2 = (self.MGROUP2,)
         groups = groups1 + groups2
         self.igmp_send_joins_different_groups_srclist(groups,
-                                                      (['2.2.2.2', '3.3.3.3', '4.4.4.4'], ['']),
+                                                      (['2.2.2.2', '3.3.3.3', '4.4.4.4'], ['0']),
                                                       intf = self.V_INF1, delay = 2)
         dst_mac = '01:00:5e:02:02:03'
         src_ip = '5.5.5.5'
@@ -1062,7 +1062,7 @@ class igmp_exchange(CordLogger):
 
     def igmp_exclude_empty_src_list(self, df = None):
         groups2 = (self.MGROUP2,)
-        self.send_igmp_leave(groups = groups2, src_list = [''], iface = self.V_INF1, delay = 2)
+        self.send_igmp_leave(groups = groups2, src_list = ['0'], iface = self.V_INF1, delay = 2)
         dst_mac = '01:00:5e:02:02:03'
         src_ip = '5.5.5.5'
         if df is None:
@@ -1243,7 +1243,7 @@ class igmp_exchange(CordLogger):
     def test_igmp_join_data_received_during_channel_distributors_link_toggle(self):
         df = defer.Deferred()
         def igmp_join_data_receiving_during_channel_distributor_link_toggle():
-              self.igmp_join_data_receiving_during_channel_distributor_link_toggle(df = df)
+              self.igmp_join_data_received_during_channel_distributor_link_toggle(df = df)
               df.callback(0)
         reactor.callLater(0, igmp_join_data_receiving_during_channel_distributor_link_toggle)
         return df
@@ -1276,9 +1276,9 @@ class igmp_exchange(CordLogger):
     def test_igmp_invalid_class_d_ip_for_join_packet(self):
         df = defer.Deferred()
         def igmp_invalidClass_D_IP_join_packet():
-              self.igmp_invalidClass_D_IP_join_packet(df = df)
+              self.igmp_invalidClassD_IP_join_packet(df = df)
               df.callback(0)
-        reactor.callLater(0, igmp_invalidClassD_IP_join_packet)
+        reactor.callLater(0, igmp_invalidClass_D_IP_join_packet)
         return df
 
     def igmp_invalidClassD_IP_as_srclistIP_join_packet(self, df = None):
