@@ -1,12 +1,9 @@
-# 
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,11 +17,13 @@ from itertools import *
 
 IGMP_TYPE_MEMBERSHIP_QUERY     = 0x11
 IGMP_TYPE_V3_MEMBERSHIP_REPORT = 0x22
+IGMP_TYPE_V3_MEMBERSHIP_REPORT_NEGATIVE = 0xdd
 IGMP_TYPE_V1_MEMBERSHIP_REPORT = 0x12
 IGMP_TYPE_V2_MEMBERSHIP_REPORT = 0x16
 IGMP_TYPE_V2_LEAVE_GROUP       = 0x17
 
 IGMP_V3_GR_TYPE_INCLUDE           = 0x01
+IGMP_V3_GR_TYPE_INCLUDE_NEGATIVE  = 0xaa
 IGMP_V3_GR_TYPE_EXCLUDE           = 0x02
 IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE = 0x03
 IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE = 0x04
@@ -48,6 +47,7 @@ class IGMPv3gr(Packet):
 
     igmp_v3_gr_types = {
         IGMP_V3_GR_TYPE_INCLUDE: "Include Mode",
+        IGMP_V3_GR_TYPE_INCLUDE_NEGATIVE: "Include Mode in negative scenario",
         IGMP_V3_GR_TYPE_EXCLUDE: "Exclude Mode",
         IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE: "Change to Include Mode",
         IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE: "Change to Exclude Mode",
@@ -149,7 +149,7 @@ class IGMPv3(Packet):
         return (byte1 & 0xf0) == 0xe0
 
     @staticmethod
-    def fixup(pkt):
+    def fixup(pkt, invalid_ttl = None):
         """Fixes up the underlying IP() and Ether() headers."""
         assert pkt.haslayer(IGMPv3), "This packet is not an IGMPv4 packet; cannot fix it up"
 
@@ -157,7 +157,10 @@ class IGMPv3(Packet):
 
         if pkt.haslayer(IP):
             ip = pkt.getlayer(IP)
-            ip.ttl = 1
+            if invalid_ttl is None:
+               ip.ttl = 1
+            else:
+               ip.ttl = 20
             ip.proto = 2
             ip.tos = 0xc0
             ip.options = [IPOption_Router_Alert()]
@@ -225,7 +228,8 @@ if __name__ == "__main__":
     hexdump(str(pkt))
 
     print "after fixup:"
-    IGMPv3.fixup(pkt)
+
+    IGMPv3.fixup(pkt,'no')
     hexdump(str(pkt))
 
     print "construct v3 membership report - join a single group"
