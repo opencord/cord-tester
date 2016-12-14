@@ -280,6 +280,8 @@ CMD ["/bin/bash"]
     def run_tests(self):
         '''Run the list of tests'''
         res = 0
+        print('Modifying scapy tool files before running a test: %s' %self.tests)
+        self.modify_scapy_files_for_specific_tests()
         print('Running tests: %s' %self.tests)
         for t in self.tests:
             test = t.split(':')[0]
@@ -300,6 +302,14 @@ CMD ["/bin/bash"]
             self.kill(remove=True)
 
         return res
+
+    def modify_scapy_files_for_specific_tests(self):
+        name = self.name
+        container_cmd_exec = Container(name = name, image = 'cord-test/nose')
+        tty = False
+        dckr = Client()
+        cmd =  'cp test/src/test/scapy/fields.py /usr/local/lib/python2.7/dist-packages/scapy/fields.py '
+        i = container_cmd_exec.execute(cmd = cmd, tty= tty, stream = True)
 
     @classmethod
     def list_tests(cls, tests):

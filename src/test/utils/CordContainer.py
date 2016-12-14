@@ -155,6 +155,22 @@ class Container(object):
         self.id = ctn['Id']
         return ctn
 
+    @classmethod
+    def pause_container(cls, image, delay):
+        cnt_list = filter(lambda c: c['Image'] == image, cls.dckr.containers(all=True))
+        for cnt in cnt_list:
+            print('Pause the container %s' %cnt['Id'])
+            if cnt.has_key('State') and cnt['State'] == 'running':
+                cls.dckr.pause(cnt['Id'])
+        if delay != 0:
+           time.sleep(delay)
+           for cnt in cnt_list:
+               print('Unpause the container %s' %cnt['Id'])
+               cls.dckr.unpause(cnt['Id'])
+        else:
+            print('Infinity time pause the container %s' %cnt['Id'])
+        return 'success'
+
     def connect_to_br(self):
         index = 0
         with docker_netns(self.name) as pid:
@@ -191,7 +207,7 @@ class Container(object):
                     ip.link('set', index=guest, state='up')
                 index += 1
 
-    def execute(self, cmd, tty = True, stream = False, shell = False):
+    def execute(self, cmd, tty = True, stream = False, shell = False, detach = True):
         res = 0
         if type(cmd) == str:
             cmds = (cmd,)
@@ -203,7 +219,7 @@ class Container(object):
             return res
         for c in cmds:
             i = self.dckr.exec_create(container=self.name, cmd=c, tty = tty, privileged = True)
-            self.dckr.exec_start(i['Id'], stream = stream, detach=True)
+            self.dckr.exec_start(i['Id'], stream = stream, detach=detach)
             result = self.dckr.exec_inspect(i['Id'])
             res += 0 if result['ExitCode'] == None else result['ExitCode']
         return res

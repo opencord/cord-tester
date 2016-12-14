@@ -34,7 +34,6 @@ from Channels import IgmpChannel
 from EapTLS import TLSAuthTest
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
-log.setLevel('INFO')
 from EapolAAA import *
 from enum import *
 import noseTlsAuthHolder as tlsAuthHolder
@@ -49,12 +48,12 @@ from CordLogger import CordLogger
 import re
 from random import randint
 from time import sleep
-
 import json
 from OnosFlowCtrl import OnosFlowCtrl
 from OltConfig import OltConfig
 from threading import current_thread
 import collections
+log.setLevel('INFO')
 
 class IGMPTestState:
 
@@ -168,13 +167,12 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         ''' Activate the igmp app'''
         apps = self.app_igmp
         self.onos_ctrl = OnosCtrl(apps)
-#        self.onos_ctrl = OnosCtrl(self.app_tls)
         self.onos_aaa_config()
 	self.onos_ctrl.activate()
         self.igmp_channel = IgmpChannel()
 
     def setUp_tls(self):
-        ''' Activate the igmp app'''
+        ''' Activate the aaa app'''
         apps = self.app_tls
         self.onos_ctrl = OnosCtrl(apps)
         self.onos_aaa_config()
@@ -185,13 +183,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         for app in apps:
             onos_ctrl = OnosCtrl(app)
             onos_ctrl.deactivate()
-#        log.info('Restarting the Radius container in the setup after running every subscriber test cases by default')
-#        rest = Container('cord-radius', 'cord-test/radius',)
-#        rest.restart('cord-radius','10')
-#        radius = Radius()
-#        radius_ip = radius.ip()
-#        print('Radius server is running with IP %s' %radius_ip)
-        #os.system('ifconfig '+INTF_RX_DEFAULT+' up')
 
     def onos_load_igmp_config(self, config):
 	log.info('onos load config is %s'%config)
@@ -348,7 +339,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return 0
 
     def send_igmp_join(self, groups, src_list = ['1.2.3.4'], record_type=IGMP_V3_GR_TYPE_INCLUDE,
-                       ip_pkt = None, iface = 'veth0', ssm_load = False, delay = 1):
+                       ip_pkt = None, iface = 'veth0', ssm_load = False, delay = 1, ip_src = None):
         if ssm_load is True:
               self.onos_ssm_table_load(groups, src_list)
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
@@ -358,7 +349,11 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
               gr.sources = src_list
               igmp.grps.append(gr)
         if ip_pkt is None:
-              ip_pkt = self.igmp_eth/self.igmp_ip
+              if ip_src is None:
+                 ip_pkt = self.igmp_eth/self.igmp_ip
+              else:
+                 igmp_ip_src = IP(dst = self.IP_DST, src = ip_src)
+                 ip_pkt = self.igmp_eth/igmp_ip_src
         pkt = ip_pkt/igmp
         IGMPv3.fixup(pkt)
         sendp(pkt, iface=iface)
@@ -418,7 +413,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         else:
             log.info('Sending IGMP join for group %s and waiting for periodic query packets and printing one packet' %groups)
             resp = srp1(pkt, iface=iface)
-#       resp = srp1(pkt, iface=iface) if rec_queryCount else srp3(pkt, iface=iface)
         resp[0].summary()
         log.info('Sent IGMP join for group %s and received a query packet and  printing packet' %groups)
         if delay != 0:
@@ -910,7 +904,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
            time.sleep(300)
            for thread in threads:
                thread.join()
-               #df.callback(0)
         reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
         return df
 
@@ -937,7 +930,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                 log.info('Authentication successful for user %d'%i)
            # Client authendicating multiple times one after other and making random delay in between authendication.
            for i in xrange(clients):
-#            thread = threading.Thread(target = multiple_tls_random_delay)
              multiple_tls_random_delay()
              time.sleep(randomDelay)
            df.callback(0)
@@ -954,7 +946,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         clients = 10
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
-                #randomDelay = 3
                 for x in xrange(clients):
                    tls.append(TLSAuthTest(src_mac = 'random'))
                 for x in xrange(clients):
@@ -988,7 +979,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
     def test_netCondition_with_delay_between_mac_flow_and_traffic(self):
         df = defer.Deferred()
         randomDelay = randint(10,300)
-        #self.setUpClass_flows()
         egress = 1
         ingress = 2
         egress_mac = '00:00:00:00:00:01'
@@ -1105,7 +1095,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             sendp(pkt, count=50, iface = self.port_map[ingress])
             thread.join()
             assert_equal(self.success, True)
-        #    df.callback(0)
 
         def creating_tcp_flow(df):
             flow = OnosFlowCtrl(deviceId = self.device_id,
@@ -1215,7 +1204,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             time.sleep(randomDelay_in_thread)
             log.info('This is running in a thread, with igmp join sent and delay {}'.format(randomDelay_in_thread))
             status = self.verify_igmp_data_traffic_in_thread(group,intf=self.V_INF1,source=source, data_pkt = data_pkt)
-            #assert_equal(status, True)
             log.info('Data received for group %s from source %s and status is %s '%(group,source,status))
             self.igmp_threads_result.append(status)
 
@@ -1225,7 +1213,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             thread.start()
             threads.append(thread)
 
-#        time.sleep(50)
         for thread in threads:
             thread.join()
 
@@ -1414,7 +1401,6 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
                 subscribers_src_ip.append(subscriber_sourceip)
                 count += 1
         self.onos_ssm_table_load(groups,src_list=sources,flag=True)
-
         def multiple_joins_send_in_threads(group, source, subscriber_src_ip,invalid_igmp_join,data_pkt = data_pkt):
             if invalid_igmp_join is None:
                self.send_igmp_join(groups = [group], src_list = [source],record_type = IGMP_V3_GR_TYPE_INCLUDE,
@@ -1428,10 +1414,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             time.sleep(randomDelay_in_thread)
             log.info('This is running in thread with igmp join sent and delay {}'.format(randomDelay_in_thread))
             status = self.verify_igmp_data_traffic_in_thread(group,intf=self.V_INF1,source=source, data_pkt = data_pkt,negative=negative_traffic)
-            #assert_equal(status, True)
             log.info('data received for group %s from source %s and status is %s '%(group,source,status))
             self.igmp_threads_result.append(status)
-
         for i in range(subscriber):
             thread = threading.Thread(target = multiple_joins_send_in_threads, args = (groups[i], sources[i], subscribers_src_ip[i], invalid_joins))
             if bunch_traffic ==  'yes':
@@ -1444,11 +1428,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             time.sleep(randint(1,2))
             thread.start()
             threads.append(thread)
-
-#        time.sleep(250)
         for thread in threads:
             thread.join()
-
 
     @deferred(TEST_TIMEOUT_DELAY+50)
     def test_netCondition_with_throttle_between_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
@@ -1473,7 +1454,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TEST_TIMEOUT_DELAY+50)
-    def test_netCondition_with_invalid_igmp_type_and_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
+    def test_netCondition_with_invalid_igmp_type_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
         self.setUp_tls()
         df = defer.Deferred()
         log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
@@ -1496,7 +1477,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         return df
 
     @deferred(TEST_TIMEOUT_DELAY+50)
-    def test_netCondition_with_invalid_record_type_and_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
+    def test_netCondition_with_invalid_record_type_multiple_igmp_joins_and_data_from_multiple_subscribers(self):
         self.setUp_tls()
         df = defer.Deferred()
         log.info('IGMP Thread status before running igmp thread %s '%(self.igmp_threads_result))
@@ -1548,7 +1529,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         self.setUp_tls()
         df = defer.Deferred()
         threads = []
-        clients = 1
+        clients = 100
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
                 randomDelay = randint(10,300)
@@ -1574,10 +1555,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
              time.sleep(randint(1,2))
              thread.start()
              threads.append(thread)
-           time.sleep(300)
            for thread in threads:
                thread.join()
-               #df.callback(0)
         reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
         return df
 
@@ -1586,7 +1565,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         self.setUp_tls()
         df = defer.Deferred()
         threads = []
-        clients = 1
+        clients = 100
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
                 randomDelay = randint(10,300)
@@ -1615,10 +1594,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
              time.sleep(randint(1,2))
              thread.start()
              threads.append(thread)
-           time.sleep(300)
            for thread in threads:
                thread.join()
-               #df.callback(0)
         reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
         return df
 
@@ -1627,7 +1604,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         self.setUp_tls()
         df = defer.Deferred()
         threads = []
-        clients = 1
+        clients = 100
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
                 randomDelay = randint(10,300)
@@ -1656,10 +1633,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
              time.sleep(randint(1,2))
              thread.start()
              threads.append(thread)
-           time.sleep(300)
            for thread in threads:
                thread.join()
-               #df.callback(0)
         reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
         return df
 
@@ -1668,7 +1643,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         self.setUp_tls()
         df = defer.Deferred()
         threads = []
-        clients = 1
+        clients = 100
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
                 randomDelay = randint(10,300)
@@ -1691,10 +1666,8 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
              time.sleep(randint(1,2))
              thread.start()
              threads.append(thread)
-           time.sleep(300)
            for thread in threads:
                thread.join()
-               #df.callback(0)
         reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
         return df
 
@@ -1703,7 +1676,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         self.setUp_tls()
         df = defer.Deferred()
         threads = []
-        clients = 1
+        clients = 100
         def eap_tls_eapTlsHelloReq_pkt_delay(df):
            def multiple_tls_random_delay():
                 randomDelay = randint(10,300)
@@ -1726,10 +1699,717 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
              time.sleep(randint(1,2))
              thread.start()
              threads.append(thread)
-           time.sleep(300)
            for thread in threads:
                thread.join()
-               #df.callback(0)
         reactor.callLater(0, eap_tls_eapTlsHelloReq_pkt_delay, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY+50)
+    def test_netCondition_in_eapol_tls_with_invalid_eapol_version_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        tls = TLSAuthTest()
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            EapolPacket.eap_tls_packets_field_value_replace(invalid_field_name= 'eapolTlsVersion')
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            EapolPacket.eap_invalid_tls_packets_info(invalid_field_name= 'eapolTlsVersion', invalid_field_value= 20)
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eapol_tls_with_invalid_eapol_tls_type_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        tls = TLSAuthTest()
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            EapolPacket.eap_tls_packets_field_value_replace(invalid_field_name= 'eapolTlsType')
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            EapolPacket.eap_invalid_tls_packets_info(invalid_field_name= 'eapolTlsType', invalid_field_value= 20)
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eapol_tls_with_invalid_eapol_type_ID_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        tls = TLSAuthTest()
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            EapolPacket.eap_tls_packets_field_value_replace(invalid_field_name= 'eapolTypeID')
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            EapolPacket.eap_invalid_tls_packets_info(invalid_field_name= 'eapolTypeID', invalid_field_value= 20)
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eapol_tls_with_invalid_eapol_response_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        tls = TLSAuthTest()
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            EapolPacket.eap_tls_packets_field_value_replace(invalid_field_name= 'eapolResponse')
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            EapolPacket.eap_invalid_tls_packets_info(invalid_field_name= 'eapolResponse', invalid_field_value= 20)
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eap_tls_with_invalid_eap_content_type_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_invalid_content_type_cb():
+            log.info('TLS authentication failed with invalid content type in TLSContentType packet')
+        tls = TLSAuthTest(fail_cb = tls_invalid_content_type_cb, invalid_content_type = 44)
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_eap_tls_with_invalid_tls_version_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_invalid_eap_tls_version_in_client_auth_packet():
+            log.info('TLS authentication failed with invalid tls version field in the packet')
+        tls = TLSAuthTest(fail_cb = tls_invalid_eap_tls_version_in_client_auth_packet, version = 'TLS_2_1')
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_eap_tls_with_invalid_tls_cipher_suite_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_with_invalid_tls_cipher_suite_field_in_client_auth_packet_cb():
+            log.info('TLS authentication failed with invalid tls cipher suite field in the packet')
+        tls = TLSAuthTest(fail_cb = tls_with_invalid_tls_cipher_suite_field_in_client_auth_packet_cb, cipher_suite = 'RSA_WITH_AES_512_CBC_SHA')
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eap_tls_with_id_mismatch_in_identifier_field_in_client_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_with_invalid_id_in_identifier_response_packet_cb():
+            log.info('TLS authentication failed with invalid id in identifier packet')
+        tls = TLSAuthTest(fail_cb = tls_with_invalid_id_in_identifier_response_packet_cb,
+                              id_mismatch_in_identifier_response_packet = True)
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eap_tls_with_id_mismatch_in_client_hello_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_with_invalid_id_in_client_hello_packet_cb():
+             log.info('TLS authentication failed with invalid id in client hello packet')
+        tls = TLSAuthTest(fail_cb = tls_with_invalid_id_in_client_hello_packet_cb,
+                              id_mismatch_in_client_hello_packet = True)
+
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eap_tls_with_invalid_client_hello_handshake_type_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_incorrect_handshake_type_client_hello_cb():
+            log.info('TLS authentication failed with incorrect handshake type in client hello packet')
+        tls = TLSAuthTest(fail_cb = tls_incorrect_handshake_type_client_hello_cb, invalid_client_hello_handshake_type=True)
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eap_tls_with_invalid_client_cert_req_handshake_auth_packet(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_incorrect_handshake_type_certificate_request_cb():
+            log.info('TLS authentication failed with incorrect handshake type in client certificate request packet')
+        tls = TLSAuthTest(fail_cb = tls_incorrect_handshake_type_certificate_request_cb, invalid_cert_req_handshake = True)
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-150)
+    def test_netCondition_in_eap_tls_with_invalid_client_key_ex_replacing_server_key_ex(self):
+        self.setUp_tls()
+        randomDelay = randint(10,300)
+        df = defer.Deferred()
+        def tls_clientkeyex_replace_with_serverkeyex_cb():
+            log.info('TLS authentication failed with client key exchange replaced with server key exchange')
+        tls = TLSAuthTest(fail_cb = tls_clientkeyex_replace_with_serverkeyex_cb,clientkeyex_replace_with_serverkeyex=True)
+        def eap_tls_eapTlsHelloReq_pkt_delay():
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            df.callback(0)
+        def eap_tls_verify(df):
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            log.info('Holding tlsHelloReq packet for a period of random delay = {} secs'.format(randomDelay))
+            t = Timer(randomDelay, eap_tls_eapTlsHelloReq_pkt_delay)
+            t.start()
+        reactor.callLater(0, eap_tls_verify, df)
+        return df
+
+    def tcpreplay_radius_server_packets_from_pcap_file(self, pcap_file_path =None, error_pkt = None):
+        #default radius server packets in path in test/netCondition/xxx.pcap file
+        if pcap_file_path and (error_pkt == None):
+           pcap_file_path = pcap_file_path
+        elif error_pkt == None:
+           pcap_file_path = "/root/test/src/test/netCondition/tls_auth_exhange_packets_Radius_server_packets_only.pcap"
+        elif error_pkt:
+           pcap_file_path = "/root/test/src/test/netCondition/error_tls_auth_exhange_packets_Radius_server_packets_only.pcap"
+        log.info('Started replaying pcap file packets on docker0 interface using tcprelay linux command')
+        time.sleep(0.4)
+        sendp(rdpcap(pcap_file_path), iface="eth0", loop=0, inter=1)
+        time.sleep(5)
+        log.info('Replayed pcap file packets on docker0 interface')
+
+    def tcpreplay_radius_server_error_packets_from_pcap_file(self, pcap_file_path =None, error_pkt = None):
+        #default radius server packets in path in test/netCondition/xxx.pcap file
+        if pcap_file_path:
+           pcap_file_path = pcap_file_path
+        else:
+           pcap_file_path = "/root/test/src/test/netCondition/error_tls_auth_exhange_packets_Radius_server_packets_only.pcap"
+        log.info('Started replaying pcap file error packets on docker0 interface using tcprelay linux command')
+        time.sleep(0.4)
+        sendp(rdpcap(pcap_file_path), iface="eth0", loop=0, inter=1)
+        time.sleep(5)
+        return 'success'
+
+    def emulating_invalid_radius_server_packets_from_pcap_file(self, pcap_file_path =None, pkt_no = None,L2 = None, L3 =None, L4=None, no_of_radius_attribute=None):
+        #default radius server packets in path in test/netCondition/xxx.pcap file
+        random_port = 1222
+        if pcap_file_path:
+           pcap_file_path = pcap_file_path
+        else:
+           pcap_file_path = "/root/test/src/test/netCondition/tls_auth_exhange_packets_Radius_server_packets_only.pcap"
+        log.info('Started corrupting tls server packet no = {}'.format(pkt_no))
+        radius_server_pkts = rdpcap(pcap_file_path)
+        error_server_pkt = radius_server_pkts[pkt_no]
+        if pkt_no == 0:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][2].value =  '\n\xd8\xf0\xbbW\xd6$;\xd2s\xd5\xc5Ck\xd5\x01'
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+        if pkt_no == 1:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][2].type =  79
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+
+        if pkt_no == 2:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][1].type =  79
+              error_server_pkt[3][2].len =  18
+              error_server_pkt[3][2].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+              error_server_pkt[3][3].len =  18
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xff\xeb\x99\xa77\xfc\xa3\xe9'
+
+        if pkt_no == 3:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][1].type =  79
+              error_server_pkt[3][2].len =  18
+              error_server_pkt[3][2].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+              error_server_pkt[3][3].len =  18
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xff\xeb\x99\xa77\xfc\xa3\xe9'
+
+        if pkt_no == 4:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][1].type =  79
+              error_server_pkt[3][2].len =  18
+              error_server_pkt[3][2].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+              error_server_pkt[3][3].len =  18
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xff\xeb\x99\xa77\xfc\xa3\xe9'
+
+        if pkt_no == 5:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][1].type =  79
+              error_server_pkt[3][2].len =  18
+              error_server_pkt[3][2].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+              error_server_pkt[3][3].len =  18
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xff\xeb\x99\xa77\xfc\xa3\xe9'
+
+        if pkt_no == 6:
+           if L4:
+              error_server_pkt[UDP].sport = random_port
+              error_server_pkt[UDP].dport = random_port
+
+           if no_of_radius_attribute:
+              error_server_pkt[3][1].type =  79
+              error_server_pkt[3][2].len =  18
+              error_server_pkt[3][2].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+              error_server_pkt[3][3].len =  18
+              error_server_pkt[3][3].value =  'R\x1d`#R\x1cm[\xfd\xeb\xb9\xa84\xfc\xa3\xe9'
+              error_server_pkt[3][5].len =  18
+              error_server_pkt[3][5].value =  'R\x1d`#R\x1cm[\xff\xeb\x99\xa77\xfc\xa3\xe9'
+
+
+        error_server_pkt.show()
+        radius_server_pkts[pkt_no] = error_server_pkt
+        wrpcap("/root/test/src/test/netCondition/error_tls_auth_exhange_packets_Radius_server_packets_only.pcap", radius_server_pkts)
+        pcap_file_path = "/root/test/src/test/netCondition/error_tls_auth_exhange_packets_Radius_server_packets_only.pcap"
+
+        log.info('Done corrupting tls server packet no = {} send back filepath along with file name'.format(pkt_no))
+        return pcap_file_path
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_emulating_server_packets_without_radius_server_container(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        threads = []
+        threads_status = []
+        clients = 1
+        radius_image = 'cord-test/radius:candidate'
+        delay = 20
+        que = Queue.Queue()
+        def eap_tls_emulating_server_pkts(df):
+           def tls_client_packets(start):
+                time.sleep(0.2)
+                randomDelay = randint(10,300)
+                tls = TLSAuthTest(src_mac = 'random')
+                tls._eapSetup()
+                tls.tlsEventTable.EVT_EAP_SETUP
+                tls._eapStart()
+                tls.tlsEventTable.EVT_EAP_START
+                tls._eapIdReq()
+                tls.tlsEventTable.EVT_EAP_ID_REQ
+                tls._eapTlsHelloReq()
+                tls._eapTlsCertReq()
+                tls._eapTlsChangeCipherSpec()
+                tls._eapTlsFinished()
+                if tls.failTest == False:
+                   log.info('Authentication successful for user')
+                   return 'success'
+                else:
+                   log.info('Authentication not successful for user')
+                   return 'failed'
+           thread_client = threading.Thread(target=lambda q, arg1: q.put(tls_client_packets(arg1)), args=(que, 'start'))
+           thread_radius = threading.Thread(target = Container.pause_container, args = (radius_image,delay))
+           thread_tcpreplay = threading.Thread(target = self.tcpreplay_radius_server_packets_from_pcap_file)
+           threads.append(thread_radius)
+           threads.append(thread_client)
+           threads.append(thread_tcpreplay)
+           for thread in threads:
+               thread.start()
+           for thread in threads:
+               thread.join()
+           while not que.empty():
+              threads_status = que.get()
+           assert_equal(threads_status, 'success')
+           df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+
+    def eap_tls_emulating_server_pkts_negative_testing(df,msg):
+        threads = []
+        threads_status = []
+        clients = 1
+        radius_image = 'cord-test/radius:candidate'
+        delay = 20
+        que = Queue.Queue()
+        def tls_client_packets(start):
+            time.sleep(0.2)
+            randomDelay = randint(10,300)
+            def tls_invalid_server_packets_scenario_cb():
+                log.info('TLS authentication failed with {}'.format(msg))
+            tls = TLSAuthTest(fail_cb = tls_invalid_server_packets_scenario_cb, src_mac = 'random')
+            tls._eapSetup()
+            tls.tlsEventTable.EVT_EAP_SETUP
+            tls._eapStart()
+            tls.tlsEventTable.EVT_EAP_START
+            tls._eapIdReq()
+            tls.tlsEventTable.EVT_EAP_ID_REQ
+            tls._eapTlsHelloReq()
+            tls._eapTlsCertReq()
+            tls._eapTlsChangeCipherSpec()
+            tls._eapTlsFinished()
+            if tls.failTest == True:
+               log.info('Authentication not successful for user')
+               return 'failed'
+            else:
+               log.info('Authentication successful for user')
+               return 'success'
+        def tcpreplay_radius_server_error_packets_from_pcap_file(pcap_file_path =None, error_pkt = None):
+            #default radius server packets in path in test/netCondition/xxx.pcap file
+            if pcap_file_path:
+               pcap_file_path = pcap_file_path
+            else:
+               pcap_file_path = "/root/test/src/test/netCondition/error_tls_auth_exhange_packets_Radius_server_packets_only.pcap"
+
+            log.info('Started replaying pcap file error packets on docker0 interface using tcprelay linux command')
+            time.sleep(0.4)
+            sendp(rdpcap(pcap_file_path), iface="eth0", loop=0, inter=1)
+            time.sleep(5)
+            return 'success'
+        thread_client = threading.Thread(target=lambda q, arg1: q.put(tls_client_packets(arg1)), args=(que, 'start'))
+        thread_radius = threading.Thread(target = Container.pause_container, args = (radius_image,delay))
+        thread_tcpreplay = threading.Thread(target = tcpreplay_radius_server_error_packets_from_pcap_file)
+        threads.append(thread_radius)
+        threads.append(thread_client)
+        threads.append(thread_tcpreplay)
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        while not que.empty():
+            threads_status = que.get()
+        assert_equal(threads_status, 'failed')
+
+
+    @deferred(TEST_TIMEOUT_DELAY-250)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_server_eapid_response_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 0, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping server eapId response')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_server_eapid_response_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 0, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid server eapId response')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_server_hello_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 1, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping server hello packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_server_hello_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 1, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid server hello packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_client_certficate_access_challenge_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 2, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping client certificate access challenge packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_client_certficate_access_challenge_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 2, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid client certificate access challenge packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_client_certficate_with_2nd_fragment_access_challenge_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 3, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping client certificate with 2nd fragment access challenge packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_client_certficate_with_2nd_fragment_access_challenge_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 3, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid client certificate for 2nd fragment access challenge packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_client_certficate_with_3rd_fragment_access_challenge_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 4, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping client certificate for 3rd fragment access challenge packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_client_certficate_with_3rd_fragment_access_challenge_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 4, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid client certificate for 3rd fragment access challenge packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_cipher_suite_request_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 5, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping cipher suite request server packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_cipher_suite_request_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 5, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid cipher suite request server packet')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_dropped_access_accept_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 6, L4 = True)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'dropping access accept server packet ')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
+        return df
+
+    @deferred(TEST_TIMEOUT_DELAY-50)
+    def test_netCondition_in_eap_tls_with_valid_client_and_invalid_access_accept_server_packet(self):
+        self.setUp_tls()
+        df = defer.Deferred()
+        self.emulating_invalid_radius_server_packets_from_pcap_file(pkt_no = 6, no_of_radius_attribute = 1)
+        def eap_tls_emulating_server_pkts(df):
+            self.eap_tls_emulating_server_pkts_negative_testing(msg = 'invalid access accept server packet ')
+            df.callback(0)
+        reactor.callLater(0, eap_tls_emulating_server_pkts, df)
         return df
 
