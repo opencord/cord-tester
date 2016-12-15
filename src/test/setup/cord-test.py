@@ -430,7 +430,7 @@ def runTest(args):
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE,
                     tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume, async = async_mode)
+                    data_volume = data_volume, async = async_mode, max_instances = args.onos_instances)
         if onos.running:
             onos_ip = onos.ipaddr
             onos_ips.append(onos_ip)
@@ -446,7 +446,8 @@ def runTest(args):
             data_volume = '{}-data'.format(name) if args.shared_volume else None
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                        data_volume = data_volume, async = async_mode, quagga_config = quagga_config)
+                        data_volume = data_volume, async = async_mode,
+                        quagga_config = quagga_config, max_instances = args.onos_instances)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
@@ -680,7 +681,7 @@ def setupCordTester(args):
     if onos_ip is None:
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume, async = async_mode)
+                    data_volume = data_volume, async = async_mode, max_instances = args.onos_instances)
         if onos.running:
             onos_ip = onos.ipaddr
             onos_ips.append(onos_ip)
@@ -696,7 +697,8 @@ def setupCordTester(args):
             data_volume = '{}-data'.format(name) if args.shared_volume else None
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                        data_volume = data_volume, async = async_mode, quagga_config = quagga_config)
+                        data_volume = data_volume, async = async_mode,
+                        quagga_config = quagga_config, max_instances = args.onos_instances)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
