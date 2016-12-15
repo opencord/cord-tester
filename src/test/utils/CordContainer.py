@@ -18,6 +18,7 @@ import io
 import json
 import yaml
 import errno
+import copy
 from pyroute2 import IPRoute
 from pyroute2.netlink import NetlinkError
 from itertools import chain
@@ -27,6 +28,7 @@ from shutil import rmtree
 from OnosCtrl import OnosCtrl
 from OnosLog import OnosLog
 from threadPool import ThreadPool
+from threading import Lock
 
 class docker_netns(object):
 
@@ -53,6 +55,7 @@ flatten = lambda l: chain.from_iterable(l)
 class Container(object):
     dckr = Client()
     IMAGE_PREFIX = '' ##for saving global prefix for all test classes
+    CONFIG_LOCK = Lock()
 
     def __init__(self, name, image, prefix='', tag = 'candidate', command = 'bash', quagga_config = None):
         self.name = name
@@ -173,39 +176,43 @@ class Container(object):
 
     def connect_to_br(self):
         index = 0
-        with docker_netns(self.name) as pid:
-            for quagga_config in self.quagga_config:
-                ip = IPRoute()
-                br = ip.link_lookup(ifname=quagga_config['bridge'])
-                if len(br) == 0:
-                    try:
-                        ip.link_create(ifname=quagga_config['bridge'], kind='bridge')
-                    except NetlinkError as e:
-                        err, _ = e.args
-                        if err == errno.EEXIST:
-                            pass
-                        else:
-                            raise NetlinkError(*e.args)
-                    br = ip.link_lookup(ifname=quagga_config['bridge'])
-                br = br[0]
-                ip.link('set', index=br, state='up')
-                ifname = '{0}-{1}'.format(self.name, index)
-                ifs = ip.link_lookup(ifname=ifname)
-                if len(ifs) > 0:
-                   ip.link_remove(ifs[0])
-                peer_ifname = '{0}-{1}'.format(pid, index)
-                ip.link_create(ifname=ifname, kind='veth', peer=peer_ifname)
-                host = ip.link_lookup(ifname=ifname)[0]
-                ip.link('set', index=host, master=br)
-                ip.link('set', index=host, state='up')
-                guest = ip.link_lookup(ifname=peer_ifname)[0]
-                ip.link('set', index=guest, net_ns_fd=pid)
-                with Namespace(pid, 'net'):
+        self.CONFIG_LOCK.acquire()
+        try:
+            with docker_netns(self.name) as pid:
+                for quagga_config in self.quagga_config:
                     ip = IPRoute()
-                    ip.link('set', index=guest, ifname='eth{}'.format(index+1))
-                    ip.addr('add', index=guest, address=quagga_config['ip'], mask=quagga_config['mask'])
-                    ip.link('set', index=guest, state='up')
-                index += 1
+                    br = ip.link_lookup(ifname=quagga_config['bridge'])
+                    if len(br) == 0:
+                        try:
+                            ip.link_create(ifname=quagga_config['bridge'], kind='bridge')
+                        except NetlinkError as e:
+                            err, _ = e.args
+                            if err == errno.EEXIST:
+                                pass
+                            else:
+                                raise NetlinkError(*e.args)
+                        br = ip.link_lookup(ifname=quagga_config['bridge'])
+                    br = br[0]
+                    ip.link('set', index=br, state='up')
+                    ifname = '{0}-{1}'.format(self.name, index)
+                    ifs = ip.link_lookup(ifname=ifname)
+                    if len(ifs) > 0:
+                       ip.link_remove(ifs[0])
+                    peer_ifname = '{0}-{1}'.format(pid, index)
+                    ip.link_create(ifname=ifname, kind='veth', peer=peer_ifname)
+                    host = ip.link_lookup(ifname=ifname)[0]
+                    ip.link('set', index=host, master=br)
+                    ip.link('set', index=host, state='up')
+                    guest = ip.link_lookup(ifname=peer_ifname)[0]
+                    ip.link('set', index=guest, net_ns_fd=pid)
+                    with Namespace(pid, 'net'):
+                        ip = IPRoute()
+                        ip.link('set', index=guest, ifname='eth{}'.format(index+1))
+                        ip.addr('add', index=guest, address=quagga_config['ip'], mask=quagga_config['mask'])
+                        ip.link('set', index=guest, state='up')
+                    index += 1
+        finally:
+            self.CONFIG_LOCK.release()
 
     def execute(self, cmd, tty = True, stream = False, shell = False, detach = True):
         res = 0
@@ -325,7 +332,7 @@ class OnosCordStopWrapper(Container):
 
 class Onos(Container):
 
-    quagga_config = [ { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, ]
+    QUAGGA_CONFIG = [ { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, ]
     SYSTEM_MEMORY = (get_mem(),) * 2
     INSTANCE_MEMORY = (get_mem(instances=3),) * 2
     JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
@@ -414,9 +421,9 @@ class Onos(Container):
                     tag = image_name.split(':')[1]
                 except: pass
 
-        if quagga_config is not None:
-            self.quagga_config = quagga_config
-        super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.quagga_config)
+        if quagga_config is None:
+            quagga_config = Onos.QUAGGA_CONFIG
+        super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = quagga_config)
         self.max_instances = max_instances
         self.boot_delay = boot_delay
         self.data_map = None
@@ -491,12 +498,12 @@ class Onos(Container):
 
     @classmethod
     def get_quagga_config(cls, instance = 0):
-        quagga_config = cls.quagga_config[:]
+        quagga_config = copy.deepcopy(cls.QUAGGA_CONFIG)
         if instance == 0:
             return quagga_config
         ip = quagga_config[0]['ip']
         octets = ip.split('.')
-        octets[3] = str((int(octets[3]) + 1) & 255)
+        octets[3] = str((int(octets[3]) + instance) & 255)
         ip = '.'.join(octets)
         quagga_config[0]['ip'] = ip
         return quagga_config
@@ -613,17 +620,15 @@ class Onos(Container):
         if timeout > 0:
             time.sleep(timeout)
 
-        for onos in cls.cluster_instances:
-            print('Restarting ONOS container %s' %onos.name)
-            onos.start(ports = onos.ports, environment = onos.env,
-                       host_config = onos.host_config, volumes = onos.volumes, tty = True)
-            onos.ipaddr = onos.ip()
-            onos.wait_for_onos_start(onos.ipaddr)
-            onos.install_cord_apps(onos.ipaddr)
-
+        #start the instances asynchronously
+        cls.start_cluster_async(cls.cluster_instances)
+        time.sleep(5)
         ##form the cluster as appropriate
         if setup is True:
             cls.setup_cluster(cls.cluster_instances)
+        else:
+            for onos in cls.cluster_instances:
+                onos.install_cord_apps(onos.ipaddr)
 
     @classmethod
     def cluster_ips(cls):
@@ -643,6 +648,7 @@ class Onos(Container):
         for onos in cls.cluster_instances:
             if onos.exists():
                 onos.kill()
+            onos.running = False
             onos.remove_container(onos.name, force=True)
 
     @classmethod
@@ -682,6 +688,7 @@ class OnosStopWrapper(Container):
         super(OnosStopWrapper, self).__init__(name, Onos.IMAGE, tag = Onos.TAG, prefix = Container.IMAGE_PREFIX)
         if self.exists():
             self.kill()
+            self.running = False
         else:
             if Onos.cluster_mode is True:
                 valid_node = filter(lambda onos: name in [ onos.ipaddr, onos.name ], Onos.cluster_instances)
@@ -689,6 +696,7 @@ class OnosStopWrapper(Container):
                     onos = valid_node.pop()
                     if onos.exists():
                         onos.kill()
+                    onos.running = False
 
 class Radius(Container):
     ports = [ 1812, 1813 ]
@@ -742,7 +750,7 @@ CMD ["/etc/freeradius/start-radius.py"]
         print('Done building image %s' %image)
 
 class Quagga(Container):
-    quagga_config = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 },
+    QUAGGA_CONFIG = ( { 'bridge' : 'quagga-br', 'ip': '10.10.0.3', 'mask' : 16 },
                       { 'bridge' : 'quagga-br', 'ip': '192.168.10.3', 'mask': 16 },
                       )
     ports = [ 179, 2601, 2602, 2603, 2604, 2605, 2606 ]
@@ -755,7 +763,7 @@ class Quagga(Container):
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
                  boot_delay = 15, restart = False, config_file = quagga_config_file, update = False):
-        super(Quagga, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.quagga_config)
+        super(Quagga, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.QUAGGA_CONFIG)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
         if restart is True and self.exists():
@@ -777,7 +785,7 @@ class Quagga(Container):
 
     @classmethod
     def build_image(cls, image):
-        onos_quagga_ip = Onos.quagga_config[0]['ip']
+        onos_quagga_ip = Onos.QUAGGA_CONFIG[0]['ip']
         print('Building Quagga image %s' %image)
         dockerfile = '''
 FROM ubuntu:14.04
