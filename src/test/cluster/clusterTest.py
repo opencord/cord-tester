@@ -61,7 +61,8 @@ class cluster_exchange(CordLogger):
     acl = cluster_acl()
     dhcprelay = cluster_dhcprelay()
     subscriber = cluster_subscriber()
-    testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_single_controller_restarts', 'test_cluster_restarts')
+    testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_graceful_controller_restarts',
+                       'test_cluster_single_controller_restarts', 'test_cluster_restarts')
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
@@ -107,6 +108,18 @@ class cluster_exchange(CordLogger):
             log.info('Leaders returned: %s' %result)
         self.cliExit()
         return result
+
+    def onos_shutdown(self, controller = None):
+        status = True
+        self.cliEnter(controller = controller)
+        try:
+            self.cli.shutdown(timeout = 10)
+        except:
+            log.info('Graceful shutdown of ONOS failed for controller: %s' %controller)
+            status = False
+
+        self.cliExit()
+        return status
 
     def log_set(self, level = None, app = 'org.onosproject', controllers = None):
         CordLogger.logSet(level = level, app = app, controllers = controllers, forced = True)
@@ -319,8 +332,7 @@ class cluster_exchange(CordLogger):
 	log.info('Cluster new master is %s'%new_master_ip)
 	return True
 
-    def test_cluster_controller_restarts(self):
-        '''Test the cluster by repeatedly killing the controllers'''
+    def cluster_controller_restarts(self, graceful = False):
         controllers = self.get_controllers()
         ctlr_len = len(controllers)
         if ctlr_len <= 1:
@@ -381,7 +393,9 @@ class cluster_exchange(CordLogger):
                 adjacent_controllers = list( set(controllers) - set([controller]) )
                 self.log_set(controllers = adjacent_controllers)
                 self.log_set(app = 'io.atomix', controllers = adjacent_controllers)
-                cord_test_onos_restart(node = controller_name, timeout = 0)
+                if graceful is True:
+                    self.onos_shutdown(controller)
+                cord_test_onos_restart(node = controller, timeout = 0)
                 self.log_set(controllers = controller)
                 self.log_set(app = 'io.atomix', controllers = controller)
                 time.sleep(60)
@@ -390,10 +404,18 @@ class cluster_exchange(CordLogger):
                 continue
 
             #first archive the test case logs for this run
-            CordLogger.archive_results('test_cluster_controller_restarts',
+            CordLogger.archive_results(self._testMethodName,
                                        controllers = controllers,
                                        iteration = 'iteration_{}'.format(num+1))
             next_controller = check_exception(controller = controller)
+
+    def test_cluster_controller_restarts(self):
+        '''Test the cluster by repeatedly killing the controllers'''
+        self.cluster_controller_restarts()
+
+    def test_cluster_graceful_controller_restarts(self):
+        '''Test the cluster by repeatedly restarting the controllers gracefully'''
+        self.cluster_controller_restarts(graceful = True)
 
     def test_cluster_single_controller_restarts(self):
         '''Test the cluster by repeatedly restarting the same controller'''
@@ -453,7 +475,7 @@ class cluster_exchange(CordLogger):
         for num in range(tries):
             log.info('ITERATION: %d. Shutting down Controller %s' %(num + 1, controller_name))
             try:
-                cord_test_onos_shutdown(node = controller_name)
+                cord_test_onos_shutdown(node = controller)
                 time.sleep(20)
             except:
                 time.sleep(5)
@@ -462,7 +484,7 @@ class cluster_exchange(CordLogger):
             check_exception(controller)
             #Now restart the controller back
             log.info('Restarting back the controller %s' %controller_name)
-            cord_test_onos_restart(node = controller_name)
+            cord_test_onos_restart(node = controller)
             self.log_set(controllers = controller)
             self.log_set(app = 'io.atomix', controllers = controller)
             time.sleep(60)
@@ -558,7 +580,7 @@ class cluster_exchange(CordLogger):
         onos_names_ips =  self.get_cluster_container_names_ips()
         master_onos_name = onos_names_ips[master]
         log.info('Removing cluster current master %s'%(master))
-        cord_test_onos_shutdown(node = master_onos_name)
+        cord_test_onos_shutdown(node = master)
         time.sleep(60)
         onos_instances -= 1
         status = self.verify_cluster_status(onos_instances = onos_instances,controller=standbys[0])
@@ -575,7 +597,7 @@ class cluster_exchange(CordLogger):
         onos_names_ips =  self.get_cluster_container_names_ips()
         member_onos_name = onos_names_ips[standbys[0]]
 	log.info('Removing cluster member %s'%standbys[0])
-        cord_test_onos_shutdown(node = member_onos_name)
+        cord_test_onos_shutdown(node = standbys[0])
 	time.sleep(60)
 	onos_instances -= 1
         status = self.verify_cluster_status(onos_instances = onos_instances,controller=master)
@@ -590,9 +612,9 @@ class cluster_exchange(CordLogger):
         member1_onos_name = onos_names_ips[standbys[0]]
         member2_onos_name = onos_names_ips[standbys[1]]
         log.info('Removing cluster member %s'%standbys[0])
-        cord_test_onos_shutdown(node = member1_onos_name)
+        cord_test_onos_shutdown(node = standbys[0])
         log.info('Removing cluster member %s'%standbys[1])
-        cord_test_onos_shutdown(node = member2_onos_name)
+        cord_test_onos_shutdown(node = standbys[1])
         time.sleep(60)
         onos_instances = onos_instances - 2
         status = self.verify_cluster_status(onos_instances = onos_instances,controller=master)
@@ -607,7 +629,7 @@ class cluster_exchange(CordLogger):
         for i in range(remove):
 	    member_onos_name = onos_names_ips[standbys[i]]
             log.info('Removing onos container with name %s'%standbys[i])
-            cord_test_onos_shutdown(node = member_onos_name)
+            cord_test_onos_shutdown(node = standbys[i])
         time.sleep(60)
         onos_instances = onos_instances - remove
         status = self.verify_cluster_status(onos_instances = onos_instances, controller=master)
@@ -668,7 +690,7 @@ class cluster_exchange(CordLogger):
         onos_names_ips =  self.get_cluster_container_names_ips()
         master_onos_name = onos_names_ips[master]
         log.info('Restarting cluster master %s'%master)
-        cord_test_onos_restart(node = master_onos_name)
+        cord_test_onos_restart(node = master)
         status = self.verify_cluster_status(onos_instances = onos_instances)
         assert_equal(status, True)
 	log.info('Cluster came up after master restart as expected')
@@ -680,8 +702,8 @@ class cluster_exchange(CordLogger):
         master1, standbys = self.get_cluster_current_master_standbys()
         onos_names_ips =  self.get_cluster_container_names_ips()
         master_onos_name = onos_names_ips[master1]
-        log.info('Restarting cluster master %s'%master)
-        cord_test_onos_restart(node = master_onos_name)
+        log.info('Restarting cluster master %s'%master1)
+        cord_test_onos_restart(node = master1)
         status = self.verify_cluster_status(onos_instances = onos_instances)
         assert_equal(status, True)
 	master2, standbys = self.get_cluster_current_master_standbys()
@@ -696,7 +718,7 @@ class cluster_exchange(CordLogger):
         onos_names_ips =  self.get_cluster_container_names_ips()
 	member_onos_name = onos_names_ips[standbys[0]]
         log.info('Restarting cluster member %s'%standbys[0])
-        cord_test_onos_restart(node = member_onos_name)
+        cord_test_onos_restart(node = standbys[0])
         status = self.verify_cluster_status(onos_instances = onos_instances)
         assert_equal(status, True)
 	log.info('Cluster came up as expected after restarting one member')
@@ -710,8 +732,8 @@ class cluster_exchange(CordLogger):
         member1_onos_name = onos_names_ips[standbys[0]]
         member2_onos_name = onos_names_ips[standbys[1]]
         log.info('Restarting cluster members %s and %s'%(standbys[0],standbys[1]))
-        cord_test_onos_restart(node = member1_onos_name)
-        cord_test_onos_restart(node = member2_onos_name)
+        cord_test_onos_restart(node = standbys[0])
+        cord_test_onos_restart(node = standbys[1])
         status = self.verify_cluster_status(onos_instances = onos_instances)
         assert_equal(status, True)
 	log.info('Cluster came up as expected after restarting two members')
@@ -725,7 +747,7 @@ class cluster_exchange(CordLogger):
 	for i in range(members):
             member_onos_name = onos_names_ips[standbys[i]]
 	    log.info('Restarting cluster member %s'%standbys[i])
-            cord_test_onos_restart(node = member_onos_name)
+            cord_test_onos_restart(node = standbys[i])
 
         status = self.verify_cluster_status(onos_instances = onos_instances)
         assert_equal(status, True)
@@ -779,7 +801,7 @@ class cluster_exchange(CordLogger):
         self.vrouter.setUpClass()
         res = self.vrouter.vrouter_network_verify(networks, peers = 1)
 	assert_equal(res,True)
-        cord_test_onos_shutdown(node = master_onos_name)
+        cord_test_onos_shutdown(node = master)
 	time.sleep(60)
 	log.info('Verifying vrouter traffic after cluster master is down')
 	self.vrouter.vrouter_traffic_verify()
@@ -826,7 +848,7 @@ class cluster_exchange(CordLogger):
         time.sleep(15) ## Expecting vrouter should work properly if master of cluster goes down
         self.vrouter.vrouter_traffic_verify(positive_test=False)
 	log.info('Verifying vrouter traffic after master down')
-        cord_test_onos_shutdown(node = master_onos_name)
+        cord_test_onos_shutdown(node = master)
 	time.sleep(60)
 	self.vrouter.vrouter_traffic_verify(positive_test=False)
         self.vrouter.vrouter_activate(deactivate=False)
@@ -843,7 +865,7 @@ class cluster_exchange(CordLogger):
         res = self.vrouter.vrouter_network_verify(networks, peers = 1)
         assert_equal(res, True) # Expecting vrouter should work properly
         log.info('Verifying vrouter after cluster member down')
-        cord_test_onos_shutdown(node = member_onos_name)
+        cord_test_onos_shutdown(node = standbys[0])
 	time.sleep(60)
 	self.vrouter.vrouter_traffic_verify()# Expecting vrouter should work properly if member of cluster goes down
 
@@ -858,7 +880,7 @@ class cluster_exchange(CordLogger):
         log.info('Verifying vrouter traffic before cluster member restart')
         res = self.vrouter.vrouter_network_verify(networks, peers = 1)
         assert_equal(res, True) # Expecting vrouter should work properly
-        cord_test_onos_restart(node = member_onos_name)
+        cord_test_onos_restart(node = standbys[1])
 	log.info('Verifying vrouter traffic after cluster member restart')
         self.vrouter.vrouter_traffic_verify()# Expecting vrouter should work properly if member of cluster restarts
 
@@ -908,7 +930,7 @@ class cluster_exchange(CordLogger):
 
 	for i in [0,1]:
 	    if i == 1:
-                cord_test_onos_shutdown(node = master_onos_name)
+                cord_test_onos_shutdown(node = master)
                 log.info('Verifying flows traffic after master killed')
                 time.sleep(45)
 	    else:
@@ -1228,7 +1250,7 @@ class cluster_exchange(CordLogger):
         for i in [0,1]:
             if i == 1:
                 log.info('Killing cluster current master %s'%master)
-                cord_test_onos_shutdown(node = master_onos_name)
+                cord_test_onos_shutdown(node = master)
 		time.sleep(20)
                 status = self.verify_cluster_status(controller=standbys[0],onos_instances=onos_instances-1,verify=True)
 		assert_equal(status, True)
@@ -1626,7 +1648,7 @@ class cluster_exchange(CordLogger):
         num_channels = 10
 	for i in [0,1]:
 	    if i == 1:
-                cord_test_onos_shutdown(node = member_onos_name)
+                cord_test_onos_shutdown(node = standbys[0])
 		time.sleep(30)
 		status = self.verify_cluster_status(onos_instances=onos_instances-1,verify=True,controller=master)
                 assert_equal(status, True)
@@ -1655,8 +1677,8 @@ class cluster_exchange(CordLogger):
         num_channels = 10
 	for i in [0,1]:
 	    if i == 1:
-                cord_test_onos_shutdown(node = member1_onos_name)
-                cord_test_onos_shutdown(node = member2_onos_name)
+                cord_test_onos_shutdown(node = standbys[0])
+                cord_test_onos_shutdown(node = standbys[1])
 		time.sleep(60)
 		status = self.verify_cluster_status(onos_instances=onos_instances-2)
                 assert_equal(status, True)

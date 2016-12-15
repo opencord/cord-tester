@@ -10,8 +10,14 @@ ${EXTRA_OPTS}     -v
 
 *** Test Cases ***
 Verify Onos Controllers Restart Functionality
-  [Documentation]  Verify ONOS cluster by restarting controllers iteratively
+  [Documentation]  Verify ONOS cluster by restarting controllers
   ${rc}=  Run Cord Tester  cluster:cluster_exchange.test_cluster_controller_restarts
+  Should Be Equal As Integers  ${rc}  0
+
+Verify Onos Controllers Graceful Restart Functionality
+  [Documentation]  Verify ONOS cluster by restarting controllers gracefully
+  Cord Setup
+  ${rc}=  Run Cord Tester  cluster:cluster_exchange.test_cluster_graceful_controller_restarts
   Should Be Equal As Integers  ${rc}  0
 
 Verify Onos Single Controller Restart Functionality

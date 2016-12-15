@@ -487,6 +487,31 @@ class OnosCliDriver( CLI ):
             main.cleanup()
             main.exit()
 
+    def shutdown( self, timeout = 5):
+        """
+        Shuts down ONOS
+        """
+        try:
+            self.handle.sendline("shutdown now")
+            self.handle.expect("yes/no", timeout = timeout)
+            self.handle.sendline("yes")
+            return main.TRUE
+        except AssertionError:
+            main.log.exception( "" )
+            return None
+        except TypeError:
+            main.log.exception( self.name + ": Object not as expected" )
+            return None
+        except pexpect.EOF:
+            main.log.error( self.name + ": EOF exception found" )
+            main.log.error( self.name + ":    " + self.handle.before )
+            main.cleanup()
+            main.exit()
+        except Exception:
+            main.log.exception( self.name + ": Uncaught exception!" )
+            main.cleanup()
+            main.exit()
+
     # IMPORTANT NOTE:
     # For all cli commands, naming convention should match
     # the cli command changing 'a:b' with 'aB'.
