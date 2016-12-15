@@ -199,15 +199,26 @@ class cluster_exchange(CordLogger):
 
     def get_cluster_container_names_ips(self,controller=None):
         onos_names_ips = {}
-        onos_ips = self.get_cluster_current_member_ips(controller=controller)
-        onos_names_ips[onos_ips[0]] = Onos.NAME
-        onos_names_ips[Onos.NAME] = onos_ips[0]
-        for i in range(1,len(onos_ips)):
-            name = '{0}-{1}'.format(Onos.NAME,i+1)
-            onos_names_ips[onos_ips[i]] = name
-            onos_names_ips[name] = onos_ips[i]
-
+        controllers = self.get_controllers()
+        i = 0
+        for controller in controllers:
+            if i == 0:
+                name = Onos.NAME
+            else:
+                name = '{}-{}'.format(Onos.NAME, i+1)
+            onos_names_ips[controller] = name
+            onos_names_ips[name] = controller
+            i += 1
         return onos_names_ips
+        # onos_ips = self.get_cluster_current_member_ips(controller=controller)
+        # onos_names_ips[onos_ips[0]] = Onos.NAME
+        # onos_names_ips[Onos.NAME] = onos_ips[0]
+        # for i in range(1,len(onos_ips)):
+        #     name = '{0}-{1}'.format(Onos.NAME,i+1)
+        #     onos_names_ips[onos_ips[i]] = name
+        #     onos_names_ips[name] = onos_ips[i]
+
+        # return onos_names_ips
 
     #identifying current master of a connected device, not tested
     def get_cluster_current_master_standbys(self,controller=None,device_id=device_id):
@@ -394,6 +405,7 @@ class cluster_exchange(CordLogger):
                 self.log_set(controllers = adjacent_controllers)
                 self.log_set(app = 'io.atomix', controllers = adjacent_controllers)
                 if graceful is True:
+                    log.info('Gracefully shutting down controller: %s' %controller)
                     self.onos_shutdown(controller)
                 cord_test_onos_restart(node = controller, timeout = 0)
                 self.log_set(controllers = controller)
