@@ -72,7 +72,7 @@ Verify ONOS AAA Functionality 3
 
 Verify ONOS AAA Functionality 4
   [Documentation]  Make a TLS client request to a RADIUS server through ONOS AAA application with disabling and re-enabling the app
-  ${rc}=  Run Cord Tester  tls:eap_auth_exchange.test_eap_tls_aaa_app_deactivate
+  ${rc}=  Run Cord Tester  tls:eap_auth_exchange.test_eap_tls_with_aaa_app_deactivation
   Should Be Equal As Integers  ${rc}  0
 
 Verify ONOS AAA Functionality 5
