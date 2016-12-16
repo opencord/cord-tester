@@ -176,7 +176,7 @@ class utils(object):
             elif type(search_dict[key]) == list:
                  if not search_dict[key]:
                     found = False
-                    break
+                    continue
                  for item in search_dict[key]:
                      if isinstance(item, dict):
                         results, found = self.search_dictionary(item, field)
@@ -196,7 +196,7 @@ class utils(object):
     @params : getJsonDataDictList - List of dictionaries to be searched
              fieldName - Key to be searched for (ex: instance_id)
     @Returns: Returns the unique value of the Key that was provided
-    '''   
+    '''
 
     def getAllFieldValues(self, getJsonDataDictList, fieldName):
         value_list = []
@@ -212,8 +212,7 @@ class utils(object):
         else:
            print "list of values found for ", fieldName, ";", uniq_list
         return fieldValue
-        
-        
+
 '''
 #Test
 dict_list = {
