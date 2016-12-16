@@ -353,7 +353,7 @@ class cluster_exchange(CordLogger):
         #this call would verify the cluster for once
         onos_map = self.get_cluster_container_names_ips()
 
-        def check_exception(controller = None):
+        def check_exception(iteration, controller = None):
             adjacent_controller = None
             adjacent_controllers = None
             if controller:
@@ -372,6 +372,7 @@ class cluster_exchange(CordLogger):
                     failed = self.verify_leaders(controllers)
                     if failed:
                         log.info('Leaders command failed on nodes: %s' %failed)
+                        log.error('Test failed on ITERATION %d' %iteration)
                         assert_equal(len(failed), 0)
                     return controller
 
@@ -383,6 +384,8 @@ class cluster_exchange(CordLogger):
                 st = False
 
             failed = self.verify_leaders(controllers)
+            if failed:
+                log.error('Test failed on ITERATION %d' %iteration)
             assert_equal(len(failed), 0)
             if st is False:
                 log.info('No storage exception and ONOS cluster was not formed successfully')
@@ -419,7 +422,7 @@ class cluster_exchange(CordLogger):
             CordLogger.archive_results(self._testMethodName,
                                        controllers = controllers,
                                        iteration = 'iteration_{}'.format(num+1))
-            next_controller = check_exception(controller = controller)
+            next_controller = check_exception(num, controller = controller)
 
     def test_cluster_controller_restarts(self):
         '''Test the cluster by repeatedly killing the controllers'''
@@ -440,7 +443,7 @@ class cluster_exchange(CordLogger):
         #this call would verify the cluster for once
         onos_map = self.get_cluster_container_names_ips()
 
-        def check_exception(controller, inclusive = False):
+        def check_exception(iteration, controller, inclusive = False):
             adjacent_controllers = list(set(controllers) - set([controller]))
             adjacent_controller = adjacent_controllers[0]
             controller_list = adjacent_controllers if inclusive == False else controllers
@@ -462,6 +465,7 @@ class cluster_exchange(CordLogger):
                 log.info('Leaders command failed on nodes: %s' %failed)
                 if storage_exceptions:
                     log.info('Storage exception seen on nodes: %s' %storage_exceptions)
+                    log.error('Test failed on ITERATION %d' %iteration)
                     assert_equal(len(failed), 0)
                     return controller
 
@@ -493,7 +497,7 @@ class cluster_exchange(CordLogger):
                 time.sleep(5)
                 continue
             #check for exceptions on the adjacent nodes
-            check_exception(controller)
+            check_exception(num, controller)
             #Now restart the controller back
             log.info('Restarting back the controller %s' %controller_name)
             cord_test_onos_restart(node = controller)
@@ -504,7 +508,7 @@ class cluster_exchange(CordLogger):
             CordLogger.archive_results('test_cluster_single_controller_restarts',
                                        controllers = controllers,
                                        iteration = 'iteration_{}'.format(num+1))
-            check_exception(controller, inclusive = True)
+            check_exception(num, controller, inclusive = True)
 
     def test_cluster_restarts(self):
         '''Test the cluster by repeatedly restarting the entire cluster'''
@@ -517,7 +521,7 @@ class cluster_exchange(CordLogger):
         #this call would verify the cluster for once
         onos_map = self.get_cluster_container_names_ips()
 
-        def check_exception():
+        def check_exception(iteration):
             controller_list = controllers
             storage_exceptions = []
             for node in controller_list:
@@ -537,6 +541,7 @@ class cluster_exchange(CordLogger):
                 log.info('Leaders command failed on nodes: %s' %failed)
                 if storage_exceptions:
                     log.info('Storage exception seen on nodes: %s' %storage_exceptions)
+                    log.error('Test failed on ITERATION %d' %iteration)
                     assert_equal(len(failed), 0)
                     return
 
@@ -545,6 +550,8 @@ class cluster_exchange(CordLogger):
                                                           nodes_filter = \
                                                           lambda nodes: [ n for n in nodes if n['state'] in [ 'ACTIVE', 'READY'] ])
                 log.info('ONOS cluster on node %s formed with controllers: %s' %(ctlr, ips))
+                if len(ips) != len(controllers):
+                    log.error('Test failed on ITERATION %d' %iteration)
                 assert_equal(len(ips), len(controllers))
 
         tries = 10
@@ -565,7 +572,7 @@ class cluster_exchange(CordLogger):
                                        controllers = controllers,
                                        iteration = 'iteration_{}'.format(num+1))
             #check for exceptions on the adjacent nodes
-            check_exception()
+            check_exception(num)
 
     #pass
     def test_cluster_formation_and_verification(self,onos_instances = ONOS_INSTANCES):
