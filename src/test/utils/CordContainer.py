@@ -331,10 +331,10 @@ class OnosCordStopWrapper(Container):
                 self.kill()
 
 class Onos(Container):
-
     QUAGGA_CONFIG = [ { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, ]
+    MAX_INSTANCES = 3
     SYSTEM_MEMORY = (get_mem(),) * 2
-    INSTANCE_MEMORY = (get_mem(instances=3),) * 2
+    INSTANCE_MEMORY = (get_mem(instances=MAX_INSTANCES),) * 2
     JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
@@ -410,7 +410,7 @@ class Onos(Container):
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
                  boot_delay = 20, restart = False, network_cfg = None,
-                 cluster = False, data_volume = None, async = False, quagga_config = None, max_instances=1):
+                 cluster = False, data_volume = None, async = False, quagga_config = None):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -424,15 +424,14 @@ class Onos(Container):
         if quagga_config is None:
             quagga_config = Onos.QUAGGA_CONFIG
         super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = quagga_config)
-        self.max_instances = max_instances
         self.boot_delay = boot_delay
         self.data_map = None
         if cluster is True:
             self.ports = []
-            if self.max_instances <= 3:
+            if Onos.MAX_INSTANCES <= 3:
                 java_opts = self.JAVA_OPTS_CLUSTER
             else:
-                instance_memory = (get_mem(instances=self.max_instances),) * 2
+                instance_memory = (get_mem(instances=Onos.MAX_INSTANCES),) * 2
                 java_opts = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*instance_memory)
 
             self.env['JAVA_OPTS'] = java_opts

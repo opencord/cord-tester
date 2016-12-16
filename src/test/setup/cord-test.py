@@ -409,6 +409,7 @@ def runTest(args):
             radius_ip = None
 
     Container.IMAGE_PREFIX = args.prefix
+    Onos.MAX_INSTANCES = args.onos_instances
     cluster_mode = True if args.onos_instances > 1 else False
     async_mode = cluster_mode and args.async_mode
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
@@ -430,7 +431,7 @@ def runTest(args):
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE,
                     tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume, async = async_mode, max_instances = args.onos_instances)
+                    data_volume = data_volume, async = async_mode)
         if onos.running:
             onos_ip = onos.ipaddr
             onos_ips.append(onos_ip)
@@ -447,7 +448,7 @@ def runTest(args):
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
-                        quagga_config = quagga_config, max_instances = args.onos_instances)
+                        quagga_config = quagga_config)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
@@ -664,6 +665,7 @@ def setupCordTester(args):
     Onos.IMAGE = onos_cnt['image']
     Onos.PREFIX = args.prefix
     Onos.TAG = onos_cnt['tag']
+    Onos.MAX_INSTANCES = args.onos_instances
     cluster_mode = True if args.onos_instances > 1 else False
     async_mode = cluster_mode and args.async_mode
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
@@ -681,7 +683,7 @@ def setupCordTester(args):
     if onos_ip is None:
         data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume, async = async_mode, max_instances = args.onos_instances)
+                    data_volume = data_volume, async = async_mode)
         if onos.running:
             onos_ip = onos.ipaddr
             onos_ips.append(onos_ip)
@@ -698,7 +700,7 @@ def setupCordTester(args):
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
-                        quagga_config = quagga_config, max_instances = args.onos_instances)
+                        quagga_config = quagga_config)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
