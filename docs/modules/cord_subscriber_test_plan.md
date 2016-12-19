@@ -1,7 +1,22 @@
-**CORD Subscriber Test Plan**
+**Cord-Tester**
 
-**CORD Subscriber Test Cases (Implemented and Planned) : **
 
+
+**CORD Automated Tester Suite:**
+
+**The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite targeting CORD PODs. It is typically deployed as one or more Docker containers, either on the CORD POD or adjacent to the POD and interacts with the POD through the PODs interfaces.**
+
+**Its intended use includes:**
+
+**? Functional Testing**
+
+**? Regression testing for CORD related component development**
+
+**? Acceptance testing of a deployed CORD POD**
+
+**? Health-testing of an existing CORD POD (including non-service-impacting and possibly service-impacting tests)**
+
+**Cord-Subscriber Test Cases (Implemented and Planned) :
 
 <table>
   <tr>
@@ -13,355 +28,932 @@
     <td>Actual Result</td>
   </tr>
   <tr>
-    <td>Subs_1</td>
-    <td>Verify subscriber joining and receiving traffic
-</td>
-    <td>test_subscriber_join_recv_channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2. Send a DHCP discover packet from the client.
-3. Verify joining to a particular group.
-</td>
-    <td>1. TLS authentication should be successful.
-2. IP address should be assigned to client.
-3. Interface should receive traffic. </td>
+    <td>Cord_subscriber_1</td>
+    <td>Test subscriber join and receive for channel surfing</td>
+    <td>test_cord_subscriber_join_recv</td>
+    <td>Send join to a channel from cord subscriber interface and check join is received on onos
+Send data from another interface for join which was send in procedure step 1.</td>
+    <td>Check that cord subscribe interface is received multicast data</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_2</td>
-    <td>Verify joining and jumping to the next channel for channel surfing</td>
-    <td>test_subscriber_join_jump_channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2.  Jump to the next ip.
-3. Jump to the next channel and verify the traffic
+    <td>Cord_subscriber_2</td>
+    <td>Test subscriber join jump for channel surfing</td>
+    <td>test_cord_subscriber_join_jump</td>
+    <td>Send join to channel from cord subscriber and then jump to another channel by sending join</td>
+    <td>Check that cord subscribe interface is received multicast data</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_3</td>
+    <td>Test subscriber join next for channel surfing</td>
+    <td>test_cord_subscriber_join_next</td>
+    <td>Send join to channel from cord subscriber and then next to another channel by sending join
+</td>
+    <td>Check that cord subscribe interface is received multicast data
  </td>
-    <td>1. TLS authentication should be successful.
-2. IP address should be assigned to client.
-3. Interface should receive traffic. Also it should show the jump RX stats for subscriber.</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_3</td>
-    <td>Test subscriber join next for channels</td>
-    <td>test_subscriber_join_next_channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2.  Join the next channel and verify the traffic. </td>
-    <td>1.TLS authentication should be successful.
-2. Interface should receive traffic</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_4</td>
-    <td>Verify subscriber TLS authentication by sending invalid client certificate</td>
-    <td>test_subscriber_authentication_with_invalid_certificate_and_channel_surfing</td>
-    <td>1. Send an invalid Client Hello TLS Certificate.
-2. Send a DHCP discover packet from the subscriber.
- </td>
-    <td>1. Authentication should not be successful.
-2. Subscriber should not receive any ip from DHCP server. </td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_5</td>
-    <td>Verify subscriber TLS authentication by sending no client certificate</td>
-    <td>test_subscriber_authentication_with_no_certificate_and_channel_surfing</td>
-    <td>1. Send an blank Client Hello TLS Certificate.
-2. Send a DHCP discover packet from the subscriber.
- </td>
-    <td>1.Authentication should not be successful.
-2.Subscriber shouldn’t receive any ip from DHCP server. </td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_6</td>
-    <td>Verify subscriber TLS authentication by sending self signed certificate </td>
-    <td>test_subscriber_authentication_with_self_signed_certificate_and_channel_surfing</td>
-    <td>1. Send a self sigend Client Hello TLS Certificate.
-2. Send a DHCP discover packet from the subscriber.</td>
-    <td>1.Authentication should not be successful.
-2.Subscriber shouldn’t receive any ip from DHCP server. </td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_7</td>
-    <td>Verify subscribers TLS authenticatiby sending non ca  certificate. </td>
-    <td>test_subscriber_authentication_with_non_ca_authorized_certificate_and_channel_surfing</td>
-    <td>1. Send a non ca Hello TLS Certificate.
-2. Send a DHCP discover packet from the subscriber.</td>
-    <td>1.Authentication should not be successful.
-2.Subscriber shouldn’t receive any ip from DHCP server. </td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_8</td>
-    <td>Verify subscriber with dhcp rediscover functionality</td>
-    <td>test_subscriber_authentication_with_dhcp_discover_and_channel_surfing</td>
-    <td>1. Send a DHCP discover packet from the subscriber.
-2. Send DHCP release and again send dhcp discover from the client.</td>
-    <td>1. DHCP Ack should get received.
-2. After releasing and then re-sending, dhcp ip address assignment should be successful.</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_9</td>
-    <td>Verify the DHCP process when the subscriber becomes down and  up.</td>
-    <td>test_subscriber_authentication_with_dhcp_client_reboot_scenario_and_channel_surfing</td>
-    <td>After DHCP address assignment to the client, make the subscriber down and then make it up.</td>
-    <td>Once its up, DHCP request message should be sent from the client to the server which is unicast.</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_10</td>
-    <td>Verify the DHCP process when the DHCP server becomes down and  up.
+    <td>Cord_subscriber_4</td>
+    <td>Test subscriber to auth with invalid Certification and join channel</td>
+    <td>test_cord_subscriber_authentication_with_invalid_certificate_and_channel_surfing</td>
+    <td>Initiate tls authentication from cord-subscriber with invalid certificates </td>
+    <td>Authentication should not get success
 </td>
-    <td>test_subscriber_authentication_with_dhcp_server_reboot_scenario_and_channel_surfing</td>
-    <td>1. Send a DHCP discover packet .
-2. Send a DHCP request packet from the client.
-3. Make the DHCP server down.
-4. Make the DHCP server up.</td>
-    <td>1. DHCP offer packet generated.
-2. DHCP Ack packet generated.
-3. Client should have the same ip till the lease time expires.
-4. DHCP Ack should be sent from the server. </td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_11</td>
-    <td>Verify dhcp subscriber rebind process</td>
-    <td>test_subscriber_authentication_with_dhcp_client_rebind_and_channel_surfing</td>
-    <td>After Rebind timer expires, a DHCP request message which is broadcast is being sent .</td>
-    <td>Since the server is up and reachable , it should respond back with DHCP Ack packet</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_12</td>
-    <td>Verify DHCP subscriber starvation attack </td>
-    <td>test_subscriber_authentication_with_dhcp_starvation_scenario_and_channel_surfing</td>
-    <td>1. Let the authentication be successful.
-2. Send a lot of dummy DHCP requests, with random source Mac address (using Scapy)</td>
-    <td>After few second, there is no more IP addresses available in the pool, thus successfully performing denial of service attack to other subscriber</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_13</td>
-    <td>Verify ip address assignment is successful when DHCP discover is sent twice.
-</td>
-    <td>test_subscriber_authentication_with_multiple_dhcp_discover_for_same_subscriber_and_channel_surfing</td>
-    <td> Let authentication be successful.
-Send DHCP discover message twice from the client.
+    <td>Cord_subscriber_5</td>
+    <td>Test subscriber to auth with No Certification and join channel</td>
+    <td>test_cord_subscriber_authentication_with_no_certificate_and_channel_surfing</td>
+    <td>Initiate tls authentication from cord-subscriber with no certificates </td>
+    <td>Authentication should not get success
 
 </td>
-    <td>DHCP server should give the same ip to the client using the DHCP Ack packet. </td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_14</td>
-    <td>Verify ip address assignment is successful when DHCP request is sent twice.</td>
-    <td>test_subscriber_authentication_with_multiple_dhcp_request_for_same_subscriber_and_channel_surfing</td>
-    <td>1. Send a DHCP discover message from the client.
-2. Send DHCP request message.
-3. Again send DHCP request message.
-</td>
-    <td>1. DHCP offer should be sent from the server.
-2. DHCP Ack should get received.
+    <td>Cord_subscriber_6</td>
+    <td>Test subscriber to auth with Self Signed Certification and join channel</td>
+    <td>test_cord_subscriber_authentication_with_self_signed_certificate_and_channel_surfing</td>
+    <td>Initiate tls authentication from cord-subscriber with self-signed certificates</td>
+    <td>Authentication should get success
 </td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_15</td>
-    <td>Verify subscriber ip address assignment is successful when desired ip is sent.</td>
-    <td>test_subscriber_authentication_with_dhcp_client_requested_ip_and_channel_surfing</td>
-    <td>1.Let the authentication be successful.
-Send a DHCP discover packet with the desired ip which is in the server address pool.
-2.Send DHCP discover message twice from the client.</td>
-    <td>DHCP ip address assignment should be successful.
+    <td>iCord_subscriber_7</td>
+    <td>Test 2 subscribers to auth, one of the subscriber with invalid Certification and join channel</td>
+    <td>test_2_cord_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication for two cord-subscribers with valid for one and invalid certificates for other </td>
+    <td>Authentication should get success
+ For valid certificate subscriber only
 </td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_16</td>
-    <td>Verify ip address assignment when dhcp request and offer ip are different </td>
-    <td>test_subscriber_authentication_with_dhcp_non_offered_ip_and_channel_surfing</td>
-    <td>1.  Let the authentication be successful.
-2. Send a DHCP discover message from the client.
-3.  Send DHCP request message with a different ip.
- </td>
-    <td>2. DHCP offer should be sent from server.
-3. DHCP NAK should be sent from the server.</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_17</td>
-    <td>Verify subscriber ip address assignment when desired ip is sent which is out of the pool. </td>
-    <td>test_subscriber_authentication_with_dhcp_request_out_of_pool_ip_by_client_and_channel_surfing</td>
-    <td>1. Let the authentication be successful.
-2. Send a DHCP discover packet with the desired ip which is out of the  server address pool</td>
-    <td>DHCP NAK message should be sent</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td>Subs_18</td>
-    <td>Verify subscriber ip address assignement with the lease time information specified.</td>
-    <td>test_subscriber_authentication_with_dhcp_specified_lease_time_functionality_and_channel_surfing</td>
-    <td>1. Let the authentication be successful.
-2. Send a DHCP discover packet with the least time mentioned.
+    <td>Cord_subscriber_8</td>
+    <td>Test 2 subscribers to auth, one of the subscriber with No Certification and join channel</td>
+    <td>test_2_cord_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication for two cord-subscribers with valid for one and no certificates for other </td>
+    <td>Authentication should get success
+ For valid certificate subscriber only
+
 </td>
-    <td>DHCP ip address assignment should be successful with the mentioned lease time.</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_19</td>
-    <td>Verify subscriber join and receive with multiple channels 100</td>
-    <td>test_subscriber_join_recv_100channels</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2. Send a DHCP discover packet from the client.
-3. Verify joining to 100 channels
- </td>
-    <td>1. TLS authentication should be successful.
-2. IP address should be assigned to client.
-3. All interfaces  should receive traffic.</td>
+    <td>iCord_subscriber_9</td>
+    <td>Test 2 subscribers to auth, one of the subscriber with Non CA authorized Certificate and join channel</td>
+    <td>test_2_cord_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication for two cord-subscribers with valid for one and non ca certificates for other</td>
+    <td>Authentication should get success
+ For valid certificate subscriber only
+</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_20</td>
-    <td>Verify subscribers jumping to 100channels.</td>
-    <td>test_subscribers_join_jump_100channel</td>
-    <td>1.Send a DHCP discover from 10 subscribers.
-2. Jump to 5 channels and verify the traffic</td>
-    <td>1.IP address should be assigend to all the subscribers.
-2. All interfaces should receive traffic.</td>
+    <td>Cord_subscriber_10</td>
+    <td>Test subscriber auth success, DHCP re-discover with DHCP server and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_discover_and_channel_surfing</td>
+    <td>Initiate tls authentication followed by send dhcp discover from a subscriber</td>
+    <td>Subscriber should get authenticated and dhcp offer from server
+</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_21</td>
-    <td>Verify subscribers joining next to 100 channels.</td>
-    <td>test_subscribers_join_next_100channel</td>
-    <td>1.Send a DHCP discover from 10 subscribers.
-2. Join next to 5 channels and verify the traffic</td>
-    <td>1.IP address should be assigend to all the subscribers.
-2. All interfaces should receive traffic.</td>
+    <td>Cord_subscriber_11</td>
+    <td>Test subscriber auth success, DHCP client got re-booted and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_client_reboot_and_channel_surfing</td>
+    <td>Initiate tls authentication
+Get dhcp IP from server
+Now reboot the client</td>
+    <td>Subscriber should be able to join channel after reboot</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_22</td>
-    <td>Verify subscriber join and receive with multiple channels 400</td>
-    <td>test_subscriber_join_recv_400channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2. Send a DHCP discover packet from the client.
-3. Verify joining to 400 channels
- </td>
-    <td>1. TLS authentication should be successful.
-2. IP address should be assigned to client.
-3. All interfaces  should receive traffic.</td>
+    <td>Cord_subscriber_12</td>
+    <td>Test subscriber auth , DHCP server re-boot during DHCP process and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_server_reboot_and_channel_surfing</td>
+    <td>1.Initiate tls authentication
+2. Get dhcp IP from server
+3. Now reboot the  dhcp server </td>
+    <td>Subscriber should be able to join channel after reboot</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_23</td>
-    <td>Verify subscriber join and receive with multiple channels 800</td>
-    <td>test_subscriber_join_recv_800channels</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2. Send a DHCP discover packet from the client.
-3. Verify joining to 800 channels
- </td>
-    <td>1. TLS authentication should be successful.
-2. IP address should be assigned to client.
-3. All interfaces  should receive traffic.</td>
+    <td>Cord_subscriber_13</td>
+    <td>Test subscriber auth , DHCP client rebind IP and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_client_rebind_and_channel_surfing</td>
+    <td>1. Initiate tls authentication
+2. Get dhcp IP from server
+3. Client rebinds IP after rebind time </td>
+    <td>Subscriber should be able join channel after dhcp rebind time </td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_24</td>
-    <td>Verify subscriber join and receive with 1500 multiple channels</td>
-    <td>test_subscriber_join_recv_1500channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication from a subscriber
-2. Send a DHCP discover packet
-3. Verify joining to 1500 channels. </td>
-    <td>1. TLS authentication should be successful.
-2. IP address should be assigned to all the clients.
-3. All interfaces  should receive traffic.</td>
+    <td>Cord_subscriber_14</td>
+    <td>Test subscriber auth , DHCP starvation and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_starvation_and_channel_surfing</td>
+    <td>1.Initiate tls authentication
+2. Client wont get  dhcp IP from because of starvation  </td>
+    <td>Subscriber should not be able to join channel because it don't have dhcp IP</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_25</td>
-    <td>Verify joining and jumping to 400 channels for channel surfing</td>
-    <td>test_subscriber_join_jump_400channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2.  Jump to the next 400 channels and verify the traffic
- </td>
-    <td>1. TLS authentication should be successful.
-2. All Interfaces should receive traffic. Also it should show the jump RX stats for subscriber.</td>
+    <td>Cord_subscriber_15</td>
+    <td>Test subscriber auth , sending same DHCP client discover multiple times and join channel</td>
+    <td>test_cord_subscriber_authentication_with_multiple_dhcp_discover_for_same_subscriber_and_channel_surfing</td>
+    <td>Initiate tls authentication
+Send multiple discoveries from same client
+Join channel </td>
+    <td>Subscriber should get authenticated, dhcp IP and join channel</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_26</td>
-    <td>Verify joining and jumping to  800 channels for channel surfing</td>
-    <td>test_subscriber_join_jump_800channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2.  Jump to the next 800 channels and verify the traffic
- </td>
-    <td>1. TLS authentication should be successful.
-2. All Interfaces should receive traffic. Also it should show the jump RX stats for subscriber.</td>
+    <td>Cord_subscriber_16</td>
+    <td>Test subscriber auth , same DHCP client multiple requests times and join channel</td>
+    <td>test_cord_subscriber_authentication_with_multiple_dhcp_request_for_same_subscriber_and_channel_surfing</td>
+    <td>1. Initiate tls authentication
+2.Send multiple discoveries from same client
+3. Join channel</td>
+    <td>Subscriber should get authenticated, dhcp IP and join channel</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_27</td>
-    <td>Verify joining and jumping to  1200 channels for channel surfing</td>
-    <td>test_subscriber_join_jump_1200channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2.  Jump to the next 1200 channels and verify the traffic
- </td>
-    <td>1. TLS authentication should be successful.
-2. All Interfaces should receive traffic. Also it should show the jump RX stats for subscriber.</td>
+    <td>Cord_subscriber_17</td>
+    <td>Test subscriber auth with DHCP client requesting ip and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_client_requested_ip_and_channel_surfing</td>
+    <td>1. Initiate tls authentication
+2.Send dhcp request with desired IP
+3. Join channel</td>
+    <td>Subscriber should get authenticated, dhcp IP and join channel</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_28</td>
-    <td>Verify joining and jumping to  1500 channels for channel surfing</td>
-    <td>test_subscriber_join_jump_1500channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication.
-2.  Jump to the next 1500 channels and verify the traffic
- </td>
-    <td>1. TLS authentication should be successful.
-2. All Interfaces should receive traffic. Also it should show the jump RX stats for subscriber.</td>
+    <td>Cord_subscriber_18</td>
+    <td>Test subscriber auth with DHCP client request for non-offered ip and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_non_offered_ip_and_channel_surfing</td>
+    <td>1. Initiate tls authentication
+2.Send requests specific IP
+3. Join channel</td>
+    <td>Subscriber should get authenticated, dhcp IP and join channel</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_29</td>
-    <td>Test subscriber join next for 400 channels</td>
-    <td>test_subscriber_join_next_400channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication from a subscriber
-2.  Join the next 400 channels and verify the traffic</td>
-    <td>1. TLS authentication should be successful.
-2. Interfaces should receive traffic. </td>
+    <td>Cord_subscriber_19</td>
+    <td>Test subscriber auth with DHCP client requesting out of pool ip and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_request_out_of_pool_ip_by_client_and_channel_surfing</td>
+    <td>1. Initiate tls authentication
+2.Send requests specific IP from out of pool
+3. Join channel</td>
+    <td>Subscriber should get authenticated, dhcp IP and join channel</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_30</td>
-    <td>Test subscriber join next for 800 channels</td>
-    <td>test_subscriber_join_next_800channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication from a subscriber
-2.  Join the next 800 channels and verify the traffic</td>
-    <td>1. TLS authentication should be successful.
-2. Interfaces should receive traffic. </td>
+    <td>Cord_subscriber_20</td>
+    <td>Test subscriber auth with DHCP client specifying lease time and join channel</td>
+    <td>test_cord_subscriber_authentication_with_dhcp_specified_lease_time_functionality_and_channel_surfing</td>
+    <td>1. Initiate tls authentication
+2.Send dhcp requests with specific lease time
+3. Join channel</td>
+    <td>Subscriber should get authenticated, dhcp IP and join channel</td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_31</td>
-    <td>Test subscriber join next for 1200 channels</td>
-    <td>test_subscriber_join_next_1200channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication from a subscriber
-2.  Join the next 1200 channels and verify the traffic</td>
-    <td>1. TLS authentication should be successful.
-2. Interfaces should receive traffic. </td>
+    <td>Cord_subscriber_21</td>
+    <td>Test 1k subscribers to auth, half of the subscribers with invalid Certification and join channel</td>
+    <td>test_1k_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with invalid certificates for few subscribers </td>
+    <td>Authentication should get success only for valid certificate clients </td>
     <td></td>
   </tr>
   <tr>
-    <td>Subs_32</td>
-    <td>Test subscriber join next for 1500 channels</td>
-    <td>test_subscriber_join_next_1500channel</td>
-    <td>1. Send a EAPOL start message for TLS authentication from a subscriber
-2.  Join the next 1500 channels and verify the traffic</td>
-    <td>1. TLS authentication should be successful.
-2. Interfaces should receive traffic. </td>
+    <td>Cord_subscriber_22</td>
+    <td>Test 1k subscribers to auth, half of the subscribers with No Certification and join channel</td>
+    <td>test_1k_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with no certificates for few subscribers </td>
+    <td>Authentication should get success only for valid certificate clients </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_23</td>
+    <td>Test 1k subscribers to auth, half of the subscribers with Non CA authorized Certificate and join channel</td>
+    <td>test_1k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with non CA certificates for few subscribers </td>
+    <td>Authentication should get success only for valid certificate clients </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_24</td>
+    <td>Test 5k subscribers to auth, half of the subscribers with invalid Certification and join channel</td>
+    <td>test_5k_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with invalid certificates for few subscribers</td>
+    <td>Authentication should get success only for valid certificate clients</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_25</td>
+    <td>Test 5k subscribers to auth, half of the subscribers with No Certification and join channel</td>
+    <td>test_5k_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with no certificates for few subscribers</td>
+    <td>Authentication should get success only for valid certificate clients</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_26</td>
+    <td>Test 5k subscribers to auth, half of the subscribers with Non CA authorized Certificate and join channel</td>
+    <td>test_5k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with non CA certificates for few subscribers</td>
+    <td>Authentication should get success only for valid certificate clients</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_27</td>
+    <td>Test 10k subscribers to auth, half of the subscribers with invalid Certification and join channel</td>
+    <td>test_10k_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with invalid certificates for few subscribers</td>
+    <td>Authentication should get success only for valid certificate clients</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_28</td>
+    <td>Test 10k subscribers to auth, half of the subscribers with No Certification and join channel</td>
+    <td>test_10k_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with no certificates for few subscribers</td>
+    <td>Authentication should get success only for valid certificate clients</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_29</td>
+    <td>Test 10k subscribers to auth, half of the subscribers with Non CA authorized Certificate and join channel</td>
+    <td>test_10k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing</td>
+    <td>Initiate tls authentication with non CA certificates for few subscribers</td>
+    <td>Authentication should get success only for valid certificate clients</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_30</td>
+    <td>Test 1k subscribers auth success, DHCP re-discover with DHCP server and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_discovers_and_channel_surfing</td>
+    <td>Initiate tls authentication for 1k subscribers
+Re-discover dhcp server
+Join channel  </td>
+    <td>All subscribers should be able to get IP and join channel</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_31</td>
+    <td>Test 1k subscribers auth success, DHCP client got re-booted and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_client_reboot_and_channel_surfing</td>
+    <td>Initiate tls authentication for 1k subscribers
+Dhcp clients reboots
+3. Join channel</td>
+    <td>All subscribers should be able to join channel after reboot also </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_32</td>
+    <td>Test 1k subscribers auth , DHCP server re-boot during DHCP process and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_server_reboot_and_channel_surfing</td>
+    <td>1. Initiate tls authentication for 1k subscribers
+2. Dhcp server reboots during dhcp process
+3. Join channel</td>
+    <td>All subscribers should be able to join channel after server reboot also</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_33</td>
+    <td>Test 1k subscribers auth , DHCP client rebind IP and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_client_rebind_and_channel_surfing</td>
+    <td>Initiate tls authentication for 1k subscribers
+Dhcp clients rebind IP after rebind time
+Joins channel</td>
+    <td>All subscribers should be able to join channel after rebind time also</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_34</td>
+    <td>Test 1k subscribers auth , DHCP starvation and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_starvation_and_channel_surfing</td>
+    <td>1.Initiate tls authentication for 1k subscribers
+2.Dhcp clients wont gets IPs because of dhcp starvation
+3. Join channel</td>
+    <td>Subscribers who has got valid dhcp IP should be able to join channel</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_35</td>
+    <td>Test 1k subscribers auth with DHCP client requesting ip and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_client_requested_ip_and_channel_surfing</td>
+    <td>1.Initiate tls authentication for 1k subscribers
+2.Dhcp clients requests specific IPs
+3. Join channel</td>
+    <td>All subscribers should be able to join channel</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_36</td>
+    <td>Test subscribers auth with DHCP client request for non-offered ip and join channel</td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_non_offered_ip_and_channel_surfing</td>
+    <td>1.Initiate tls authentication for 1k subscribers
+2.Dhcp clients requests specific IPs
+3. Join channel</td>
+    <td>All subscribers should be able to join channel</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_37</td>
+    <td>Test 4 subscribers join and receive for 5 channels surfing</td>
+    <td>test_4_cord_subscribers_join_recv_5channel</td>
+    <td>Send igmp joins from 4 subscribers for 5 channels </td>
+    <td>All 4 subscribers should be able join in 5 channels </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_38</td>
+    <td>Test 4 subscribers jump and receive for 5 channels surfing</td>
+    <td>test_4_cord_subscribers_join_jump_5channel</td>
+    <td>Send igmp joins from 4 subscribers for 5 channels </td>
+    <td>All 4 subscribers should be able join in 5 channels
+Channel jump should success  </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_39</td>
+    <td>Test 4 subscribers join next for 5 channels</td>
+    <td>test_4_cord_subscribers_join_next_5channel</td>
+    <td>Send igmp joins from 4 subscribers for 5 channels</td>
+    <td>All 4 subscribers should be able join in 5 channels
+Channel next should success </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_40</td>
+    <td>Test 10 subscribers join and receive for 5 channels surfing</td>
+    <td>test_10_cord_subscribers_join_recv_5channel</td>
+    <td>Send igmp joins from 10 subscribers for 5 channels </td>
+    <td>All 10 subscribers should be able join in 5 channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_41</td>
+    <td>Test 10 subscribers jump and receive for 5 channels surfing</td>
+    <td>test_10_cord_subscribers_join_jump_5channel</td>
+    <td>Send igmp joins from 10 subscribers for 5 channels</td>
+    <td>All 10 subscribers should be able join in 5 channels
+Channel jump should success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_42</td>
+    <td>Test 10 subscribers join next for 5 channels</td>
+    <td>test_10_cord_subscribers_join_next_5channel</td>
+    <td>Send igmp joins from 10 subscribers for 5 channels</td>
+    <td>All 10 subscribers should be able join in 5 channels
+Channel next should success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_43</td>
+    <td>Test cord subscriber join and receive for 100 channels</td>
+    <td>test_cord_subscriber_join_recv_100channels</td>
+    <td>Send igmp join from a subscriber to 100 channels</td>
+    <td>subscriber should be able join in all 100 channels </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_44</td>
+    <td>Test cord subscriber join and receive for 400 channels</td>
+    <td>test_cord_subscriber_join_recv_400channels</td>
+    <td>Send igmp join from a subscriber to 400 channels</td>
+    <td>subscriber should be able join in all 400 channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_45</td>
+    <td>Test cord subscriber join and receive for 800 channels</td>
+    <td>test_cord_subscriber_join_recv_800channels</td>
+    <td>Send igmp join from a subscriber to 800 channels</td>
+    <td>subscriber should be able join in all 800 channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_46</td>
+    <td>Test cord subscriber join and receive for 1200 channels</td>
+    <td>test_cord_subscriber_join_recv_1200channels</td>
+    <td>Send igmp join from a subscriber to 1200 channels</td>
+    <td>subscriber should be able join in all 1200 channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_47</td>
+    <td>Test cord subscriber join and receive for 1500 channels</td>
+    <td>test_cord_subscriber_join_recv_1500channels</td>
+    <td>Send igmp join from a subscriber to 1500 channels</td>
+    <td>subscriber should be able join in all 1500 channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_48</td>
+    <td>Test cord subscriber join jump for 100 channels</td>
+    <td>test_cord_subscriber_join_jump_100channels</td>
+    <td>For a subscriber do channel jump for 100 channel</td>
+    <td>100 Channel jump should get success </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_48</td>
+    <td>Test cord subscriber join jump for 400 channels</td>
+    <td>test_cord_subscriber_join_jump_400channels</td>
+    <td>For a subscriber do channel jump for 400 channel</td>
+    <td>400 Channel jump should get success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_49</td>
+    <td>Test cord subscriber join jump for 800 channels</td>
+    <td>test_cord_subscriber_join_jump_800channels</td>
+    <td>For a subscriber do channel jump for 800 channel</td>
+    <td>800 Channel jump should get success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_50</td>
+    <td>Test cord subscriber join jump for 1200 channels</td>
+    <td>test_cord_subscriber_join_jump_1200channel</td>
+    <td>For a subscriber do channel jump for 1200 channel</td>
+    <td>1200 Channel jump should get success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_51</td>
+    <td>Test cord subscriber join jump for 1500 channels</td>
+    <td>test_cord_subscriber_join_jump_1500channels</td>
+    <td>For a subscriber do channel jump for 1500 channel</td>
+    <td>1500 Channel jump should get success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_52</td>
+    <td>Test cord subscriber join next for 100 channels</td>
+    <td>test_cord_subscriber_join_next_100channels</td>
+    <td>For a subscriber do channel next for 100 channel</td>
+    <td>Channel next for 100 channels should be successful </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_53</td>
+    <td>Test cord subscriber join next for 400 channels</td>
+    <td>test_cord_subscriber_join_next_400channels</td>
+    <td>For a subscriber do channel next for 400 channel</td>
+    <td>Channel next for 400 channels should be successful</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_54</td>
+    <td>Test cord subscriber join next for 800 channels</td>
+    <td>test_cord_subscriber_join_next_800channels</td>
+    <td>For a subscriber do channel next for 800 channel</td>
+    <td>Channel next for 800 channels should be successful</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_55</td>
+    <td>Test cord subscriber join next for 1200 channels</td>
+    <td>test_cord_subscriber_join_next_1200channels</td>
+    <td>For a subscriber do channel next for 1200 channel</td>
+    <td>Channel next for 1200 channels should be successful</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_56</td>
+    <td>Test cord subscriber join next for 1500 channels</td>
+    <td>test_cord_subscriber_join_next_1500channels</td>
+    <td>For a subscriber do channel next for 1500 channel</td>
+    <td>Channel next for 1500 channels should be successful</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_57</td>
+    <td>Test cord subscriber auth with dhcp client request out of pool ip channel surfing </td>
+    <td>test_1k_cord_subscribers_authentication_with_dhcp_request_out_of_pool_ip_by_client_and_channel_surfing</td>
+    <td>Initiate tls authentication for subscriber
+Request for dhcp IP from out of pool
+Join channel </td>
+    <td>Subscriber should get authenticated with IP within pool only.should be able to join channel</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_58</td>
+    <td>Test 1k cord subscribers join and receive for 100 channels</td>
+    <td>test_1k_cord_subscribers_join_recv_100channel</td>
+    <td>1. Send joins for 1k subscribers  to subscribe in 100 channels </td>
+    <td>All subscribers should be able to join and receive 100 channels </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_59</td>
+    <td>Test 1k cord subscribers join jump for 100 channels</td>
+    <td>test_1k_cord_subscribers_join_jump_100channel</td>
+    <td>Do 100 channel jump for 1k subscribers </td>
+    <td>100 channel jump for all subscribers should get success </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_60</td>
+    <td>Test 1k cord subscribers join next for 100 channels</td>
+    <td>test_1k_cord_subscribers_join_next_100channel</td>
+    <td>Do 100 channel next for 1k subscribers</td>
+    <td>100 channel next for all subscribers should get success</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_61</td>
+    <td>Test 1k cord subscribers join and receive for 400 channels</td>
+    <td>test_1k_cord_subscribers_join_recv_400channel</td>
+    <td>Send joins for 400 channels from 1k subscribers </td>
+    <td>All subscribers should be able to send/receive from 400 channels </td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_62</td>
+    <td>Test 1k cord subscribers join jump for 400 channels</td>
+    <td>test_1k_cord_subscribers_join_jump_400channel</td>
+    <td>Do 400 channel jump for 1k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_63</td>
+    <td>Test 1k cord subscribers join next for 400 channels</td>
+    <td>test_1k_cord_subscribers_join_next_400channel</td>
+    <td>Do 100 channel next for 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_64</td>
+    <td>Test 1k cord subscribers join and receive for 800 channels</td>
+    <td>test_1k_cord_subscribers_join_recv_800channel</td>
+    <td>Send joins for 800 channels from 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_65</td>
+    <td>Test 1k cord subscribers join jump for 800 channels</td>
+    <td>test_1k_cord_subscribers_join_jump_800channel</td>
+    <td>Do 800 channel jump for 1k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_66</td>
+    <td>Test 1k cord subscribers join next for 800 channels</td>
+    <td>test_1k_cord_subscribers_join_next_800channel</td>
+    <td>Do 800 channel next for 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_67</td>
+    <td>Test 1k cord subscribers join and receive for 1200 channels</td>
+    <td>test_1k_cord_subscribers_join_recv_1200channel</td>
+    <td>Send joins for 1200 channels from 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_68</td>
+    <td>Test 1k cord subscribers join jump for 1200 channels</td>
+    <td>test_1k_cord_subscribers_join_jump_1200channel</td>
+    <td>Do 1200 channel jump for 1k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_69</td>
+    <td>Test 1k cord subscribers join next for 1200 channels</td>
+    <td>test_1k_cord_subscribers_join_next_1200channel</td>
+    <td>Do 1200 channel next for 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_70</td>
+    <td>Test 1k cord subscribers join and receive for 1500 channels</td>
+    <td>test_1k_cord_subscribers_join_recv_1500channel</td>
+    <td>Send joins for 1500 channels from 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_71</td>
+    <td>Test 1k cord subscribers join jump for 1500 channels</td>
+    <td>test_1k_cord_subscribers_join_jump_1500channel</td>
+    <td>Do 1500 channel jump for 1k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_72</td>
+    <td>Test 1k cord subscribers join next for 1500 channels</td>
+    <td>test_1k_cord_subscribers_join_next_1500channel</td>
+    <td>Do 1500 channel next for 1k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_73
+
+
+</td>
+    <td>Test 5k cord subscribers join and receive for 100 channels</td>
+    <td>test_5k_cord_subscribers_join_recv_100channel</td>
+    <td>Send joins for 100 channels from 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_74</td>
+    <td>Test 5k cord subscribers join jump for 100 channels</td>
+    <td>test_5k_cord_subscribers_join_jump_100channel</td>
+    <td>Do 100 channel jump for 5k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_75</td>
+    <td>Test 5k cord subscribers join next  for 100 channels</td>
+    <td>test_5k_cord_subscribers_join_next_100channel</td>
+    <td>Do 100 channel next for 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_76</td>
+    <td>Test 5k cord subscribers join and receive for 400 channels</td>
+    <td>test_5k_cord_subscribers_join_recv_400channel</td>
+    <td>Send joins for 400 channels from 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_77</td>
+    <td>Test 5k cord subscribers join jump for 400 channels</td>
+    <td>test_5k_cord_subscribers_join_jump_400channel</td>
+    <td>Do 400 channel jump for 5k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_78</td>
+    <td>Test 5k cord subscribers join next for 400 channels</td>
+    <td>test_5k_cord_subscribers_join_next_400channel</td>
+    <td>Do 400 channel next for 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_79</td>
+    <td>Test 5k cord subscribers join and receive for 800 channels</td>
+    <td>test_5k_cord_subscribers_join_recv_800channel</td>
+    <td>Send joins for 800 channels from 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_80</td>
+    <td>Test 5k cord subscribers join jump for 800 channels</td>
+    <td>test_5k_cord_subscribers_join_jump_800channel</td>
+    <td>Do 800 channel jump for 5k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_81</td>
+    <td>Test 5k cord subscribers join next for 800 channels</td>
+    <td>test_5k_cord_subscribers_join_next_800channel</td>
+    <td>Do 800 channel next for 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_82</td>
+    <td>Test 5k cord subscribers join and receive for 1200 channels</td>
+    <td>test_5k_cord_subscribers_join_recv_1200channel</td>
+    <td>Send joins for 1200 channels from 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_83</td>
+    <td>Test 5k cord subscribers join jump  for 1200 channels</td>
+    <td>test_5k_cord_subscribers_join_jump_1200channel</td>
+    <td>Do 1200 channel jump for 5k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_84</td>
+    <td>Test 5k cord subscribers join next for 1200 channels</td>
+    <td>test_5k_cord_subscribers_join_next_1200channel</td>
+    <td>Do 1200 channel next for 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_85</td>
+    <td>Test 5k cord subscribers join and receive for 1500 channels</td>
+    <td>test_5k_cord_subscribers_join_recv_1500channel</td>
+    <td>Send joins for 1500 channels from 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_86</td>
+    <td>Test 5k cord subscribers join jump for 1500 channels</td>
+    <td>test_5k_cord_subscribers_join_jump_1500channel</td>
+    <td>Do 1500 channel jump for 5k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_87</td>
+    <td>Test 5k cord subscribers join next for 1500 channels</td>
+    <td>test_5k_cord_subscribers_join_next_1500channel</td>
+    <td>Do 1500 channel next for 5k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_88</td>
+    <td>Test 10k cord subscribers join and receive for 100 channels</td>
+    <td>test_10k_cord_subscribers_join_recv_100channel</td>
+    <td>Send joins for 100 channels from 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_89</td>
+    <td>Test 10k cord subscribers join jump for 100 channels</td>
+    <td>test_10k_cord_subscribers_join_jump_100channel</td>
+    <td>Do 100 channel jump for 10k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_90</td>
+    <td>Test 10k cord subscribers join next for 100 channels</td>
+    <td>test_10k_cord_subscribers_join_next_100channel</td>
+    <td>Do 100 channel next for 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_91</td>
+    <td>Test 100k cord subscribers join and receive for 100 channels</td>
+    <td>test_100k_cord_subscribers_join_recv_100channel</td>
+    <td>Send joins for 100 channels from 100k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_92</td>
+    <td>Test 100k cord subscribers join jump for 100 channels</td>
+    <td>test_100k_cord_subscribers_join_jump_100channel</td>
+    <td>Do 100 channel jump for 100k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_93</td>
+    <td>Test 100k cord subscribers join next for 100 channels</td>
+    <td>test_100k_cord_subscribers_join_next_100channel</td>
+    <td>Do 100 channel next for 100k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_94</td>
+    <td>Test 10k cord subscribers join and receive or 400 channels</td>
+    <td>test_10k_cord_subscribers_join_recv_400channel</td>
+    <td>Send joins for 400 channels from 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_95</td>
+    <td>Test 10k cord subscribers join jump for 400 channels</td>
+    <td>test_10k_cord_subscribers_join_jump_400channel</td>
+    <td>Do 400 channel jump for 10k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_96</td>
+    <td>Test 10k cord subscribers join next for 400 channels</td>
+    <td>test_10k_cord_subscribers_join_next_400channel</td>
+    <td>Do 400 channel next for 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_97</td>
+    <td>Test 10k cord subscribers join and receive for 800 channels</td>
+    <td>test_10k_cord_subscribers_join_recv_800channel</td>
+    <td>Send joins for 800 channels from 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_98</td>
+    <td>Test 10k cord subscribers join jump for 800 channels</td>
+    <td>test_10k_cord_subscribers_join_jump_800channel</td>
+    <td>Do 800 channel jump for 10k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_99</td>
+    <td>Test 10k cord subscribers join next  for 800 channels</td>
+    <td>test_10k_cord_subscribers_join_next_800channel</td>
+    <td>Do 800 channel next for 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_100</td>
+    <td>Test 10k cord subscribers join and receive for 1200 channels</td>
+    <td>test_10k_cord_subscribers_join_recv_1200channel</td>
+    <td>Send joins for 1200 channels from 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_101</td>
+    <td>Test 10k cord subscribers join jump for 1200 channels</td>
+    <td>test_10k_cord_subscribers_join_jump_1200channel</td>
+    <td>Do 1200 channel jump for 10k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_102</td>
+    <td>Test 10k cord subscribers join next for 1200 channels</td>
+    <td>test_10k_cord_subscribers_join_next_1200channel</td>
+    <td>Do 1200 channel next for 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_103</td>
+    <td>Test 10k cord subscribers join and receive for 1500 channels</td>
+    <td>test_10k_cord_subscribers_join_recv_1500channel</td>
+    <td>Send joins for 1500 channels from 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_104</td>
+    <td>Test 10k cord subscribers join jump for 1500 channels</td>
+    <td>test_10k_cord_subscribers_join_jump_1500channel</td>
+    <td>Do 1500 channel jump for 10k subscribers </td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_105</td>
+    <td>Test 10k cord subscribers join next for 1500 channels</td>
+    <td>test_10k_cord_subscribers_join_next_1500channel</td>
+    <td>Do 1500 channel next for 10k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_106</td>
+    <td>Test 100k cord subscribers join and receive for 1500 channels</td>
+    <td>test_100k_cord_subscribers_join_recv_1500channel</td>
+    <td>Send joins for 1500 channels from 100k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_107</td>
+    <td>Test 100k cord subscribers join jump for 1500 channels</td>
+    <td>test_100k_cord_subscribers_join_jump_1500channel</td>
+    <td>Do 1500 channel jump for 100k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td>Cord_subscriber_108</td>
+    <td>Test 100k cord subscribers join next for 1500 channels</td>
+    <td>test_100k_cord_subscribers_join_next_1500channel</td>
+    <td>Do 1500 channel next for 100k subscribers</td>
+    <td>All subscribers should be able to send/receive from all channels</td>
     <td></td>
   </tr>
 </table>
-

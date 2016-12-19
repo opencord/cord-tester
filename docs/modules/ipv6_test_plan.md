@@ -1,6 +1,25 @@
-**IPv6  Test Plan**
+**Cord-Tester**
 
-**IPv6 Test Cases (Implemented and Planned) : **
+
+
+**CORD Automated Tester Suite:**
+
+**The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite targeting CORD PODs. It is typically deployed as one or more Docker containers, either on the CORD POD or adjacent to the POD and interacts with the POD through the PODs interfaces.**
+
+**Its intended use includes:**
+
+**? Functional Testing**
+
+**? Regression testing for CORD related component development**
+
+**? Acceptance testing of a deployed CORD POD**
+
+**? Health-testing of an existing CORD POD (including non-service-impacting and possibly service-impacting tests)**
+
+**Test Cases (Implemented and Planned) : **
+
+**IPv6 Test Cases (Implemented and Planned) :
+
 
 <table>
   <tr>
@@ -99,7 +118,7 @@
     <td>1. Add point intents with vlan id .
 2. Check hosts command in ONOS.
 3. Verify ping between the hosts.</td>
-    <td>2.‚ÄúHosts‚Äùcommand should discover correct vlan tag.
+    <td>2.ìHostsîcommand should discover correct vlan tag.
 3. Ping should be successful.
  </td>
     <td></td>
@@ -109,7 +128,7 @@
     <td>Verify the INSTALLED state in intents</td>
     <td></td>
     <td>Rewrite mac address action in multi point to single point intent.
-Check the cli command ‚ÄúIntents ‚Äú</td>
+Check the cli command ìIntents ì</td>
     <td> Intent's state should be INSTALLED</td>
     <td></td>
   </tr>

@@ -1,4 +1,20 @@
-**IGMP  Test Plan**
+**Cord-Tester**
+
+
+
+**CORD Automated Tester Suite:**
+
+**The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite targeting CORD PODs. It is typically deployed as one or more Docker containers, either on the CORD POD or adjacent to the POD and interacts with the POD through the PODs interfaces.**
+
+**Its intended use includes:**
+
+**● Functional Testing**
+
+**● Regression testing for CORD related component development**
+
+**● Acceptance testing of a deployed CORD POD**
+
+**● Health-testing of an existing CORD POD (including non-service-impacting and possibly service-impacting tests)**
 
 **IGMP Test Cases (Implemented and Planned) : **
 
@@ -362,5 +378,198 @@ ONOS should not show the entry for MF table </td>
     <td>General query packet  sent from any of the source address should not get filtered</td>
     <td>Fail</td>
   </tr>
+  <tr>
+    <td>IGMP_39</td>
+    <td>Verify igmp include and exclude modes </td>
+    <td>test_igmp_include_exclude_modes</td>
+    <td>send igmp join for include mode
+Send igmp join for exclude mode
+Send traffic to both the groups</td>
+    <td>Traffic should receive for include mode group only</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_40</td>
+    <td>Verify igmp allow new source mode </td>
+    <td>test_igmp_allow_new_source_mode</td>
+    <td>Send igmp include mode join
+Send traffic
+Send allow new source to the same group
+Send traffic with newly allowed source </td>
+    <td>Traffic should receive with newly allowed source </td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_41</td>
+    <td>Verify igmp include mode to exclude mode change</td>
+    <td>test_igmp_include_to_exclude_mode_change</td>
+    <td>send igmp include mode join
+Send traffic to above group
+Send exclude mode join to same group
+Send traffic now</td>
+    <td>Traffic should receive when join sent as include mode and traffic should not receive  when exclude mode sent</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_42</td>
+    <td>Verify igmp exclude mode to include mode change</td>
+    <td>test_igmp_exclude_to_include_mode_change</td>
+    <td>1.send igmp exclude mode join
+2.Send traffic to above group
+3.Send include mode join to same group
+4. Send traffic now</td>
+    <td>Traffic should receive when join sent as include mode and traffic should not receive  when exclude mode sent</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_43</td>
+    <td>Verify igmp to_include with null source list </td>
+    <td>test_igmp_to_include_mode_with_null_source</td>
+    <td>Send igmp include ode join
+Send traffic
+Send to_include mode with empty source join to same group</td>
+    <td>After sending to_include with empty source list, traffic should not receive </td>
+    <td>Need to test on multicast router connected setup</td>
+  </tr>
+  <tr>
+    <td>IGMP_44</td>
+    <td>Verify igmp to_include mode </td>
+    <td>test_igmp_to_include_mode</td>
+    <td>send igmp include mode join
+Send traffic
+Send igmp to_include to same group with other source
+Send traffic </td>
+    <td>Traffic should receive when traffic sent from other sources also</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>
+IGMP_45</td>
+    <td>Verify igmp block old source mode </td>
+    <td>test_igmp_blocking_old_source_mode</td>
+    <td>send igmp join with include mode
+Send traffic
+Send join with block old sources
+Send traffic with source blocked </td>
+    <td>Traffic should not receive once the source has blocked </td>
+    <td>Fail</td>
+  </tr>
+  <tr>
+    <td>IGMP_46</td>
+    <td>Verify igmp traffic for 100 groups </td>
+    <td>test_igmp_multiple_joins_and_data_verification_with_100_groups</td>
+    <td>send 100 igmp joins
+Send traffic to all 100 groups </td>
+    <td>Traffic should receive for all 100 groups</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_47</td>
+    <td>Verify igmp-leave</td>
+    <td>test_igmp_multiple_joins_with_data_verification_and_leaving_100_groups</td>
+    <td>send 100 igmp joins
+Send traffic to each group
+Send leave to each group</td>
+    <td>Traffic should not received once the group receives leave </td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_48</td>
+    <td>
+Verify onos stability when ssm table filled with 1000 entries </td>
+    <td>test_igmp_group_source_for_only_config_with_1000_entries</td>
+    <td>Push igmp ssm entries for 1000 groups into onos </td>
+    <td>Verify if all groups lists  in ‘netcfg’ command in onos and onos should be stable </td>
+    <td>Need to check for max entries support in ONOS ssm table </td>
+  </tr>
+  <tr>
+    <td>IGMP_49</td>
+    <td>Verify exclue to include mode for 100 groups</td>
+    <td>test_igmp_from_exclude_to_include_mode_with_100_groups</td>
+    <td>send igmp join exclude mode
+Send traffic
+Send igmp join to include mode
+Send traffic
+Repeat steps for 100 groups</td>
+    <td>Traffic should receive in case of include sent</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_50</td>
+    <td>Verify igmp include mode traffic for 1000 groups</td>
+    <td>test_igmp_with_multiple_joins_and_data_verify_with_1000_groups</td>
+    <td>send igmp join with include mode
+Send traffic to above join
+Repeat for 1000 groups</td>
+    <td>Traffic should receive for all 1000 groups</td>
+    <td>Pass
+</td>
+  </tr>
+  <tr>
+    <td>IGMP_51</td>
+    <td>Verify igmp include mode traffic for 5000 groups</td>
+    <td>test_igmp_with_multiple_joins_and_data_verify_with_5000_groups</td>
+    <td>1.send igmp join with include mode
+2.Send traffic to above join
+3. Repeat for 5000 groups
+</td>
+    <td>Traffic should receive for all 5000 groups</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_52</td>
+    <td>Verify sending traffic to not registered igmp group</td>
+    <td>test_igmp_send_data_to_non_registered_group</td>
+    <td>send igmp join include mode for group G1
+Send data traffic to group G2</td>
+    <td>Traffic to G2 should not received on client side</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_53</td>
+    <td>Verify igmp data traffic without sending join </td>
+    <td>test_igmp_traffic_verification_for_registered_group_with_no_join_sent</td>
+    <td>Dont send igmp join for group G1
+Send data traffic to group G1</td>
+    <td>As the join not registered data traffic should not received on any interface </td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_54</td>
+    <td>Verify igmp functionality with app deactivation </td>
+    <td>test_igmp_toggling_app_activation</td>
+    <td>send igmp join include mode
+Send data traffic to above group
+Deactivate igmp app
+Repeat step 2</td>
+    <td>After app deactivate data traffic should not receive on any interface</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_55</td>
+    <td>Verify igmp traffic sent to mismatching destination ip and mac</td>
+    <td>test_igmp_with_mismatch_for_dst_ip_and_mac_in_data_packets</td>
+    <td>send igmp include mode join
+Send data traffic
+Data traffic again with dest mac and IP addresses mismatch </td>
+    <td>Incase of dest mac and IP mismatch, client should not receive traffic </td>
+    <td>Fail</td>
+  </tr>
+  <tr>
+    <td>IGMP_56</td>
+    <td>Verify ig igmp module registers invalid IP address</td>
+    <td>test_igmp_registering_invalid_group</td>
+    <td>send igmp join include mode for valid multicast ip
+Repeat step for invalid IP </td>
+    <td>Joins sent to invalid multicast IPs should not get registered</td>
+    <td>Pass</td>
+  </tr>
+  <tr>
+    <td>IGMP_57</td>
+    <td>Verify igmp join sent with invalid source IP should not register </td>
+    <td>test_igmp_registering_invalid_source</td>
+    <td>1.send igmp include mode join with invalid source IP</td>
+    <td>Join should not get registered </td>
+    <td>Pass</td>
+  </tr>
 </table>
-

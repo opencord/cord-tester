@@ -1,8 +1,29 @@
-**Flow Install  Test Plan**
+**Cord-Tester**
 
-**Flow Install Test Cases (Implemented and Planned) : **
+
+
+**CORD Automated Tester Suite:**
+
+**The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite targeting CORD PODs. It is typically deployed as one or more Docker containers, either on the CORD POD or adjacent to the POD and interacts with the POD through the PODs interfaces.**
+
+**Its intended use includes:**
+
+**● Functional Testing**
+
+**● Regression testing for CORD related component development**
+
+**● Acceptance testing of a deployed CORD POD**
+
+**● Health-testing of an existing CORD POD (including non-service-impacting and possibly service-impacting tests)**
+
+**Flows Test Cases (Implemented and Planned) : **
+
+
+** **
 
 **This is to verify that the flow subsystem is compiling flows correctly.**
+
+**We use a packet generation tool called Scapy which allows us to construct a packet that is tailor made for each flow.**
 
 <table>
   <tr>
@@ -473,4 +494,3 @@
     <td></td>
   </tr>
 </table>
-

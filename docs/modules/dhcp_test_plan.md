@@ -1,6 +1,24 @@
-**DHCP  Test Plan**
+**Cord-Tester**
+
+
+
+**CORD Automated Tester Suite:**
+
+**The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite targeting CORD PODs. It is typically deployed as one or more Docker containers, either on the CORD POD or adjacent to the POD and interacts with the POD through the PODs interfaces.**
+
+**Its intended use includes:**
+
+**Functional Testing**
+
+**Regression testing for CORD related component development**
+
+**Acceptance testing of a deployed CORD POD**
+
+**Health-testing of an existing CORD POD (including non-service-impacting and possibly service-impacting tests)**
 
 **DHCP Test Cases (Implemented and Planned) : **
+
+**Activate the DHPC app**
 
 <table>
   <tr>
@@ -348,5 +366,25 @@ Make one dhcp server down</td>
     <td>DHCP offer should be received until DHCP server pool ip address are exhausted.</td>
     <td>Pass</td>
   </tr>
+    <td>DHCP_36</td>
+    <td>Emulate dhcp client with invalid source mac broadcast</td>
+    <td>test_dhcp_1request_with_invalid_source_mac_broadcast</td>
+    <td>Send dhcp client packets with source mac as broadcast</td>
+    <td>Client should not get server offer packet.</td>
+    <td> </td>
+  </tr>
+    <td>DHCP_37</td>
+    <td>Emulate dhcp client with invalid source mac multicast</td>
+    <td>test_dhcp_1request_with_invalid_source_mac_multicast</td>
+    <td>Send dhcp client packets with source mac as multicast</td>
+    <td>Client should not get server offer packet.</td>
+    <td> </td>
+  </tr>
+    <td>DHCP_38</td>
+    <td>Emulate dhcp client with invalid source mac all zeros</td>
+    <td>test_dhcp_1request_with_invalid_source_mac_zero</td>
+    <td>Send dhcp client packets with source mac as zero</td>
+    <td>Client should not get server offer packet.</td>
+    <td> </td>
+  </tr>
 </table>
-

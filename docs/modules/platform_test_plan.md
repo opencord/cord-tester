@@ -1,6 +1,27 @@
-**Platform Test Plan**
+**Cord-Tester**
 
-**Platform Test Cases (Implemented and Planned) : **
+
+
+**CORD Automated Tester Suite:**
+
+**The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite targeting CORD PODs. It is typically deployed as one or more Docker containers, either on the CORD POD or adjacent to the POD and interacts with the POD through the PODs interfaces.**
+
+**Its intended use includes:**
+
+**● Functional Testing**
+
+**● Regression testing for CORD related component development**
+
+**● Acceptance testing of a deployed CORD POD**
+
+**● Health-testing of an existing CORD POD (including non-service-impacting and possibly service-impacting tests)**
+
+**Test Cases (Implemented and Planned) : **
+
+**Platform Tests Test Cases (Implemented and Planned) : **
+
+
+**Docker engine and docker.py should be installed on test host.**
 
 <table>
   <tr>
