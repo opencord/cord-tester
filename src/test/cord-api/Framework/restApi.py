@@ -148,14 +148,24 @@ test = restApi()
 #jsonResponse = test.ApiPost(key2,{"username":"padmin@vicci.org","password":"letmein"})
 #jsonResponse = test.ApiPut(key,{"username":"testuser","password":"TestUser001"},"9")
 #key = "UTILS_SYNCHRONIZER"
-key = "TENANT_VOLT"
+key = "CORE_SANITY_INSTANCES"
+key1 = "CORE_SANITY_SLICES"
+key2 = "CORE_SLICES"
 #input_dict = { "s_tag" : "111", "c_tag" : "222", "subscriber" : 23}
-#jsonResponse = test.ApiPost(key,input_dict)
+input_dict = {
+           "name": "test-instance",
+           "image": 1,
+           "slice": 1,
+           "deployment": 1,
+           "node": 1
+           }
+input_dict1 = { "name" : "mysite_Test1", "site" : 1 , "creator" : 1}
+jsonResponse = test.ApiPost(key1,input_dict1)
 #jsonGetData = test.ApiGet(key)
 print "========="
 #print jsonGetData
-jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"30")
-#jsonO = test.ApiDelete(key,"36")
+#jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"30")
+#jsonO = test.ApiDelete(key2,"1")
 #jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
 #jsonResponse = test.ApiPost(key,{"name":"test-2"})
 #jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")

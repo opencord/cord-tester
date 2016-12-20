@@ -1,0 +1,18 @@
+{
+     "InstanceInfo": [
+            {
+            "name": "test-instance1",
+            "image": 1,
+            "slice": 1,
+            "deployment": 1,
+            "node": 1
+            },
+            {
+            "name": "test-instance",
+            "image": 1,
+            "slice": 1,
+            "deployment": 1,
+            "node": 1
+             }
+    ]
+}

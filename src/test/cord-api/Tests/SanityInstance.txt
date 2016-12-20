@@ -1,0 +1,78 @@
+*** Settings ***
+Documentation     Test suite for Sanity Test of Instance API
+Suite Setup       Read InputFile
+Test Template     Verify Instance API functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Sanity_Instance.json
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Add Instance-1
+                      CREATE      0
+
+Test Get Instance-1
+                      RETRIEVE    0
+
+Test Delete Instance-1
+                      DELETE      0
+
+Test Add Instance-2
+                      CREATE      1
+
+Test Get Instance-2
+                      RETRIEVE    1
+
+Test Delete Instance-2
+                      DELETE      1
+
+*** Keywords ***
+Read InputFile
+    ${userList} =    utils.jsonToList    ${PATHFILE}    InstanceInfo
+    Set Suite Variable    ${uList}    ${userList}
+
+Verify Instance API functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Instances    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Instances    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Instances    ${listIndex}
+
+Test Post Instances
+    [Arguments]    ${listIndex}
+    ${userList} =    Get Variable Value    ${uList}
+    ${userDict}=    utils.listToDict    ${userList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    CORE_SANITY_INSTANCES    ${userDict}
+    Should Be True    ${api_result}
+
+Test Get Instances
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CORE_SANITY_INSTANCES
+    Log    ${json_result}
+    ${userList}=    Get Variable Value    ${uList}
+    ${inputDict}=    utils.listToDict    ${userList}    ${listIndex}
+    ${ID}=    utils.getFieldValueFromDict    ${inputDict}    id
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    id    ${ID}
+    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    Should Be True    ${json_result}
+
+Test Delete Instances
+    [Arguments]    ${listIndex}
+    ${json_getresult}=    restApi.ApiGet    CORE_INSTANCES
+    ${instanceList}=    Get Variable Value    ${iList}
+    ${instanceDict}=    utils.listToDict    ${iList}    ${listIndex}
+    ${ID}=    utils.getFieldValueFromDict    ${instanceDict}    id
+    Log    ${ID}
+    ${getInstanceDict}=    utils.getDictFromListofDict    ${json_getresult}    id    ${ID}
+    Log    ${geInstanceDict}
+    ${instanceID}=    utils.getFieldValueFromDict    ${getInstanceDict}    id
+    Log    ${instanceID}
+    ${test_result}=    restApi.ApiDelete    CORE_INSTANCES    ${instanceID}
+    Should be True    ${test_result}

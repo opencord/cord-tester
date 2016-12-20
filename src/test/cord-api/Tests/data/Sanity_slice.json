@@ -1,0 +1,14 @@
+{
+     "sliceInfo": [
+            {
+            "name": "mysite_Test21",
+            "site": 1,
+            "creator": 1
+            },
+            {
+            "name": "mysite_Test22",
+            "site": 2,
+            "creator": 1
+             }
+    ]
+}

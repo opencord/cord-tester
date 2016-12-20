@@ -6,7 +6,7 @@ class readProperties(object):
 
     @staticmethod
     def parse_line(input):
-        key, value = input.split('=')
+        key, value = input.split('=',1)
         key = key.strip()
         value = value.strip()
         return key, value
@@ -29,5 +29,8 @@ class readProperties(object):
     def getValueProperties(self, key):
         datas = readProperties.getProperties(self)
         value = datas[key]
-
         return value
+
+#test
+#test = readProperties("testProperties.py")
+#test.getValueProperties("CORE_INSTANCES")
