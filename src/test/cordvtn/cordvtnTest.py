@@ -27,6 +27,26 @@ from OnosCtrl import OnosCtrl, get_mac
 from CordLogger import CordLogger
 import time
 
+PROTO_NAME_TCP = 'tcp'
+PROTO_NAME_ICMP = 'icmp'
+IPv4 = 'IPv4'
+
+OS_USERNAME = 'admin'
+OS_PASSWORD = 'admin'
+OS_TENANT = 'admin'
+OS_AUTH_URL = 'http://10.119.192.11:5000/v2.0/'
+OS_TOKEN = 'vDgyUPEp'
+OS_SERVICE_ENDPOINT = 'http://10.119.192.11:35357/v2.0/'
+
+#VM SSH CREDENTIALS
+VM_USERNAME = 'ubuntu'
+VM_PASSWORD = 'ubuntu'
+
+TENANT_PREFIX = 'test-'
+VM_PREFIX = 'test-'
+NETWORK_PREFIX = 'test-'
+CIDR_PREFIX = '192.168'
+
 class cordvtn_exchange(CordLogger):
 
     app_cordvtn = 'org.opencord.vtn'
@@ -89,6 +109,30 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         n['auth_url'] = os.environ['OS_AUTH_URL']
         n['tenant_name'] = os.environ['OS_TENANT_NAME']
         return n
+
+    @classmethod
+    def create_net(tenant_id, name, shared="", external=""):
+        cmd = "neutron net-create %s %s %s --tenant-id=%s"%(name, shared, external, tenant_id)
+        os.system(cmd)
+        time.sleep(1)
+
+    @classmethod
+    def create_subnet(tenant_id, name, subnet, dhcp=""):
+        cmd = "neutron subnet-create %s %s --name %s %s --tenant-id=%s"%(net, subnet, name, dhcp, tenant_id)
+        os.system(cmd)
+        time.sleep(1)
+
+    @classmethod
+    def del_net( tenant_id, name):
+        cmd = "neutron net-delete %s --tenant-id=%s"%(name, tenant_id)
+        os.system(cmd)
+        time.sleep(1)
+
+    @classmethod
+    def del_subnet( tenant_id, name):
+        cmd =  "neutron subnet-create %s %s --name %s %s --tenant-id=%s"%(net,subnet,name, dhcp, tenant_id)
+        os.system(cmd)
+        time.sleep(1)
 
     @classmethod
     def create_net_and_subnet():
@@ -183,7 +227,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         }}
         response = neutron.create_port(body=value)
 
-    def create_router(self, name):
+    def router_create(self, name):
         external_network = None
         for network in self.neutron.list_networks()["networks"]:
             if network.get("router:external"):
@@ -204,7 +248,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                 "tenant_id": self.tenant_id
             }
         }
-        router = self.neutron.create_router(router_info)['router']
+        router = self.neutron.router_create(router_info)['router']
         return router
 
     def router_add_gateway( router_name, network_name):
@@ -226,6 +270,89 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
         print('   - Deleted User %s' % user_name)
         return True
+
+    def set_environment(tenants_num=0, networks_per_tenant=1, vms_per_network=2):
+	octet = 115
+	vm_inc = 11
+	image = nova_connection.images.get(IMAGE_ID)
+	flavor = nova_connection.flavors.get(FLAVOR_ID)
+
+	admin_user_id = keystone_connection.users.find(name=OS_USERNAME).id
+	member_role_id = keystone_connection.roles.find(name='Member').id
+	for num_tenant in range(1, tenants_num+1):
+	    tenant = keystone_connection.tenants.create('%stenant%s' % (TENANT_PREFIX, num_tenant))
+	    keystone_connection.roles.add_user_role(admin_user_id, member_role_id, tenant=tenant.id)
+	    for num_network in range(networks_per_tenant):
+		network_json = {'name': '%snet%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
+				'admin_state_up': True,
+				'tenant_id': tenant.id}
+		network = neutron_connection.create_network({'network': network_json})
+		subnet_json = {'name': '%ssubnet%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
+			       'network_id': network['network']['id'],
+			       'tenant_id': tenant.id,
+			       'enable_dhcp': True,
+			       'cidr': '%s.%s.0/24' % (CIDR_PREFIX, octet), 'ip_version': 4}
+		octet += 1
+		subnet = neutron_connection.create_subnet({'subnet': subnet_json})
+		router_json = {'name': '%srouter%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
+			       'tenant_id': tenant.id}
+		router = neutron_connection.router_create({'router': router_json})
+		port = neutron_connection.add_interface_router(router['router']['id'], {'subnet_id': subnet['subnet']['id']})
+		for num_vm in range(vms_per_network):
+		    tenant_nova_connection = novacli.Client(OS_USERNAME, OS_PASSWORD, tenant.name, OS_AUTH_URL)
+		    m = tenant_nova_connection.servers.create('%svm%s' % (VM_PREFIX, vm_inc), image, flavor, nics=[{'net-id': network['network']['id']}, {'net-id': MGMT_NET}])
+		    vm_inc += 1
+
+    @classmethod
+    def get_id(tenant_id, name):
+        cmd = "neutron %s-list --tenant-id=%s"%(objname,sdn_tenant_id)
+        output = os.system(cmd)
+        lis = output.split("\n")
+        for i in lis:
+            tokens = i.split()
+        if len(tokens)>3 an tokens[3] == name:
+           return tokens[1]
+        return none
+
+    @classmethod
+    def nova_boot(tenant_id, name, netid=None, portid=None):
+        if netid:
+           cmd = "nova --os-tenant-id %s boot --flavor 1 --image %s --nic net-id=%s %s",%(tenant_id, vm_image_id,netid,name)
+        if portid:
+           cmd = "nova --os-tenant-is %s boot --flavor 1 --image %s --nic port-id=%s %s"%(tenant_id,vm_image_id,portid,name)
+        os.system(cmd)
+
+    @classmethod
+    def port_create(sdn_tenant_id,name, net, fixedip, subnetid):
+        cmd = "neutron port-create --name %s --fixed-ip subnet_id=%s,ip_address=%s --tenant-id=%s %s" %(name,subnetid,fixedip,sdn_tenant_id,net)
+        os.system(cmd)
+        time.sleep(1)
+
+    @classmethod
+    def nova_wait_boot(sdn_tenant_id,name, state, retries=10):
+        global errno
+        cmd = "nova --os-tenant-id %s list" %(sdn_tenant_id)
+        for i in range(retries):
+            out = os.system(cmd)
+            lis = out.split("\n")
+            for line in lis:
+                toks = line.split()
+                if len(toks) >= 5 and toks[3] == name and toks[5] == state:
+                   return
+            time.sleep(5)
+         errno=1
+
+    @classmethod
+    def port_delete(sdn_tenant_id,name):
+        cmd = "neutron port-delete %s" %(name)
+        os.system(cmd)
+        time.sleep(1)
+
+    @classmethod
+    def tenant_delete(name):
+        cmd = "keystone tenant-delete %s"%(name)
+        os.system(cmd)
+        time.sleep(1)
 
     @classmethod
     def verify_neutron_crud():
@@ -265,17 +392,76 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_cordvtn_basic_tenant(self):
         onos_load_config()
         status = verify_neutron_crud()
+
         if status != 0:
            print "Issues with Neutron working state"
         assert_equal(status, True)
 
-        ret1 = create_tenant(netA)
-        if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+        tenant_1= create_tenant("CORD_Subscriber_Test_Tenant_1")
+        if ten1 != 0:
+           print "Creation of CORD Subscriber Test Tenant 1"
 
-        ret2 = create_tenant(netB)
-        if ret1 != 0:
-           print "Creation of Tenant netB Failed"
+        tenant_2 = create_tenant("CORD_Subscriber_Test_Tenant_2")
+        if ten2 != 0:
+           print "Creation of CORD Subscriber Test Tenant 2"
+
+        create_net(tenant_1,"a1")
+        create_subnet(tenant_1,"a1","as1","10.0.1.0/24")
+
+        create_net(tenant_2,"a2")
+        create_subnet(tenant_2,"a2","as1","10.0.2.0/24")
+
+        netid_1 = get_id(tenant_1,"net","a1")
+        netid_2 = get_id(tenant_2,"net","a2")
+
+        nova_boot(tenant_1,"vm1",netid=netid)
+        nova_boot(tenant_2,"vm1",netid=netid)
+
+	nova_wait_boot(tenant_1,"vm1", "ACTIVE")
+	nova_wait_boot(tenant_2,"vm1", "ACTIVE")
+
+        router_create(tenant_1,"r1")
+        router_interface_add(tenant_1,"r1","as1")
+        router_create(tenant_2,"r1")
+        router_interface_add(tenant_2,"r1","as1")
+
+        create_net(tenant_1,"x1","","--router:external=True")
+        create_net(tenant_2,"x1","","--router:external=True")
+
+        router_gateway_set(tenant_1,"r1","x1")
+        router_gateway_set(tenant_2,"r1","x1")
+
+        subnetid_1 = get_id(tenant_1,"subnet","as1")
+        subnetid_2 = get_id(tenant_2,"subnet","as1")
+        port_create(tenant_1,"p1","a1","10.0.1.100",subnetid_1)
+        port_create(tenant_2,"p1","a1","10.0.1.100",subnetid_2)
+
+        port_id_1 = get_id(tenant_1,"port","p1")
+        port_id_2 = get_id(tenant_2,"port","p1")
+
+        port_delete(tenant_1,"p1")
+        port_delete(tenant_2,"p1")
+
+        router_gateway_clear(tenant_1,"r1")
+        router_gateway_clear(tenant_2,"r1")
+
+        router_interface_delete(tenant_1,"r1","as1")
+        router_interface_delete(tenant_2,"r1","as1")
+
+        router_delete(tenant_1,"r1")
+        router_delete(tenant_2,"r1")
+
+        nova_delete(tenant_1,"vm1")
+        nova_delete(tenant_2,"vm1")
+
+        delete_subnet(tenant_1,"as1")
+        delete_subnet(tenant_1,"as1")
+
+        delete_net(tenant_1,"x1")
+        delete_net(tenant_2,"x1")
+
+        tenant_delete("CORD_Subscriber_Test_Tenant_1")
+        tenant_delete("CORD_Subscriber_Test_Tenant_2")
         assert_equal(ret1, ret2)
 
     def test_cordvtn_for_create_network(self):
