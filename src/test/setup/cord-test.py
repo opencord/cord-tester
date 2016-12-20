@@ -350,7 +350,7 @@ def runTest(args):
     test_server_params = args.server.split(':')
     test_host = test_server_params[0]
     test_port = CORD_TEST_PORT
-    log_level = args.log_level.upper()
+    test_manifest = TestManifest(args = args)
     if len(test_server_params) > 1:
         test_port = int(test_server_params[1])
     try:
@@ -379,9 +379,6 @@ def runTest(args):
        for c in update_map.keys():
            update_map[c] = True
 
-    onos_ip = None
-    radius_ip = None
-    head_node = platform.node()
     use_manifest = False
     if args.manifest:
         if os.access(args.manifest, os.F_OK):
@@ -391,13 +388,14 @@ def runTest(args):
                 try:
                     shutil.copy(args.manifest, dest)
                 except: pass
-            test_manifest = TestManifest(dest)
-            onos_ip = test_manifest.onos_ip
-            radius_ip = test_manifest.radius_ip
-            head_node = test_manifest.head_node
+            test_manifest = TestManifest(manifest = dest)
             use_manifest = True
         else:
             print('Unable to access test manifest: %s' %args.manifest)
+
+    onos_ip = test_manifest.onos_ip
+    radius_ip = test_manifest.radius_ip
+    head_node = test_manifest.head_node
 
     #don't spawn onos if the user has specified external test controller with test interface config
     if args.test_controller:
@@ -408,43 +406,45 @@ def runTest(args):
         else:
             radius_ip = None
 
-    Container.IMAGE_PREFIX = args.prefix
-    Onos.MAX_INSTANCES = args.onos_instances
-    cluster_mode = True if args.onos_instances > 1 else False
-    async_mode = cluster_mode and args.async_mode
-    existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
-    setup_cluster = False if len(existing_list) == args.onos_instances else True
+    Container.IMAGE_PREFIX = test_manifest.image_prefix
+    Onos.MAX_INSTANCES = test_manifest.onos_instances
+    cluster_mode = True if test_manifest.onos_instances > 1 else False
+    async_mode = cluster_mode and test_manifest.async_mode
+    existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == test_manifest.onos_image ]
+    setup_cluster = False if len(existing_list) == test_manifest.onos_instances else True
     onos_ips = []
+    if cluster_mode is True and len(existing_list) > 1:
+        ##don't setup cluster config again
+        cluster_mode = False
     if onos_ip is None:
-        image_names = args.onos.rsplit(':', 1)
+        image_names = test_manifest.onos_image.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
         if len(image_names) > 1:
             if image_names[1].find('/') < 0:
                 onos_cnt['tag'] = image_names[1]
             else:
                 #tag cannot have slashes
-                onos_cnt['image'] = args.onos
+                onos_cnt['image'] = test_manifest.onos_image
 
         Onos.IMAGE = onos_cnt['image']
-        Onos.PREFIX = args.prefix
+        Onos.PREFIX = test_manifest.image_prefix
         Onos.TAG = onos_cnt['tag']
-        data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
+        data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE,
                     tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                     data_volume = data_volume, async = async_mode)
         if onos.running:
-            onos_ip = onos.ipaddr
-            onos_ips.append(onos_ip)
+            onos_ips.append(onos.ipaddr)
     else:
         onos_ips.append(onos_ip)
 
-    num_onos_instances = args.onos_instances
+    num_onos_instances = test_manifest.onos_instances
     if num_onos_instances > 1 and onos is not None:
         onos_instances = []
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
-            data_volume = '{}-data'.format(name) if args.shared_volume else None
+            data_volume = '{}-data'.format(name) if test_manifest.shared_volume else None
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
@@ -452,24 +452,25 @@ def runTest(args):
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
-        if async_mode is True:
+        if async_mode is True and cluster_mode is True:
             Onos.start_cluster_async(onos_instances)
         if not onos_ips:
             for onos in onos_instances:
                 onos_ips.append(onos.ipaddr)
-        try:
-            for ip in onos_ips:
-                print('Installing cord tester ONOS app %s in ONOS instance %s' %(args.app,ip))
-                OnosCtrl.install_app(args.app, onos_ip = ip)
-        except: pass
+        if cluster_mode is True:
+            try:
+                for ip in onos_ips:
+                    print('Installing cord tester ONOS app %s in ONOS instance %s' %(args.app,ip))
+                    OnosCtrl.install_app(args.app, onos_ip = ip)
+            except: pass
         if setup_cluster is True:
             Onos.setup_cluster(onos_instances)
         else:
             print('ONOS instances already running. Skipping ONOS form cluster for %d instances' %num_onos_instances)
     ctlr_addr = ','.join(onos_ips)
 
-    print('Onos IP %s, Test type %s' %(onos_ip, args.test_type))
-    if use_manifest or args.test_controller:
+    print('Controller IP %s, Test type %s' %(onos_ips, args.test_type))
+    if onos_ip is not None:
         print('Installing ONOS cord apps')
         try:
             Onos.install_cord_apps(onos_ip = onos_ip)
@@ -479,7 +480,7 @@ def runTest(args):
         print('Installing cord tester ONOS app %s' %args.app)
         try:
 	    for ip in onos_ips:
-                OnosCtrl.install_app(args.app, onos_ip = onos_ip)
+                OnosCtrl.install_app(args.app, onos_ip = ip)
         except: pass
 
     if radius_ip is None:
@@ -504,8 +505,8 @@ def runTest(args):
                      'QUAGGA_IP': test_host,
                      'CORD_TEST_HOST' : test_host,
                      'CORD_TEST_PORT' : test_port,
-                     'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
-                     'LOG_LEVEL': log_level,
+                     'ONOS_RESTART' : 0 if test_manifest.olt and args.test_controller else 1,
+                     'LOG_LEVEL': test_manifest.log_level,
                      'MANIFEST': int(use_manifest),
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key
@@ -514,7 +515,7 @@ def runTest(args):
     if ssh_key_file:
         test_cnt_env['SSH_KEY_FILE'] = ssh_key_file
 
-    if args.olt:
+    if test_manifest.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
@@ -551,7 +552,7 @@ def runTest(args):
         test_containers.append(test_cnt)
         if not test_cnt.create:
             continue
-        if test_cnt.create and (args.start_switch or not args.olt):
+        if test_cnt.create and (test_manifest.start_switch or not test_manifest.olt):
             if not args.no_switch:
                 test_cnt.start_switch()
         if test_cnt.create and test_cnt.olt:
@@ -581,7 +582,7 @@ def runTest(args):
                               env = test_cnt_env,
                               rm = False if args.keep else True,
                               update = update_map['test'])
-        if test_cnt.create and (args.start_switch or not args.olt):
+        if test_cnt.create and (test_manifest.start_switch or not test_manifest.olt):
             #For non parallel tests, we just restart the switch also for OLT's
             CordTester.switch_on_olt = False
             if not args.no_switch:
@@ -601,13 +602,12 @@ def setupCordTester(args):
     nose_cnt = {'image': CordTester.IMAGE, 'tag': 'candidate'}
     update_map = { 'quagga' : False, 'radius' : False, 'test': False }
     update_map[args.update.lower()] = True
-    log_level = args.log_level.upper()
+    test_manifest = TestManifest(args = args)
+
     if args.update.lower() == 'all':
        for c in update_map.keys():
            update_map[c] = True
 
-    onos_ip = None
-    radius_ip = None
     onos_cord_loc = args.onos_cord
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
@@ -618,7 +618,6 @@ def setupCordTester(args):
         #Disable test container provisioning on the ONOS compute node
         args.dont_provision = True
 
-    head_node = platform.node()
     use_manifest = False
     if args.manifest:
         if os.access(args.manifest, os.F_OK):
@@ -628,12 +627,12 @@ def setupCordTester(args):
                 try:
                     shutil.copy(args.manifest, dest)
                 except: pass
-            test_manifest = TestManifest(dest)
-            onos_ip = test_manifest.onos_ip
-            radius_ip = test_manifest.radius_ip
-            head_node = test_manifest.head_node
+            test_manifest = TestManifest(manifest = dest)
             use_manifest = True
 
+    onos_ip = test_manifest.onos_ip
+    radius_ip = test_manifest.radius_ip
+    head_node = test_manifest.head_node
     ##If onos/radius was already started
     if args.test_controller:
         ips = args.test_controller.split('/')
@@ -651,25 +650,25 @@ def setupCordTester(args):
             sys.exit(1)
         onos_cord = OnosCord(onos_ip, onos_cord_loc)
 
-    Container.IMAGE_PREFIX = args.prefix
+    Container.IMAGE_PREFIX = test_manifest.image_prefix
     #don't spawn onos if the user had started it externally
-    image_names = args.onos.rsplit(':', 1)
+    image_names = test_manifest.onos_image.rsplit(':', 1)
     onos_cnt['image'] = image_names[0]
     if len(image_names) > 1:
         if image_names[1].find('/') < 0:
             onos_cnt['tag'] = image_names[1]
         else:
             #tag cannot have slashes
-            onos_cnt['image'] = args.onos
+            onos_cnt['image'] = test_manifest.onos_image
 
     Onos.IMAGE = onos_cnt['image']
-    Onos.PREFIX = args.prefix
+    Onos.PREFIX = test_manifest.image_prefix
     Onos.TAG = onos_cnt['tag']
-    Onos.MAX_INSTANCES = args.onos_instances
-    cluster_mode = True if args.onos_instances > 1 else False
-    async_mode = cluster_mode and args.async_mode
-    existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == args.onos ]
-    setup_cluster = False if len(existing_list) == args.onos_instances else True
+    Onos.MAX_INSTANCES = test_manifest.onos_instances
+    cluster_mode = True if test_manifest.onos_instances > 1 else False
+    async_mode = cluster_mode and test_manifest.async_mode
+    existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == test_manifest.onos_image ]
+    setup_cluster = False if len(existing_list) == test_manifest.onos_instances else True
     #cleanup existing volumes before forming a new cluster
     if setup_cluster is True:
         print('Cleaning up existing cluster volumes')
@@ -681,22 +680,21 @@ def setupCordTester(args):
     onos = None
     onos_ips = []
     if onos_ip is None:
-        data_volume = '{}-data'.format(Onos.NAME) if args.shared_volume else None
+        data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                     data_volume = data_volume, async = async_mode)
         if onos.running:
-            onos_ip = onos.ipaddr
-            onos_ips.append(onos_ip)
+            onos_ips.append(onos.ipaddr)
     else:
         onos_ips.append(onos_ip)
 
-    num_onos_instances = args.onos_instances
+    num_onos_instances = test_manifest.onos_instances
     if num_onos_instances > 1 and onos is not None:
         onos_instances = []
         onos_instances.append(onos)
         for i in range(1, num_onos_instances):
             name = '{}-{}'.format(Onos.NAME, i+1)
-            data_volume = '{}-data'.format(name) if args.shared_volume else None
+            data_volume = '{}-data'.format(name) if test_manifest.shared_volume else None
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
@@ -714,7 +712,7 @@ def setupCordTester(args):
 
     ctlr_addr = ','.join(onos_ips)
     print('Onos IP %s' %ctlr_addr)
-    if use_manifest or args.test_controller:
+    if onos_ip is not None:
         print('Installing ONOS cord apps')
         try:
             Onos.install_cord_apps(onos_ip = onos_ip)
@@ -758,8 +756,8 @@ def setupCordTester(args):
                          'QUAGGA_IP': ip,
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
-                         'ONOS_RESTART' : 0 if args.olt and args.test_controller else 1,
-                         'LOG_LEVEL': log_level,
+                         'ONOS_RESTART' : 0 if test_manifest.olt and args.test_controller else 1,
+                         'LOG_LEVEL': test_manifest.log_level,
                          'MANIFEST': int(use_manifest),
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                          'MAAS_API_KEY': maas_api_key
@@ -767,7 +765,7 @@ def setupCordTester(args):
 
         if ssh_key_file:
             test_cnt_env['SSH_KEY_FILE'] = ssh_key_file
-        if args.olt:
+        if test_manifest.olt:
             olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
             test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
@@ -780,7 +778,7 @@ def setupCordTester(args):
                               rm = False,
                               update = update_map['test'])
 
-        if args.start_switch or not args.olt:
+        if test_manifest.start_switch or not test_manifest.olt:
             test_cnt.start_switch()
         if test_cnt.olt:
             test_cnt.setup_intfs(port_num = 0)

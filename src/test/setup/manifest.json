@@ -1,5 +1,7 @@
 {
-  "onos"   : "172.17.0.2",
-  "radius" : "172.17.0.3",
-  "head_node"   : "cord-r6-s1.cord.lab"
+    "onos_instances": 1,
+    "olt": true,
+    "start_switch": true,
+    "onos_image": "onosproject/onos:latest",
+    "log_level" : "INFO"
 }
