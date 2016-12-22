@@ -5,14 +5,16 @@
             "image": 1,
             "slice": 1,
             "deployment": 1,
-            "node": 1
+            "node": 1,
+            "creator" : 1
             },
             {
             "name": "test-instance",
             "image": 1,
             "slice": 1,
             "deployment": 1,
-            "node": 1
+            "node": 1,
+            "creator" : 1
              }
     ]
 }

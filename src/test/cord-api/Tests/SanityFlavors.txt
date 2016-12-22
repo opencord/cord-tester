@@ -1,0 +1,74 @@
+*** Settings ***
+Documentation     Test suite for Sanity Test of Flavors API
+Suite Setup       Read InputFile
+Test Template     Verify Flavor API functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/SanityFlavors.json
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Add Flavor-1     CREATE      0
+
+Test Get Flavor-1     RETRIEVE    0
+
+Test Delete Flavor-1
+                      DELETE      0
+
+Test Add Flavor-2     CREATE      1
+
+Test Get Flavor-2     RETRIEVE    1
+
+Test Delete Flavor-2
+                      DELETE      1
+
+*** Keywords ***
+Read InputFile
+    ${flavorList} =    utils.jsonToList    ${PATHFILE}    flavorsInfo
+    Set Suite Variable    ${vList}    ${flavorList}
+
+Verify Flavor API functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Flavors    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Flavors    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Flavors    ${listIndex}
+
+Test Post Flavors
+    [Arguments]    ${listIndex}
+    ${flavorList} =    Get Variable Value    ${vList}
+    ${flavorDict}=    utils.listToDict    ${flavorList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    CORE_FLAVORS    ${flavorDict}
+    Should Be True    ${api_result}
+
+Test Get Flavors
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CORE_FLAVORS
+    Log    ${json_result}
+    ${flavorList}=    Get Variable Value    ${vList}
+    ${inputDict}=    utils.listToDict    ${flavorList}    ${listIndex}
+    ${flavorName}=    utils.getFieldValueFromDict    ${inputDict}    name
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${flavorName}
+    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    Should Be True    ${json_result}
+
+Test Delete Flavors
+    [Arguments]    ${listIndex}
+    ${json_getresult}=    restApi.ApiGet    CORE_FLAVORS
+    ${flavorList}=    Get Variable Value    ${vList}
+    ${flavorDict}=    utils.listToDict    ${vList}    ${listIndex}
+    ${flavorName}=    utils.getFieldValueFromDict    ${flavorDict}    name
+    Log    ${flavorName}
+    ${getFlavorDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${flavorName}
+    Log    ${getFlavorDict}
+    ${flavorID}=    utils.getFieldValueFromDict    ${getFlavorDict}    id
+    Log    ${flavorID}
+    ${test_result}=    restApi.ApiDelete    CORE_FLAVORS    ${flavorID}
+    Should be True    ${test_result}

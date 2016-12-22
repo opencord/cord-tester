@@ -36,8 +36,8 @@ Test Delete Instance-2
 
 *** Keywords ***
 Read InputFile
-    ${userList} =    utils.jsonToList    ${PATHFILE}    InstanceInfo
-    Set Suite Variable    ${uList}    ${userList}
+    ${instanceList} =    utils.jsonToList    ${PATHFILE}    InstanceInfo
+    Set Suite Variable    ${iList}    ${instanceList}
 
 Verify Instance API functionality
     [Arguments]    ${type}    ${listIndex}
@@ -47,19 +47,19 @@ Verify Instance API functionality
 
 Test Post Instances
     [Arguments]    ${listIndex}
-    ${userList} =    Get Variable Value    ${uList}
-    ${userDict}=    utils.listToDict    ${userList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CORE_SANITY_INSTANCES    ${userDict}
+    ${instanceList} =    Get Variable Value    ${iList}
+    ${instanceDict}=    utils.listToDict    ${instanceList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    CORE_SANITY_INSTANCES    ${instanceDict}
     Should Be True    ${api_result}
 
 Test Get Instances
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CORE_SANITY_INSTANCES
+    ${json_result}=    restApi.ApiGet    CORE_INSTANCES
     Log    ${json_result}
-    ${userList}=    Get Variable Value    ${uList}
-    ${inputDict}=    utils.listToDict    ${userList}    ${listIndex}
-    ${ID}=    utils.getFieldValueFromDict    ${inputDict}    id
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    id    ${ID}
+    ${instanceList}=    Get Variable Value    ${iList}
+    ${inputDict}=    utils.listToDict    ${instanceList}    ${listIndex}
+    ${instanceName}=    utils.getFieldValueFromDict    ${inputDict}    name
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${instanceName}
     ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
@@ -68,10 +68,10 @@ Test Delete Instances
     ${json_getresult}=    restApi.ApiGet    CORE_INSTANCES
     ${instanceList}=    Get Variable Value    ${iList}
     ${instanceDict}=    utils.listToDict    ${iList}    ${listIndex}
-    ${ID}=    utils.getFieldValueFromDict    ${instanceDict}    id
-    Log    ${ID}
-    ${getInstanceDict}=    utils.getDictFromListofDict    ${json_getresult}    id    ${ID}
-    Log    ${geInstanceDict}
+    ${instanceName}=    utils.getFieldValueFromDict    ${instanceDict}    name
+    Log    ${instanceName}
+    ${getInstanceDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${instanceName}
+    Log    ${getInstanceDict}
     ${instanceID}=    utils.getFieldValueFromDict    ${getInstanceDict}    id
     Log    ${instanceID}
     ${test_result}=    restApi.ApiDelete    CORE_INSTANCES    ${instanceID}
