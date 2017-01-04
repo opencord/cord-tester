@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation     Test suite for Service sanity verification
+Documentation     Test suite for checking default services
 Suite Setup       Read InputFile
 Test Template     Verify Service Sanity
 Library           Collections
