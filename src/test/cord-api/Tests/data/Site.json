@@ -1,0 +1,15 @@
+{
+    "SiteInfo":
+    [
+        {
+            "name": "test-site-1",
+            "login_base":"testsite1",
+            "abbreviated_name":"ts1"
+        },
+        {
+            "name": "test-site-2",
+            "login_base":"testsite2",
+            "abbreviated_name":"ts2"
+        }
+    ]
+}
