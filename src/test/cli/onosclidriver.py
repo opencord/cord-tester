@@ -140,6 +140,7 @@ class OnosCliDriver( CLI ):
                     self.handle.expect( "\$" )
                     self.handle.sendline( "exit" )
                     self.handle.expect( "closed" )
+                self.close_log_handles()
         except TypeError:
             main.log.exception( self.name + ": Object not as expected" )
             response = main.FALSE
@@ -4689,4 +4690,3 @@ if __name__ == '__main__':
   flows_json = onos_cli.flows(state = "ADDED")
   print('Flows %s' %flows_json)
   onos_cli.disconnect()
-
