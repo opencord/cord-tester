@@ -53,19 +53,6 @@ class cordvtn_exchange(CordLogger):
     test_path = os.path.dirname(os.path.realpath(__file__))
     cordvtn_dir = os.path.join(test_path, '..', 'setup')
     cordvtn_conf_file = os.path.join(test_path, '..', '../cordvtn/network_cfg.json')
-    default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
-    default_options = [ ('subnet-mask', '255.255.255.0'),
-                     ('broadcast-address', '192.168.1.255'),
-                     ('domain-name-servers', '192.168.1.1'),
-                     ('domain-name', '"mydomain.cord-tester"'),
-                   ]
-    default_subnet_config = [ ('192.168.1.2',
-'''
-subnet 192.168.1.0 netmask 255.255.255.0 {
-    range 192.168.1.10 192.168.1.100;
-}
-'''), ]
-    config = {}
 
     @classmethod
     def setUpClass(cls):
@@ -251,9 +238,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         router = self.neutron.router_create(router_info)['router']
         return router
 
-    def router_add_gateway( router_name, network_name):
-        pass
-
     def delete_tenant(tenant_name):
         tenant = keystone.tenants.find(name=tenant_name)
         for j in range(2):
@@ -359,8 +343,84 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         x = os.system("neutron_test.sh")
         return x
 
-    def test_cordvtn_app_activation(self):
-        pass
+    def list_floatingips( **kwargs):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        return neutron.list_floatingips(**kwargs)['floatingips']
+
+    def list_security_groups( **kwargs):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        return neutron.list_security_groups(**kwargs)['security_groups']
+
+    def list_subnets( **kwargs):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        return neutron.list_subnets(**kwargs)['subnets']
+
+    def list_networks( **kwargs):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        return neutron.list_networks(**kwargs)['networks']
+
+    def list_ports( **kwargs):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        return neutron.list_ports(**kwargs)['ports']
+
+    def list_routers( **kwargs):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        return neutron.list_routers(**kwargs)['routers']
+
+    def update_floatingip( fip, port_id=None):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.update_floatingip(fip, {"floatingip":
+                                              {"port_id": port_id}})
+
+    def update_subnet( subnet_id, **subnet_params):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.update_subnet(subnet_id, {'subnet': subnet_params})
+
+    def update_router( router_id, **router_params):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.update_router(router_id, {'router': router_params})
+
+    def router_gateway_set( router_id, external_gateway):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.update_router(
+        router_id, {'router': {'external_gateway_info':
+                               {'network_id': external_gateway}}})
+
+    def router_gateway_clear( router_id):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.update_router(
+        router_id, {'router': {'external_gateway_info': None}})
+
+    def router_add_interface( router_id, subnet_id):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.add_interface_router(router_id, {'subnet_id': subnet_id})
+
+    def router_rem_interface( router_id, subnet_id):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        neutron.remove_interface_router(
+        router_id, {'subnet_id': subnet_id})
+
+    def create_floatingip( **floatingip_params):
+        creds = get_neutron_credentials()
+        neutron = client.Client(**creds)
+        response = neutron.create_floatingip(
+        {'floatingip': floatingip_params})
+        if 'floatingip' in response and 'id' in response['floatingip']:
+           return response['floatingip']['id']
+
 
     def test_cordvtn_config_on_restart(self):
         pass
