@@ -20,10 +20,6 @@ Test Add Slice-1      CREATE      0
 
 Test Get Slice-1      RETRIEVE    0
 
-Test Add Slice-2      CREATE      1
-
-Test Get Slice-2      RETRIEVE    1
-
 *** Keywords ***
 Read InputFile
     ${sliceList} =    utils.jsonToList    ${PATHFILE}    sliceInfo
