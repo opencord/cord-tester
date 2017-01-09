@@ -795,6 +795,13 @@ def setupCordTester(args):
     return 0
 
 def cleanupTests(args):
+    if args.manifest and os.access(args.manifest, os.F_OK):
+        manifest = TestManifest(manifest = args.manifest)
+        args.prefix = manifest.image_prefix
+        args.olt = manifest.olt
+        args.onos = manifest.onos_image
+        args.server = manifest.server
+
     image_name = args.onos
     prefix = args.prefix
     if prefix:
@@ -1091,6 +1098,7 @@ if __name__ == '__main__':
                                 help='Cleanup XOS containers')
     parser_cleanup.add_argument('-r', '--server', default=cord_test_server_address, type=str,
                                 help='ip:port address for cord test server to cleanup')
+    parser_cleanup.add_argument('-m', '--manifest', default='', type=str, help='Provide test manifest')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     c = Client(**(kwargs_from_env()))
