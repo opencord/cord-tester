@@ -17,6 +17,7 @@ import json
 import os
 import shutil
 import platform
+from CordTestServer import CORD_TEST_HOST, CORD_TEST_PORT
 
 class TestManifest(object):
 
@@ -34,6 +35,7 @@ class TestManifest(object):
             self.start_switch = args.start_switch
             self.image_prefix = args.prefix
             self.onos_image = args.onos
+            self.server = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
         else:
             with open(self.manifest, 'r') as fd:
                 data = json.load(fd)
@@ -48,3 +50,4 @@ class TestManifest(object):
             self.start_switch = data.get('start_switch', self.olt)
             self.image_prefix = data.get('image_prefix', '')
             self.onos_image = data.get('onos_image', 'onosproject/onos:latest')
+            self.server = data.get('test_server', '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT))
