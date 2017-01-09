@@ -294,14 +294,14 @@ class cordvtn_exchange(CordLogger):
         lis = output.split("\n")
         for i in lis:
             tokens = i.split()
-        if len(tokens)>3 an tokens[3] == name:
+        if len(tokens)>3 and tokens[3] == name:
            return tokens[1]
         return none
 
     @classmethod
     def nova_boot(tenant_id, name, netid=None, portid=None):
         if netid:
-           cmd = "nova --os-tenant-id %s boot --flavor 1 --image %s --nic net-id=%s %s",%(tenant_id, vm_image_id,netid,name)
+           cmd = "nova --os-tenant-id %s boot --flavor 1 --image %s --nic net-id=%s %s"%(tenant_id, vm_image_id,netid,name)
         if portid:
            cmd = "nova --os-tenant-is %s boot --flavor 1 --image %s --nic port-id=%s %s"%(tenant_id,vm_image_id,portid,name)
         os.system(cmd)
@@ -324,7 +324,7 @@ class cordvtn_exchange(CordLogger):
                 if len(toks) >= 5 and toks[3] == name and toks[5] == state:
                    return
             time.sleep(5)
-         errno=1
+        errno=1
 
     @classmethod
     def port_delete(sdn_tenant_id,name):
