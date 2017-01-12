@@ -389,6 +389,9 @@ class cluster_exchange(CordLogger):
             failed = self.verify_leaders(controllers)
             if failed:
                 log.error('Test failed on ITERATION %d' %iteration)
+                CordLogger.archive_results(self._testMethodName,
+                                           controllers = controllers,
+                                           iteration = 'FAILED')
             assert_equal(len(failed), 0)
             if st is False:
                 log.info('No storage exception and ONOS cluster was not formed successfully')
