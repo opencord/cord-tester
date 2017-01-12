@@ -24,7 +24,7 @@ class CordLogger(unittest.TestCase):
     testLogLevel = os.getenv('LOG_LEVEL', onosLogLevel)
     setup_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../setup')
     archive_dir = os.path.join(setup_dir, 'test_logs')
-    onos_data_dir = os.path.join(setup_dir, 'cord-onos')
+    onos_data_dir = os.path.join(setup_dir, 'cord-onos-data')
 
     @classmethod
     def cliSessionEnter(cls):
