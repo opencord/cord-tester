@@ -149,7 +149,7 @@ class CordTester(Container):
             uplink = self.port_map[host_intf]['uplink']
             for port in ports:
                 guest_if = port
-                local_if = '{0}_{1}'.format(guest_if, port_num+1)
+                local_if = port #'{0}_{1}'.format(guest_if, port_num+1)
                 guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
                 ##Use pipeworks to configure container interfaces on host/bridge interfaces
                 pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
@@ -195,7 +195,7 @@ class CordTester(Container):
         for intf_host, ports in port_list:
             intf_type = cls.get_intf_type(intf_host)
             for port in ports:
-                local_if = '{0}_{1}'.format(port, port_num+1)
+                local_if = port #'{0}_{1}'.format(port, port_num+1)
                 if intf_type == 0:
                     if start_vlan != 0:
                         cmds = ('ip link del {}.{}'.format(intf_host, start_vlan),)
