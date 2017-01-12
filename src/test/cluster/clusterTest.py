@@ -373,6 +373,9 @@ class cluster_exchange(CordLogger):
                     if failed:
                         log.info('Leaders command failed on nodes: %s' %failed)
                         log.error('Test failed on ITERATION %d' %iteration)
+                        CordLogger.archive_results(self._testMethodName,
+                                                   controllers = controllers,
+                                                   iteration = 'FAILED')
                         assert_equal(len(failed), 0)
                     return controller
 
@@ -466,6 +469,9 @@ class cluster_exchange(CordLogger):
                 if storage_exceptions:
                     log.info('Storage exception seen on nodes: %s' %storage_exceptions)
                     log.error('Test failed on ITERATION %d' %iteration)
+                    CordLogger.archive_results('test_cluster_single_controller_restarts',
+                                               controllers = controllers,
+                                               iteration = 'FAILED')
                     assert_equal(len(failed), 0)
                     return controller
 
@@ -542,6 +548,9 @@ class cluster_exchange(CordLogger):
                 if storage_exceptions:
                     log.info('Storage exception seen on nodes: %s' %storage_exceptions)
                     log.error('Test failed on ITERATION %d' %iteration)
+                    CordLogger.archive_results('test_cluster_restarts',
+                                               controllers = controllers,
+                                               iteration = 'FAILED')
                     assert_equal(len(failed), 0)
                     return
 
@@ -552,6 +561,9 @@ class cluster_exchange(CordLogger):
                 log.info('ONOS cluster on node %s formed with controllers: %s' %(ctlr, ips))
                 if len(ips) != len(controllers):
                     log.error('Test failed on ITERATION %d' %iteration)
+                    CordLogger.archive_results('test_cluster_restarts',
+                                               controllers = controllers,
+                                               iteration = 'FAILED')
                 assert_equal(len(ips), len(controllers))
 
         tries = 10

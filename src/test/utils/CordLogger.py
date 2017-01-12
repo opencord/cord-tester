@@ -5,15 +5,26 @@ import unittest
 import os
 import time
 
+def get_controller_names(controllers):
+        controller_names = [ 'cord-onos' if controllers.index(c) == 0 else 'cord-onos-{}'.format(controllers.index(c)+1) for c in controllers ]
+        return controller_names
+
+def get_controller_map(controllers):
+        controller_map = ( ('cord-onos' if controllers.index(c) == 0 else 'cord-onos-{}'.format(controllers.index(c)+1),c) for c in controllers )
+        return dict(controller_map)
+
 class CordLogger(unittest.TestCase):
 
     controllers = os.getenv('ONOS_CONTROLLER_IP', '').split(',')
+    controller_names = get_controller_names(controllers)
+    controller_map = get_controller_map(controllers)
     cliSessions = {}
     onosLogLevel = 'INFO'
     curLogLevel = onosLogLevel
     testLogLevel = os.getenv('LOG_LEVEL', onosLogLevel)
     setup_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../setup')
     archive_dir = os.path.join(setup_dir, 'test_logs')
+    onos_data_dir = os.path.join(setup_dir, 'cord-onos')
 
     @classmethod
     def cliSessionEnter(cls):
@@ -68,7 +79,29 @@ class CordLogger(unittest.TestCase):
         except: pass
 
     @classmethod
-    def archive_results(cls, testName, controllers = None, iteration = None, cache_result = False):
+    def archive_results(cls, testName, controllers = None, iteration = None):
+        if not os.path.exists(cls.onos_data_dir):
+            return cls.archive_results_unshared(testName, controllers = controllers, iteration = iteration)
+        if not os.path.exists(cls.archive_dir):
+            os.mkdir(cls.archive_dir)
+        if controllers is None:
+            controllers = cls.controllers
+            controller_map = cls.controller_map
+        else:
+            controller_map = get_controller_map(controllers)
+
+        iteration_str = '' if iteration is None else '_{}'.format(iteration)
+        for c in controller_map.keys():
+            archive_file = os.path.join(cls.archive_dir,
+                                        'logs_{}_{}{}.tar.gz'.format(controller_map[c], testName, iteration_str))
+            archive_path = os.path.join(cls.setup_dir, '{}-data'.format(c), 'log')
+            cmd = 'cd {} && tar cvzf {} .'.format(archive_path, archive_file)
+            try:
+                os.system(cmd)
+            except: pass
+
+    @classmethod
+    def archive_results_unshared(cls, testName, controllers = None, iteration = None, cache_result = False):
         log_map = {}
         if controllers is None:
             controllers = cls.controllers
