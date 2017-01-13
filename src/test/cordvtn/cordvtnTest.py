@@ -37,6 +37,9 @@ OS_TENANT = 'admin'
 OS_AUTH_URL = 'http://10.119.192.11:5000/v2.0/'
 OS_TOKEN = 'vDgyUPEp'
 OS_SERVICE_ENDPOINT = 'http://10.119.192.11:35357/v2.0/'
+VM_BOOT_TIMEOUT = 100
+VM_DELETE_TIMEOUT = 100
+
 
 #VM SSH CREDENTIALS
 VM_USERNAME = 'ubuntu'
@@ -421,6 +424,52 @@ class cordvtn_exchange(CordLogger):
         if 'floatingip' in response and 'id' in response['floatingip']:
            return response['floatingip']['id']
 
+    def make_iperf_pair(server, client, **kwargs):
+        ssh = SSHClient()
+        ssh.set_missing_host_key_policy(MissingHostKeyPolicy())
+
+        ssh.connect(server, username=VM_USERNAME, password=VM_PASSWORD)
+        ssh.exec_command('/usr/local/bin/iperf3 -s -D')
+
+        ssh.connect(client, username=VM_USERNAME, password=VM_PASSWORD)
+        stdin, stdout, stderr = ssh.exec_command('/usr/local/bin/iperf3 -c %s -J' % server)
+
+        rawdata = stdout.read()
+        data = json.loads(rawdata.translate(None,'\t').translate(None,'\n'))
+
+        return data
+
+    def waitVmActive(nova, vm):
+        sleep_time = 3
+        count = VM_BOOT_TIMEOUT / sleep_time
+        while True:
+            status = openstack_utils.get_instance_status(nova, vm)
+            logger.debug("Status: %s" % status)
+            if status == "ACTIVE":
+                return True
+            if status == "ERROR" or status == "error":
+                return False
+            if count == 0:
+                logger.debug("Booting a VM timed out...")
+                return False
+            count -= 1
+            time.sleep(sleep_time)
+        return False
+
+    def waitVmDeleted(nova, vm):
+        sleep_time = 3
+        count = VM_DELETE_TIMEOUT / sleep_time
+        while True:
+            status = openstack_utils.get_instance_status(nova, vm)
+            if not status:
+               return True
+            elif count == 0:
+               logger.debug("Timeout")
+               return False
+            else:
+               count -= 1
+            time.sleep(sleep_time)
+        return False
 
     def test_cordvtn_config_on_restart(self):
         pass
