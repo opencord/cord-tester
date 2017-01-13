@@ -24,8 +24,8 @@ if [ $on_cord -eq 0 ]; then
     docker rmi hello-world
     echo "Pulling ONOS latest"
     docker pull onosproject/onos:latest || exit 127
-    apt-get -y install openvswitch-common openvswitch-switch
 fi
+apt-get -y install openvswitch-common openvswitch-switch
 apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect python-maas-client tcpdump arping libssl-dev
 easy_install nose
 pip install scapy==2.3.2
