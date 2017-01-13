@@ -37,7 +37,7 @@ import collections
 from mininet.net import Mininet
 from mininet.topo import SingleSwitchTopo,LinearTopo,Topo
 from mininet.topolib import TreeTopo
-from mininet.clean import Cleanup
+#from mininet.clean import Cleanup
 from mininet.node import Controller, RemoteController, Switch
 from mininet.cli import CLI
 from mininet.log import setLogLevel, info
