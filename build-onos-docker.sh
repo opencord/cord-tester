@@ -65,7 +65,7 @@ function build_onos {
 if [ $onos_build -eq 1 ]; then
     if [ ! -d $onos_src_dir ]; then
         build_onos
-        local ret=$?
+        ret=$?
         if [ $ret -ne 0 ]; then
             echo "Failed to build ONOS. Exiting"
             exit 127
