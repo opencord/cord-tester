@@ -43,7 +43,7 @@ if [ $# -gt 0 ]; then
     echo "Invalid arguments"
     show_help
 fi
-mydir=$(dirname $0)
+mydir=$(dirname $(realpath $0))
 if [ x"$onos_package" = "x" ]; then
     if [ ! -d $onos_src_dir ]; then
         onos_build=1
@@ -51,24 +51,36 @@ if [ x"$onos_package" = "x" ]; then
     onos_package=$onos_src_dir/buck-out/gen/tools/package/onos-package/onos.tar.gz
 fi
 
-onos_cloned=0
+function build_onos {
+    if [ ! -f $mydir/Dockerfile.onos-builder ]; then
+        echo "Dockerfile.onos-builder not found. Copy this file from cord-tester project before resuming the build"
+        exit 127
+    fi
+    docker images | grep ^cord-tester-onos-builder || docker build -t cord-tester-onos-builder:latest -f $mydir/Dockerfile.onos-builder $mydir
+    docker run -v $mydir:/root/cord-tester --rm cord-tester-onos-builder:latest
+    return $?
+}
 
 #if onos package is not built, then exit
 if [ $onos_build -eq 1 ]; then
     if [ ! -d $onos_src_dir ]; then
-        mkdir -p $onos_src_dir
-        onos_cloned=1
-      ( cd $onos_src_dir && git clone http://github.com/opennetworkinglab/onos.git . )
+        build_onos
+        local ret=$?
+        if [ $ret -ne 0 ]; then
+            echo "Failed to build ONOS. Exiting"
+            exit 127
+        fi
+        onos_package=$mydir/onos.tar.gz
     else
       if [ $onos_update -eq 1 ]; then
           echo "Updating ONOS source"
           ( cd $onos_src_dir && git pull --ff-only origin master || git clone http://github.com/opennetworkinglab/onos.git . )
       fi
+      ( cd $onos_src_dir && tools/build/onos-buck build onos ) && echo "ONOS build success" || {
+        echo "ONOS build failure. Exiting ..." && exit 1
+      }
+      onos_package=$onos_src_dir/buck-out/gen/tools/package/onos-package/onos.tar.gz
     fi
-    ( cd $onos_src_dir && tools/build/onos-buck build onos ) && echo "ONOS build success" || {
-      echo "ONOS build failure. Exiting ..." && exit 1
-    }
-    onos_package=$onos_src_dir/buck-out/gen/tools/package/onos-package/onos.tar.gz
 fi
 
 if [ ! -f $onos_package ]; then
@@ -76,12 +88,11 @@ if [ ! -f $onos_package ]; then
     exit 1
 fi
 
-cp -v $onos_package $mydir
+if [ $onos_package != $mydir/onos.tar.gz ]; then
+    cp -v $onos_package $mydir/onos.tar.gz
+fi
 
 function finish {
-    if [ $onos_cloned -eq 1 ]; then
-        rm -rf $onos_src_dir
-    fi
     rm -f onos.tar.gz
     rm -f Dockerfile.cord-tester
 }
@@ -130,5 +141,4 @@ ENTRYPOINT ["./bin/onos-service"]
 EOF
 
 #Now build the docker image
-
 docker build -t $onos_tag -f $mydir/Dockerfile.cord-tester $mydir
