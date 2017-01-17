@@ -272,6 +272,12 @@ RUN git clone https://github.com/CPqD/ofsoftswitch13.git && \
     ./boot.sh && \
     ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && \
     make && make install
+WORKDIR /root
+RUN sudo apt-get install -y collectd collectd-utils python-pycurl && \
+    git clone https://github.com/gunine/write_onos && \
+    sudo cp write_onos/collectd.conf /etc/collectd && \
+    sudo cp -R write_onos/modules /etc/collectd && \
+    sudo /etc/init.d/collectd start
 CMD ["/bin/bash"]
 '''.format(*image_format)
         super(CordTester, cls).build_image(dockerfile, image)
@@ -507,6 +513,8 @@ def runTest(args):
                      'CORD_TEST_PORT' : test_port,
                      'ONOS_RESTART' : 0 if test_manifest.olt and args.test_controller else 1,
                      'LOG_LEVEL': test_manifest.log_level,
+                     'USER_OPTIONS': test_manifest.user_options,
+                     'SERVER_OPTIONS': test_manifest.server_options,
                      'MANIFEST': int(use_manifest),
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key
@@ -1026,6 +1034,8 @@ if __name__ == '__main__':
                             choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                             type=str,
                             help='Specify the log level for the test cases')
+    parser_run.add_argument('-user', '--user-options', default='',choices=['COLLECTD'], type=str, help='User related options can choose from choices')
+    parser_run.add_argument('-server', '--server-options', default='', type=str, help='User related options can run on this server, default is test container')
     parser_run.set_defaults(func=runTest)
 
 

@@ -1,6 +1,11 @@
 from OnosLog import OnosLog
 from scapy.all import log
 from onosclidriver import OnosCliDriver
+from OnosCtrl import OnosCtrl, get_mac
+from docker import Client
+from CordContainer import *
+import json
+import requests
 import unittest
 import os
 import time
@@ -20,9 +25,13 @@ class CordLogger(unittest.TestCase):
     controller_map = get_controller_map(controllers)
     cliSessions = {}
     onosLogLevel = 'INFO'
+    test_host_base = 'cord-tester1'
     curLogLevel = onosLogLevel
+    testHostName = os.getenv('TEST_HOST', test_host_base)
     testLogLevel = os.getenv('LOG_LEVEL', onosLogLevel)
-    setup_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../setup')
+    userOptionsList = os.getenv('USER_OPTIONS', None).split(',')
+    serverOptionsList = os.getenv('SERVER_OPTIONS', None)
+    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup')
     archive_dir = os.path.join(setup_dir, 'test_logs')
     onos_data_dir = os.path.join(setup_dir, 'cord-onos-data')
 
@@ -60,6 +69,7 @@ class CordLogger(unittest.TestCase):
             onosLog = OnosLog()
             st, output = onosLog.get_log()
         except: pass
+        self.userOptions_functions()
 
     def tearDown(self):
         '''Dump the log buffer for ERRORS/warnings'''
@@ -77,6 +87,8 @@ class CordLogger(unittest.TestCase):
         try:
             self.archive_results(self._testMethodName)
         except: pass
+        self.userOptions_functions()
+        self.disable_onos_apps()
 
     @classmethod
     def archive_results(cls, testName, controllers = None, iteration = None):
@@ -155,3 +167,57 @@ class CordLogger(unittest.TestCase):
         except:
             pass
         cls.cliSessionExit()
+
+    @classmethod
+    def userOptions_functions(cls, user = None, serverDetails = None):
+        # each user option we can do some specific functions
+        if user is None:
+           user = cls.userOptionsList
+        user_choice = 'COLLECTD'
+        if user_choice in user:
+            onos_ctrl = OnosCtrl('org.onosproject.cpman')
+            status, _ = onos_ctrl.activate()
+            if serverDetails is None:
+               for controller in cls.controllers:
+                   if not controller:
+                      continue
+                   url_mem_stats =  'http://%s:8181/onos/cpman/controlmetrics/memory_metrics'%(controller)
+                   url_cpu_stats =  'http://%s:8181/onos/cpman/controlmetrics/cpu_metrics'%(controller)
+                   test_name = cls.testHostName
+                   test_image = 'cord-test/nose'
+                   cls.start_collectD_agent_in_server(name = test_name, image = test_image)
+                   auth = ('karaf', 'karaf')
+                   cls.collectD_agent_Metrics(controller, auth, url = url_cpu_stats)
+                   cls.collectD_agent_Metrics(controller, auth, url = url_mem_stats)
+            else:
+               cls.connect_server(serverDetails)
+        return
+
+
+    @classmethod
+    def collectD_agent_Metrics(cls,controller=None, auth =None, url = None):
+        '''This function is getting a ACL rules from ONOS with json formate'''
+        if url:
+           resp = requests.get(url, auth = auth)
+           log.info('CollectD agent has provided metrics via ONOS controller, url = %s \nand status = %s' %(url,resp.json()))
+        return resp
+
+
+    @classmethod
+    def start_collectD_agent_in_server(cls, name = None, image = None):
+        container_cmd_exec = Container(name = name, image = image)
+        tty = False
+        dckr = Client()
+        cmd =  'sudo /etc/init.d/collectd start'
+        i = container_cmd_exec.execute(cmd = cmd, tty= tty, stream = True)
+        return
+
+    @classmethod
+    def disable_onos_apps(cls, user = None, app = None):
+        user_choice = 'COLLECTD'
+        if user is None:
+           user = cls.userOptionsList
+        if user_choice in user:
+            onos_ctrl = OnosCtrl('org.onosproject.cpman')
+            status, _ = onos_ctrl.deactivate()
+
