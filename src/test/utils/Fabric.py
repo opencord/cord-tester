@@ -63,7 +63,11 @@ class Fabric(object):
         if Fabric.simulation:
             self.cur_node = FabricMAAS.head_node
         self.node_list = node_list
-        self.user = user
+        self.users = [ user ]
+        if 'vagrant' not in self.users:
+            self.users.append('vagrant')
+        if 'ubuntu' not in self.users:
+            self.users.append('ubuntu')
         self.passwd = passwd
         self.key_file = key_file
         self.verbose = verbose
@@ -78,11 +82,21 @@ class Fabric(object):
         if node == self.cur_node:
             res = os.system(cmd)
             return res == 0
-        try:
-            self.client.connect(node, username = self.user, key_filename = self.key_file, timeout = 5)
-        except:
+        ssh_user = None
+        for user in self.users:
+            try:
+                self.client.connect(node, username = user, key_filename = self.key_file, timeout = 5)
+                ssh_user = user
+                break
+            except:
+                continue
+
+        if ssh_user is None:
             print('Unable to ssh to node %s for neighbor %s' %(node, neighbor))
             return False
+        else:
+            if self.verbose:
+                print('ssh connection to node %s with user %s' %(node, ssh_user))
         channel = self.client.get_transport().open_session()
         channel.exec_command(cmd)
         status = channel.recv_exit_status()
@@ -122,8 +136,9 @@ if __name__ == '__main__':
         m = FabricMAAS()
         node_list = m.get_node_list()
         print('Node list: %s' %node_list)
-    Fabric.simulation = True
-    fab = Fabric(node_list, verbose = False)
+    key_file = os.getenv('SSH_KEY_FILE', None)
+    Fabric.simulation = True if key_file is None else False
+    fab = Fabric(node_list, verbose = True, key_file = key_file)
     failed_nodes = fab.ping_neighbors()
     if failed_nodes:
         print('Failed nodes: %s' %failed_nodes)
