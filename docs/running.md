@@ -19,6 +19,8 @@ $ vagrant up
 $ vagrant ssh cordtest
 $ cd /cord-tester/src/test/setup/
 $ Run prerequisites.sh(It gets you needed dependencies and tools to start)
+* Build all required test container images
+$ sudo ./cord-test.py build all
 $ sudo ./cord-test.py -h
 usage: cord-test.py [-h] {run,setup,xos,list,build,metrics,start,cleanup} ...
 
@@ -128,7 +130,7 @@ $ sudo ./cord-test.py  run -t all
 ```
 * Check list of test cases
 ```
-$ sudo ./cord-test.py list -t <all>
+$ sudo ./cord-test.py list -t all/<Module name>
 ```
 * Check list of specific module 
 ```
@@ -138,10 +140,5 @@ $ sudo ./cord-test.py list -t dhcp
 ```
 $ sudo ./cord-test.py cleanup
 ```
-* Build all required test container images
-```
-$ sudo ./cord-test.py build all
-```
-
 * For other options, run with -h option.
 
