@@ -35,6 +35,7 @@ class TestManifest(object):
             self.start_switch = args.start_switch
             self.image_prefix = args.prefix
             self.onos_image = args.onos
+            self.iterations = None
             self.server = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
         else:
             with open(self.manifest, 'r') as fd:
@@ -51,3 +52,4 @@ class TestManifest(object):
             self.image_prefix = data.get('image_prefix', '')
             self.onos_image = data.get('onos_image', 'onosproject/onos:latest')
             self.server = data.get('test_server', '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT))
+            self.iterations = data.get('iterations', None)

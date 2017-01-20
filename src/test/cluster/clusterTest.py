@@ -63,6 +63,7 @@ class cluster_exchange(CordLogger):
     subscriber = cluster_subscriber()
     testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_graceful_controller_restarts',
                        'test_cluster_single_controller_restarts', 'test_cluster_restarts')
+    iterations = os.getenv('ITERATIONS', 10)
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
@@ -401,7 +402,7 @@ class cluster_exchange(CordLogger):
             return controller
 
         next_controller = None
-        tries = 10
+        tries = self.iterations
         for num in range(tries):
             index = num % ctlr_len
             #index = random.randrange(0, ctlr_len)
@@ -490,7 +491,7 @@ class cluster_exchange(CordLogger):
 
             return controller
 
-        tries = 10
+        tries = self.iterations
         #chose a random controller for shutdown/restarts
         controller = controllers[random.randrange(0, ctlr_len)]
         controller_name = onos_map[controller]
@@ -569,7 +570,7 @@ class cluster_exchange(CordLogger):
                                                iteration = 'FAILED')
                 assert_equal(len(ips), len(controllers))
 
-        tries = 10
+        tries = self.iterations
         for num in range(tries):
             log.info('ITERATION: %d. Restarting cluster with controllers at %s' %(num+1, controllers))
             try:
