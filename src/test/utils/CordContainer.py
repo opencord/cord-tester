@@ -234,9 +234,25 @@ class Container(object):
     def restart(self, timeout =10):
         return self.dckr.restart(self.name, timeout)
 
-def get_mem(instances = 1):
+def get_mem(jvm_heap_size = None, instances = 1):
     if instances <= 0:
         instances = 1
+    heap_size = jvm_heap_size
+    heap_size_i = 0
+    #sanitize the heap size config
+    if heap_size is not None:
+        if not heap_size.isdigit():
+            try:
+                heap_size_i = int(heap_size[:-1])
+                suffix = heap_size[-1]
+                if suffix == 'M':
+                    heap_size_i /= 1024 #convert to gigs
+            except:
+                ##invalid suffix length probably. Fall back to default
+                heap_size = None
+        else:
+            heap_size_i = int(heap_size)
+
     with open('/proc/meminfo', 'r') as fd:
         meminfo = fd.readlines()
         mem = 0
@@ -246,7 +262,14 @@ def get_mem(instances = 1):
 
         mem = max(mem/1024/1024/2/instances, 1)
         mem = min(mem, 16)
-        return str(mem) + 'G'
+
+    if heap_size_i:
+        #we take the minimum of the provided heap size and max allowed heap size
+        heap_size_i = min(heap_size_i, mem)
+    else:
+        heap_size_i = mem
+
+    return '{}G'.format(heap_size_i)
 
 class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
@@ -333,11 +356,13 @@ class OnosCordStopWrapper(Container):
 class Onos(Container):
     QUAGGA_CONFIG = [ { 'bridge' : 'quagga-br', 'ip': '10.10.0.4', 'mask' : 16 }, ]
     MAX_INSTANCES = 3
+    JVM_HEAP_SIZE = None
     SYSTEM_MEMORY = (get_mem(),) * 2
     INSTANCE_MEMORY = (get_mem(instances=MAX_INSTANCES),) * 2
-    JAVA_OPTS = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*SYSTEM_MEMORY)#-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
-    JAVA_OPTS_CLUSTER = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*INSTANCE_MEMORY)
-    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS }
+    JAVA_OPTS_FORMAT = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'
+    JAVA_OPTS_DEFAULT = JAVA_OPTS_FORMAT.format(*SYSTEM_MEMORY) #-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
+    JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
+    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
     onos_cord_apps = ( ('cord-config', '1.1-SNAPSHOT'),
                        ('aaa', '1.1-SNAPSHOT'),
                        ('igmp', '1.1-SNAPSHOT'),
@@ -426,15 +451,10 @@ class Onos(Container):
         super(Onos, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = quagga_config)
         self.boot_delay = boot_delay
         self.data_map = None
+        instance_memory = (get_mem(jvm_heap_size = Onos.JVM_HEAP_SIZE, instances = Onos.MAX_INSTANCES),) * 2
+        self.env['JAVA_OPTS'] = self.JAVA_OPTS_FORMAT.format(*instance_memory)
         if cluster is True:
             self.ports = []
-            if Onos.MAX_INSTANCES <= 3:
-                java_opts = self.JAVA_OPTS_CLUSTER
-            else:
-                instance_memory = (get_mem(instances=Onos.MAX_INSTANCES),) * 2
-                java_opts = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'.format(*instance_memory)
-
-            self.env['JAVA_OPTS'] = java_opts
             if data_volume is not None:
                 self.data_map = self.get_data_map(data_volume, self.guest_data_dir)
                 self.host_guest_map = self.host_guest_map + self.data_map
