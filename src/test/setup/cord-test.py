@@ -409,6 +409,7 @@ def runTest(args):
 
     Container.IMAGE_PREFIX = test_manifest.image_prefix
     Onos.MAX_INSTANCES = test_manifest.onos_instances
+    Onos.JVM_HEAP_SIZE = test_manifest.jvm_heap_size
     cluster_mode = True if test_manifest.onos_instances > 1 else False
     async_mode = cluster_mode and test_manifest.async_mode
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == test_manifest.onos_image ]
@@ -671,6 +672,7 @@ def setupCordTester(args):
     Onos.PREFIX = test_manifest.image_prefix
     Onos.TAG = onos_cnt['tag']
     Onos.MAX_INSTANCES = test_manifest.onos_instances
+    Onos.JVM_HEAP_SIZE = test_manifest.jvm_heap_size
     cluster_mode = True if test_manifest.onos_instances > 1 else False
     async_mode = cluster_mode and test_manifest.async_mode
     existing_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == test_manifest.onos_image ]
@@ -1033,8 +1035,8 @@ if __name__ == '__main__':
                             choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                             type=str,
                             help='Specify the log level for the test cases')
+    parser_run.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
     parser_run.set_defaults(func=runTest)
-
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
     parser_setup.add_argument('-o', '--onos', default=onos_image_default, type=str, help='ONOS container image')
@@ -1067,6 +1069,7 @@ if __name__ == '__main__':
     parser_setup.add_argument('-async', '--async-mode', action='store_true',
                               help='Start ONOS cluster instances in async mode')
     parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
+    parser_setup.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')

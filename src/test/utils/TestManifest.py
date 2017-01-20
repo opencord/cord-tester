@@ -37,6 +37,7 @@ class TestManifest(object):
             self.onos_image = args.onos
             self.iterations = None
             self.server = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
+            self.jvm_heap_size = args.jvm_heap_size if args.jvm_heap_size else None
         else:
             with open(self.manifest, 'r') as fd:
                 data = json.load(fd)
@@ -53,3 +54,4 @@ class TestManifest(object):
             self.onos_image = data.get('onos_image', 'onosproject/onos:latest')
             self.server = data.get('test_server', '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT))
             self.iterations = data.get('iterations', None)
+            self.jvm_heap_size = data.get('jvm_heap_size', None)
