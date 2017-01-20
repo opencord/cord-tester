@@ -396,6 +396,7 @@ def runTest(args):
     onos_ip = test_manifest.onos_ip
     radius_ip = test_manifest.radius_ip
     head_node = test_manifest.head_node
+    iterations = test_manifest.iterations
 
     #don't spawn onos if the user has specified external test controller with test interface config
     if args.test_controller:
@@ -519,6 +520,9 @@ def runTest(args):
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
+    if iterations is not None:
+        test_cnt_env['ITERATIONS'] = iterations
+
     if args.num_containers > 1 and args.container:
         print('Cannot specify number of containers with container option')
         sys.exit(1)
@@ -633,6 +637,8 @@ def setupCordTester(args):
     onos_ip = test_manifest.onos_ip
     radius_ip = test_manifest.radius_ip
     head_node = test_manifest.head_node
+    iterations = test_manifest.iterations
+
     ##If onos/radius was already started
     if args.test_controller:
         ips = args.test_controller.split('/')
@@ -768,7 +774,8 @@ def setupCordTester(args):
         if test_manifest.olt:
             olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
             test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
-
+        if test_manifest.iterations is not None:
+            test_cnt_env['ITERATIONS'] = iterations
         test_cnt = CordTester((),
                               ctlr_ip = ctlr_addr,
                               image = nose_cnt['image'],
