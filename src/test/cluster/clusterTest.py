@@ -63,7 +63,7 @@ class cluster_exchange(CordLogger):
     subscriber = cluster_subscriber()
     testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_graceful_controller_restarts',
                        'test_cluster_single_controller_restarts', 'test_cluster_restarts')
-    iterations = os.getenv('ITERATIONS', 10)
+    iterations = int(os.getenv('ITERATIONS', 10))
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
