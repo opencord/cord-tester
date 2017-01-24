@@ -1045,6 +1045,7 @@ if __name__ == '__main__':
                             type=str,
                             help='Specify the log level for the test cases')
     parser_run.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
+    parser_run.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1079,6 +1080,7 @@ if __name__ == '__main__':
                               help='Start ONOS cluster instances in async mode')
     parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
     parser_setup.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
+    parser_setup.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
