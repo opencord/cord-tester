@@ -140,11 +140,13 @@ class Container(object):
     def img_exists(self):
         return self.image_name in [ctn['RepoTags'][0] if ctn['RepoTags'] else '' for ctn in self.dckr.images()]
 
-    def ip(self):
+    def ip(self, network = None):
         cnt_list = filter(lambda c: c['Names'][0] == '/{}'.format(self.name), self.dckr.containers())
         #if not cnt_list:
         #    cnt_list = filter(lambda c: c['Image'] == self.image_name, self.dckr.containers())
         cnt_settings = cnt_list.pop()
+        if network is not None and cnt_settings['NetworkSettings']['Networks'].has_key(network):
+            return cnt_settings['NetworkSettings']['Networks'][network]['IPAddress']
         return cnt_settings['NetworkSettings']['Networks']['bridge']['IPAddress']
 
     @classmethod

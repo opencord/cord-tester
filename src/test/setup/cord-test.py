@@ -491,7 +491,7 @@ def runTest(args):
         ##Start Radius container
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
                         network = test_manifest.docker_network)
-        radius_ip = radius.ip()
+        radius_ip = radius.ip(network = test_manifest.docker_network)
 
     print('Radius server running with IP %s' %radius_ip)
 
@@ -742,7 +742,7 @@ def setupCordTester(args):
     if radius_ip is None:
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
                         network = test_manifest.docker_network)
-        radius_ip = radius.ip()
+        radius_ip = radius.ip(network = test_manifest.docker_network)
 
     print('Radius server running with IP %s' %radius_ip)
 
