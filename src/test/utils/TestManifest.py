@@ -35,6 +35,7 @@ class TestManifest(object):
             self.start_switch = args.start_switch
             self.image_prefix = args.prefix
             self.onos_image = args.onos
+            self.docker_network = None
             self.iterations = None
             self.server = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
             self.jvm_heap_size = args.jvm_heap_size if args.jvm_heap_size else None
@@ -52,6 +53,7 @@ class TestManifest(object):
             self.start_switch = data.get('start_switch', self.olt)
             self.image_prefix = data.get('image_prefix', '')
             self.onos_image = data.get('onos_image', 'onosproject/onos:latest')
+            self.docker_network = data.get('docker_network', None)
             self.server = data.get('test_server', '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT))
             self.iterations = data.get('iterations', None)
             self.jvm_heap_size = data.get('jvm_heap_size', None)

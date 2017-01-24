@@ -55,7 +55,7 @@ class CordTester(Container):
 
     def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None,
                  name = '', image = IMAGE, prefix = '', tag = 'candidate',
-                 env = None, rm = False, update = False):
+                 env = None, rm = False, update = False, network = None):
         self.tests = tests
         self.ctlr_ip = ctlr_ip
         self.rm = rm
@@ -92,6 +92,8 @@ class CordTester(Container):
             print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
             self.start(rm = False, volumes = volumes, environment = env,
                        host_config = host_config, tty = True)
+            if network is not None:
+                Container.connect_to_network(self.name, network)
 
     def execute_switch(self, cmd, shell = False):
         if self.olt:
@@ -434,7 +436,7 @@ def runTest(args):
         data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE,
                     tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume, async = async_mode)
+                    data_volume = data_volume, async = async_mode, network = test_manifest.docker_network)
         if onos.running:
             onos_ips.append(onos.ipaddr)
     else:
@@ -450,7 +452,7 @@ def runTest(args):
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
-                        quagga_config = quagga_config)
+                        quagga_config = quagga_config, network = test_manifest.docker_network)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
@@ -487,14 +489,16 @@ def runTest(args):
 
     if radius_ip is None:
         ##Start Radius container
-        radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'])
+        radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
+                        network = test_manifest.docker_network)
         radius_ip = radius.ip()
 
     print('Radius server running with IP %s' %radius_ip)
 
     if args.quagga == True:
         #Start quagga. Builds container if required
-        quagga = Quagga(prefix = Container.IMAGE_PREFIX, update = update_map['quagga'])
+        quagga = Quagga(prefix = Container.IMAGE_PREFIX, update = update_map['quagga'],
+                        network = test_manifest.docker_network)
 
     try:
         maas_api_key = FabricMAAS.get_api_key()
@@ -550,7 +554,8 @@ def runTest(args):
                               tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False if args.keep else True,
-                              update = update_map['test'])
+                              update = update_map['test'],
+                              network = test_manifest.docker_network)
         test_slice_start = test_slice_end
         test_slice_end = test_slice_start + tests_per_container
         update_map['test'] = False
@@ -586,7 +591,8 @@ def runTest(args):
                               tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False if args.keep else True,
-                              update = update_map['test'])
+                              update = update_map['test'],
+                              network = test_manifest.docker_network)
         if test_cnt.create and (test_manifest.start_switch or not test_manifest.olt):
             #For non parallel tests, we just restart the switch also for OLT's
             CordTester.switch_on_olt = False
@@ -690,7 +696,7 @@ def setupCordTester(args):
     if onos_ip is None:
         data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
-                    data_volume = data_volume, async = async_mode)
+                    data_volume = data_volume, async = async_mode, network = test_manifest.docker_network)
         if onos.running:
             onos_ips.append(onos.ipaddr)
     else:
@@ -706,7 +712,7 @@ def setupCordTester(args):
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
-                        quagga_config = quagga_config)
+                        quagga_config = quagga_config, network = test_manifest.docker_network)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
@@ -734,14 +740,16 @@ def setupCordTester(args):
 
     ##Start Radius container if not started
     if radius_ip is None:
-        radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'])
+        radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
+                        network = test_manifest.docker_network)
         radius_ip = radius.ip()
 
     print('Radius server running with IP %s' %radius_ip)
 
     if args.quagga == True:
         #Start quagga. Builds container if required
-        quagga = Quagga(prefix = Container.IMAGE_PREFIX, update = update_map['quagga'])
+        quagga = Quagga(prefix = Container.IMAGE_PREFIX, update = update_map['quagga'],
+                        network = test_manifest.docker_network)
         print('Quagga started')
 
     params = args.server.split(':')
@@ -785,7 +793,8 @@ def setupCordTester(args):
                               tag = nose_cnt['tag'],
                               env = test_cnt_env,
                               rm = False,
-                              update = update_map['test'])
+                              update = update_map['test'],
+                              network = test_manifest.docker_network)
 
         if test_manifest.start_switch or not test_manifest.olt:
             test_cnt.start_switch()

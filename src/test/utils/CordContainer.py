@@ -24,6 +24,7 @@ from pyroute2.netlink import NetlinkError
 from itertools import chain
 from nsenter import Namespace
 from docker import Client
+from docker import utils as dockerutils
 from shutil import rmtree
 from OnosCtrl import OnosCtrl
 from OnosLog import OnosLog
@@ -101,6 +102,22 @@ class Container(object):
                 binds.append('{0}:{1}'.format(h, g))
 
         return cls.dckr.create_host_config(binds = binds, port_bindings = port_bindings, privileged = privileged)
+
+    @classmethod
+    def connect_to_network(cls, name, network):
+        try:
+            cls.dckr.connect_container_to_network(name, network)
+            return True
+        except:
+            return False
+
+    @classmethod
+    def create_network(cls, network, subnet = None, gateway = None):
+        ipam_config = None
+        if subnet is not None and gateway is not None:
+            ipam_pool = dockerutils.create_ipam_pool(subnet = subnet, gateway = gateway)
+            ipam_config = dockerutils.create_ipam_config(pool_configs = [ipam_pool])
+        cls.dckr.create_network(network, driver='bridge', ipam = ipam_config)
 
     @classmethod
     def cleanup(cls, image):
@@ -435,7 +452,8 @@ class Onos(Container):
 
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
                  boot_delay = 20, restart = False, network_cfg = None,
-                 cluster = False, data_volume = None, async = False, quagga_config = None):
+                 cluster = False, data_volume = None, async = False, quagga_config = None,
+                 network = None):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -734,7 +752,7 @@ class Radius(Container):
     NAME = 'cord-radius'
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
-                 boot_delay = 10, restart = False, update = False):
+                 boot_delay = 10, restart = False, update = False, network = None):
         super(Radius, self).__init__(name, image, prefix = prefix, tag = tag, command = self.start_command)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
@@ -750,6 +768,8 @@ class Radius(Container):
             self.start(ports = self.ports, environment = self.env,
                        volumes = volumes,
                        host_config = host_config, tty = True)
+            if network is not None:
+                Container.connect_to_network(self.name, network)
             time.sleep(boot_delay)
 
     @classmethod
@@ -781,7 +801,8 @@ class Quagga(Container):
     NAME = 'cord-quagga'
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
-                 boot_delay = 15, restart = False, config_file = quagga_config_file, update = False):
+                 boot_delay = 15, restart = False, config_file = quagga_config_file, update = False,
+                 network = None):
         super(Quagga, self).__init__(name, image, prefix = prefix, tag = tag, quagga_config = self.QUAGGA_CONFIG)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
@@ -798,6 +819,8 @@ class Quagga(Container):
             self.start(ports = self.ports,
                        host_config = host_config,
                        volumes = volumes, tty = True)
+            if network is not None:
+                Container.connect_to_network(self.name, network)
             print('Starting Quagga on container %s' %self.name)
             self.execute('{0}/start.sh {1}'.format(self.guest_quagga_config, config_file))
             time.sleep(boot_delay)
