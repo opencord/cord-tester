@@ -92,8 +92,10 @@ class OnosCtrl:
         return resp.ok, resp.status_code
 
     @classmethod
-    def get_devices(cls):
-        url = 'http://%s:8181/onos/v1/devices' %(cls.controller)
+    def get_devices(cls, controller = None):
+        if controller is None:
+            controller = cls.controller
+        url = 'http://%s:8181/onos/v1/devices' %(controller)
         result = requests.get(url, auth = cls.auth)
         if result.ok:
             devices = result.json()['devices']
@@ -102,12 +104,12 @@ class OnosCtrl:
         return None
 
     @classmethod
-    def get_device_id(cls):
+    def get_device_id(cls, controller = None):
         '''If running under olt, we get the first switch connected to onos'''
         olt = OltConfig()
         did = 'of:' + get_mac()
         if olt.on_olt():
-            devices = cls.get_devices()
+            devices = cls.get_devices(controller = controller)
             if devices:
                 dids = map(lambda d: d['id'], devices)
                 if len(dids) == 1:
@@ -119,13 +121,13 @@ class OnosCtrl:
         return did
 
     @classmethod
-    def get_device_ids(cls):
+    def get_device_ids(cls, controller = None):
         '''If running under olt, we get the first switch connected to onos'''
         olt = OltConfig()
         did = 'of:' + get_mac()
         device_ids = []
         if olt.on_olt():
-            devices = cls.get_devices()
+            devices = cls.get_devices(controller = controller)
             if devices:
                 device_ids = map(lambda d: d['id'], devices)
         else:
@@ -136,10 +138,9 @@ class OnosCtrl:
     @classmethod
     def get_flows(cls, device_id,controller=None):
         if controller is None:
-		url = 'http://%s:8181/onos/v1/flows/' %(cls.controller) + device_id
+	    url = 'http://%s:8181/onos/v1/flows/' %(cls.controller) + device_id
 	else:
-		url = 'http://%s:8181/onos/v1/flows/' %(controller) + device_id
-	print('get flows url is %s'%url)
+	    url = 'http://%s:8181/onos/v1/flows/' %(controller) + device_id
         result = requests.get(url, auth = cls.auth)
         if result.ok:
             return result.json()['flows']
@@ -163,9 +164,9 @@ class OnosCtrl:
         olt_port_map, _ = olt_config.olt_port_map()
         switches = olt_port_map['switches']
         if len(switches) > 1:
-            device_ids = cls.get_device_ids()
+            device_ids = cls.get_device_ids(controller = controller)
         else:
-            did = cls.get_device_id()
+            did = cls.get_device_id(controller = controller)
             if did is None:
                 return olt_device_list
             uplink_dict = {}

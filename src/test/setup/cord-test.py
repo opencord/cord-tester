@@ -20,8 +20,9 @@ import shutil, platform, re
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
 sys.path.append(utils_dir)
 sys.path.insert(1, '/usr/local/lib/python2.7/dist-packages')
-from OnosCtrl import OnosCtrl
+from OnosCtrl import OnosCtrl, get_mac
 from OltConfig import OltConfig
+from OnosFlowCtrl import OnosFlowCtrl
 from threadPool import ThreadPool
 from CordContainer import *
 from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_test_server_shutdown,CORD_TEST_HOST,CORD_TEST_PORT
@@ -100,6 +101,47 @@ class CordTester(Container):
             return os.system(cmd)
         return self.execute(cmd, shell = shell)
 
+    def test_flow(self, switch):
+        if not self.olt:
+            return False
+        egress = 1
+        ingress = 2
+        egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
+        ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
+        device_id = 'of:{}'.format(get_mac(switch))
+        flow = OnosFlowCtrl(deviceId = device_id,
+                            egressPort = egress,
+                            ingressPort = ingress,
+                            ethType = '0x800',
+                            ipSrc = ('IPV4_SRC', ingress_map['ip']+'/32'),
+                            ipDst = ('IPV4_DST', egress_map['ip']+'/32'),
+                            controller = self.ctlr_ip
+                            )
+        result = flow.addFlow()
+        if result != True:
+            return result
+        time.sleep(1)
+        #find and remove the flow
+        flow_id = flow.findFlow(device_id, IN_PORT = ('port', ingress),
+                                ETH_TYPE = ('ethType','0x800'), IPV4_SRC = ('ip', ingress_map['ip']+'/32'),
+                                IPV4_DST = ('ip', egress_map['ip']+'/32'))
+        result = False
+        if flow_id:
+            result = True
+            flow.removeFlow(device_id, flow_id)
+        return result
+
+    def ctlr_switch_availability(self, switch):
+        '''Test Add and verify flows with IPv4 selectors'''
+        if not self.olt:
+            return False
+        device_id = 'of:{}'.format(get_mac(switch))
+        devices = OnosCtrl.get_devices(controller = self.ctlr_ip)
+        if devices:
+            device = filter(lambda d: d['id'] == device_id, devices)
+            return True
+        return False
+
     def start_switch(self, boot_delay = 2):
         """Start OVS"""
         ##Determine if OVS has to be started locally or not
@@ -115,14 +157,21 @@ class CordTester(Container):
             ovs_cmd += ' {}'.format(self.switches[0])
             print('Starting OVS on test container %s for controller: %s' %(self.name, self.ctlr_ip))
         self.execute_switch(ovs_cmd)
-        ## Wait for the LLDP flows to be added to the switch
+        time.sleep(5)
+        ## Wait for the controller to see the switch
         for switch in self.switches:
             status = 1
             tries = 0
+            result = self.ctlr_switch_availability(switch) and self.test_flow(switch)
+            if result == True:
+                status = 0
             while status != 0 and tries < 500:
                 cmd = 'sudo ovs-ofctl dump-flows {0} | grep \"type=0x8942\"'.format(switch)
                 status = self.execute_switch(cmd, shell = True)
                 tries += 1
+                if status != 0 and tries > 100:
+                    if self.ctlr_switch_availability(switch):
+                        status = 0
                 if tries % 10 == 0:
                     print('Waiting for test switch %s to be connected to ONOS controller ...' %switch)
 
