@@ -178,8 +178,8 @@ task deployBase (type: Exec) {
     executable = "ansible-playbook"
     args = ["-i", config.seedServer.ip + ',']
 
-    if ( config.seedServer.user != null && config.seedServer.user != "" ) {
-        args = args << "--user=$config.seedServer.user"
+    if ( config.seedServer.ansible_user != null && config.seedServer.ansible_user != "" ) {
+        args = args << "--user=$config.seedServer.ansible_user"
     }
 
 
@@ -190,8 +190,8 @@ task deployBase (type: Exec) {
     def extraVars = []
     if (config.seedServer) {
         extraVars = extraVars.p(config.seedServer.extraVars)
-            .p(config.seedServer.password, "ansible_ssh_pass")
-            .p(config.seedServer.sudoPassword, "ansible_sudo_pass")
+            .p(config.seedServer.ansible_ssh_pass, "ansible_ssh_pass")
+            .p(config.seedServer.ansible_sudo_pass, "ansible_sudo_pass")
             .p(config.seedServer.fabric_ip, "fabric_ip")
 	    .p(config.seedServer.management_ip, "management_ip")
             .p(config.seedServer.management_gw, "management_gw")
@@ -208,7 +208,7 @@ task deployBase (type: Exec) {
             .p(config.seedServer.virtualbox_support, "virtualbox_support")
 	    .p(config.seedServer.power_helper_user, "power_helper_user")
 	    .p(config.seedServer.power_helper_host, "power_helper_host")
-            .p(config.seedServer.port, "ansible_ssh_port")
+            .p(config.seedServer.ansible_ssh_port, "ansible_ssh_port")
     }
 
     if (config.otherServers) {
@@ -231,8 +231,8 @@ task verify (type: Exec) {
     executable = "ansible-playbook"
     args = ["-i", config.seedServer.ip + ',']
 
-    if ( config.seedServer.user != null && config.seedServer.user != "" ) {
-        args = args << "--user=$config.seedServer.user"
+    if ( config.seedServer.ansible_user != null && config.seedServer.ansible_user != "" ) {
+        args = args << "--user=$config.seedServer.ansible_user"
     }
 
 
@@ -243,8 +243,8 @@ task verify (type: Exec) {
     def extraVars = []
     if (config.seedServer) {
         extraVars = extraVars.p(config.seedServer.extraVars)
-            .p(config.seedServer.password, "ansible_ssh_pass")
-            .p(config.seedServer.sudoPassword, "ansible_sudo_pass")
+            .p(config.seedServer.ansible_ssh_pass, "ansible_ssh_pass")
+            .p(config.seedServer.ansible_sudo_pass, "ansible_sudo_pass")
             .p(config.seedServer.fabric_ip, "fabric_ip")
 	    .p(config.seedServer.management_ip, "management_ip")
             .p(config.seedServer.management_gw, "management_gw")
@@ -261,7 +261,7 @@ task verify (type: Exec) {
             .p(config.seedServer.virtualbox_support, "virtualbox_support")
 	    .p(config.seedServer.power_helper_user, "power_helper_user")
 	    .p(config.seedServer.power_helper_host, "power_helper_host")
-            .p(config.seedServer.port, "ansible_ssh_port")
+            .p(config.seedServer.ansible_ssh_port, "ansible_ssh_port")
     }
 
     if (config.otherServers) {
