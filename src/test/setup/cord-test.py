@@ -398,10 +398,10 @@ def set_ssh_key_file(identity_file):
 
 def runTest(args):
     #Start the cord test tcp server
-    test_server_params = args.server.split(':')
+    test_manifest = TestManifest(args = args)
+    test_server_params = test_manifest.server.split(':')
     test_host = test_server_params[0]
     test_port = CORD_TEST_PORT
-    test_manifest = TestManifest(args = args)
     if len(test_server_params) > 1:
         test_port = int(test_server_params[1])
     try:
@@ -668,7 +668,7 @@ def setupCordTester(args):
        for c in update_map.keys():
            update_map[c] = True
 
-    onos_cord_loc = args.onos_cord
+    onos_cord_loc = test_manifest.onos_cord
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -695,18 +695,9 @@ def setupCordTester(args):
     head_node = test_manifest.head_node
     iterations = test_manifest.iterations
 
-    ##If onos/radius was already started
-    if args.test_controller:
-        ips = args.test_controller.split('/')
-        onos_ip = ips[0]
-        if len(ips) > 1:
-            radius_ip = ips[1]
-        else:
-            radius_ip = None
-
     onos_cord = None
     if onos_cord_loc:
-        if not args.test_controller:
+        if not test_manifest.onos_ip:
             ##Unexpected case. Specify the external controller ip when running on cord node
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
@@ -801,7 +792,7 @@ def setupCordTester(args):
                         network = test_manifest.docker_network)
         print('Quagga started')
 
-    params = args.server.split(':')
+    params = test_manifest.server.split(':')
     ip = params[0]
     port = CORD_TEST_PORT
     if len(params) > 1:
@@ -868,6 +859,17 @@ def cleanupTests(args):
         args.olt = manifest.olt
         args.onos = manifest.onos_image
         args.server = manifest.server
+        args.onos_ip = manifest.onos_ip
+        args.radius_ip = manifest.radius_ip
+        args.onos_cord = manifest.onos_cord
+    else:
+        args.onos_ip = None
+        args.radius_ip = None
+        if args.test_controller:
+            ips = args.test_controller.split('/')
+            args.onos_ip = ips[0]
+            if len(ips) > 1:
+                args.radius_ip = ips[1]
 
     image_name = args.onos
     prefix = args.prefix
@@ -889,6 +891,10 @@ def cleanupTests(args):
             volume = '{}-data'.format(Onos.NAME) if index == 0 else '{}-{}-data'.format(Onos.NAME, index+1)
             Onos.remove_data_map(volume, Onos.guest_data_dir)
         Onos.cleanup_runtime()
+
+    if args.onos_cord:
+        #restore the ONOS cord instance
+        OnosCord.restore_onos_cord(args.onos_cord, args.onos_ip)
 
     if args.xos:
         ##cleanup XOS images
@@ -1095,6 +1101,8 @@ if __name__ == '__main__':
                             help='Specify the log level for the test cases')
     parser_run.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
     parser_run.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
+    parser_run.add_argument('-onos-cord', '--onos-cord', default='', type=str,
+                            help='Specify config location for ONOS cord when running on podd')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1115,8 +1123,8 @@ if __name__ == '__main__':
                               choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                               help='Specify the log level for the test cases')
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
-    parser_setup.add_argument('-c', '--onos-cord', default='', type=str,
-                              help='Specify cord location for ONOS cord when running on podd')
+    parser_setup.add_argument('-onos-cord', '--onos-cord', default='', type=str,
+                              help='Specify config location for ONOS cord when running on podd')
     parser_setup.add_argument('-m', '--manifest', default='', type=str, help='Provide test configuration manifest')
     parser_setup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_setup.add_argument('-i', '--identity-file', default=identity_file_default,
@@ -1168,6 +1176,11 @@ if __name__ == '__main__':
                                 help='Cleanup XOS containers')
     parser_cleanup.add_argument('-r', '--server', default=cord_test_server_address, type=str,
                                 help='ip:port address for cord test server to cleanup')
+    parser_cleanup.add_argument('-e', '--test-controller', default='', type=str,
+                                help='External test controller ip for Onos and/or radius server. '
+                                'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip')
+    parser_cleanup.add_argument('-onos-cord', '--onos-cord', default='', type=str,
+                                help='Specify config location for ONOS cord instance when running on podd to restore')
     parser_cleanup.add_argument('-m', '--manifest', default='', type=str, help='Provide test manifest')
     parser_cleanup.set_defaults(func=cleanupTests)
 

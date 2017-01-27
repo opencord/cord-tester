@@ -60,14 +60,22 @@ class OnosCtrl:
         if config is not None:
             json_data = json.dumps(config)
 	    if controller is None:
-	        print('default Onos config url is %s'%cls.cfg_url)
                 resp = requests.post(cls.cfg_url, auth = cls.auth, data = json_data)
 	    else:
 		cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
-		print('non-default Onos config url is %s'%cfg_url)
 	        resp = requests.post(cfg_url, auth = cls.auth, data = json_data)
             return resp.ok, resp.status_code
         return False, 400
+
+    @classmethod
+    def get_config(cls, controller=None):
+	if controller is None:
+            controller = cls.controller
+	cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
+	resp = requests.get(cfg_url, auth = cls.auth)
+        if resp.ok:
+            return resp.json()
+        return None
 
     @classmethod
     def delete(cls, config, controller=None):
@@ -78,7 +86,6 @@ class OnosCtrl:
                 resp = requests.delete(cls.cfg_url, auth = cls.auth, data = json_data)
 	    else:
 		cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
-		print('non-default Onos config url is %s'%cfg_url)
 	        resp = requests.delete(cfg_url, auth = cls.auth, data = json_data)
             return resp.ok, resp.status_code
         return False, 400

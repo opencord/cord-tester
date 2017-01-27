@@ -35,15 +35,26 @@ class TestManifest(object):
             self.start_switch = args.start_switch
             self.image_prefix = args.prefix
             self.onos_image = args.onos
+            self.test_controller = args.test_controller
+            if self.test_controller:
+                ips = self.test_controller.split('/')
+                self.onos_ip = ips[0]
+                if len(ips) > 1:
+                    self.radius_ip = ips[1]
+            self.onos_cord = args.onos_cord if args.onos_cord else None
             self.docker_network = args.network if args.network else None
             self.iterations = None
-            self.server = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
+            self.server = args.server
             self.jvm_heap_size = args.jvm_heap_size if args.jvm_heap_size else None
         else:
             with open(self.manifest, 'r') as fd:
                 data = json.load(fd)
             self.onos_ip = data.get('onos', None)
             self.radius_ip = data.get('radius', None)
+            self.test_controller = '' if self.onos_ip is None else self.onos_ip
+            if self.onos_ip and self.radius_ip:
+                self.test_controller = '{}/{}'.format(self.onos_ip, self.radius_ip)
+            self.onos_cord = data.get('onos_cord', None)
             self.head_node = data.get('head_node', platform.node())
             self.log_level = data.get('log_level', 'INFO').upper()
             self.onos_instances = data.get('onos_instances', 1)
