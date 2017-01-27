@@ -369,13 +369,28 @@ class OnosCord(Container):
         os.system(build_cmd)
 
     @classmethod
+    def cleanup(cls):
+        if not os.access(cls.onos_cord_dir, os.F_OK):
+            return
+        cmd = 'cd {} && docker-compose down'.format(cls.onos_cord_dir)
+        try:
+            os.system(cmd)
+        except: pass
+
+        print('Cleaning up the ONOS cord wrapper directory at %s' %(cls.onos_cord_dir))
+        try:
+            os.system('rm -rf {}'.format(cls.onos_cord_dir))
+        except:
+            pass
+
+    @classmethod
     def restore_onos_cord(cls, onos_cord, onos_ip):
         #bring down the onos cord wrapper container
         #if there is no saved config, there is nothing to restore as it was never restarted
         if not os.access(cls.onos_cfg_save_loc, os.F_OK):
-            return
+            return False
         if not onos_cord or not os.access(onos_cord, os.F_OK):
-            return
+            return False
 
         print('Stopping the existing ONOS cord wrapper instance at %s' %(cls.onos_cord_dir))
         cmd = 'cd {} && docker-compose down'.format(cls.onos_cord_dir)
@@ -401,11 +416,8 @@ class OnosCord(Container):
                 os.unlink(cls.onos_cfg_save_loc)
             except: pass
 
-        print('Cleaning up the ONOS cord wrapper directory at %s' %(cls.onos_cord_dir))
-        try:
-            os.system('rm -rf {}'.format(cls.onos_cord_dir))
-        except:
-            pass
+        cls.cleanup()
+        return True
 
 class OnosCordStopWrapper(Container):
     onos_cord_dir = os.path.join(os.getenv('HOME'), 'cord-tester-cord')

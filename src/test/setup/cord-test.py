@@ -404,11 +404,6 @@ def runTest(args):
     test_port = CORD_TEST_PORT
     if len(test_server_params) > 1:
         test_port = int(test_server_params[1])
-    try:
-        test_server = cord_test_server_start(daemonize = False, cord_test_host = test_host, cord_test_port = test_port)
-    except:
-        ##Most likely a server instance is already running (daemonized earlier)
-        test_server = None
 
     test_containers = []
     #These tests end up restarting ONOS/quagga/radius
@@ -448,15 +443,33 @@ def runTest(args):
     radius_ip = test_manifest.radius_ip
     head_node = test_manifest.head_node
     iterations = test_manifest.iterations
+    onos_cord_loc = test_manifest.onos_cord
 
-    #don't spawn onos if the user has specified external test controller with test interface config
-    if args.test_controller:
-        ips = args.test_controller.split('/')
-        onos_ip = ips[0]
-        if len(ips) > 1:
-            radius_ip = ips[1]
+    if onos_cord_loc:
+        if onos_cord_loc.find(os.path.sep) < 0:
+            onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
+        #check if the wrapper is already active. If yes, we back out
+        if os.access(OnosCord.onos_cord_dir, os.F_OK):
+           onos_cord_loc = None
         else:
-            radius_ip = None
+            if not os.access(onos_cord_loc, os.F_OK):
+                print('ONOS cord config location %s is not accessible' %onos_cord_loc)
+                sys.exit(1)
+
+    onos_cord = None
+    if onos_cord_loc:
+        if not onos_ip:
+            ##Unexpected case. Specify the external controller ip when running on cord node
+            print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
+            sys.exit(1)
+        onos_cord = OnosCord(onos_ip, onos_cord_loc)
+
+    try:
+        test_server = cord_test_server_start(daemonize = False, cord_test_host = test_host, cord_test_port = test_port,
+                                             onos_cord = onos_cord)
+    except:
+        ##Most likely a server instance is already running (daemonized earlier)
+        test_server = None
 
     Container.IMAGE_PREFIX = test_manifest.image_prefix
     Onos.MAX_INSTANCES = test_manifest.onos_instances
@@ -652,6 +665,9 @@ def runTest(args):
         test_cnt.run_tests()
 
     if test_server:
+        if onos_cord_loc:
+            if OnosCord.restore_onos_cord(onos_cord_loc, onos_ip) is False:
+                OnosCord.cleanup()
         cord_test_server_stop(test_server)
 
     return status
@@ -668,16 +684,6 @@ def setupCordTester(args):
        for c in update_map.keys():
            update_map[c] = True
 
-    onos_cord_loc = test_manifest.onos_cord
-    if onos_cord_loc:
-        if onos_cord_loc.find(os.path.sep) < 0:
-            onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
-        if not os.access(onos_cord_loc, os.F_OK):
-            print('ONOS cord config location %s is not accessible' %onos_cord_loc)
-            sys.exit(1)
-        #Disable test container provisioning on the ONOS compute node
-        args.dont_provision = True
-
     use_manifest = False
     if args.manifest:
         if os.access(args.manifest, os.F_OK):
@@ -690,14 +696,21 @@ def setupCordTester(args):
             test_manifest = TestManifest(manifest = dest)
             use_manifest = True
 
+    onos_cord_loc = test_manifest.onos_cord
+    if onos_cord_loc:
+        if onos_cord_loc.find(os.path.sep) < 0:
+            onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
+        if not os.access(onos_cord_loc, os.F_OK):
+            print('ONOS cord config location %s is not accessible' %onos_cord_loc)
+            sys.exit(1)
+
     onos_ip = test_manifest.onos_ip
     radius_ip = test_manifest.radius_ip
     head_node = test_manifest.head_node
     iterations = test_manifest.iterations
-
     onos_cord = None
     if onos_cord_loc:
-        if not test_manifest.onos_ip:
+        if not onos_ip:
             ##Unexpected case. Specify the external controller ip when running on cord node
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
@@ -894,7 +907,8 @@ def cleanupTests(args):
 
     if args.onos_cord:
         #restore the ONOS cord instance
-        OnosCord.restore_onos_cord(args.onos_cord, args.onos_ip)
+        if OnosCord.restore_onos_cord(args.onos_cord, args.onos_ip) is False:
+            OnosCord.cleanup()
 
     if args.xos:
         ##cleanup XOS images
