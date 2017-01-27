@@ -1,6 +1,11 @@
 from OnosLog import OnosLog
 from scapy.all import log
 from onosclidriver import OnosCliDriver
+from OnosCtrl import OnosCtrl, get_mac
+from docker import Client
+from CordContainer import *
+import json
+import requests
 import unittest
 import os
 import time
@@ -22,7 +27,7 @@ class CordLogger(unittest.TestCase):
     onosLogLevel = 'INFO'
     curLogLevel = onosLogLevel
     testLogLevel = os.getenv('LOG_LEVEL', onosLogLevel)
-    setup_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../setup')
+    setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup')
     archive_dir = os.path.join(setup_dir, 'test_logs')
     onos_data_dir = os.path.join(setup_dir, 'cord-onos-data')
 
@@ -155,3 +160,66 @@ class CordLogger(unittest.TestCase):
         except:
             pass
         cls.cliSessionExit()
+
+    @classmethod
+    def stat_option(cls, stat = None, serverDetails = None):
+        # each stat option we can do some specific functions
+        if stat is None:
+           stat = cls.statOptionsList
+        if serverDetails is None:
+           serverDetails = cls.serverOptionsList
+        stat_choice = 'COLLECTD'
+        test_name = cls.testHostName
+        test_image = 'cord-test/nose'
+        if stat_choice in stat:
+           onos_ctrl = OnosCtrl('org.onosproject.cpman')
+           status, _ = onos_ctrl.activate()
+           if serverDetails is '':
+              ## default Test Container is used to install CollectD
+              pass
+           elif serverDetails in 'NEW':
+                test_image = 'cord-test/exserver'
+                test_name ='cord-collectd'
+           else:
+               pass
+               # cls.connect_server(serverDetails)
+               ## TO-DO for already up and running server, install collectd agent etc...
+           cls.start_collectd_agent_in_server(name = test_name, image = test_image)
+           for controller in cls.controllers:
+               if not controller:
+                  continue
+               url_mem_stats =  'http://%s:8181/onos/cpman/controlmetrics/memory_metrics'%(controller)
+               url_cpu_stats =  'http://%s:8181/onos/cpman/controlmetrics/cpu_metrics'%(controller)
+               auth = ('karaf', 'karaf')
+               cls.collectd_agent_metrics(controller, auth, url = url_cpu_stats)
+               cls.collectd_agent_metrics(controller, auth, url = url_mem_stats)
+        return
+
+
+    @classmethod
+    def collectd_agent_metrics(cls,controller=None, auth =None, url = None):
+        '''This function is getting rules from ONOS with json format'''
+        if url:
+           resp = requests.get(url, auth = auth)
+           log.info('Collectd agent has provided metrics via ONOS controller, url = %s \nand status = %s' %(url,resp.json()))
+        return resp
+
+
+    @classmethod
+    def start_collectd_agent_in_server(cls, name = None, image = None):
+        container_cmd_exec = Container(name = name, image = image)
+        tty = False
+        dckr = Client()
+        cmd =  'sudo /etc/init.d/collectd start'
+        i = container_cmd_exec.execute(cmd = cmd, tty= tty, stream = True)
+        return
+
+    @classmethod
+    def disable_onos_apps(cls, stat = None, app = None):
+        stat_choice = 'COLLECTD'
+        if stat is None:
+           stat = cls.statOptionsList
+        if stat_choice in stat:
+            onos_ctrl = OnosCtrl('org.onosproject.cpman')
+            status, _ = onos_ctrl.deactivate()
+
