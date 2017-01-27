@@ -52,7 +52,7 @@ class CordTester(Container):
     IMAGE = 'cord-test/nose'
     ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber',
     'cordSubscriber', 'vrouter', 'flows', 'proxyarp', 'acl', 'xos', 'fabric',
-    'cbench', 'cluster', 'netCondition', 'cordvtn', 'iperf', 'mini')
+    'cbench', 'cluster', 'netCondition', 'cordvtn', 'iperf', 'mini', 'vsg')
 
     def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None,
                  name = '', image = IMAGE, prefix = '', tag = 'candidate',
