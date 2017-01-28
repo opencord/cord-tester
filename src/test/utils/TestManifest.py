@@ -42,6 +42,8 @@ class TestManifest(object):
                 if len(ips) > 1:
                     self.radius_ip = ips[1]
             self.onos_cord = args.onos_cord if args.onos_cord else None
+            self.service_profile = args.service_profile if args.service_profile else None
+            self.synchronizer = args.synchronizer if args.synchronizer else None
             self.docker_network = args.network if args.network else None
             self.iterations = None
             self.server = args.server
@@ -55,6 +57,8 @@ class TestManifest(object):
             if self.onos_ip and self.radius_ip:
                 self.test_controller = '{}/{}'.format(self.onos_ip, self.radius_ip)
             self.onos_cord = data.get('onos_cord', None)
+            self.service_profile = data.get('service_profile', None)
+            self.synchronizer = data.get('synchronizer', None)
             self.head_node = data.get('head_node', platform.node())
             self.log_level = data.get('log_level', 'INFO').upper()
             self.onos_instances = data.get('onos_instances', 1)

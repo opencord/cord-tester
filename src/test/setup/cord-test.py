@@ -444,25 +444,29 @@ def runTest(args):
     head_node = test_manifest.head_node
     iterations = test_manifest.iterations
     onos_cord_loc = test_manifest.onos_cord
-
+    service_profile = test_manifest.service_profile
+    synchronizer = test_manifest.synchronizer
+    onos_cord = None
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
-        #check if the wrapper is already active. If yes, we back out
-        if os.access(OnosCord.onos_cord_dir, os.F_OK):
-           onos_cord_loc = None
-        else:
-            if not os.access(onos_cord_loc, os.F_OK):
-                print('ONOS cord config location %s is not accessible' %onos_cord_loc)
-                sys.exit(1)
-
-    onos_cord = None
-    if onos_cord_loc:
+        if not os.access(onos_cord_loc, os.F_OK):
+            print('ONOS cord config location %s is not accessible' %onos_cord_loc)
+            sys.exit(1)
         if not onos_ip:
             ##Unexpected case. Specify the external controller ip when running on cord node
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
-        onos_cord = OnosCord(onos_ip, onos_cord_loc)
+        if not service_profile:
+            print('Specify service profile location for the ONOS cord instance. Eg: $HOME/service-profile/cord-pod')
+            sys.exit(1)
+        if not synchronizer:
+            print('Specify synchronizer to use for the ONOS cord instance. Eg: vtn, fabric, cord')
+            sys.exit(1)
+        if not os.access(service_profile, os.F_OK):
+            print('Service profile location for ONOS cord instance does not exist')
+            sys.exit(1)
+        onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer)
 
     try:
         test_server = cord_test_server_start(daemonize = False, cord_test_host = test_host, cord_test_port = test_port,
@@ -665,9 +669,8 @@ def runTest(args):
         test_cnt.run_tests()
 
     if test_server:
-        if onos_cord_loc:
-            if OnosCord.restore_onos_cord(onos_cord_loc, onos_ip) is False:
-                OnosCord.cleanup()
+        if onos_cord:
+            onos_cord.restore()
         cord_test_server_stop(test_server)
 
     return status
@@ -696,6 +699,13 @@ def setupCordTester(args):
             test_manifest = TestManifest(manifest = dest)
             use_manifest = True
 
+    onos_ip = test_manifest.onos_ip
+    radius_ip = test_manifest.radius_ip
+    head_node = test_manifest.head_node
+    iterations = test_manifest.iterations
+    service_profile = test_manifest.service_profile
+    synchronizer = test_manifest.synchronizer
+    onos_cord = None
     onos_cord_loc = test_manifest.onos_cord
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
@@ -703,18 +713,20 @@ def setupCordTester(args):
         if not os.access(onos_cord_loc, os.F_OK):
             print('ONOS cord config location %s is not accessible' %onos_cord_loc)
             sys.exit(1)
-
-    onos_ip = test_manifest.onos_ip
-    radius_ip = test_manifest.radius_ip
-    head_node = test_manifest.head_node
-    iterations = test_manifest.iterations
-    onos_cord = None
-    if onos_cord_loc:
         if not onos_ip:
             ##Unexpected case. Specify the external controller ip when running on cord node
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
-        onos_cord = OnosCord(onos_ip, onos_cord_loc)
+        if not service_profile:
+            print('Specify service profile location for the ONOS cord instance. Eg: $HOME/service-profile/cord-pod')
+            sys.exit(1)
+        if not synchronizer:
+            print('Specify synchronizer to use for the ONOS cord instance. Eg: vtn, fabric, cord')
+            sys.exit(1)
+        if not os.access(service_profile, os.F_OK):
+            print('Service profile location for ONOS cord instance does not exist')
+            sys.exit(1)
+        onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer)
 
     Container.IMAGE_PREFIX = test_manifest.image_prefix
     #don't spawn onos if the user had started it externally
@@ -875,6 +887,8 @@ def cleanupTests(args):
         args.onos_ip = manifest.onos_ip
         args.radius_ip = manifest.radius_ip
         args.onos_cord = manifest.onos_cord
+        args.service_profile = manifest.service_profile
+        args.synchronizer = manifest.synchronizer
     else:
         args.onos_ip = None
         args.radius_ip = None
@@ -906,9 +920,12 @@ def cleanupTests(args):
         Onos.cleanup_runtime()
 
     if args.onos_cord:
-        #restore the ONOS cord instance
-        if OnosCord.restore_onos_cord(args.onos_cord, args.onos_ip) is False:
-            OnosCord.cleanup()
+        #try restoring the onos cord instance
+        try:
+            onos_cord = OnosCord(args.onos_ip, args.onos_cord, args.service_profile, args.synchronizer, start = False)
+            onos_cord.restore(force = True)
+        except Exception as e:
+            print(e)
 
     if args.xos:
         ##cleanup XOS images
@@ -1117,6 +1134,12 @@ if __name__ == '__main__':
     parser_run.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
     parser_run.add_argument('-onos-cord', '--onos-cord', default='', type=str,
                             help='Specify config location for ONOS cord when running on podd')
+    parser_run.add_argument('-service-profile', '--service-profile', default='', type=str,
+                            help='Specify config location for ONOS cord service profile when running on podd.'
+                            'Eg: $HOME/service-profile/cord-pod')
+    parser_run.add_argument('-synchronizer', '--synchronizer', default='', type=str,
+                            help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
+                            'Eg: vtn,fabric,cord')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1139,6 +1162,12 @@ if __name__ == '__main__':
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
     parser_setup.add_argument('-onos-cord', '--onos-cord', default='', type=str,
                               help='Specify config location for ONOS cord when running on podd')
+    parser_setup.add_argument('-service-profile', '--service-profile', default='', type=str,
+                              help='Specify config location for ONOS cord service profile when running on podd.'
+                              'Eg: $HOME/service-profile/cord-pod')
+    parser_setup.add_argument('-synchronizer', '--synchronizer', default='', type=str,
+                              help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
+                              'Eg: vtn,fabric,cord')
     parser_setup.add_argument('-m', '--manifest', default='', type=str, help='Provide test configuration manifest')
     parser_setup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_setup.add_argument('-i', '--identity-file', default=identity_file_default,
@@ -1195,6 +1224,12 @@ if __name__ == '__main__':
                                 'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip')
     parser_cleanup.add_argument('-onos-cord', '--onos-cord', default='', type=str,
                                 help='Specify config location for ONOS cord instance when running on podd to restore')
+    parser_cleanup.add_argument('-service-profile', '--service-profile', default='', type=str,
+                                help='Specify config location for ONOS cord service profile when running on podd.'
+                                'Eg: $HOME/service-profile/cord-pod')
+    parser_cleanup.add_argument('-synchronizer', '--synchronizer', default='', type=str,
+                                help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
+                                'Eg: vtn,fabric,cord')
     parser_cleanup.add_argument('-m', '--manifest', default='', type=str, help='Provide test manifest')
     parser_cleanup.set_defaults(func=cleanupTests)
 

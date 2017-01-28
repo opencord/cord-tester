@@ -25,7 +25,7 @@ from itertools import chain
 from nsenter import Namespace
 from docker import Client
 from docker import utils as dockerutils
-from shutil import rmtree
+import shutil
 from OnosCtrl import OnosCtrl
 from OnosLog import OnosLog
 from threadPool import ThreadPool
@@ -292,132 +292,122 @@ def get_mem(jvm_heap_size = None, instances = 1):
 
 class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
-    onos_cord_dir = os.path.join(os.getenv('HOME'), 'cord-tester-cord')
     onos_config_dir_guest = '/root/onos/config'
-    onos_config_dir = os.path.join(onos_cord_dir, 'config')
-    docker_yaml = os.path.join(onos_cord_dir, 'docker-compose.yml')
-    onos_cfg_save_loc = os.path.join(onos_cord_dir, 'network-cfg.json.saved')
 
-    def __init__(self, onos_ip, conf, boot_delay = 60):
+    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 60):
+        if not os.access(conf, os.F_OK):
+            raise Exception('ONOS cord configuration location %s is invalid' %conf)
+        if not os.access(service_profile, os.F_OK):
+            raise Exception('ONOS cord service profile location is not accessible' %service_profile)
         self.onos_ip = onos_ip
-        self.cord_conf_dir = conf
+        self.onos_cord_dir = conf
         self.boot_delay = boot_delay
-        if os.access(self.cord_conf_dir, os.F_OK) and not os.access(self.onos_cord_dir, os.F_OK):
-            os.mkdir(self.onos_cord_dir)
-            os.mkdir(self.onos_config_dir)
-            ##copy the config file from cord-tester-config
-            cmd = 'cp {}/* {}'.format(self.cord_conf_dir, self.onos_cord_dir)
-            os.system(cmd)
+        self.synchronizer = synchronizer
+        self.service_profile = service_profile
+        self.docker_yaml = os.path.join(conf, 'docker-compose.yml')
+        self.docker_yaml_saved = os.path.join(conf, 'docker-compose.yml.saved')
+        self.onos_config_dir = os.path.join(conf, 'config')
+        self.onos_cfg_save_loc = os.path.join(conf, 'network-cfg.json.saved')
+        instance_active = False
+        #if we have a wrapper onos instance already active, back out
+        if os.access(self.onos_config_dir, os.F_OK) or os.access(self.docker_yaml_saved, os.F_OK):
+            instance_active = True
+        else:
+            if start is True:
+                os.mkdir(self.onos_config_dir)
+                shutil.copy(self.docker_yaml, self.docker_yaml_saved)
 
+        self.start_wrapper = instance_active is False and start is True
         ##update the docker yaml with the config volume
         with open(self.docker_yaml, 'r') as f:
             yaml_config = yaml.load(f)
             image = yaml_config['services'].keys()[0]
-            name = 'cordtestercord_{}_1'.format(image)
+            cord_conf_dir_basename = os.path.basename(self.onos_cord_dir.replace('-', ''))
+            xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
             volumes = yaml_config['services'][image]['volumes']
             config_volumes = filter(lambda e: e.find(self.onos_config_dir_guest) >= 0, volumes)
             if not config_volumes:
                 config_volume = '{}:{}'.format(self.onos_config_dir, self.onos_config_dir_guest)
                 volumes.append(config_volume)
-                docker_yaml_changed = '{}-changed'.format(self.docker_yaml)
-                with open(docker_yaml_changed, 'w') as wf:
-                    yaml.dump(yaml_config, wf)
-
-                os.rename(docker_yaml_changed, self.docker_yaml)
+                if self.start_wrapper:
+                    docker_yaml_changed = '{}-changed'.format(self.docker_yaml)
+                    with open(docker_yaml_changed, 'w') as wf:
+                        yaml.dump(yaml_config, wf)
+                    os.rename(docker_yaml_changed, self.docker_yaml)
             self.volumes = volumes
 
-        super(OnosCord, self).__init__(name, image, tag = '')
-        cord_conf_dir_basename = os.path.basename(self.cord_conf_dir.replace('-', ''))
-        self.xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
         ##Create an container instance of xos onos
-        self.xos_onos = Container(self.xos_onos_name, image, tag = '')
-        #fetch the current config of onos cord instance
-        try:
-            self.last_cfg = OnosCtrl.get_config(controller = onos_ip)
-        except:
-            self.last_cfg = None
+        self.xos_onos = Container(xos_onos_name, image, tag = '')
+        self.last_cfg = None
+        if self.start_wrapper:
+            #fetch the current config of onos cord instance and save it
+            try:
+                self.last_cfg = OnosCtrl.get_config(controller = onos_ip)
+                json_data = json.dumps(self.last_cfg, indent=4)
+                with open(self.onos_cfg_save_loc, 'w') as f:
+                    f.write(json_data)
+            except:
+                pass
+            #start the container back with the shared onos config volume
+            self.start()
 
     def start(self, restart = False, network_cfg = None):
-        if restart is True:
-            if self.exists():
-                ##Kill the existing instance
-                print('Killing container %s' %self.name)
-                self.kill()
-            if self.xos_onos.exists():
-                if self.last_cfg is not None:
-                    #save the current network config of onos cord instance
-                    json_data = json.dumps(self.last_cfg, indent=4)
-                    with open(self.onos_cfg_save_loc, 'w') as f:
-                        f.write(json_data)
-                print('Killing container %s' %self.xos_onos.name)
-                self.xos_onos.kill()
-
-        if network_cfg is not None:
+        if network_cfg:
             json_data = json.dumps(network_cfg, indent=4)
             with open('{}/network-cfg.json'.format(self.onos_config_dir), 'w') as f:
                 f.write(json_data)
-
-        #start the container using docker-compose
-        cmd = 'cd {} && docker-compose up -d'.format(self.onos_cord_dir)
-        os.system(cmd)
-        #Delay to make sure ONOS fully boots
+        if restart is False:
+            #stop and start and synchronize the services before installing tester cord apps
+            cmds = [ 'cd {} && docker-compose down'.format(self.onos_cord_dir),
+                     'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
+                     'sleep 45',
+                     'cd {} && make {}'.format(self.service_profile, self.synchronizer)
+            ]
+            for cmd in cmds:
+                try:
+                    print(cmd)
+                    os.system(cmd)
+                except:pass
+            Onos.install_cord_apps(onos_ip = self.onos_ip)
+        else:
+            cmd = 'cd {} && docker-compose restart'.format(self.onos_cord_dir)
+            try:
+                os.system(cmd)
+            except: pass
+        print('Waiting %d seconds for ONOS instance to start' %self.boot_delay)
         time.sleep(self.boot_delay)
-        Onos.install_cord_apps(onos_ip = self.onos_ip)
 
     def build_image(self):
         build_cmd = 'cd {} && docker-compose build'.format(self.onos_cord_dir)
         os.system(build_cmd)
 
-    @classmethod
-    def cleanup(cls):
-        if not os.access(cls.onos_cord_dir, os.F_OK):
+    def restore(self, force = False):
+        restore = self.start_wrapper is True or force is True
+        if not restore:
             return
-        cmd = 'cd {} && docker-compose down'.format(cls.onos_cord_dir)
-        try:
-            os.system(cmd)
-        except: pass
-
-        print('Cleaning up the ONOS cord wrapper directory at %s' %(cls.onos_cord_dir))
-        try:
-            os.system('rm -rf {}'.format(cls.onos_cord_dir))
-        except:
-            pass
-
-    @classmethod
-    def restore_onos_cord(cls, onos_cord, onos_ip):
-        #bring down the onos cord wrapper container
-        #if there is no saved config, there is nothing to restore as it was never restarted
-        if not os.access(cls.onos_cfg_save_loc, os.F_OK):
-            return False
-        if not onos_cord or not os.access(onos_cord, os.F_OK):
-            return False
-
-        print('Stopping the existing ONOS cord wrapper instance at %s' %(cls.onos_cord_dir))
-        cmd = 'cd {} && docker-compose down'.format(cls.onos_cord_dir)
-        try:
-            os.system(cmd)
-        except:pass
-
-        print('Starting the ONOS cord instance at %s' %(onos_cord))
-        #bring back up the onos cord container
-        cmd = 'cd {} && docker-compose up -d'.format(onos_cord)
-        try:
-            os.system(cmd)
-            time.sleep(30)
-        except:
-            pass
-
-        #now restore back the old config
-        print('Restoring back the saved ONOS cord config at %s for ONOS cord instance' %(cls.onos_cfg_save_loc))
-        with open(cls.onos_cfg_save_loc, 'r') as f:
-            config = json.load(f)
+        #restore the config files back. The synchronizer restore should bring the last config back
+        cmds = ['cd {} && docker-compose down'.format(self.onos_cord_dir),
+                'rm -rf {}'.format(self.onos_config_dir),
+                'mv {} {}'.format(self.docker_yaml_saved, self.docker_yaml),
+                'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
+                'sleep 45',
+                'cd {} && make {}'.format(self.service_profile, self.synchronizer)
+        ]
+        for cmd in cmds:
             try:
-                OnosCtrl.config(config, controller = onos_ip)
-                os.unlink(cls.onos_cfg_save_loc)
+                print(cmd)
+                os.system(cmd)
             except: pass
 
-        cls.cleanup()
-        return True
+        #We may not have to restore the config but still it should match synchronizer last config
+        if os.access(self.onos_cfg_save_loc, os.F_OK):
+            with open(self.onos_cfg_save_loc, 'r') as f:
+                cfg = json.load(f)
+                try:
+                    OnosCtrl.config(cfg, controller = self.onos_ip)
+                    os.unlink(self.onos_cfg_save_loc)
+                except:
+                    pass
 
 class OnosCordStopWrapper(Container):
     onos_cord_dir = os.path.join(os.getenv('HOME'), 'cord-tester-cord')
@@ -508,7 +498,7 @@ class Onos(Container):
     def remove_data_map(cls, host_volume, guest_volume_dir):
         host_volume_dir = os.path.join(cls.setup_dir, os.path.basename(host_volume))
         if os.path.exists(host_volume_dir):
-            rmtree(host_volume_dir)
+            shutil.rmtree(host_volume_dir)
 
     def remove_data_volume(self):
         if self.data_map is not None:
