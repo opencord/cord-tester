@@ -37,7 +37,7 @@ class CordTestServer(object):
 
     def __restart_onos(self, node = None, config = None, timeout = 10):
         if self.onos_cord:
-            onos_config = '{}/network-cfg.json'.format(OnosCord.onos_config_dir)
+            onos_config = '{}/network-cfg.json'.format(self.onos_cord.onos_config_dir)
         else:
             onos_config = '{}/network-cfg.json'.format(Onos.host_config_dir)
         if config is None:

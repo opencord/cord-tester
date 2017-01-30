@@ -53,7 +53,9 @@ class OnosLog(object):
                         if t == 'Exception':
                             exception_map[t] = lines[i+1:i+1+10]
             output = '\n'.join(match_lines)
-            output += '\n'.join(exception_map['Exception'])
+            if len(exception_map['Exception']) > 0:
+                output += '\nException:\n'
+                output += '\n'.join(exception_map['Exception'])
 
         #update the last snapshot
         if cache_result is True:

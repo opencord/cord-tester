@@ -352,7 +352,7 @@ class OnosCord(Container):
             self.start()
 
     def start(self, restart = False, network_cfg = None):
-        if network_cfg:
+        if network_cfg is not None:
             json_data = json.dumps(network_cfg, indent=4)
             with open('{}/network-cfg.json'.format(self.onos_config_dir), 'w') as f:
                 f.write(json_data)
