@@ -323,6 +323,8 @@ class OnosCord(Container):
             image = yaml_config['services'].keys()[0]
             cord_conf_dir_basename = os.path.basename(self.onos_cord_dir.replace('-', ''))
             xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
+            if not yaml_config['services'][image].has_key('volumes'):
+                yaml_config['services'][image]['volumes'] = []
             volumes = yaml_config['services'][image]['volumes']
             config_volumes = filter(lambda e: e.find(self.onos_config_dir_guest) >= 0, volumes)
             if not config_volumes:
