@@ -395,6 +395,9 @@ class OnosCord(Container):
         restore = self.start_wrapper is True or force is True
         if not restore:
             return
+        #nothing to restore
+        if not os.access(self.docker_yaml_saved, os.F_OK):
+            return
         #restore the config files back. The synchronizer restore should bring the last config back
         cmds = ['cd {} && docker-compose down'.format(self.onos_cord_dir),
                 'rm -rf {}'.format(self.onos_config_dir),

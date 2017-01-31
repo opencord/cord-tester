@@ -1,0 +1,13 @@
+{
+    "onos_instances": 1,
+    "olt": true,
+    "start_switch": true,
+    "onos_image": "onosproject/onos:latest",
+    "onos" : "172.20.0.2",
+    "onos_cord" : "/home/vagrant/onos-fabric",
+    "service_profile" : "/home/vagrant/service-profile/cord-pod",
+    "synchronizer" : "vtn",
+    "docker_network" : "onosfabric_default",
+    "log_level" : "INFO",
+    "jvm_heap_size" : "1G"
+}

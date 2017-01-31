@@ -920,6 +920,10 @@ def cleanupTests(args):
             Onos.remove_data_map(volume, Onos.guest_data_dir)
         Onos.cleanup_runtime()
 
+    radius_container = '{}{}:candidate'.format(prefix, Radius.IMAGE)
+    quagga_container = '{}{}:candidate'.format(prefix, Quagga.IMAGE)
+    Container.cleanup(radius_container)
+    Container.cleanup(quagga_container)
     if args.onos_cord:
         #try restoring the onos cord instance
         try:
