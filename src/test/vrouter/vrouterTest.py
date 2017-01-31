@@ -41,7 +41,7 @@ log.setLevel('INFO')
 
 class vrouter_exchange(CordLogger):
 
-    apps = ('org.onosproject.vrouter', 'org.onosproject.fwd')
+    apps = ('org.onosproject.proxyarp', 'org.onosproject.hostprovider', 'org.onosproject.vrouter', 'org.onosproject.fwd')
     device_id = 'of:' + get_mac()
     vrouter_device_dict = { "devices" : {
                 "{}".format(device_id) : {
@@ -107,6 +107,16 @@ line vty
                 }
             },
         }
+
+    @classmethod
+    def activate_apps(cls, deactivate = False):
+        for app in cls.apps:
+            onos_ctrl = OnosCtrl(app)
+            if deactivate is False:
+                onos_ctrl.activate()
+            else:
+                onos_ctrl.deactivate()
+            time.sleep(2)
 
     def cliEnter(self):
         retries = 0
@@ -294,6 +304,8 @@ line vty
         vrouter_configs = cls.vrouter_config_get(networks = networks, peers = peers,
                                                  peer_address = peer_address, route_update = route_update)
         cls.start_onos(network_cfg = vrouter_configs)
+        cls.activate_apps()
+        time.sleep(5)
         cls.vrouter_host_load()
         ##Start quagga
         cls.start_quagga(networks = networks, peer_address = peer_address, router_address = router_address)
@@ -652,6 +664,3 @@ line vty
         time.sleep(60)
         self.vrouter_traffic_verify(positive_test = True)
         assert_equal(res, True)
-
-
-

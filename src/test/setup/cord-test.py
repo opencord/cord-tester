@@ -196,6 +196,7 @@ class CordTester(Container):
         uplink = self.port_map['uplink']
         wan = self.port_map['wan']
         port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
+        print('Provisioning the ports for the test container\n')
         for host_intf, ports in port_list:
             uplink = self.port_map[host_intf]['uplink']
             for port in ports:

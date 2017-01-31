@@ -193,8 +193,7 @@ class Container(object):
             print('Infinity time pause the container %s' %cnt['Id'])
         return 'success'
 
-    def connect_to_br(self):
-        index = 0
+    def connect_to_br(self, index = 0):
         self.CONFIG_LOCK.acquire()
         try:
             with docker_netns(self.name) as pid:
@@ -213,7 +212,7 @@ class Container(object):
                         br = ip.link_lookup(ifname=quagga_config['bridge'])
                     br = br[0]
                     ip.link('set', index=br, state='up')
-                    ifname = '{0}-{1}'.format(self.name, index)
+                    ifname = '{0}-{1}'.format(self.name[:12], index)
                     ifs = ip.link_lookup(ifname=ifname)
                     if len(ifs) > 0:
                        ip.link_remove(ifs[0])
@@ -294,7 +293,7 @@ class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
     onos_config_dir_guest = '/root/onos/config'
 
-    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 60):
+    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 25):
         if not os.access(conf, os.F_OK):
             raise Exception('ONOS cord configuration location %s is invalid' %conf)
         if not os.access(service_profile, os.F_OK):
@@ -337,7 +336,7 @@ class OnosCord(Container):
             self.volumes = volumes
 
         ##Create an container instance of xos onos
-        self.xos_onos = Container(xos_onos_name, image, tag = '')
+        super(OnosCord, self).__init__(xos_onos_name, image, tag = '', quagga_config = Onos.QUAGGA_CONFIG)
         self.last_cfg = None
         if self.start_wrapper:
             #fetch the current config of onos cord instance and save it
@@ -356,7 +355,10 @@ class OnosCord(Container):
             json_data = json.dumps(network_cfg, indent=4)
             with open('{}/network-cfg.json'.format(self.onos_config_dir), 'w') as f:
                 f.write(json_data)
-        if restart is False:
+
+        #we avoid using docker-compose restart for now.
+        #since we don't want to retain the metadata across restarts
+        if True:
             #stop and start and synchronize the services before installing tester cord apps
             cmds = [ 'cd {} && docker-compose down'.format(self.onos_cord_dir),
                      'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
@@ -374,6 +376,12 @@ class OnosCord(Container):
             try:
                 os.system(cmd)
             except: pass
+
+        ##we could also connect container to default docker network but disabled for now
+        #Container.connect_to_network(self.name, 'bridge')
+
+        #connect container to the quagga bridge
+        self.connect_to_br(index = 0)
         print('Waiting %d seconds for ONOS instance to start' %self.boot_delay)
         time.sleep(self.boot_delay)
 
