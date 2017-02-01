@@ -292,6 +292,7 @@ def get_mem(jvm_heap_size = None, instances = 1):
 class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
     onos_config_dir_guest = '/root/onos/config'
+    tester_apps = ( 'org.onosproject.proxyarp', 'org.onosproject.hostprovider' )
 
     def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 25):
         if not os.access(conf, os.F_OK):
@@ -373,6 +374,7 @@ class OnosCord(Container):
                     os.system(cmd)
                 except:pass
             Onos.install_cord_apps(onos_ip = self.onos_ip)
+            self.activate_apps()
         else:
             cmd = 'cd {} && docker-compose restart'.format(self.onos_cord_dir)
             try:
@@ -386,6 +388,13 @@ class OnosCord(Container):
         self.connect_to_br(index = 0)
         print('Waiting %d seconds for ONOS instance to start' %self.boot_delay)
         time.sleep(self.boot_delay)
+
+    @classmethod
+    def activate_apps(cls):
+        for app in cls.tester_apps:
+            print('Activating ONOS app %s' %(app))
+            OnosCtrl(app).activate()
+            time.sleep(2)
 
     def build_image(self):
         build_cmd = 'cd {} && docker-compose build'.format(self.onos_cord_dir)
