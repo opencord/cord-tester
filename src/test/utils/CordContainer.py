@@ -389,11 +389,10 @@ class OnosCord(Container):
         print('Waiting %d seconds for ONOS instance to start' %self.boot_delay)
         time.sleep(self.boot_delay)
 
-    @classmethod
-    def activate_apps(cls):
-        for app in cls.tester_apps:
+    def activate_apps(self):
+        for app in self.tester_apps:
             print('Activating ONOS app %s' %(app))
-            OnosCtrl(app).activate()
+            OnosCtrl(app, controller = self.onos_ip).activate()
             time.sleep(2)
 
     def build_image(self):
