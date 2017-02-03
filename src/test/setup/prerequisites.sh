@@ -26,7 +26,7 @@ if [ $on_cord -eq 0 ]; then
     docker pull onosproject/onos:latest || exit 127
 fi
 apt-get -y install openvswitch-common openvswitch-switch
-apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect python-maas-client tcpdump arping libssl-dev realpath
+apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect python-maas-client tcpdump arping libssl-dev libffi-dev realpath
 easy_install nose
 pip install scapy==2.3.2
 pip install monotonic
