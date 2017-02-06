@@ -1,0 +1,36 @@
+*** Settings ***
+Documentation     Test suite for checking default images for R-CORD
+Suite Setup       Read InputFile
+Test Template     Verify Image Check
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/defaultImages.json
+
+*** Test Cases ***    TYPE
+Test Default Images on R-CORD
+                      IMAGE
+
+*** Keywords ***
+Read InputFile
+    ${imageList}=    utils.jsonToList    ${PATHFILE}    imagesInfo
+    Set Suite Variable    ${ilist}    ${imageList}
+
+Verify Image Check
+    [Arguments]    ${type}
+    Run Keyword If    "${type}" == "IMAGE"    Test Image Check
+
+Test Image Check
+    ${json_result}=    restApi.ApiGet    CORE_IMAGES
+    Log    ${json_result}
+    ${imageList}=    Get Variable Value    ${ilist}
+    ${test_result}=    utils.compare_list_of_dicts    ${imageList}    ${json_result}
+    Should Be True    ${test_result}

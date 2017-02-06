@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-SERVER_IP = '10.128.15.254'
-SERVER_PORT = '9999'
+SERVER_IP = '10.128.100.9'
+SERVER_PORT = '8080'
 USER = 'padmin@vicci.org'
 PASSWD = 'letmein'
 TENANT_SUBSCRIBER = '/api/tenant/cord/subscriber/'
@@ -18,3 +18,4 @@ CORE_SANITY_NODES = '/api/core/nodes/?no_hyperlinks=1'
 CORE_NODES = '/api/core/nodes/'
 CORE_FLAVORS = '/api/core/flavors/'
 CORE_SITES = '/api/core/sites/'
+CORE_IMAGES = '/api/core/images/'

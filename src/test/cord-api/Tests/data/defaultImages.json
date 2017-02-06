@@ -1,0 +1,8 @@
+{
+    "imagesInfo":
+    [
+        {"name": "ceilometer-service-trusty-server-multi-nic"},
+        {"name": "trusty-server-multi-nic"},
+        {"name": "vsg-1.1"}
+    ]
+}
