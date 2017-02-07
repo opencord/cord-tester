@@ -32,11 +32,10 @@ PROTO_NAME_ICMP = 'icmp'
 IPv4 = 'IPv4'
 
 OS_USERNAME = 'admin'
-OS_PASSWORD = 'admin'
+OS_PASSWORD = 'VeryLongKeystoneAdminPassword'
 OS_TENANT = 'admin'
-OS_AUTH_URL = 'http://10.119.192.11:5000/v2.0/'
-OS_TOKEN = 'vDgyUPEp'
-OS_SERVICE_ENDPOINT = 'http://10.119.192.11:35357/v2.0/'
+OS_AUTH_URL = 'https://keystone.cord.lab:5000/v2.0'
+OS_SERVICE_ENDPOINT = 'https://keystone.cord.lab:5000/v2.0/'
 VM_BOOT_TIMEOUT = 100
 VM_DELETE_TIMEOUT = 100
 
@@ -439,79 +438,34 @@ class cordvtn_exchange(CordLogger):
 
         return data
 
-    def waitVmActive(nova, vm):
-        sleep_time = 3
-        count = VM_BOOT_TIMEOUT / sleep_time
-        while True:
-            status = openstack_utils.get_instance_status(nova, vm)
-            logger.debug("Status: %s" % status)
-            if status == "ACTIVE":
-                return True
-            if status == "ERROR" or status == "error":
-                return False
-            if count == 0:
-                logger.debug("Booting a VM timed out...")
-                return False
-            count -= 1
-            time.sleep(sleep_time)
-        return False
+    def connect_ssh(os_ip, private_key_file=None, user='ubuntu'):
+        key = ssh.RSAKey.from_private_key_file(private_key_file)
+        client = ssh.SSHClient()
+        client.set_missing_host_key_policy(ssh.WarningPolicy())
+        client.connect(ip, username=user, pkey=key, timeout=5)
+        return client
 
-    def waitVmDeleted(nova, vm):
-        sleep_time = 3
-        count = VM_DELETE_TIMEOUT / sleep_time
-        while True:
-            status = openstack_utils.get_instance_status(nova, vm)
-            if not status:
-               return True
-            elif count == 0:
-               logger.debug("Timeout")
-               return False
-            else:
-               count -= 1
-            time.sleep(sleep_time)
-        return False
-
-    def test_cordvtn_config_on_restart(self):
-        pass
-
-    def test_cordvtn_arp_proxy(self):
-        pass
-
-    def test_cordvtn_gateway(self):
-        pass
-
-    def test_cordvtn_openstack_access(self):
-        pass
-
-    def test_cordvtn_xos_access(self):
-        pass
-
-    def test_cordvtn_ssh_access(self):
-        pass
-
-    def test_cordvtn_ovsdbport(self):
-        pass
-
-    def test_cordvtn_local_management_ip(self):
-        pass
-
-    def test_cordvtn_compute_nodes(self):
-        pass
+    def validate_vtn_flows(switch):
+        egress = 1
+        ingress = 2
+        egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
+        ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
+        device_id = 'of:{}'.format(get_mac(switch))
+        flow_id = flow.findFlow(device_id, IN_PORT = ('port', ingress),
+                                ETH_TYPE = ('ethType','0x800'), IPV4_SRC = ('ip', ingress_map['ip']+'/32'),
+                                IPV4_DST = ('ip', egress_map['ip']+'/32'))
+        if flow_id:
+           return True
 
     def test_cordvtn_basic_tenant(self):
         onos_load_config()
-        status = verify_neutron_crud()
-
-        if status != 0:
-           print "Issues with Neutron working state"
-        assert_equal(status, True)
 
         tenant_1= create_tenant("CORD_Subscriber_Test_Tenant_1")
-        if ten1 != 0:
+        if tenant1 != 0:
            print "Creation of CORD Subscriber Test Tenant 1"
 
         tenant_2 = create_tenant("CORD_Subscriber_Test_Tenant_2")
-        if ten2 != 0:
+        if tenant2 != 0:
            print "Creation of CORD Subscriber Test Tenant 2"
 
         create_net(tenant_1,"a1")
@@ -547,37 +501,11 @@ class cordvtn_exchange(CordLogger):
 
         port_id_1 = get_id(tenant_1,"port","p1")
         port_id_2 = get_id(tenant_2,"port","p1")
+        status = validate_vtn_flows()
+        assert_equal(status, True)
 
-        port_delete(tenant_1,"p1")
-        port_delete(tenant_2,"p1")
-
-        router_gateway_clear(tenant_1,"r1")
-        router_gateway_clear(tenant_2,"r1")
-
-        router_interface_delete(tenant_1,"r1","as1")
-        router_interface_delete(tenant_2,"r1","as1")
-
-        router_delete(tenant_1,"r1")
-        router_delete(tenant_2,"r1")
-
-        nova_delete(tenant_1,"vm1")
-        nova_delete(tenant_2,"vm1")
-
-        delete_subnet(tenant_1,"as1")
-        delete_subnet(tenant_1,"as1")
-
-        delete_net(tenant_1,"x1")
-        delete_net(tenant_2,"x1")
-
-        tenant_delete("CORD_Subscriber_Test_Tenant_1")
-        tenant_delete("CORD_Subscriber_Test_Tenant_2")
-        assert_equal(ret1, ret2)
-
-    def test_cordvtn_for_create_network(self):
+    def test_cordvtn_for_creation_of_network(self):
         onos_load_config()
-        status = verify_neutron_crud()
-        if status != 0:
-           print "Issues with Neutron working state"
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -589,13 +517,11 @@ class cordvtn_exchange(CordLogger):
         network = {'name': self.network_name, 'admin_state_up': True}
         self.neutron.create_network({'network':network})
         log.info("Created network:{0}".format(self.network_name))
-        assert_equal(ret1, ret2)
+        status = validate_vtn_flows()
+        assert_equal(status, True)
 
     def test_cordvtn_to_create_net_work_with_subnet(self):
         onos_load_config()
-        status = verify_neutron_crud()
-        if status != 0:
-           print "Issues with Neutron working state"
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -626,13 +552,11 @@ class cordvtn_exchange(CordLogger):
                 break
         self.number_of_subnet -= 1
         subnet_count += 1
-        assert_equal(ret1, ret2)
+        status = validate_vtn_flows()
+        assert_equal(status, True)
 
     def test_cordvtn_subnet_limit(self):
         onos_load_config()
-        status = verify_neutron_crud()
-        if status != 0:
-           print "Issues with Neutron working state"
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -662,13 +586,11 @@ class cordvtn_exchange(CordLogger):
             if not self.quota_limit:
                break
             self.quota_limit -= 1
-        assert_equal(ret1, ret2)
+        status = validate_vtn_flows()
+        assert_equal(status, True)
 
     def test_cordvtn_floatingip_limit(self):
         onos_load_config()
-        status = verify_neutron_crud()
-        if status != 0:
-           print "Issues with Neutron working state"
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -686,13 +608,11 @@ class cordvtn_exchange(CordLogger):
             if not self.quota_limit:
                break
             self.quota_limit -= 1
-        assert_equal(ret1, ret2)
+        status = validate_vtn_flows()
+        assert_equal(status, True)
 
-    def test_cordvtn_10_neutron_networks(self):
+    def test_cordvtn_for_10_neutron_networks(self):
         onos_load_config()
-        status = verify_neutron_crud()
-        if status != 0:
-           print "Issues with Neutron working state"
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -710,13 +630,11 @@ class cordvtn_exchange(CordLogger):
 
         pool.close()
         pool.join()
-        assert_equal(ret1, ret2)
+        status = validate_vtn_flows()
+        assert_equal(status, True)
 
-    def test_cordvtn_100_neutron_networks(self):
+    def test_cordvtn_for_100_neutron_networks(self):
         onos_load_config()
-        status = verify_neutron_crud()
-        if status != 0:
-           print "Issues with Neutron working state"
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -735,7 +653,59 @@ class cordvtn_exchange(CordLogger):
 
         pool.close()
         pool.join()
-        assert_equal(ret1, ret2)
+        status = validate_vtn_flows()
+        assert_equal(status, True)
+
+    def test_cordvtn_nodes(self):
+        pass
+
+    def test_cordvtn_networks(self):
+        pass
+
+    def test_cordvtn_for_range_of_networks(self):
+        pass
+
+    def test_cordvtn_node_check(self):
+        pass
+
+    def test_cordvtn_init(self):
+        pass
+
+    def test_cordvtn_ports(self):
+        pass
+
+    def test_cordvtn_synching_neutron_states(self):
+        pass
+
+    def test_cordvtn_synching_xos_states(self):
+        pass
+
+    def test_cordvtn_config_on_restart(self):
+        pass
+
+    def test_cordvtn_arp_proxy(self):
+        pass
+
+    def test_cordvtn_gateway(self):
+        pass
+
+    def test_cordvtn_openstack_access(self):
+        pass
+
+    def test_cordvtn_xos_access(self):
+        pass
+
+    def test_cordvtn_ssh_access(self):
+        pass
+
+    def test_cordvtn_ovsdbport(self):
+        pass
+
+    def test_cordvtn_local_management_ip(self):
+        pass
+
+    def test_cordvtn_compute_nodes(self):
+        pass
 
     def test_cordvtn_service_dependency_for_two_subnets(self):
         pass
