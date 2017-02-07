@@ -19,6 +19,7 @@ if [ $on_cord -eq 0 ]; then
     echo "Installing Docker"
     apt-get -y install docker-engine
     service docker restart
+    sleep 5
     echo "Verifying Docker installation"
     docker run --rm hello-world || exit 127
     docker rmi hello-world

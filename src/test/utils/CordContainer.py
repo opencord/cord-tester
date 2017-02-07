@@ -465,6 +465,7 @@ class Onos(Container):
     host_config_dir = os.path.join(setup_dir, 'onos-config')
     guest_config_dir = '/root/onos/config'
     guest_data_dir = '/root/onos/apache-karaf-3.0.5/data'
+    guest_log_file = '/root/onos/apache-karaf-3.0.5/data/log/karaf.log'
     onos_gen_partitions = os.path.join(setup_dir, 'onos-gen-partitions')
     onos_form_cluster = os.path.join(setup_dir, 'onos-form-cluster')
     cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')
@@ -520,6 +521,11 @@ class Onos(Container):
         host_volume_dir = os.path.join(cls.setup_dir, os.path.basename(host_volume))
         if os.path.exists(host_volume_dir):
             shutil.rmtree(host_volume_dir)
+
+    @classmethod
+    def update_data_dir(cls, karaf):
+        Onos.guest_data_dir = '/root/onos/apache-karaf-{}/data'.format(karaf)
+        Onos.guest_log_file = '/root/onos/apache-karaf-{}/data/log/karaf.log'.format(karaf)
 
     def remove_data_volume(self):
         if self.data_map is not None:
@@ -643,7 +649,7 @@ class Onos(Container):
 
     @classmethod
     def wait_for_onos_start(cls, ip, tries = 30):
-        onos_log = OnosLog(host = ip)
+        onos_log = OnosLog(host = ip, log_file = Onos.guest_log_file)
         num_tries = 0
         started = None
         while not started and num_tries < tries:

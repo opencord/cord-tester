@@ -6,10 +6,14 @@ class OnosLog(object):
     CLI_USER = 'karaf'
     CLI_PASSWD = 'karaf'
     CLI_PORT = 8101
+    KARAF_VERSION = os.getenv('KARAF_VERSION', '3.0.5')
     HOST = os.getenv('ONOS_CONTROLLER_IP', '172.17.0.2').split(',')[0]
     last_snapshot_map = {}
 
-    def __init__(self, host = HOST):
+    def __init__(self, host = HOST, log_file = None):
+        if log_file is None:
+            log_file = '/root/onos/apache-karaf-{}/data/log/karaf.log'.format(self.KARAF_VERSION)
+        self.log_file = log_file
         self.ssh_agent = SSHTestAgent(host = host, user = self.CLI_USER,
                                       password = self.CLI_PASSWD, port = self.CLI_PORT)
         if not OnosLog.last_snapshot_map.has_key(host):
@@ -27,7 +31,7 @@ class OnosLog(object):
 
     def get_log(self, search_terms = None, exception = True, cache_result = True):
         """Run the command on the test host"""
-        cmd = 'cat /root/onos/apache-karaf-3.0.5/data/log/karaf.log'
+        cmd = 'cat {}'.format(self.log_file)
         st, output = self.ssh_agent.run_cmd(cmd)
         if st is False:
             return st, output
@@ -64,7 +68,7 @@ class OnosLog(object):
 
     def search_log_pattern(self, pattern):
         r_pat = re.compile(pattern)
-        cmd = 'cat /root/onos/apache-karaf-3.0.5/data/log/karaf.log'
+        cmd = 'cat {}'.format(self.log_file)
         st, output = self.ssh_agent.run_cmd(cmd)
         if st is False:
             return None

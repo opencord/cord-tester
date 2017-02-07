@@ -109,13 +109,14 @@ class CordTester(Container):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
         device_id = 'of:{}'.format(get_mac(switch))
+        ctlr = self.ctlr_ip.split(',')[0]
         flow = OnosFlowCtrl(deviceId = device_id,
                             egressPort = egress,
                             ingressPort = ingress,
                             ethType = '0x800',
                             ipSrc = ('IPV4_SRC', ingress_map['ip']+'/32'),
                             ipDst = ('IPV4_DST', egress_map['ip']+'/32'),
-                            controller = self.ctlr_ip
+                            controller = ctlr
                             )
         result = flow.addFlow()
         if result != True:
@@ -136,7 +137,8 @@ class CordTester(Container):
         if not self.olt:
             return False
         device_id = 'of:{}'.format(get_mac(switch))
-        devices = OnosCtrl.get_devices(controller = self.ctlr_ip)
+        ctlr = self.ctlr_ip.split(',')[0]
+        devices = OnosCtrl.get_devices(controller = ctlr)
         if devices:
             device = filter(lambda d: d['id'] == device_id, devices)
             return True
@@ -448,6 +450,8 @@ def runTest(args):
     service_profile = test_manifest.service_profile
     synchronizer = test_manifest.synchronizer
     onos_cord = None
+    Onos.update_data_dir(test_manifest.karaf_version)
+
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -582,7 +586,8 @@ def runTest(args):
                      'LOG_LEVEL': test_manifest.log_level,
                      'MANIFEST': int(use_manifest),
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
-                     'MAAS_API_KEY': maas_api_key
+                     'MAAS_API_KEY': maas_api_key,
+                     'KARAF_VERSION' : test_manifest.karaf_version
                    }
 
     if ssh_key_file:
@@ -708,6 +713,8 @@ def setupCordTester(args):
     synchronizer = test_manifest.synchronizer
     onos_cord = None
     onos_cord_loc = test_manifest.onos_cord
+    Onos.update_data_dir(test_manifest.karaf_version)
+
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -842,7 +849,8 @@ def setupCordTester(args):
                          'LOG_LEVEL': test_manifest.log_level,
                          'MANIFEST': int(use_manifest),
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
-                         'MAAS_API_KEY': maas_api_key
+                         'MAAS_API_KEY': maas_api_key,
+                         'KARAF_VERSION' : test_manifest.karaf_version
                        }
 
         if ssh_key_file:
@@ -1145,6 +1153,7 @@ if __name__ == '__main__':
     parser_run.add_argument('-synchronizer', '--synchronizer', default='', type=str,
                             help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
                             'Eg: vtn,fabric,cord')
+    parser_run.add_argument('-karaf', '--karaf', default='3.0.5', type=str, help='Karaf version for ONOS')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1186,6 +1195,7 @@ if __name__ == '__main__':
     parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
     parser_setup.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
     parser_setup.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
+    parser_setup.add_argument('-karaf', '--karaf', default='3.0.5', type=str, help='Karaf version for ONOS')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
