@@ -14,11 +14,9 @@ while getopts "$optspec" optchar; do
             case "${OPTARG}" in
                 cord)
                     on_cord=1
-                    OPTIND=$(( $OPTIND + 1 ))
                     ;;
                 venv)
                     venv=1
-                    OPTIND=$(( $OPTIND + 1))
                     ;;
                 help)
                     usage
