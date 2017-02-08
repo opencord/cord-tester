@@ -73,6 +73,7 @@ setup_path=$(dirname $(realpath $0))
 if [ $venv -eq 1 ]; then
     echo "Making a virtual cord-tester pip installation environment"
     mkdir -p $setup_path/venv
+    virtualenv $setup_path/venv
     echo "Installing cord-tester pip packages on the virtual environment"
     $setup_path/venv/bin/pip install -r $setup_path/requirements.txt
 else
