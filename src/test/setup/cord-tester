@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+setup_path=$(dirname $(realpath $0))
+source $setup_path/venv/bin/activate
+$setup_path/cord-test.py $*
+

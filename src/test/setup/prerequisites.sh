@@ -1,11 +1,50 @@
 #!/usr/bin/env bash
-apt-get update
+
+function usage {
+    echo "usage: ${0#*/} [-h |--help] [--cord] [--venv]"
+    exit 1
+}
+
 on_cord=0
-release=$(lsb_release -cs)
-if [ "$1" = "--cord" ]; then
-    echo "Skipping installation of Docker and ONOS"
-    on_cord=1
+venv=0
+optspec=":h-:"
+while getopts "$optspec" optchar; do
+    case "${optchar}" in
+        -)
+            case "${OPTARG}" in
+                cord)
+                    on_cord=1
+                    OPTIND=$(( $OPTIND + 1 ))
+                    ;;
+                venv)
+                    venv=1
+                    OPTIND=$(( $OPTIND + 1))
+                    ;;
+                help)
+                    usage
+                    ;;
+                *)
+                    echo "Unknown option --${OPTARG}"
+                    usage
+                    ;;
+            esac
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+shift $((OPTIND-1))
+if [ $# -gt 0 ]; then
+    usage
 fi
+
+apt-get update
+release=$(lsb_release -cs)
 if [ $on_cord -eq 0 ]; then
     apt-get -y install apt-transport-https ca-certificates
     apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
@@ -25,31 +64,25 @@ if [ $on_cord -eq 0 ]; then
     docker rmi hello-world
     echo "Pulling ONOS latest"
     docker pull onosproject/onos:latest || exit 127
+else
+    echo "Skipping installation of Docker and ONOS"
 fi
-apt-get -y install openvswitch-common openvswitch-switch
-apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect python-maas-client tcpdump arping libssl-dev libffi-dev realpath
-easy_install nose
-pip install scapy==2.3.2
-pip install monotonic
-pip install configObj
-pip install docker-py==1.9.0
-pip install -U pyyaml
-pip install -U nsenter
-pip install -U pyroute2
-pip install -U netaddr
-pip install -U python-daemon
-pip install scapy-ssl_tls==1.2.2
-pip install -U robotframework
-pip install -U robotframework-requests
-pip install -U robotframework-sshlibrary
-pip install paramiko==1.10.1
-( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
 
-## Special mode to pull cord-tester repo in case prereqs was installed by hand instead of repo
-if [ "$1" = "--test" ]; then
-    rm -rf cord-tester
-    git clone https://github.com/opencord/cord-tester.git
+apt-get -y install openvswitch-common openvswitch-switch
+apt-get -y install wget git python python-dev python-pip python-setuptools python-scapy python-pexpect python-maas-client tcpdump arping libssl-dev libffi-dev realpath python-virtualenv
+
+setup_path=$(dirname $(realpath $0))
+if [ $venv -eq 1 ]; then
+    echo "Making a virtual cord-tester pip installation environment"
+    mkdir -p $setup_path/venv
+    echo "Installing cord-tester pip packages on the virtual environment"
+    $setup_path/venv/bin/pip install -r $setup_path/requirements.txt
+else
+    echo "Installing cord-tester pip packages on the host"
+    pip install -r $setup_path/requirements.txt
 fi
+
+( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
 
 install_ovs() {
     mkdir -p /root/ovs
