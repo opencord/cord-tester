@@ -432,7 +432,8 @@ def runTest(args):
     if args.manifest:
         if os.access(args.manifest, os.F_OK):
             ##copy it to setup directory
-            dest = os.path.join(CordTester.tester_base, 'manifest.json')
+            dest = os.path.join(CordTester.tester_base,
+                                os.path.basename(args.manifest))
             if os.path.abspath(args.manifest) != dest:
                 try:
                     shutil.copy(args.manifest, dest)
@@ -584,7 +585,6 @@ def runTest(args):
                      'CORD_TEST_PORT' : test_port,
                      'ONOS_RESTART' : 0 if test_manifest.olt and args.test_controller else 1,
                      'LOG_LEVEL': test_manifest.log_level,
-                     'MANIFEST': int(use_manifest),
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key,
                      'KARAF_VERSION' : test_manifest.karaf_version
@@ -596,6 +596,10 @@ def runTest(args):
     if test_manifest.olt:
         olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
+
+    if use_manifest:
+        test_cnt_env['MANIFEST'] = os.path.join(CordTester.sandbox_setup,
+                                                os.path.basename(args.manifest))
 
     if iterations is not None:
         test_cnt_env['ITERATIONS'] = iterations
@@ -697,7 +701,8 @@ def setupCordTester(args):
     if args.manifest:
         if os.access(args.manifest, os.F_OK):
             ##copy it to setup directory
-            dest = os.path.join(CordTester.tester_base, 'manifest.json')
+            dest = os.path.join(CordTester.tester_base,
+                                os.path.basename(args.manifest))
             if os.path.abspath(args.manifest) != dest:
                 try:
                     shutil.copy(args.manifest, dest)
@@ -847,7 +852,6 @@ def setupCordTester(args):
                          'CORD_TEST_PORT' : port,
                          'ONOS_RESTART' : 0 if test_manifest.olt and args.test_controller else 1,
                          'LOG_LEVEL': test_manifest.log_level,
-                         'MANIFEST': int(use_manifest),
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                          'MAAS_API_KEY': maas_api_key,
                          'KARAF_VERSION' : test_manifest.karaf_version
@@ -860,6 +864,9 @@ def setupCordTester(args):
             test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
         if test_manifest.iterations is not None:
             test_cnt_env['ITERATIONS'] = iterations
+        if use_manifest:
+            test_cnt_env['MANIFEST'] = os.path.join(CordTester.sandbox_setup,
+                                                    os.path.basename(args.manifest))
         test_cnt = CordTester((),
                               ctlr_ip = ctlr_addr,
                               image = nose_cnt['image'],
