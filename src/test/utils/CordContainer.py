@@ -463,12 +463,12 @@ class Onos(Container):
                        ('igmp', '1.1-SNAPSHOT'),
                        #('vtn', '1.1-SNAPSHOT'),
                        )
-    ports = [] #[ 8181, 8101, 9876, 6653, 6633, 2000, 2620 ]
+    ports = [] #[ 8181, 8101, 9876, 6653, 6633, 2000, 2620, 5005 ]
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
     host_config_dir = os.path.join(setup_dir, 'onos-config')
     guest_config_dir = '/root/onos/config'
-    guest_data_dir = '/root/onos/apache-karaf-3.0.5/data'
-    guest_log_file = '/root/onos/apache-karaf-3.0.5/data/log/karaf.log'
+    guest_data_dir = '/root/onos/apache-karaf-3.0.8/data'
+    guest_log_file = '/root/onos/apache-karaf-3.0.8/data/log/karaf.log'
     onos_gen_partitions = os.path.join(setup_dir, 'onos-gen-partitions')
     onos_form_cluster = os.path.join(setup_dir, 'onos-form-cluster')
     cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')

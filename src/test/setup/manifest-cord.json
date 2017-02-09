@@ -9,5 +9,6 @@
     "synchronizer" : "vtn",
     "docker_network" : "onoscord_default",
     "log_level" : "INFO",
-    "jvm_heap_size" : "1G"
+    "jvm_heap_size" : "1G",
+    "karaf_version" : "3.0.5"
 }

@@ -1153,7 +1153,7 @@ if __name__ == '__main__':
     parser_run.add_argument('-synchronizer', '--synchronizer', default='', type=str,
                             help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
                             'Eg: vtn,fabric,cord')
-    parser_run.add_argument('-karaf', '--karaf', default='3.0.5', type=str, help='Karaf version for ONOS')
+    parser_run.add_argument('-karaf', '--karaf', default='3.0.8', type=str, help='Karaf version for ONOS')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1195,7 +1195,7 @@ if __name__ == '__main__':
     parser_setup.add_argument('-f', '--foreground', action='store_true', help='Run in foreground')
     parser_setup.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
     parser_setup.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
-    parser_setup.add_argument('-karaf', '--karaf', default='3.0.5', type=str, help='Karaf version for ONOS')
+    parser_setup.add_argument('-karaf', '--karaf', default='3.0.8', type=str, help='Karaf version for ONOS')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')

@@ -6,7 +6,7 @@ class OnosLog(object):
     CLI_USER = 'karaf'
     CLI_PASSWD = 'karaf'
     CLI_PORT = 8101
-    KARAF_VERSION = os.getenv('KARAF_VERSION', '3.0.5')
+    KARAF_VERSION = os.getenv('KARAF_VERSION', '3.0.8')
     HOST = os.getenv('ONOS_CONTROLLER_IP', '172.17.0.2').split(',')[0]
     last_snapshot_map = {}
 

@@ -1,5 +1,5 @@
 {
-    "onos_instances": 1,
+    "onos_instances": 3,
     "olt": true,
     "start_switch": true,
     "onos_image": "onosproject/onos:latest",
