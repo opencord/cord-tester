@@ -265,6 +265,9 @@ def get_mem(jvm_heap_size = None, instances = 1):
                 suffix = heap_size[-1]
                 if suffix == 'M':
                     heap_size_i /= 1024 #convert to gigs
+                    #allow to specific minimum heap size
+                    if heap_size_i == 0:
+                        return heap_size
             except:
                 ##invalid suffix length probably. Fall back to default
                 heap_size = None

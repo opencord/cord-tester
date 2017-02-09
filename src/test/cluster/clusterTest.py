@@ -34,6 +34,7 @@ from EapTLS import TLSAuthTest
 from ACL import ACLTest
 from OnosLog import OnosLog
 from CordLogger import CordLogger
+from CordTestConfig import setup_module
 import os
 import json
 import random
@@ -63,7 +64,7 @@ class cluster_exchange(CordLogger):
     subscriber = cluster_subscriber()
     testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_graceful_controller_restarts',
                        'test_cluster_single_controller_restarts', 'test_cluster_restarts')
-    iterations = int(os.getenv('ITERATIONS', 10))
+    ITERATIONS = int(os.getenv('ITERATIONS', 10))
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
@@ -402,7 +403,7 @@ class cluster_exchange(CordLogger):
             return controller
 
         next_controller = None
-        tries = self.iterations
+        tries = self.ITERATIONS
         for num in range(tries):
             index = num % ctlr_len
             #index = random.randrange(0, ctlr_len)
@@ -491,7 +492,7 @@ class cluster_exchange(CordLogger):
 
             return controller
 
-        tries = self.iterations
+        tries = self.ITERATIONS
         #chose a random controller for shutdown/restarts
         controller = controllers[random.randrange(0, ctlr_len)]
         controller_name = onos_map[controller]
@@ -570,7 +571,7 @@ class cluster_exchange(CordLogger):
                                                iteration = 'FAILED')
                 assert_equal(len(ips), len(controllers))
 
-        tries = self.iterations
+        tries = self.ITERATIONS
         for num in range(tries):
             log.info('ITERATION: %d. Restarting cluster with controllers at %s' %(num+1, controllers))
             try:
