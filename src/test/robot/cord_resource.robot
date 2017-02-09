@@ -56,6 +56,6 @@ ONOS Get
 
 Run Cord Tester
   [Arguments]   ${test_case}
-  ${status}  ${output}=  Run and Return RC and Output  sudo ${CORD_TESTER} run --onos-instances=${NODES} --container=${test_container} -t ${test_case}
+  ${status}  ${output}=  Run and Return RC and Output  sudo ${CORD_TESTER} run -m ${MANIFEST} --onos-instances=${NODES} --container=${test_container} -t ${test_case}
   Log  ${output}
   [Return]    ${status}
