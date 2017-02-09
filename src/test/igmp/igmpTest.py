@@ -28,6 +28,8 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from Channels import IgmpChannel
 from CordLogger import CordLogger
+from CordTestConfig import setup_module
+
 log.setLevel('INFO')
 
 class IGMPTestState:
@@ -2180,4 +2182,3 @@ class igmp_exchange(CordLogger):
             log.info('onos load config is %s'%ssm_dict)
             status, code = OnosCtrl.config(ssm_dict)
             assert_equal(status,False)
-
