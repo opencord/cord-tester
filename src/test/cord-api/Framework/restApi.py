@@ -9,7 +9,7 @@ class restApi(object):
     Functions for testing CORD API with POST, GET, PUT, DELETE method
     '''
     def __init__(self):
-        self.rp = readProperties("../Properties/RestApiProperties.py")
+        self.rp = readProperties(os.path.abspath(os.path.dirname(__file__))+"/../Properties/RestApiProperties.py")
         self.controllerIP = self.getValueFromProperties("SERVER_IP")
         self.controllerPort = self.getValueFromProperties("SERVER_PORT")
         self.user = self.getValueFromProperties("USER")
