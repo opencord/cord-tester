@@ -26,6 +26,7 @@ from nose.tools import assert_equal
 from OnosCtrl import OnosCtrl, get_mac
 from CordLogger import CordLogger
 import time
+import py_compile
 
 PROTO_NAME_TCP = 'tcp'
 PROTO_NAME_ICMP = 'icmp'
@@ -90,7 +91,6 @@ class cordvtn_exchange(CordLogger):
             assert_equal(status, True)
         time.sleep(3)
 
-    @classmethod
     def get_neutron_credentials():
         n = {}
         n['username'] = os.environ['OS_USERNAME']
@@ -99,62 +99,26 @@ class cordvtn_exchange(CordLogger):
         n['tenant_name'] = os.environ['OS_TENANT_NAME']
         return n
 
-    @classmethod
     def create_net(tenant_id, name, shared="", external=""):
         cmd = "neutron net-create %s %s %s --tenant-id=%s"%(name, shared, external, tenant_id)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
     def create_subnet(tenant_id, name, subnet, dhcp=""):
         cmd = "neutron subnet-create %s %s --name %s %s --tenant-id=%s"%(net, subnet, name, dhcp, tenant_id)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
     def del_net( tenant_id, name):
         cmd = "neutron net-delete %s --tenant-id=%s"%(name, tenant_id)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
     def del_subnet( tenant_id, name):
         cmd =  "neutron subnet-create %s %s --name %s %s --tenant-id=%s"%(net,subnet,name, dhcp, tenant_id)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
-    def create_net_and_subnet():
-        network_name = "Subscriber-1"
-
-        creds = get_neutron_credentials()
-        neutron = client.Client(**creds)
-
-	body_example = {
-	       "network":
-	     {
-	       "name": network_name,
-	       "admin_state_up":True
-	     }
-	}
-	net = neutron.create_network(body=body_example)
-	net_dict = net['network']
-	network_id = net_dict['id']
-	print "Network %s created" %network_id
-
-	create_subnet = {
-	      "subnets": [
-	        {
-	          "cidr":"10.10.0.0/24",
-	          "ip_version":4,
-	          "network_id":network_id
-	        }
-	      ]
-	}
-	subnet = neutron.create_subnet(body = create_subnet)
-	print "Created Subnet %s"%subnet
-
-    @classmethod
     def create_network(i):
         neutron_credentials = get_neutron_credentials()
         neutron = neutron_client.Client(**neutron_credentials)
@@ -162,9 +126,9 @@ class cordvtn_exchange(CordLogger):
                             'admin_state_up': True}}
         while True:
            try:
-              neutron.create_network(body=json)
+              net = neutron.create_network(body=json)
               print '\nnetwork-' + str(i) + ' created'
-              break
+              return net
            except Exception as e:
               print e
               continue
@@ -289,7 +253,6 @@ class cordvtn_exchange(CordLogger):
 		    m = tenant_nova_connection.servers.create('%svm%s' % (VM_PREFIX, vm_inc), image, flavor, nics=[{'net-id': network['network']['id']}, {'net-id': MGMT_NET}])
 		    vm_inc += 1
 
-    @classmethod
     def get_id(tenant_id, name):
         cmd = "neutron %s-list --tenant-id=%s"%(objname,sdn_tenant_id)
         output = os.system(cmd)
@@ -300,7 +263,6 @@ class cordvtn_exchange(CordLogger):
            return tokens[1]
         return none
 
-    @classmethod
     def nova_boot(tenant_id, name, netid=None, portid=None):
         if netid:
            cmd = "nova --os-tenant-id %s boot --flavor 1 --image %s --nic net-id=%s %s"%(tenant_id, vm_image_id,netid,name)
@@ -308,13 +270,11 @@ class cordvtn_exchange(CordLogger):
            cmd = "nova --os-tenant-is %s boot --flavor 1 --image %s --nic port-id=%s %s"%(tenant_id,vm_image_id,portid,name)
         os.system(cmd)
 
-    @classmethod
     def port_create(sdn_tenant_id,name, net, fixedip, subnetid):
         cmd = "neutron port-create --name %s --fixed-ip subnet_id=%s,ip_address=%s --tenant-id=%s %s" %(name,subnetid,fixedip,sdn_tenant_id,net)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
     def nova_wait_boot(sdn_tenant_id,name, state, retries=10):
         global errno
         cmd = "nova --os-tenant-id %s list" %(sdn_tenant_id)
@@ -328,19 +288,16 @@ class cordvtn_exchange(CordLogger):
             time.sleep(5)
         errno=1
 
-    @classmethod
     def port_delete(sdn_tenant_id,name):
         cmd = "neutron port-delete %s" %(name)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
     def tenant_delete(name):
         cmd = "keystone tenant-delete %s"%(name)
         os.system(cmd)
         time.sleep(1)
 
-    @classmethod
     def verify_neutron_crud():
         x = os.system("neutron_test.sh")
         return x
@@ -456,6 +413,92 @@ class cordvtn_exchange(CordLogger):
                                 IPV4_DST = ('ip', egress_map['ip']+'/32'))
         if flow_id:
            return True
+
+    def cordvtn_config_load(self, config = None):
+        if config:
+           for k in config.keys():
+               if cordvtn_config.has_key(k):
+                  cordvtn_config[k] = config[k]
+        self.onos_load_config(self.cordvtn_dict)
+
+    def search_value(d, pat):
+        for k, v in d.items():
+            if isinstance(v, dict):
+               search_value(v, pat)
+            else:
+               if v == pat:
+                  print "Network created successfully"
+                  return True
+               else:
+                  return False
+
+    def test_cordvtn_neutron_network_sync(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Load cordvtn config, vtn-cfg-1.json to cord-onos
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+
+        vtnconfig = {
+         "apps" : {
+           "org.opencord.vtn" : {
+             "cordvtn" : {
+               "controllers" : [ "10.1.0.1:6654" ],
+               "localManagementIp" : "172.27.0.1/24",
+               "nodes" : [ {
+                 "bridgeId" : "of:0000525400201852",
+                 "dataPlaneIntf" : "fabric",
+                 "dataPlaneIp" : "10.6.1.2/24",
+                 "hostManagementIp" : "10.1.0.14/24",
+                 "hostname" : "cold-flag"
+               } ],
+               "openstack" : {
+                 "endpoint" : "https://keystone.cord.lab:5000/v2.0",
+                 "password" : "VeryLongKeystoneAdminPassword",
+                 "tenant" : "admin",
+                 "user" : "admin"
+               },
+               "ovsdbPort" : "6641",
+               "privateGatewayMac" : "00:00:00:00:00:01",
+               "publicGateways" : [ {
+                 "gatewayIp" : "10.6.1.193",
+                 "gatewayMac" : "02:42:0a:06:01:01"
+               }, {
+                 "gatewayIp" : "10.6.1.129",
+                 "gatewayMac" : "02:42:0a:06:01:01"
+               } ],
+               "ssh" : {
+                 "sshKeyFile" : "/root/node_key",
+                 "sshPort" : "22",
+                 "sshUser" : "root"
+               },
+               "xos" : {
+                 "endpoint" : "http://xos:8888/",
+                 "password" : "letmein",
+                 "user" : "padmin@vicci.org"
+               }
+             }
+           }
+         }
+        }
+
+        self.onos_load_config(vtnconfig)
+        creds = get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        body_example = {"network":{"name": "Test-Net","admin_state_up":True}}
+        net = neutron.create_network(body=body_example)
+
+        url = "http://172.17.0.2/onos/cordvtn/serviceNetworks"
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+
+        result = search_response(data, "Test-Net")
+        assert_equal(result, True)
 
     def test_cordvtn_basic_tenant(self):
         onos_load_config()
