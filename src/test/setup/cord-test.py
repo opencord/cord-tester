@@ -296,7 +296,8 @@ RUN apt-get update  && \
         python python-pip python-setuptools python-scapy tcpdump doxygen doxypy wget \
         openvswitch-common openvswitch-switch \
         python-twisted python-sqlite sqlite3 python-pexpect telnet arping isc-dhcp-server \
-        python-paramiko python-maas-client
+        python-paramiko python-maas-client python-keystoneclient python-neutronclient \
+        python-glanceclient
 RUN easy_install nose
 RUN mkdir -p /root/ovs
 WORKDIR /root
