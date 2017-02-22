@@ -50,6 +50,52 @@ VM_PREFIX = 'test-'
 NETWORK_PREFIX = 'test-'
 CIDR_PREFIX = '192.168'
 
+class vtn_validation_utils:
+
+    endpoint = "http://172.17.0.2:8101"
+    version=""
+    def __init__(self, version):
+        self.version = version
+        self.devices = '/onos/v1/devices'
+        self.links = '/onos/v1/links'
+        self.flows = '/onos/v1/flows'
+        self.apps = '/onos/v1/applications'
+
+    def getDevices(self, endpoint, user, passwd):
+        headers = {'Accept': 'application/json'}
+        url = endpoint+self.devices
+        response = requests.get(url, headers=headers, auth=(user, passwd))
+        response.raise_for_status()
+        return response.json()
+
+    def getLinks(self, endpoint, user, passwd):
+        headers = {'Accept': 'application/json'}
+        url = endpoint+self.links
+        response = requests.get(url, headers=headers, auth=(user, passwd))
+        response.raise_for_status()
+        return response.json()
+
+    def getDevicePorts(self, endpoint, user, passwd, switch_id):
+        headers = {'Accept': 'application/json'}
+        url = endpoint+self.devices+"/"+str(switch_id)+"/ports"
+        response = requests.get(url, headers=headers, auth=(user, passwd))
+        response.raise_for_status()
+        return response.json()
+
+    def activateVTNApp(self, endpoint, user, passwd, app_name):
+        headers = {'Accept': 'application/json'}
+        url = endpoint+self.apps+"/"+str(app_name)+"/active"
+        response = requests.post(url, headers=headers, auth=(user, passwd))
+        response.raise_for_status()
+        return response.json()
+
+    def deactivateVTNApp(self, endpoint, user, passwd, app_name):
+        headers = {'Accept': 'application/json'}
+        url = endpoint+self.apps+"/"+str(app_name)+"/active"
+        response = requests.delete(url, headers=headers, auth=(user, passwd))
+        response.raise_for_status()
+        return response.json()
+
 class cordvtn_exchange(CordLogger):
 
     app_cordvtn = 'org.opencord.vtn'
