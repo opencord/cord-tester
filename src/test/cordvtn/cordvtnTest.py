@@ -99,26 +99,6 @@ class cordvtn_exchange(CordLogger):
         n['tenant_name'] = os.environ['OS_TENANT_NAME']
         return n
 
-    def create_net(tenant_id, name, shared="", external=""):
-        cmd = "neutron net-create %s %s %s --tenant-id=%s"%(name, shared, external, tenant_id)
-        os.system(cmd)
-        time.sleep(1)
-
-    def create_subnet(tenant_id, name, subnet, dhcp=""):
-        cmd = "neutron subnet-create %s %s --name %s %s --tenant-id=%s"%(net, subnet, name, dhcp, tenant_id)
-        os.system(cmd)
-        time.sleep(1)
-
-    def del_net( tenant_id, name):
-        cmd = "neutron net-delete %s --tenant-id=%s"%(name, tenant_id)
-        os.system(cmd)
-        time.sleep(1)
-
-    def del_subnet( tenant_id, name):
-        cmd =  "neutron subnet-create %s %s --name %s %s --tenant-id=%s"%(net,subnet,name, dhcp, tenant_id)
-        os.system(cmd)
-        time.sleep(1)
-
     def create_network(i):
         neutron_credentials = get_neutron_credentials()
         neutron = neutron_client.Client(**neutron_credentials)
@@ -252,51 +232,6 @@ class cordvtn_exchange(CordLogger):
 		    tenant_nova_connection = novacli.Client(OS_USERNAME, OS_PASSWORD, tenant.name, OS_AUTH_URL)
 		    m = tenant_nova_connection.servers.create('%svm%s' % (VM_PREFIX, vm_inc), image, flavor, nics=[{'net-id': network['network']['id']}, {'net-id': MGMT_NET}])
 		    vm_inc += 1
-
-    def get_id(tenant_id, name):
-        cmd = "neutron %s-list --tenant-id=%s"%(objname,sdn_tenant_id)
-        output = os.system(cmd)
-        lis = output.split("\n")
-        for i in lis:
-            tokens = i.split()
-        if len(tokens)>3 and tokens[3] == name:
-           return tokens[1]
-        return none
-
-    def nova_boot(tenant_id, name, netid=None, portid=None):
-        if netid:
-           cmd = "nova --os-tenant-id %s boot --flavor 1 --image %s --nic net-id=%s %s"%(tenant_id, vm_image_id,netid,name)
-        if portid:
-           cmd = "nova --os-tenant-is %s boot --flavor 1 --image %s --nic port-id=%s %s"%(tenant_id,vm_image_id,portid,name)
-        os.system(cmd)
-
-    def port_create(sdn_tenant_id,name, net, fixedip, subnetid):
-        cmd = "neutron port-create --name %s --fixed-ip subnet_id=%s,ip_address=%s --tenant-id=%s %s" %(name,subnetid,fixedip,sdn_tenant_id,net)
-        os.system(cmd)
-        time.sleep(1)
-
-    def nova_wait_boot(sdn_tenant_id,name, state, retries=10):
-        global errno
-        cmd = "nova --os-tenant-id %s list" %(sdn_tenant_id)
-        for i in range(retries):
-            out = os.system(cmd)
-            lis = out.split("\n")
-            for line in lis:
-                toks = line.split()
-                if len(toks) >= 5 and toks[3] == name and toks[5] == state:
-                   return
-            time.sleep(5)
-        errno=1
-
-    def port_delete(sdn_tenant_id,name):
-        cmd = "neutron port-delete %s" %(name)
-        os.system(cmd)
-        time.sleep(1)
-
-    def tenant_delete(name):
-        cmd = "keystone tenant-delete %s"%(name)
-        os.system(cmd)
-        time.sleep(1)
 
     def verify_neutron_crud():
         x = os.system("neutron_test.sh")
