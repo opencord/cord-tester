@@ -106,6 +106,8 @@ class flows_exchange(CordLogger):
         if not cls.port_map:
             cls.port_map = cls.default_port_map
         cls.device_id = OnosCtrl.get_device_id()
+        num_ports = len(cls.port_map['ports'] + cls.port_map['relay_ports'])
+        cls.port_offset = int(os.getenv('TEST_INSTANCE', 0)) * num_ports
 
     def test_flow_mac(self):
         '''Test Add and verify flows with MAC selectors'''
@@ -115,8 +117,8 @@ class flows_exchange(CordLogger):
         ingress_mac = '00:00:00:00:00:02'
 
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ethSrc = ingress_mac,
                             ethDst = egress_mac)
         result = flow.addFlow()
@@ -146,8 +148,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ethType = '0x0800',
                             ipSrc = ('IPV4_SRC', ingress_map['ip']+'/32'),
                             ipDst = ('IPV4_DST', egress_map['ip']+'/32')
@@ -182,8 +184,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1', 'tcp_port': 9500 }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1', 'tcp_port': 9000 }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             tcpSrc = ingress_map['tcp_port'],
                             tcpDst = egress_map['tcp_port']
                             )
@@ -216,8 +218,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1', 'udp_port': 9500 }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1', 'udp_port': 9000 }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             udpSrc = ingress_map['udp_port'],
                             udpDst = egress_map['udp_port']
                             )
@@ -252,8 +254,8 @@ class flows_exchange(CordLogger):
         egress_mac = '00:00:00:00:00:01'
         ingress_mac = '00:00:00:00:00:02'
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ethSrc = ingress_mac,
                             ethDst = egress_mac,
 			    vlan = 0x10)
@@ -285,8 +287,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ethType = '0x86dd',
                             ipSrc = ('IPV6_SRC', ingress_map['ipv6'] + '/48'),
                             ipDst = ('IPV6_DST', egress_map['ipv6'] + '/48')
@@ -321,8 +323,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ipv6flow_label = 25
                             )
 
@@ -354,8 +356,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ipv6_extension = 0,
                             )
 
@@ -388,8 +390,8 @@ class flows_exchange(CordLogger):
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
 	for i in [0, 60, 43, 44, 51, 50, 135]:
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				ipv6_extension = i,
 				)
 
@@ -423,8 +425,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             dscp = 32
                             )
         result = flow.addFlow()
@@ -458,8 +460,8 @@ class flows_exchange(CordLogger):
 	dscp = [184, 0, 40, 48, 56, 72, 80, 88, 104, 112, 120, 136, 144, 152, 32, 64, 96, 128, 160, 192, 224]
 	for i in dscp:
 	        flow = OnosFlowCtrl(deviceId = self.device_id,
-	                            egressPort = egress,
-	                            ingressPort = ingress,
+	                            egressPort = egress + self.port_offset,
+	                            ingressPort = ingress + self.port_offset,
 	                            dscp = i
 	                            )
 	        result = flow.addFlow()
@@ -493,8 +495,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ecn = 1
                             )
         result = flow.addFlow()
@@ -529,8 +531,8 @@ class flows_exchange(CordLogger):
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
 	for i in range(4):
 	        flow = OnosFlowCtrl(deviceId = self.device_id,
-	                            egressPort = egress,
-	                            ingressPort = ingress,
+	                            egressPort = egress + self.port_offset,
+	                            ingressPort = ingress + self.port_offset,
 	                            ecn = i
 	                            )
 	        result = flow.addFlow()
@@ -567,8 +569,8 @@ class flows_exchange(CordLogger):
 	for i in dscp:
 		for j in (0,1,2,3):
 		        flow = OnosFlowCtrl(deviceId = self.device_id,
-		                            egressPort = egress,
-		                            ingressPort = ingress,
+		                            egressPort = egress + self.port_offset,
+		                            ingressPort = ingress + self.port_offset,
 		                            dscp = i,
 					    ecn = j
 		                            )
@@ -605,8 +607,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             icmpv4_type =  '3',
                             icmpv4_code =  8
                             )
@@ -645,8 +647,8 @@ class flows_exchange(CordLogger):
 	    if isinstance(code, list):
 	       for i in code:
 		   flow = OnosFlowCtrl(deviceId = self.device_id,
-				    egressPort = egress,
-				    ingressPort = ingress,
+				    egressPort = egress + self.port_offset,
+				    ingressPort = ingress + self.port_offset,
 				    icmpv4_type =  type,
 				    icmpv4_code =  i
 				    )
@@ -656,8 +658,8 @@ class flows_exchange(CordLogger):
 		   time.sleep(1)
 	    else:
 		   flow = OnosFlowCtrl(deviceId = self.device_id,
-				    egressPort = egress,
-				    ingressPort = ingress,
+				    egressPort = egress + self.port_offset,
+				    ingressPort = ingress + self.port_offset,
 				    icmpv4_type =  type,
 				    icmpv4_code =  code
 				    )
@@ -691,8 +693,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001'}
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002'}
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             icmpv6_type =  '128',
                             icmpv6_code =  0
                             )
@@ -725,8 +727,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001'}
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             icmpv6_type =  '129',
                             icmpv6_code =  0
                             )
@@ -761,8 +763,8 @@ class flows_exchange(CordLogger):
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
 	for i in range(8):
 	        flow = OnosFlowCtrl(deviceId = self.device_id,
-	                            egressPort = egress,
-	                            ingressPort = ingress,
+	                            egressPort = egress + self.port_offset,
+	                            ingressPort = ingress + self.port_offset,
 	                            icmpv6_type =  '1',
 	                            icmpv6_code =  i
 	                            )
@@ -796,8 +798,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001'}
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             icmpv6_type =  '2',
                             icmpv6_code =  0
                             )
@@ -831,8 +833,8 @@ class flows_exchange(CordLogger):
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
 	for i in range(2):
 	        flow = OnosFlowCtrl(deviceId = self.device_id,
-	                            egressPort = egress,
-	                            ingressPort = ingress,
+	                            egressPort = egress + self.port_offset,
+	                            ingressPort = ingress + self.port_offset,
 	                            icmpv6_type =  '3',
 	                            icmpv6_code =  i
 	                            )
@@ -867,8 +869,8 @@ class flows_exchange(CordLogger):
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
 	for i in range(3):
 	        flow = OnosFlowCtrl(deviceId = self.device_id,
-	                            egressPort = egress,
-	                            ingressPort = ingress,
+	                            egressPort = egress + self.port_offset,
+	                            ingressPort = ingress + self.port_offset,
 	                            icmpv6_type =  '4',
 	                            icmpv6_code =  i
 	                            )
@@ -901,8 +903,8 @@ class flows_exchange(CordLogger):
         ingress = 2
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002'}
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ipv6_target =  '2001:db8:a0b:12f0:1010:1010:1010:1001')
         result = flow.addFlow()
         assert_equal(result, True)
@@ -933,8 +935,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001'}
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002'}
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ipv6_sll =   ingress_map['ether'])
         result = flow.addFlow()
         assert_equal(result, True)
@@ -965,8 +967,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001'}
         ingress_map = { 'ether': '00:00:00:00:00:04','ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002'}
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ipv6_tll =   egress_map['ether'])
         result = flow.addFlow()
         assert_equal(result, True)
@@ -997,8 +999,8 @@ class flows_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1001' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ipv6': '2001:db8:a0b:12f0:1010:1010:1010:1002' }
         flow = OnosFlowCtrl(deviceId = self.device_id,
-                            egressPort = egress,
-                            ingressPort = ingress,
+                            egressPort = egress + self.port_offset,
+                            ingressPort = ingress + self.port_offset,
                             ethType = '0x86dd',
                             ipSrc = ('IPV6_SRC', ingress_map['ipv6'] + '/48'),
                             ipDst = ('IPV6_DST', egress_map['ipv6'] + '/48'),
@@ -1041,8 +1043,8 @@ class flows_exchange(CordLogger):
 	    ingress_mac = self.next_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1079,8 +1081,8 @@ class flows_exchange(CordLogger):
 	    ingress_mac = self.next_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1140,8 +1142,8 @@ class flows_exchange(CordLogger):
 	    ingress_mac = self.next_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1217,8 +1219,8 @@ class flows_exchange(CordLogger):
 	    ingress_mac = self.next_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1300,8 +1302,8 @@ class flows_exchange(CordLogger):
 	    ingress_mac = self.next_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1384,8 +1386,8 @@ class flows_exchange(CordLogger):
 	    ingress_mac = self.next_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1465,8 +1467,8 @@ class flows_exchange(CordLogger):
 	    egress_mac = self.next_mac(egress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1503,8 +1505,8 @@ class flows_exchange(CordLogger):
 	    egress_mac = self.to_egress_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1562,8 +1564,8 @@ class flows_exchange(CordLogger):
 	    egress_mac = self.to_egress_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1638,8 +1640,8 @@ class flows_exchange(CordLogger):
 	    egress_mac = self.to_egress_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1720,8 +1722,8 @@ class flows_exchange(CordLogger):
 	    egress_mac = self.to_egress_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1803,8 +1805,8 @@ class flows_exchange(CordLogger):
 	    egress_mac = self.to_egress_mac(ingress_mac)
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-			egressPort = egress,
-			ingressPort = ingress,
+			egressPort = egress + self.port_offset,
+			ingressPort = ingress + self.port_offset,
 			ethSrc = ingress_mac,
 			ethDst = egress_mac)
 	    result = flow.addFlow()
@@ -1890,8 +1892,8 @@ class flows_exchange(CordLogger):
 		egress_mac = self.to_egress_mac(ingress_mac)
 
 		flow = OnosFlowCtrl(deviceId = self.device_id,
-			    egressPort = egress,
-			    ingressPort = ingress,
+			    egressPort = egress + self.port_offset,
+			    ingressPort = ingress + self.port_offset,
 			    ethSrc = ingress_mac,
 			    ethDst = egress_mac)
 		result = flow.addFlow()
@@ -1937,8 +1939,8 @@ class flows_exchange(CordLogger):
 		egress_mac = self.to_egress_mac(ingress_mac)
 
 		flow = OnosFlowCtrl(deviceId = self.device_id,
-			    egressPort = egress,
-			    ingressPort = ingress,
+			    egressPort = egress + self.port_offset,
+			    ingressPort = ingress + self.port_offset,
 			    ethSrc = ingress_mac,
 			    ethDst = egress_mac)
 		result = flow.addFlow()
@@ -1982,8 +1984,8 @@ class flows_exchange(CordLogger):
 		egress_mac = self.to_egress_mac(ingress_mac)
 
 		flow = OnosFlowCtrl(deviceId = self.device_id,
-			    egressPort = egress,
-			    ingressPort = ingress,
+			    egressPort = egress + self.port_offset,
+			    ingressPort = ingress + self.port_offset,
 			    ethSrc = ingress_mac,
 			    ethDst = egress_mac)
 		result = flow.addFlow()
@@ -2024,8 +2026,8 @@ class flows_exchange(CordLogger):
 	    egress_map['ip'] = self.to_egress_ip(ingress_map['ip'])
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				ethType = '0x0800',
 				ipSrc = ('IPV4_SRC', ingress_map['ip']+'/8'),
 				ipDst = ('IPV4_DST', egress_map['ip']+'/8')
@@ -2094,8 +2096,8 @@ class flows_exchange(CordLogger):
 	    egress_map['ip'] =  self.to_egress_ip(ingress_map['ip'])
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				ethType = '0x0800',
 				ipSrc = ('IPV4_SRC', ingress_map['ip']+'/8'),
 				ipDst = ('IPV4_DST', egress_map['ip']+'/8')
@@ -2180,8 +2182,8 @@ class flows_exchange(CordLogger):
 	    egress_map['ip'] =  self.to_egress_ip(ingress_map['ip'])
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				ethType = '0x0800',
 				ipSrc = ('IPV4_SRC', ingress_map['ip']+'/8'),
 				ipDst = ('IPV4_DST', egress_map['ip']+'/8')
@@ -2266,8 +2268,8 @@ class flows_exchange(CordLogger):
 	    egress_map['ip'] =  self.to_egress_ip(ingress_map['ip'])
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				ethType = '0x0800',
 				ipSrc = ('IPV4_SRC', ingress_map['ip']+'/8'),
 				ipDst = ('IPV4_DST', egress_map['ip']+'/8')
@@ -2352,8 +2354,8 @@ class flows_exchange(CordLogger):
 	    egress_map['ip'] =  self.to_egress_ip(ingress_map['ip'])
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				ethType = '0x0800',
 				ipSrc = ('IPV4_SRC', ingress_map['ip']+'/8'),
 				ipDst = ('IPV4_DST', egress_map['ip']+'/8')
@@ -2437,8 +2439,8 @@ class flows_exchange(CordLogger):
 	    egress_map['tcp_port'] += 1
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				tcpSrc = ingress_map['tcp_port'],
 				tcpDst = egress_map['tcp_port']
 				)
@@ -2504,8 +2506,8 @@ class flows_exchange(CordLogger):
 	    egress_map['tcp_port'] += 1
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				tcpSrc = ingress_map['tcp_port'],
 				tcpDst = egress_map['tcp_port']
 				)
@@ -2591,8 +2593,8 @@ class flows_exchange(CordLogger):
 	    egress_map['tcp_port'] += 1
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				tcpSrc = ingress_map['tcp_port'],
 				tcpDst = egress_map['tcp_port']
 				)
@@ -2678,8 +2680,8 @@ class flows_exchange(CordLogger):
 	    egress_map['udp_port'] += 1
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				udpSrc = ingress_map['udp_port'],
 				udpDst = egress_map['udp_port']
 				)
@@ -2749,8 +2751,8 @@ class flows_exchange(CordLogger):
 	    egress_map['udp_port'] += 1
 
 	    flow = OnosFlowCtrl(deviceId = self.device_id,
-				egressPort = egress,
-				ingressPort = ingress,
+				egressPort = egress + self.port_offset,
+				ingressPort = ingress + self.port_offset,
 				udpSrc = ingress_map['udp_port'],
 				udpDst = egress_map['udp_port']
 				)
@@ -2835,8 +2837,8 @@ class flows_exchange(CordLogger):
 		egress_map['udp_port'] += 1
 
 	        flow = OnosFlowCtrl(deviceId = self.device_id,
-	                            egressPort = egress,
-	                            ingressPort = ingress,
+	                            egressPort = egress + self.port_offset,
+	                            ingressPort = ingress + self.port_offset,
 	                            udpSrc = ingress_map['udp_port'],
 	                            udpDst = egress_map['udp_port']
 	                            )

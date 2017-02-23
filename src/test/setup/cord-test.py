@@ -60,7 +60,7 @@ class CordTester(Container):
         self.tests = tests
         self.ctlr_ip = ctlr_ip
         self.rm = rm
-        self.name = name or self.get_name()
+        self.name = name or self.get_name(num_instances)
         super(CordTester, self).__init__(self.name, image = image, prefix = prefix, tag = tag)
         host_config = self.create_host_config(host_guest_map = self.host_guest_map, privileged = True)
         volumes = []
@@ -70,11 +70,12 @@ class CordTester(Container):
             self.build_image(self.image_name)
         self.create = True
         #check if are trying to run tests on existing container
-        if not name or not self.exists():
+        if not self.exists():
             ##Remove test container if any
             self.remove_container(self.name, force=True)
         else:
             self.create = False
+            self.rm = False
         self.olt = False
         if env is not None and env.has_key('OLT_CONFIG'):
             self.olt = True
@@ -203,7 +204,7 @@ class CordTester(Container):
             uplink = self.port_map[host_intf]['uplink']
             for port in ports:
                 guest_if = port
-                local_if = port #'{0}_{1}'.format(guest_if, port_num+1)
+                local_if = 'l{}'.format(port_num+1) #port #'{0}_{1}'.format(guest_if, port_num+1)
                 guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
                 ##Use pipeworks to configure container interfaces on host/bridge interfaces
                 pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
@@ -249,7 +250,7 @@ class CordTester(Container):
         for intf_host, ports in port_list:
             intf_type = cls.get_intf_type(intf_host)
             for port in ports:
-                local_if = port #'{0}_{1}'.format(port, port_num+1)
+                local_if = 'l{}'.format(port_num+1) #port #'{0}_{1}'.format(port, port_num+1)
                 if intf_type == 0:
                     if start_vlan != 0:
                         cmds = ('ip link del {}.{}'.format(intf_host, start_vlan),)
@@ -267,7 +268,7 @@ class CordTester(Container):
                 port_num += 1
 
     @classmethod
-    def get_name(cls):
+    def get_name(cls, num_instances):
         cnt_name = '/{0}'.format(cls.basename)
         cnt_name_len = len(cnt_name)
         names = list(flatten(n['Names'] for n in cls.dckr.containers(all=True)))
@@ -278,6 +279,8 @@ class CordTester(Container):
                                        int(n2[cnt_name_len:]) else n2,
                                    test_names)
             last_cnt_number = int(last_cnt_name[cnt_name_len:])
+            if num_instances == 1:
+                last_cnt_number -= 1
         test_cnt_name = cls.basename + str(last_cnt_number+1)
         return test_cnt_name
 
@@ -616,12 +619,15 @@ def runTest(args):
         tests_parallel *= args.num_containers/num_tests
         num_tests = len(tests_parallel)
     tests_per_container = max(1, num_tests/args.num_containers)
+    last_batch = num_tests % args.num_containers
     test_slice_start = 0
     test_slice_end = test_slice_start + tests_per_container
     num_test_containers = min(num_tests, args.num_containers)
     if tests_parallel:
         print('Running %s tests across %d containers in parallel' %(tests_parallel, num_test_containers))
-    for container in range(num_test_containers):
+    for container in xrange(num_test_containers):
+        if container + 1 == num_test_containers:
+            test_slice_end += last_batch
         test_cnt = CordTester(tests_parallel[test_slice_start:test_slice_end],
                               instance = container, num_instances = num_test_containers,
                               ctlr_ip = ctlr_addr,
@@ -647,13 +653,10 @@ def runTest(args):
 
     status = 0
     if len(test_containers) > 1:
-	if True:
-	    status = test_containers[0].run_tests()
-	else:
-            thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
-            for test_cnt in test_containers:
-                thread_pool.addTask(test_cnt.run_tests)
-                thread_pool.cleanUpThreads()
+        thread_pool = ThreadPool(len(test_containers), queue_size = 1, wait_timeout=1)
+        for test_cnt in test_containers:
+            thread_pool.addTask(test_cnt.run_tests)
+        thread_pool.cleanUpThreads()
     else:
         if test_containers:
             status = test_containers[0].run_tests()
