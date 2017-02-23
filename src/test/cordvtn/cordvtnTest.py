@@ -650,7 +650,7 @@ class cordvtn_exchange(CordLogger):
         if ret1 != 0:
            print "Neutron network install failed"
         for i in range(1, 11):
-            pool.apply_asynch(create_network, (i, ))
+            pool.apply_async(create_network, (i, ))
 
         pool.close()
         pool.join()
@@ -673,166 +673,1754 @@ class cordvtn_exchange(CordLogger):
         if ret1 != 0:
            print "Neutron network install failed"
         for i in range(1, 101):
-            pool.apply_asynch(create_network, (i, ))
+            pool.apply_async(create_network, (i, ))
 
         pool.close()
         pool.join()
         status = validate_vtn_flows()
         assert_equal(status, True)
 
-    def test_cordvtn_nodes(self):
-        pass
+    def test_cordvtn_creating_virtual_private_network(self):
+	"""
+	Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Verify that NetA is being created and validate IP in nova list command.
+	    5) Verify that flow is being added in ovs-switch in compute-node.
+	    6) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	"""
+	pass
 
-    def test_cordvtn_networks(self):
-        pass
+    def test_cordvtn_creating_virtual_public_network(self):
+	"""
+	Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Verify that NetA is being created and validate IP in nova list command.
+	    5) Verify that flow is being added in ovs-switch in compute-node.
+	    6) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	"""
+	pass
 
-    def test_cordvtn_for_range_of_networks(self):
-        pass
+    def test_cordvtn_creating_virtual_local_management_network(self):
+	"""
+	Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Verify that NetA is being created and validate IP in nova list command.
+	    5) Verify that flow is being added in ovs-switch in compute-node.
+	    6) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	"""
+	pass
 
-    def test_cordvtn_node_check(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_connectivity_network(self):
+	"""
+	Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Verify that NetA is being created and validate IP in nova list command.
+	    5) Verify that flow is being added in ovs-switch in compute-node.
+	    6) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	"""
+	pass
 
-    def test_cordvtn_init(self):
-        pass
+    def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network(self):
+	"""
+	Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Verify that NetA is being created and validate IP in nova list command.
+	    5) Verify that flow is being added in ovs-switch in compute-node.
+	    6) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	"""
+	pass
 
-    def test_cordvtn_ports(self):
-        pass
+    def test_cordvtn_creating_virtual_private_network_and_boot_image(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_synching_neutron_states(self):
-        pass
+    def test_cordvtn_creating_virtual_public_network_and_boot_image(self):
 
-    def test_cordvtn_synching_xos_states(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_config_on_restart(self):
-        pass
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image(self):
 
-    def test_cordvtn_arp_proxy(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_gateway(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_image(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_openstack_access(self):
-        pass
+    def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_image(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_xos_access(self):
-        pass
+    def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_ssh_access(self):
-        pass
+    def test_cordvtn_creating_virtual_public_network_and_boot_2_images_in_same_service(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_ovsdbport(self):
-        pass
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_2_images_in_same_service(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_local_management_ip(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_2_images_in_same_service(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_compute_nodes(self):
-        pass
+    def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_2_images_in_same_service(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_dependency_for_two_subnets(self):
-        pass
+    def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_dependency_for_three_subnets(self):
-        pass
+    def test_cordvtn_creating_virtual_public_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_dependency_for_four_subnets(self):
-        pass
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
-    def test_cordvtn_service_dependency_for_five_subnets(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_for_biderectional_connections(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
-    def test_cordvtn_authentication_from_openstack(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_with_gateway(self):
-        pass
+    def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_without_gateway(self):
-        pass
+    def test_cordvtn_creating_virtual_private_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_for_service_instance(self):
-        pass
+    def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_for_instance_to_network(self):
-        pass
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_for_network_to_instance(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_for_instance_to_instance(self):
-        pass
+    def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_for_network_to_network(self):
-        pass
+    def test_cordvtn_creating_virtual_private_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_without_neutron_ml2_plugin(self):
-        pass
+    def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_with_neutron_ml2_plugin(self):
-        pass
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_network_type_private(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_network_type_management_local(self):
-        pass
+    def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_network_type_management_host(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_interface_private_network_and_boot_image_connectivity_negative_scenario(self):
 
-    def test_cordvtn_service_network_type_vsg(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and private ip on VM.
+	    8) Create a same virtual interface with valn tag and  private ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	    10) verify that ping is successful
+	    11) Verify that flow is being added in ovs-switch in compute-node.
+	    12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    13) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_network_type_access_agent(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_interface_public_network_and_boot_image_connectivity_negative_scenario(self):
 
-    def test_cordvtn_mgmt_network(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and public ip on VM.
+	    8) Create a same virtual interface with valn tag and any pulic ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	    10) verify that ping is successful
+	    11) Verify that flow is being added in ovs-switch in compute-node.
+	    12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    13) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_data_network(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity(self):
 
-    def test_cordvtn_public_network(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	    10) verify that ping is successful
+	    11) Verify that flow is being added in ovs-switch in compute-node.
+	    12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    13) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_in_same_network(self):
-        pass
 
-    def test_cordvtn_local_mgmt_network(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_interface_floating_private_network_and_boot_image_connectivity_negative_scenario(self):
 
-    def test_cordvtn_service_dependency(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and private floating ip on VM.
+	    8) Create a same virtual interface with valn tag and  private floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	    10) verify that ping is successful
+	    11) Verify that flow is being added in ovs-switch in compute-node.
+	    12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    13) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_service_dependency_with_xos(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_interface_floating_public_network_and_boot_image_connectivity_negative_scenario(self):
 
-    def test_cordvtn_vsg_xos_service_profile(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and public floating ip on VM.
+	    8) Create a same virtual interface with valn tag and any pulic floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	    10) verify that ping is successful
+	    11) Verify that flow is being added in ovs-switch in compute-node.
+	    12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    13) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_access_agent(self):
-        pass
+    def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity(self):
 
-    def test_cordvtn_network_creation(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management floating ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	    10) verify that ping is successful
+	    11) Verify that flow is being added in ovs-switch in compute-node.
+	    12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    13) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_network_deletion(self):
-        pass
+    def test_cordvtn_creating_one_virtual_public_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
-    def test_cordvtn_removing_service_network(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the private network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_web_application(self):
-        pass
+    def test_cordvtn_creating_one_virtual_local_management_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
-    def test_cordvtn_service_port(self):
-        pass
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the private network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
 
-    def test_cordvtn_inetgration_bridge(self):
-        pass
+    def test_cordvtn_creating_one_virtual_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the private network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the private network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_local_management_other_public_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the public network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the public network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the public network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_vlan_connectivity_other_local_management_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the public network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_other_local_management_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the public network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_other_virtual_vlan_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in the public network
+	    8) verify that ping is not successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	    10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    11) Verify that cord-onos pushed flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_public_network_and_boot_2_images_with_invalid_public_field_of_onos_network_cfg_json_in_same_service(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push network_cfg.json config file to onos with an invalid public gateway ip in network_cfg.json file.
+	    4) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Verify ping from VM to public gateway which is send to ONOS through rest API in network_cfg.json file.
+	   12) 11th step should be failed due to we are passing invalid public IP as gatway and we have not seen any flows in OVS for it.
+	   13) Now ping one VM to other VM it should not ping again even it in the same service.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_with_invalid_localManagementIp_field_of_onos_network_cfg_json(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push network_cfg.json config file to onos with an invalid localManagement ip in network_cfg.json file.
+	    4) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    5) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    6) Wait till VM boots up and starts running.
+	    7) Verify that a VM is launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Verify ping from VM to local management ip which is send to ONOS through rest API in network_cfg.json file.
+	   12) 11th step should be failed due to we are passing invalid local management IP and we have not seen any flows in OVS for it.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_image_with_invalid_OVSDB_port_field_of_onos_network_cfg_json(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push network_cfg.json config file to onos with an invalid ovsdb port in network_cfg.json file.
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that flows are  being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos did not push any flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_image_with_invalid_OpenStack_details_in_onos_network_cfg_json(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push network_cfg.json config file to onos with an invalid openstack in network_cfg.json file.
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that no flows are being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin is not being received a message from openstack service neutron.
+	    9) Verify that cord-onos did not push any flows to OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_image_with_invalid_compute_node_details_in_onos_network_cfg_json(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push network_cfg.json config file to onos with an invalid compute node details in network_cfg.json file.
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Verify that no flows are being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin is not being received a message from openstack service neutron.
+	    9) Verify that cord-onos did not push any flows to OVS switch.
+        """
+	pass
+
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_in_different_services_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+	   10) Now ping from VM which is Net-A to other VM which is in Net-B, should not ping.
+	   11) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_public_networks_and_boot_images_in_different_service_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	       (neutron net-create net-A-public, neutron subnet-create net-B-public 198.1.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+	   10) Now ping from VM which is Net-A to other VM which is in Net-B, should not ping.
+	   11) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_local_management_networks_and_boot_images_in_different_service_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with an IP as local management network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.28.0.0/24 -gateway 172.28.0.1).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+	   10) Now ping from VM which is Net-A to other VM which is in Net-B, should not ping.
+	   11) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_vlan_connectivity_networks_and_boot_images_in_different_service_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with a vlan port-create.
+	       (neutron port-create net-A-private --name stag-100).
+	       (neutron port-create net-B-private --name stag-200).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg1-01
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+	   10) Now ping from VM which is Net-A to other VM which is in Net-B, should not ping.
+	   11) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+    def test_cordvtn_creating_two_virtual_floating_IP_with_vlan_connectivity_networks_and_boot_images_in_different_service_connectivity(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with a floating ip and vlan port-create.
+	       (neutron port-create net-A-private --name stag-500).
+	       (neutron port-create net-B-private --name stag-500).
+	    4) Now boot two images in the same created network using nova boot image command (example given below :-
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-01
+		   nova boot --image 6ba954df-063f-4379-9e2a-920050879918 --flavor 2 --nic port-id=2c7a397f-949e-4502-aa61-2c9cefe96c74 --user-data passwd.data vsg-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Verify that flow is being added in ovs-switch in compute-node.
+	    8) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	    9) Verify that cord-onos pushed flows to OVS switch.
+	   10) Now ping from VM which is Net-A to other VM which is in Net-B, should not ping.
+	   11) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_out_xos_direct_access(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push service dependency data.json file to onos to subscriber of other service.
+		$ curl -X POST -H "Content-Type: application/json" -u onos:rocks -d @data.json http://$OC1:8181/onos/cordvtn/serviceNetworks
+	    4) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetBwith an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Now ping from VM which is Net-A to other VM which is in Net-B, should ping.
+	   12) Verify that flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_out_xos_indirect_access(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push service dependency data.json file to onos to subscriber of other service.
+		$ curl -X POST -H "Content-Type: application/json" -u onos:rocks -d @data.json http://$OC1:8181/onos/cordvtn/serviceNetworks
+	    4) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetBwith an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Now ping from VM which is Net-B to other VM which is in Net-A, capture packets on port for ICMP request packets.
+	   12) Verify that flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_remove_services_dependency_with_out_xos_direct_access(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push service dependency data.json file to onos to subscriber of other service.
+		$ curl -X POST -H "Content-Type: application/json" -u onos:rocks -d @data.json http://$OC1:8181/onos/cordvtn/serviceNetworks
+	    4) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetBwith an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Now ping from VM which is Net-A to other VM which is in Net-B, should ping.
+	   12) Verify that flows are being added in the OVS switch.
+	   13) Push config data with outservice dependency in data.json file to onos to subscriber of other service.
+	   14) Now ping from VM which is Net-A to other VM which is in Net-B, should not ping.
+	   15) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_remove_services_dependency_with_out_xos_indirect_access(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push service dependency data.json file to onos to subscriber of other service.
+		$ curl -X POST -H "Content-Type: application/json" -u onos:rocks -d @data.json http://$OC1:8181/onos/cordvtn/serviceNetworks
+	    4) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetBwith an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Now ping from VM which is Net-B to other VM which is in Net-A, capture packets on port for ICMP request packets.
+	   12) Verify that flows are being added in the OVS switch.
+	   13) Push config data with out service dependency in data.json file to onos to subscriber of other service.
+	   14) Now ping from VM which is Net-B to other VM which is in Net-A, should not see any ICMP request packets on port.
+	   15) Verify that no flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_xos_direct_access(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Validate that XOS is up and running.
+	    4) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetBwith an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Now ping from VM which is Net-A to other VM which is in Net-B, should ping.
+	   12) Verify that flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_xos_indirect_access(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Validate that XOS is up and running.
+	    4) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetBwith an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	       (neutron net-create net-B-private, neutron subnet-create net-B-private 10.1.0.0/24).
+	    5) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-B-vm-01
+	    6) Wait till VMs boot up and running.
+	    7) Verify that two VMs are launched and running by using novaclient python API.
+	    8) Verify that flow is being added in ovs-switch in compute-node.
+	    9) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   10) Verify that cord-onos pushed flows to OVS switch.
+	   11) Now ping from VM which is Net-B to other VM which is in Net-A, should ping.
+	   12) Verify that flows are being added in the OVS switch.
+        """
+	pass
+
+    def test_cordvtn_with_access_agent_serviceType_and_vtn_location_field_network_cfg_connectivity_to_access_device(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must be access-agent container.
+	    4) Launch the access-agent and access-device containers and then restart openstack compute node.
+	       $ sudo docker run --privileged --cap-add=ALL -d --name access-agent -t ubuntu:14.04 /bin/bash
+	    5) Create each interface on br-int and br-mgmt using pipework on access-agent containers
+	       $ sudo ./pipework br-mgmt -i eth1 access-agent 10.10.10.20/24
+	       $ sudo ./pipework br-int -i eth2 access-agent 10.168.0.100/24 fa:00:00:00:00:11
+	    6) We ahve to stop ONOS service to test this
+		 onos-service stop
+		 sudo ovs-ofctl -O OpenFlow13 del-flows br-int "arp"
+	    7) Now attach to access-agent container and ping to access-device
+	    8) Verify that ping should be success and flows are being added in br-int.
+        """
+	pass
+
+    def test_cordvtn_with_access_agent_serviceType_and_vtn_location_field_in_network_cfg_connectivity_to_head_node(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must be access-agent container.
+	    4) Launch the access-agent and access-device containers and then restart openstack compute node.
+	       $ sudo docker run --privileged --cap-add=ALL -d --name access-agent -t ubuntu:14.04 /bin/bash
+	    5) Create each interface on br-int and br-mgmt using pipework on access-agent containers
+	       $ sudo ./pipework br-mgmt -i eth1 access-agent 10.10.10.20/24
+	       $ sudo ./pipework br-int -i eth2 access-agent 10.168.0.100/24 fa:00:00:00:00:11
+	    6) We ahve to stop ONOS service to test this
+		 onos-service stop
+		 sudo ovs-ofctl -O OpenFlow13 del-flows br-int "arp"
+	    7) Now attach to access-agent container and ping to head node
+	    8) Verify that ping should be success and flows are being added in br-int.
+        """
+	pass
+
+    def test_cordvtn_with_access_agent_serviceType_and_invalid_vtn_location_field_network_cfg_connectivity_to_access_device(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must not be access-agent container.
+	    4) Launch the access-agent and access-device containers and then restart openstack compute node.
+	       $ sudo docker run --privileged --cap-add=ALL -d --name access-agent -t ubuntu:14.04 /bin/bash
+	    5) Create each interface on br-int and br-mgmt using pipework on access-agent containers
+	       $ sudo ./pipework br-mgmt -i eth1 access-agent 10.10.10.20/24
+	       $ sudo ./pipework br-int -i eth2 access-agent 10.168.0.100/24 fa:00:00:00:00:11
+	    6) We ahve to stop ONOS service to test this
+		 onos-service stop
+		 sudo ovs-ofctl -O OpenFlow13 del-flows br-int "arp"
+	    7) Now attach to access-agent container and ping to access-device
+	    8) Verify that ping should not be success and no flows are being added in br-int.
+        """
+	pass
+
+    def test_cordvtn_with_access_agent_serviceType_and_invalid_vtn_location_field_in_network_cfg_connectivity_to_head_node(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must not be access-agent container.
+	    4) Launch the access-agent and access-device containers and then restart openstack compute node.
+	       $ sudo docker run --privileged --cap-add=ALL -d --name access-agent -t ubuntu:14.04 /bin/bash
+	    5) Create each interface on br-int and br-mgmt using pipework on access-agent containers
+	       $ sudo ./pipework br-mgmt -i eth1 access-agent 10.10.10.20/24
+	       $ sudo ./pipework br-int -i eth2 access-agent 10.168.0.100/24 fa:00:00:00:00:11
+	    6) We ahve to stop ONOS service to test this
+		 onos-service stop
+		 sudo ovs-ofctl -O OpenFlow13 del-flows br-int "arp"
+	    7) Now attach to access-agent container and ping to head node
+	    8) Verify that ping should not be success and no flows are being added in br-int.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_restarting_VMs(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Restart both VMs in same service and repeat steps 7 to 11.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_restarting_cord_onos(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Restart ONOS service and repeat steps 7 to 11.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_delete_any_VM_recreating_it(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Delete a VM which was created earlier and repeat steps 4 to 11.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_delete_and_add_br_int_bridge(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
+	       (neutron net-create net-A-private, neutron subnet-create net-A-private 10.0.0.0/24).
+	    4) Now boot 2 images in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-02
+	    5) Wait till VMs boot up and running.
+	    6) Verify that two VMs are launched and running by using novaclient python API.
+	    7) Now ping to the VM from other VM which are launched in same network
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Delete a br_int bridge and repeat steps 7 to 11, (it should not ping)
+	   13) Add br_int bridge and repeat steps 7 to 11, (it should ping)
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_restarting_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Restart the VM in service and repeat steps 7 to 11.
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Restart onos service container and repeat steps 7 to 11.
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Delete and re-create a VM in the same service and repeat steps 7 to 11.
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
+	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		$ nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from outside network which are internet network (global ping)
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Delete a br_int bridge and repeat steps 7 to 11, (it should not ping)
+	   13) Add br_int bridge and repeat steps 7 to 11, (it should ping)
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_restarting_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Restart the VM in service and repeat steps 7 to 11.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Restart the onos service and repeat steps 7 to 11.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Delete and re-create a VM in the same service and repeat steps 7 to 11.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Now ping to the VM from compute node network which are launched a VM.
+	    8) verify that ping is successful
+	    9) Verify that flow is being added in ovs-switch in compute-node.
+	   10) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   11) Verify that cord-onos pushed flows to OVS switch.
+	   12) Delete a br_int bridge and repeat steps 7 to 11, (it should not ping)
+	   13) Add br_int bridge and repeat steps 7 to 11, (it should ping)
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_restarting_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Restart the VM in service and repeat steps 9 to 13.
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Restart the ONOS service and repeat steps 9 to 13.
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Delete and re-create a VM in service and repeat steps 9 to 13.
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Delete a br_int bridge and repeat steps 9 to 13, (it should not ping)
+	   15) Add br_int bridge and repeat steps 9 to 13, (it should ping)
+
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_restarting_VM(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management floating ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Restart the VM in service and repeat steps 9 to 13.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management floating ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Restart the ONOS service and repeat steps 9 to 13.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management floating ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Delete and re-create a VM in service and repeat steps 9 to 13.
+        """
+	pass
+
+    def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
+
+        """
+	 Algo:
+	    1) Validate that required openstack service is up and running.
+	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
+	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
+	       (neutron net-create net-A-management, neutron subnet-create net-A-management 172.27.0.0/24 -gateway 172.27.0.1).
+	    4) Now boot image in the same created network using nova boot image command (example given below :-
+		 nova boot --image 3e2d7760-774a-4a16-be07-aaccafa779b6 --flavor 1 --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de --nic net-id=8bc19377-f493-4cad-af23-45fb299da9de net-A-vm-01
+	    5) Wait till VM boots up and starts running.
+	    6) Verify that a VM is launched and running by using novaclient python API.
+	    7) Create a virtual interface with vlan tag and local management floating ip on VM.
+	    8) Create a same virtual interface with valn tag and any local management floating ip on head node.
+	    9) Now ping to the VM from head node network which are launched a openstack service.
+	   10) verify that ping is successful
+	   11) Verify that flow is being added in ovs-switch in compute-node.
+	   12) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
+	   13) Verify that cord-onos pushed flows to OVS switch.
+	   14) Delete a br_int bridge and repeat steps 9 to 13, (it should not ping)
+	   15) Add br_int bridge and repeat steps 9 to 13, (it should ping)
+        """
+	pass
