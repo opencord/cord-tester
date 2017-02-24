@@ -2,7 +2,7 @@ nose
 scapy==2.3.2
 monotonic
 configObj
-docker-py==1.9.0
+docker-py
 pyyaml
 nsenter
 pyroute2

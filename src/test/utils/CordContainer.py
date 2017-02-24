@@ -244,7 +244,10 @@ class Container(object):
             return res
         for c in cmds:
             i = self.dckr.exec_create(container=self.name, cmd=c, tty = tty, privileged = True)
-            self.dckr.exec_start(i['Id'], stream = stream, detach=detach)
+            s = self.dckr.exec_start(i['Id'], stream = stream, detach=detach, socket=True)
+            try:
+                s.close()
+            except: pass
             result = self.dckr.exec_inspect(i['Id'])
             res += 0 if result['ExitCode'] == None else result['ExitCode']
         return res
