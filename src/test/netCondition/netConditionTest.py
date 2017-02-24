@@ -2162,7 +2162,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         threads = []
         threads_status = []
         clients = 1
-        radius_image = 'cord-test/radius:candidate'
+        radius_image = 'cordtest/radius:candidate'
         delay = 20
         que = Queue.Queue()
         def eap_tls_emulating_server_pkts(df):
@@ -2208,7 +2208,7 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
         threads = []
         threads_status = []
         clients = 1
-        radius_image = 'cord-test/radius:candidate'
+        radius_image = 'cordtest/radius:candidate'
         delay = 20
         que = Queue.Queue()
         def tls_client_packets(start):
@@ -2412,4 +2412,3 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
             df.callback(0)
         reactor.callLater(0, eap_tls_emulating_server_pkts, df)
         return df
-

@@ -117,3 +117,9 @@ if [ $ovs_install -eq 1 ]; then
     service openvswitch-switch stop
     install_ovs
 fi
+
+test_images=(cordtest/radius:candidate cordtest/quagga:candidate cordtest/nose:candidate)
+for img in ${test_images[*]}; do
+    echo "Pulling cord-tester image $img"
+    docker pull $img 2>/dev/null
+done

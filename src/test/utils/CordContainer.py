@@ -832,7 +832,7 @@ class Radius(Container):
     host_guest_map = ( (host_db_dir, guest_db_dir),
                        (host_config_dir, guest_config_dir)
                        )
-    IMAGE = 'cord-test/radius'
+    IMAGE = 'cordtest/radius'
     NAME = 'cord-radius'
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
@@ -881,7 +881,7 @@ class Quagga(Container):
     guest_quagga_config = '/root/config'
     quagga_config_file = os.path.join(guest_quagga_config, 'testrib.conf')
     host_guest_map = ( (host_quagga_config, guest_quagga_config), )
-    IMAGE = 'cord-test/quagga'
+    IMAGE = 'cordtest/quagga'
     NAME = 'cord-quagga'
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',

@@ -49,7 +49,7 @@ class CordTester(Container):
                        )
     basename = 'cord-tester'
     switch_on_olt = False
-    IMAGE = 'cord-test/nose'
+    IMAGE = 'cordtest/nose'
     ALL_TESTS = ('tls', 'dhcp', 'dhcprelay','igmp', 'subscriber',
     'cordSubscriber', 'vrouter', 'flows', 'proxyarp', 'acl', 'xos', 'fabric',
     'cbench', 'cluster', 'netCondition', 'cordvtn', 'iperf', 'mini', 'vsg')
@@ -363,7 +363,7 @@ CMD ["/bin/bash"]
 
     def modify_scapy_files_for_specific_tests(self):
         name = self.name
-        container_cmd_exec = Container(name = name, image = 'cord-test/nose')
+        container_cmd_exec = Container(name = name, image = CordTester.IMAGE)
         tty = False
         dckr = Client()
         cmd =  'cp test/src/test/scapy/fields.py /usr/local/lib/python2.7/dist-packages/scapy/fields.py '

@@ -67,7 +67,7 @@ ext {
 
     dockerPath = project.hasProperty('dockerPath') ? project.getProperty('dockerPath') : '/usr/bin'
 
-    cordTesterImages = [ 'cord-test/radius:latest' : 'Dockerfile.radius', 'cord-test/quagga:latest' : 'Dockerfile.quagga', 'cord-test/nose:latest' : 'Dockerfile.tester' ]
+    cordTesterImages = [ 'cordtest/radius:candidate' : 'Dockerfile.radius', 'cordtest/quagga:candidate' : 'Dockerfile.quagga', 'cordtest/nose:candidate' : 'Dockerfile.tester' ]
 
 }
 
@@ -121,45 +121,45 @@ task buildImages {
 }
 
 task buildRadiusImage(type: Exec) {
-    commandLine "$dockerPath/docker", 'build', '-t', 'cord-test/radius', '-f', 'Dockerfile.radius', '.'
+    commandLine "$dockerPath/docker", 'build', '-t', 'cordtest/radius', '-f', 'Dockerfile.radius', '.'
 }
 
 task tagRadiusImage(type: Exec) {
    dependsOn buildRadiusImage
-   commandLine "$dockerPath/docker", 'tag', 'cord-test/radius', "$targetReg/cord-test/radius:$targetTag"
+   commandLine "$dockerPath/docker", 'tag', 'cordtest/radius', "$targetReg/cordtest/radius:$targetTag"
 }
 
 task publishRadiusImage(type: Exec) {
     dependsOn tagRadiusImage
-    commandLine "$dockerPath/docker", 'push', "$targetReg/cord-test/radius:$targetTag"
+    commandLine "$dockerPath/docker", 'push', "$targetReg/cordtest/radius:$targetTag"
 }
 
 task buildQuaggaImage(type: Exec) {
-    commandLine "$dockerPath/docker", 'build', '-t', 'cord-test/quagga', '-f', 'Dockerfile.quagga', '.'
+    commandLine "$dockerPath/docker", 'build', '-t', 'cordtest/quagga', '-f', 'Dockerfile.quagga', '.'
 }
 
 task tagQuaggaImage(type: Exec) {
    dependsOn buildQuaggaImage
-   commandLine "$dockerPath/docker", 'tag', 'cord-test/quagga', "$targetReg/cord-test/quagga:$targetTag"
+   commandLine "$dockerPath/docker", 'tag', 'cordtest/quagga', "$targetReg/cordtest/quagga:$targetTag"
 }
 
 task publishQuaggaImage(type: Exec) {
     dependsOn tagQuaggaImage
-    commandLine "$dockerPath/docker", 'push', "$targetReg/cord-test/quagga:$targetTag"
+    commandLine "$dockerPath/docker", 'push', "$targetReg/cordtest/quagga:$targetTag"
 }
 
 task buildTesterImage(type: Exec) {
-    commandLine "$dockerPath/docker", 'build', '-t', 'cord-test/nose', '-f', 'Dockerfile.tester', '.'
+    commandLine "$dockerPath/docker", 'build', '-t', 'cordtest/nose', '-f', 'Dockerfile.tester', '.'
 }
 
 task tagTesterImage(type: Exec) {
    dependsOn buildTesterImage
-   commandLine "$dockerPath/docker", 'tag', 'cord-test/nose', "$targetReg/cord-test/nose:$targetTag"
+   commandLine "$dockerPath/docker", 'tag', 'cordtest/nose', "$targetReg/cordtest/nose:$targetTag"
 }
 
 task publishTesterImage(type: Exec) {
     dependsOn tagTesterImage
-    commandLine "$dockerPath/docker", 'push', "$targetReg/cord-test/nose:$targetTag"
+    commandLine "$dockerPath/docker", 'push', "$targetReg/cordtest/nose:$targetTag"
 }
 
 // Publish image(s) built during the build step into targetReg registry using the targetTag

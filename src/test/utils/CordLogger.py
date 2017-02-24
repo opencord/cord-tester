@@ -170,7 +170,7 @@ class CordLogger(unittest.TestCase):
            serverDetails = cls.serverOptionsList
         stat_choice = 'COLLECTD'
         test_name = cls.testHostName
-        test_image = 'cord-test/nose'
+        test_image = 'cordtest/nose'
         if stat_choice in stat:
            onos_ctrl = OnosCtrl('org.onosproject.cpman')
            status, _ = onos_ctrl.activate()
@@ -222,4 +222,3 @@ class CordLogger(unittest.TestCase):
         if stat_choice in stat:
             onos_ctrl = OnosCtrl('org.onosproject.cpman')
             status, _ = onos_ctrl.deactivate()
-

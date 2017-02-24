@@ -58,7 +58,7 @@ class monitoring_exchange(unittest.TestCase):
            serverDetails = cls.serverOptionsList
         stats_choice = 'COLLECTD'
         test_name = cls.testHostName
-        test_image = 'cord-test/nose'
+        test_image = 'cordtest/nose'
         if stats_choice in stats:
            onos_ctrl = OnosCtrl('org.onosproject.cpman')
            status, _ = onos_ctrl.activate()

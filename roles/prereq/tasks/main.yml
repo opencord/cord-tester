@@ -85,7 +85,7 @@
   become: yes
   docker:
     name: cord-test
-    image: "{{ docker.registry }}/cord-test/nose:{{ docker.image_version }}"
+    image: "{{ docker.registry }}/cordtest/nose:{{ docker.image_version }}"
     pull: always
     state: absent
 
@@ -93,7 +93,7 @@
   become: yes
   docker:
     name: cord-radius
-    image: "{{ docker.registry }}/cord-test/radius:{{ docker.image_version }}"
+    image: "{{ docker.registry }}/cordtest/radius:{{ docker.image_version }}"
     pull: always
     state: absent
 
@@ -101,7 +101,7 @@
   become: yes
   docker:
     name: cord-quagga
-    image: "{{ docker.registry }}/cord-test/quagga:{{ docker.image_version }}"
+    image: "{{ docker.registry }}/cordtest/quagga:{{ docker.image_version }}"
     pull: always
     state: absent
 
