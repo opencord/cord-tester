@@ -22,23 +22,17 @@ Test Get User-1       RETRIEVE    0
 
 Test Delete User-1    DELETE      0
 
-Test Add Synchronizer-2
-                      CREATE      1
+Test Add User-2       CREATE      1
 
-Test Get Synchronizer-2
-                      RETRIEVE    1
+Test Get User-2       RETRIEVE    1
 
-Test Delete Synchronizer-2
-                      DELETE      1
+Test Delete User-2    DELETE      1
 
-Test Add Synchronizer-3
-                      CREATE      2
+Test Add User-3       CREATE      2
 
-Test Get Synchronizer-3
-                      RETRIEVE    2
+Test Get User-3       RETRIEVE    2
 
-Test Delete Synchronizer-3
-                      DELETE      2
+Test Delete User-3    DELETE      2
 
 *** Keywords ***
 Read InputFile
