@@ -85,7 +85,8 @@ class Container(object):
 
     @classmethod
     def image_exists(cls, name):
-        return name in [ctn['RepoTags'][0] for ctn in cls.dckr.images()]
+        #return name in [ctn['RepoTags'][0] for ctn in cls.dckr.images()]
+        return name in list( flatten(ctn['RepoTags'] if ctn['RepoTags'] else '' for ctn in cls.dckr.images()) )
 
     @classmethod
     def create_host_config(cls, port_list = None, host_guest_map = None, privileged = False):
@@ -138,7 +139,8 @@ class Container(object):
         return '/{0}'.format(self.name) in list(flatten(n['Names'] for n in self.dckr.containers()))
 
     def img_exists(self):
-        return self.image_name in [ctn['RepoTags'][0] if ctn['RepoTags'] else '' for ctn in self.dckr.images()]
+        #return self.image_name in [ctn['RepoTags'][0] if ctn['RepoTags'] else '' for ctn in self.dckr.images()]
+        return self.image_name in list( flatten(ctn['RepoTags'] if ctn['RepoTags'] else '' for ctn in self.dckr.images()) )
 
     def ip(self, network = None):
         cnt_list = filter(lambda c: c['Names'][0] == '/{}'.format(self.name), self.dckr.containers())
