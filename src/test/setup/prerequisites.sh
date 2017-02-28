@@ -43,6 +43,12 @@ fi
 
 apt-get update
 release=$(lsb_release -cs)
+#install docker only if not installed already. On cord, its mostly installed.
+if $(which docker 2>&1 >/dev/null); then
+    on_cord=1
+else
+    on_cord=0
+fi
 if [ $on_cord -eq 0 ]; then
     apt-get -y install apt-transport-https ca-certificates
     apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
