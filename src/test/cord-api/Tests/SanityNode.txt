@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation     Test suite for Node verification
+Documentation     Test suite for Sanity Test of Node API
 Suite Setup       Read InputFile
 Test Template     Verify Node functionality
 Library           Collections
