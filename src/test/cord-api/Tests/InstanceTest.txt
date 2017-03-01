@@ -1,0 +1,111 @@
+*** Settings ***
+Documentation     Test suite for Instance API verification
+Suite Setup       Read InputFile
+Test Template     Verify Instance API functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+| Variables |     ../Properties/RestApiProperties.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Instance.json
+| ${IP} |         ${SERVER_IP}
+| ${PORT} |       ${SERVER_PORT}
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Add Instance-1
+                      CREATE      0
+
+Test Get Instance-1
+                      RETRIEVE    0
+
+Test Delete Instance-1
+                      DELETE      0
+
+Test Add Instance-2
+                      CREATE      1
+
+Test Get Instance-2
+                      RETRIEVE    1
+
+Test Delete Instance-2
+                      DELETE      1
+
+*** Keywords ***
+Read InputFile
+    ${instanceList} =    utils.jsonToList    ${PATHFILE}    InstanceInfo
+    Set Suite Variable    ${iList}    ${instanceList}
+    ${image}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/images/1/
+    Set Suite Variable    ${image}    ${image}
+    ${slice}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/slices/1/
+    Set Suite Variable    ${slice}    ${slice}
+    ${deployment}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/deployments/1/
+    Set Suite Variable    ${deployment}    ${deployment}
+    ${node}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/nodes/1/
+    Set Suite Variable    ${node}    ${node}
+    ${creator}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/users/1/
+    Set Suite Variable    ${creator}    ${creator}
+
+Verify Instance API functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Instances    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Instances    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Instances    ${listIndex}
+
+Test Post Instances
+    [Arguments]    ${listIndex}
+    ${instanceList} =    Get Variable Value    ${iList}
+    ${instanceDict}=    utils.listToDict    ${instanceList}    ${listIndex}
+    ${image}=    Get Variable Value    ${image}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    image    ${image}
+    ${slice}=    Get Variable Value    ${slice}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    slice    ${slice}
+    ${deployment}=    Get Variable Value    ${deployment}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    deployment    ${deployment}
+    ${node}=    Get Variable Value    ${node}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    node    ${node}
+    ${creator}=    Get Variable Value    ${creator}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    creator    ${creator}
+    ${api_result}=    restApi.ApiPost    CORE_INSTANCES    ${instanceDict}
+    Should Be True    ${api_result}
+
+Test Get Instances
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CORE_INSTANCES
+    Log    ${json_result}
+    ${instanceList}=    Get Variable Value    ${iList}
+    ${instanceDict}=    utils.listToDict    ${instanceList}    ${listIndex}
+    ${image}=    Get Variable Value    ${image}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    image    ${image}
+    ${slice}=    Get Variable Value    ${slice}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    slice    ${slice}
+    ${deployment}=    Get Variable Value    ${deployment}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    deployment    ${deployment}
+    ${node}=    Get Variable Value    ${node}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    node    ${node}
+    ${creator}=    Get Variable Value    ${creator}
+    ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    creator    ${creator}
+    ${instanceName}=    utils.getFieldValueFromDict    ${instanceDict}    name
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${instanceName}
+    ${test_result}=    utils.compare_dict    ${instanceDict}    ${getJsonDict}
+    Should Be True    ${json_result}
+
+Test Delete Instances
+    [Arguments]    ${listIndex}
+    ${json_getresult}=    restApi.ApiGet    CORE_INSTANCES
+    ${instanceList}=    Get Variable Value    ${iList}
+    ${instanceDict}=    utils.listToDict    ${iList}    ${listIndex}
+    ${instanceName}=    utils.getFieldValueFromDict    ${instanceDict}    name
+    Log    ${instanceName}
+    ${getInstanceDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${instanceName}
+    Log    ${getInstanceDict}
+    ${instanceID}=    utils.getFieldValueFromDict    ${getInstanceDict}    id
+    Log    ${instanceID}
+    ${test_result}=    restApi.ApiDelete    CORE_INSTANCES    ${instanceID}
+    Should be True    ${test_result}

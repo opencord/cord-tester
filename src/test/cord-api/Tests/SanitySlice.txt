@@ -27,18 +27,18 @@ Read InputFile
 
 Verify Slice API functionality
     [Arguments]    ${type}    ${listIndex}
-    Run Keyword If    "${type}" == "CREATE"    Test Post Instances    ${listIndex}
-    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Instances    ${listIndex}
-    Run Keyword If    "${type}" == "DELETE"    Test Delete Instances    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Slices    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Slices    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Slices    ${listIndex}
 
-Test Post Instances
+Test Post Slices
     [Arguments]    ${listIndex}
     ${sliceList} =    Get Variable Value    ${sList}
     ${sliceDict}=    utils.listToDict    ${sliceList}    ${listIndex}
     ${api_result}=    restApi.ApiPost    CORE_SANITY_SLICES    ${sliceDict}
     Should Be True    ${api_result}
 
-Test Get Instances
+Test Get Slices
     [Arguments]    ${listIndex}
     ${json_result}=    restApi.ApiGet    CORE_SLICES
     Log    ${json_result}
@@ -49,7 +49,7 @@ Test Get Instances
     ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
-Test Delete Instances
+Test Delete Slices
     [Arguments]    ${listIndex}
     ${json_getresult}=    restApi.ApiGet    CORE_SLICES
     ${sliceList}=    Get Variable Value    ${sList}

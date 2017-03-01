@@ -1,7 +1,7 @@
 *** Settings ***
-Documentation     Test suite for Sanity Test of Node API
+Documentation     Test suite for Node API verification
 Suite Setup       Read InputFile
-Test Template     Verify Node functionality
+Test Template     Verify Node API functionality
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -9,22 +9,25 @@ Library           XML
 Library           RequestsLibrary
 Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
+| Variables |     ../Properties/RestApiProperties.py
 
 *** Variables ***
 ${USER}           admin
 ${PASSWORD}       admin
-${PATHFILE}       ${CURDIR}/data/sanityNode.json
+${PATHFILE}       ${CURDIR}/data/Node.json
+| ${IP} |         ${SERVER_IP}
+| ${PORT} |       ${SERVER_PORT}
 
 *** Test Cases ***      TYPE        LISTINDEX
 Test Post Node-1        CREATE      0
 
-#Test Get Node-1         RETRIEVE    0
+Test Get Node-1         RETRIEVE    0
 
 Test Delete Node-1      DELETE      0
 
 Test Post Node-2        CREATE      1
 
-#Test Get Node-2         RETRIEVE    1
+Test Get Node-2         RETRIEVE    1
 
 Test Delete Node-2      DELETE      1
 
@@ -32,8 +35,10 @@ Test Delete Node-2      DELETE      1
 Read InputFile
     ${nodeList}=    utils.jsonToList    ${PATHFILE}    NodeInfo
     Set Suite Variable    ${nlist}    ${nodeList}
+    ${siteDeployment}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/sitedeployments/1/
+    Set Suite Variable    ${siteDeployment}    ${siteDeployment}
 
-Verify Node functionality
+Verify Node API functionality
     [Arguments]    ${type}    ${listIndex}
     Run Keyword If    "${type}" == "CREATE"    Test Post Node API    ${listIndex}
     Run Keyword If    "${type}" == "RETRIEVE"    Test Get Node API    ${listIndex}
@@ -43,7 +48,9 @@ Test Post Node API
     [Arguments]    ${listIndex}
     ${nodeList}=    Get Variable Value    ${nlist}
     ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CORE_SANITY_NODES    ${nodeDict}
+    ${siteDeployment}=    Get Variable Value    ${siteDeployment}
+    ${nodeDict}=    utils.setFieldValueInDict    ${nodeDict}    site_deployment    ${siteDeployment}
+    ${api_result}=    restApi.ApiPost    CORE_NODES    ${nodeDict}
     Should Be True    ${api_result}
 
 Test Get Node API
@@ -52,6 +59,8 @@ Test Get Node API
     Log    ${json_result}
     ${nodeList}=    Get Variable Value    ${nlist}
     ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
+    ${siteDeployment}=    Get Variable Value    ${siteDeployment}
+    ${nodeDict}=    utils.setFieldValueInDict    ${nodeDict}    site_deployment    ${siteDeployment}
     ${name}=    utils.getFieldValueFromDict    ${nodeDict}   name
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${name}
     ${test_result}=    utils.compare_dict    ${nodeDict}    ${getJsonDict}

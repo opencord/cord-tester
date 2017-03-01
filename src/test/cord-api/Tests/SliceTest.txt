@@ -1,0 +1,87 @@
+*** Settings ***
+Documentation     Test suite for Slice API verification
+Suite Setup       Read InputFile
+Test Template     Verify Slice API functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+| Variables |     ../Properties/RestApiProperties.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Slice.json
+| ${IP} |         ${SERVER_IP}
+| ${PORT} |       ${SERVER_PORT}
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Add Slice-1      CREATE      0
+
+Test Get Slice-1      RETRIEVE    0
+
+Test Delete Slice-1   DELETE      0
+
+Test Add Slice-2      CREATE      1
+
+Test Get Slice-2      RETRIEVE    1
+
+Test Delete Slice-2   DELETE      1
+
+*** Keywords ***
+Read InputFile
+    ${sliceList} =    utils.jsonToList    ${PATHFILE}    SliceInfo
+    Set Suite Variable    ${sList}    ${sliceList}
+    ${site}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/sites/1/
+    Set Suite Variable    ${site}    ${site}
+    ${creator}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}    /api/core/users/1/
+    Set Suite Variable    ${creator}    ${creator}
+
+Verify Slice API functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Slice API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Slice API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Slice API    ${listIndex}
+
+Test Post Slice API
+    [Arguments]    ${listIndex}
+    ${sliceList} =    Get Variable Value    ${sList}
+    ${sliceDict}=    utils.listToDict    ${sliceList}    ${listIndex}
+    ${site}=    Get Variable Value    ${site}
+    ${sliceDict}=     utils.setFieldValueInDict   ${sliceDict}   site   ${site}
+    ${creator}=    Get Variable Value    ${creator}
+    ${sliceDict}=     utils.setFieldValueInDict   ${sliceDict}   creator   ${creator}
+    ${api_result}=    restApi.ApiPost    CORE_SLICES    ${sliceDict}
+    Should Be True    ${api_result}
+
+Test Get Slice API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CORE_SLICES
+    Log    ${json_result}
+    ${sliceList}=    Get Variable Value    ${sList}
+    ${sliceDict}=    utils.listToDict    ${sliceList}    ${listIndex}
+    ${site}=    Get Variable Value    ${site}
+    ${sliceDict}=     utils.setFieldValueInDict   ${sliceDict}   site   ${site}
+    ${creator}=    Get Variable Value    ${creator}
+    ${sliceDict}=     utils.setFieldValueInDict   ${sliceDict}   creator   ${creator}
+    ${ID}=    utils.getFieldValueFromDict    ${sliceDict}    id
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    id    ${ID}
+    ${test_result}=    utils.compare_dict    ${sliceDict}    ${getJsonDict}
+    Should Be True    ${json_result}
+
+Test Delete Slice API
+    [Arguments]    ${listIndex}
+    ${json_getresult}=    restApi.ApiGet    CORE_SLICES
+    ${sliceList}=    Get Variable Value    ${sList}
+    ${sliceDict}=    utils.listToDict    ${sList}    ${listIndex}
+    ${sliceName}=    utils.getFieldValueFromDict    ${sliceDict}    name
+    Log    ${sliceName}
+    ${getSliceDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${sliceName}
+    Log    ${getSliceDict}
+    ${sliceID}=    utils.getFieldValueFromDict    ${getSliceDict}    id
+    Log    ${sliceID}
+    ${test_result}=    restApi.ApiDelete    CORE_SLICES    ${sliceID}
+    Should be True    ${test_result}
