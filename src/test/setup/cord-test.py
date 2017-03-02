@@ -82,6 +82,7 @@ class CordTester(Container):
         olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
         olt_config = OltConfig(olt_conf_file)
         self.port_map, _ = olt_config.olt_port_map()
+        self.vcpes = olt_config.get_vcpes()
         #Try using the host interface in olt conf to setup the switch
         self.switches = self.port_map['switches']
         if env is not None:
@@ -190,6 +191,44 @@ class CordTester(Container):
         if boot_delay:
             time.sleep(boot_delay)
 
+    def setup_vcpes(self, port_num = 0):
+        res = 0
+        for vcpe in self.vcpes:
+            port, s_tag, c_tag = vcpe['port'], vcpe['s_tag'], vcpe['c_tag']
+            if os.access('/sys/class/net/{}'.format(port), os.F_OK):
+                guest_port = 'vcpe{}'.format(port_num)
+                port_num += 1
+                print('Provisioning port %s for %s with s_tag: %d, c_tag: %d\n'
+                      %(guest_port, self.name, s_tag, c_tag))
+                cmd = 'pipework {} -i {} -l {} {} 0.0.0.0/24'.format(port, guest_port, guest_port, self.name)
+                res = os.system(cmd)
+                if res == 0:
+                    vlan_outer_port = '{}.{}'.format(guest_port, s_tag)
+                    vlan_inner_port = '{}.{}'.format(vlan_outer_port, c_tag)
+                    #configure the s_tag/c_tag interfaces inside the guest container
+                    cmds = ('ip link set {} up'.format(guest_port),
+                            'ip link add link {} name {} type vlan id {}'.format(guest_port,
+                                                                                 vlan_outer_port,
+                                                                                 s_tag),
+                            'ip link set {} up'.format(vlan_outer_port),
+                            'ip link add link {} name {} type vlan id {}'.format(vlan_outer_port,
+                                                                                 vlan_inner_port,
+                                                                                 c_tag),
+                            'ip link set {} up'.format(vlan_inner_port),
+                            )
+                    res += self.execute(cmds, shell = True)
+
+    @classmethod
+    def cleanup_vcpes(cls, vcpes):
+        port_num = 0
+        for vcpe in vcpes:
+            port = vcpe['port']
+            if os.access('/sys/class/net/{}'.format(port), os.F_OK):
+                local_port = 'vcpe{}'.format(port_num)
+                cmd = 'ip link del {}'.format(local_port)
+                os.system(cmd)
+                port_num += 1
+
     def setup_intfs(self, port_num = 0):
         tester_intf_subnet = '192.168.100'
         res = 0
@@ -198,6 +237,7 @@ class CordTester(Container):
         start_vlan += port_num
         uplink = self.port_map['uplink']
         wan = self.port_map['wan']
+        vcpe_port_num = port_num
         port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
         print('Provisioning the ports for the test container\n')
         for host_intf, ports in port_list:
@@ -221,6 +261,7 @@ class CordTester(Container):
                 res += os.system(pipework_cmd)
                 port_num += 1
 
+        self.setup_vcpes(vcpe_port_num)
         return res, port_num
 
     @classmethod
@@ -241,6 +282,7 @@ class CordTester(Container):
         olt_conf_file = os.path.join(cls.tester_base, 'olt_config.json')
         olt_config = OltConfig(olt_conf_file)
         port_map, _ = olt_config.olt_port_map()
+        vcpes = olt_config.get_vcpes()
         port_num = 0
         start_vlan = port_map['start_vlan']
         wan = port_map['wan']
@@ -266,6 +308,8 @@ class CordTester(Container):
                 for cmd in cmds:
                     res += os.system(cmd)
                 port_num += 1
+
+        cls.cleanup_vcpes(vcpes)
 
     @classmethod
     def get_name(cls, num_instances):

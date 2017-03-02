@@ -130,3 +130,9 @@ class OltConfig:
             accessDeviceDict['vlan'] = str(self.olt_conf['vlan'])
             return accessDeviceDict
         return None
+
+    def get_vcpes(self):
+        if self.on_olt():
+            if self.olt_conf.has_key('vcpe'):
+                return self.olt_conf['vcpe']
+        return []
