@@ -344,7 +344,7 @@ RUN apt-get update  && \
         openvswitch-common openvswitch-switch \
         python-twisted python-sqlite sqlite3 python-pexpect telnet arping isc-dhcp-server \
         python-paramiko python-maas-client python-keystoneclient python-neutronclient \
-        python-glanceclient
+        python-glanceclient python-novaclient
 RUN easy_install nose
 RUN mkdir -p /root/ovs
 WORKDIR /root
