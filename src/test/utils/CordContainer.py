@@ -28,6 +28,7 @@ from docker import utils as dockerutils
 import shutil
 from OnosCtrl import OnosCtrl
 from OnosLog import OnosLog
+from onosclidriver import OnosCliDriver
 from threadPool import ThreadPool
 from threading import Lock
 
@@ -300,13 +301,28 @@ def get_mem(jvm_heap_size = None, instances = 1):
 class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
     onos_config_dir_guest = '/root/onos/config'
-    tester_apps = ( 'org.onosproject.proxyarp', 'org.onosproject.hostprovider' )
+    synchronizer_map = { 'vtn' : { 'install':
+                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.2-SNAPSHOT/cord-config-1.2-SNAPSHOT.oar',
+                       'http://mavenrepo:8080/repository/org/opencord/vtn/1.2-SNAPSHOT/vtn-1.2-SNAPSHOT.oar',),
+                                   'activate':
+                                   ('org.onosproject.ovsdb-base', 'org.onosproject.drivers.ovsdb',
+                                    'org.onosproject.dhcp', 'org.onosproject.optical-model',
+                                    'org.onosproject.openflow-base', 'org.onosproject.proxyarp',
+                                    'org.onosproject.hostprovider'),
+                                   },
+                         'fabric' : { 'activate':
+                                      ('org.onosproject.hostprovider', 'org.onosproject.optical-model',
+                                       'org.onosproject.openflow-base', 'org.onosproject.vrouter',
+                                       'org.onosproject.netcfghostprovider', 'org.onosproject.netcfglinksprovider',
+                                       'org.onosproject.segmentrouting', 'org.onosproject.proxyarp'),
+                                      }
+                         }
+    tester_apps = ('http://mavenrepo:8080/repository/org/opencord/aaa/1.2-SNAPSHOT/aaa-1.2-SNAPSHOT.oar',
+                   'http://mavenrepo:8080/repository/org/opencord/igmp/1.2-SNAPSHOT/igmp-1.2-SNAPSHOT.oar',)
 
-    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 25):
+    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 5):
         if not os.access(conf, os.F_OK):
             raise Exception('ONOS cord configuration location %s is invalid' %conf)
-        if not os.access(service_profile, os.F_OK):
-            raise Exception('ONOS cord service profile location is not accessible' %service_profile)
         self.onos_ip = onos_ip
         self.onos_cord_dir = conf
         self.boot_delay = boot_delay
@@ -361,6 +377,91 @@ class OnosCord(Container):
             #start the container back with the shared onos config volume
             self.start()
 
+    def cliEnter(self):
+        retries = 0
+        while retries < 30:
+            cli = OnosCliDriver(controller = self.onos_ip, connect = True)
+            if cli.handle:
+                return cli
+            else:
+                retries += 1
+                time.sleep(2)
+
+        return None
+
+    def cliExit(self, cli):
+        if cli:
+            cli.disconnect()
+
+    def synchronize_vtn(self, cfg = None):
+        if cfg is None:
+            return
+        if not cfg.has_key('apps'):
+            return
+        if not cfg['apps'].has_key('org.opencord.vtn'):
+            return
+        vtn_neutron_cfg = cfg['apps']['org.opencord.vtn']['cordvtn']['openstack']
+        password = vtn_neutron_cfg['password']
+        endpoint = vtn_neutron_cfg['endpoint']
+        user = vtn_neutron_cfg['user']
+        tenant = vtn_neutron_cfg['tenant']
+        vtn_host = cfg['apps']['org.opencord.vtn']['cordvtn']['nodes'][0]['hostname']
+        cli = self.cliEnter()
+        if cli is None:
+            return
+        cli.cordVtnSyncNeutronStates(endpoint, password, tenant = tenant, user = user)
+        time.sleep(2)
+        cli.cordVtnNodeInit(vtn_host)
+        self.cliExit(cli)
+
+    def synchronize(self, cfg_unlink = False):
+        cfg = None
+        #restore the saved config after restart
+        if os.access(self.onos_cfg_save_loc, os.F_OK):
+            with open(self.onos_cfg_save_loc, 'r') as f:
+                cfg = json.load(f)
+                try:
+                    OnosCtrl.config(cfg, controller = self.onos_ip)
+                    if cfg_unlink is True:
+                        os.unlink(self.onos_cfg_save_loc)
+                except:
+                    pass
+
+        if not self.synchronizer_map.has_key(self.synchronizer):
+            return
+
+        install_list = ()
+        if self.synchronizer_map[self.synchronizer].has_key('install'):
+            install_list = self.synchronizer_map[self.synchronizer]['install']
+
+        activate_list = ()
+        if self.synchronizer_map[self.synchronizer].has_key('activate'):
+            activate_list = self.synchronizer_map[self.synchronizer]['activate']
+
+        for app_url in install_list:
+            print('Installing app from url: %s' %app_url)
+            OnosCtrl.install_app_from_url(None, None, app_url = app_url, onos_ip = self.onos_ip)
+
+        for app in activate_list:
+            print('Activating app %s' %app)
+            OnosCtrl(app, controller = self.onos_ip).activate()
+            time.sleep(2)
+
+        for app_url in self.tester_apps:
+            print('Installing tester app from url: %s' %app_url)
+            OnosCtrl.install_app_from_url(None, None, app_url = app_url, onos_ip = self.onos_ip)
+
+        #restart the xos synchronizer container
+        cmd = 'cd /opt/cord_profile/onboarding-docker-compose && \
+        docker-compose -p {} restart xos_synchronizer_{}'.format(self.service_profile, self.synchronizer)
+        try:
+            print(cmd)
+            os.system(cmd)
+        except: pass
+
+        if hasattr(self, 'synchronize_{}'.format(self.synchronizer)):
+            getattr(self, 'synchronize_{}'.format(self.synchronizer))(cfg = cfg)
+
     def start(self, restart = False, network_cfg = None):
         if network_cfg is not None:
             json_data = json.dumps(network_cfg, indent=4)
@@ -369,39 +470,24 @@ class OnosCord(Container):
 
         #we avoid using docker-compose restart for now.
         #since we don't want to retain the metadata across restarts
-        if True:
-            #stop and start and synchronize the services before installing tester cord apps
-            cmds = [ 'cd {} && docker-compose down'.format(self.onos_cord_dir),
-                     'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
-                     'sleep 45',
-                     'cd {} && make {}'.format(self.service_profile, self.synchronizer)
-            ]
-            for cmd in cmds:
-                try:
-                    print(cmd)
-                    os.system(cmd)
-                except:pass
-            Onos.install_cord_apps(onos_ip = self.onos_ip)
-            self.activate_apps()
-        else:
-            cmd = 'cd {} && docker-compose restart'.format(self.onos_cord_dir)
+        #stop and start and synchronize the services before installing tester cord apps
+        cmds = [ 'cd {} && docker-compose down'.format(self.onos_cord_dir),
+                 'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
+                 'sleep 45',
+        ]
+        for cmd in cmds:
             try:
+                print(cmd)
                 os.system(cmd)
-            except: pass
+            except:pass
 
+        self.synchronize()
         ##we could also connect container to default docker network but disabled for now
         #Container.connect_to_network(self.name, 'bridge')
-
         #connect container to the quagga bridge
         self.connect_to_br(index = 0)
         print('Waiting %d seconds for ONOS instance to start' %self.boot_delay)
         time.sleep(self.boot_delay)
-
-    def activate_apps(self):
-        for app in self.tester_apps:
-            print('Activating ONOS app %s' %(app))
-            OnosCtrl(app, controller = self.onos_ip).activate()
-            time.sleep(2)
 
     def build_image(self):
         build_cmd = 'cd {} && docker-compose build'.format(self.onos_cord_dir)
@@ -414,13 +500,13 @@ class OnosCord(Container):
         #nothing to restore
         if not os.access(self.docker_yaml_saved, os.F_OK):
             return
+
         #restore the config files back. The synchronizer restore should bring the last config back
         cmds = ['cd {} && docker-compose down'.format(self.onos_cord_dir),
                 'rm -rf {}'.format(self.onos_config_dir),
                 'mv {} {}'.format(self.docker_yaml_saved, self.docker_yaml),
                 'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
                 'sleep 45',
-                'cd {} && make {}'.format(self.service_profile, self.synchronizer)
         ]
         for cmd in cmds:
             try:
@@ -428,15 +514,7 @@ class OnosCord(Container):
                 os.system(cmd)
             except: pass
 
-        #We may not have to restore the config but still it should match synchronizer last config
-        if os.access(self.onos_cfg_save_loc, os.F_OK):
-            with open(self.onos_cfg_save_loc, 'r') as f:
-                cfg = json.load(f)
-                try:
-                    OnosCtrl.config(cfg, controller = self.onos_ip)
-                    os.unlink(self.onos_cfg_save_loc)
-                except:
-                    pass
+        self.synchronize(cfg_unlink = True)
 
 class OnosCordStopWrapper(Container):
     onos_cord_dir = os.path.join(os.getenv('HOME'), 'cord-tester-cord')

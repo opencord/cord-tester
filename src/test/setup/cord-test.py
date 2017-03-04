@@ -18,7 +18,9 @@ from argparse import ArgumentParser
 import os,sys,time,socket,errno
 import shutil, platform, re
 utils_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../utils')
+cli_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../cli')
 sys.path.append(utils_dir)
+sys.path.append(cli_dir)
 sys.path.insert(1, '/usr/local/lib/python2.7/dist-packages')
 from OnosCtrl import OnosCtrl, get_mac
 from OltConfig import OltConfig
@@ -512,13 +514,10 @@ def runTest(args):
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
         if not service_profile:
-            print('Specify service profile location for the ONOS cord instance. Eg: $HOME/service-profile/cord-pod')
+            print('Specify service profile for the ONOS cord instance. Eg: rcord')
             sys.exit(1)
         if not synchronizer:
             print('Specify synchronizer to use for the ONOS cord instance. Eg: vtn, fabric, cord')
-            sys.exit(1)
-        if not os.access(service_profile, os.F_OK):
-            print('Service profile location for ONOS cord instance does not exist')
             sys.exit(1)
         onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer)
 
@@ -779,13 +778,10 @@ def setupCordTester(args):
             print('Specify ONOS ip using \"-e\" option when running the cord-tester on cord node')
             sys.exit(1)
         if not service_profile:
-            print('Specify service profile location for the ONOS cord instance. Eg: $HOME/service-profile/cord-pod')
+            print('Specify service profile for the ONOS cord instance. Eg: rcord')
             sys.exit(1)
         if not synchronizer:
             print('Specify synchronizer to use for the ONOS cord instance. Eg: vtn, fabric, cord')
-            sys.exit(1)
-        if not os.access(service_profile, os.F_OK):
-            print('Service profile location for ONOS cord instance does not exist')
             sys.exit(1)
         onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer)
 

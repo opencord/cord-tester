@@ -4672,6 +4672,73 @@ class OnosCliDriver( CLI ):
 	    main.cleanup()
 	    main.exit()
 
+    def cordVtnSyncNeutronStates( self, endpoint, password, tenant = 'admin', user = 'admin'):
+        """
+        Syncs VTN network with neutron
+        Required:
+            * openstack endpoint
+            * openstack password
+        """
+        try:
+            cmdStr = 'cordvtn-sync-neutron-states {} {} {} {}'.format(endpoint, tenant, user, password)
+            handle = self.sendline( cmdStr )
+            assert "Command not found:" not in handle, handle
+            if re.search( "Error", handle ):
+                main.log.error( "Error in syncing vtn information" )
+                main.log.error( handle )
+                return main.FALSE
+            else:
+                main.log.info("CordVTN state synced")
+                return main.TRUE
+        except AssertionError:
+            main.log.exception( "" )
+            return None
+        except TypeError:
+            main.log.exception( self.name + ": Object not as expected" )
+            return None
+        except pexpect.EOF:
+            main.log.error( self.name + ": EOF exception found" )
+            main.log.error( self.name + ":    " + self.handle.before )
+            main.cleanup()
+            main.exit()
+        except Exception:
+            main.log.exception( self.name + ": Uncaught exception!" )
+            main.cleanup()
+            main.exit()
+
+    def cordVtnNodeInit( self, host):
+        """
+        Syncs VTN nodes with neutron
+        Required:
+            * openstack node host
+        """
+        try:
+            cmdStr = 'cordvtn-node-init {}'.format(host)
+            handle = self.sendline( cmdStr )
+            assert "Command not found:" not in handle, handle
+            if re.search( "Error", handle ):
+                main.log.error( "Error in syncing vtn node information" )
+                main.log.error( handle )
+                return main.FALSE
+            else:
+                main.log.info("CordVTN node state synced")
+                return main.TRUE
+        except AssertionError:
+            main.log.exception( "" )
+            return None
+        except TypeError:
+            main.log.exception( self.name + ": Object not as expected" )
+            return None
+        except pexpect.EOF:
+            main.log.error( self.name + ": EOF exception found" )
+            main.log.error( self.name + ":    " + self.handle.before )
+            main.cleanup()
+            main.exit()
+        except Exception:
+            main.log.exception( self.name + ": Uncaught exception!" )
+            main.cleanup()
+            main.exit()
+
 if __name__ == '__main__':
   onos_cli = OnosCliDriver(connect = False)
   name = 'onos_cli'

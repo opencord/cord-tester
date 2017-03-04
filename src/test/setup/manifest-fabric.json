@@ -5,7 +5,7 @@
     "onos_image": "onosproject/onos:latest",
     "onos" : "172.20.0.2",
     "onos_cord" : "/home/vagrant/onos-fabric",
-    "service_profile" : "/opt/cord/orchestration/service-profile/cord-pod",
+    "service_profile" : "rcord",
     "synchronizer" : "fabric",
     "docker_network" : "onosfabric_default",
     "log_level" : "INFO",
