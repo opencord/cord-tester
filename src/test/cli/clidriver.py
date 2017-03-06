@@ -1,12 +1,12 @@
-# 
+#
 # Copyright 2016-present Ciena Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 # http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -62,10 +62,13 @@ class CLI( Component ):
         connect_result = super( CLI, self ).connect()
         ssh_newkey = 'Are you sure you want to continue connecting'
         refused = "ssh: connect to host " + \
-            self.ip_address + " port 22: Connection refused"
+            self.ip_address + " port {}: Connection refused".format(self.port)
         if self.port:
-            ssh_hosts_file = os.path.join(os.getenv('HOME'), '.ssh', 'known_hosts')
-            cmd_host_remove = 'ssh-keygen -f "%s" -R [%s]:8101' %(ssh_hosts_file, self.ip_address)
+            if os.getuid() == 0:
+                ssh_hosts_file = '/root/.ssh/known_hosts'
+            else:
+                ssh_hosts_file = os.path.join(os.getenv('HOME'), '.ssh', 'known_hosts')
+            cmd_host_remove = 'ssh-keygen -f "%s" -R [%s]:8101 2>/dev/null' %(ssh_hosts_file, self.ip_address)
             os.system(cmd_host_remove)
             #main.log.info('SSH host remove cmd: %s' %cmd_host_remove)
             main.log.info('Spawning pexpect for ip %s' %self.ip_address)
@@ -73,7 +76,7 @@ class CLI( Component ):
                 'ssh -p ' +
                 self.port +
                 ' ' +
-                '-o StrictHostKeyChecking=no ' + 
+                '-o StrictHostKeyChecking=no ' +
                 self.user_name +
                 '@' +
                 self.ip_address,

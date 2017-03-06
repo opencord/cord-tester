@@ -385,7 +385,7 @@ class OnosCord(Container):
                 return cli
             else:
                 retries += 1
-                time.sleep(2)
+                time.sleep(3)
 
         return None
 
@@ -415,17 +415,6 @@ class OnosCord(Container):
         self.cliExit(cli)
 
     def synchronize(self, cfg_unlink = False):
-        cfg = None
-        #restore the saved config after restart
-        if os.access(self.onos_cfg_save_loc, os.F_OK):
-            with open(self.onos_cfg_save_loc, 'r') as f:
-                cfg = json.load(f)
-                try:
-                    OnosCtrl.config(cfg, controller = self.onos_ip)
-                    if cfg_unlink is True:
-                        os.unlink(self.onos_cfg_save_loc)
-                except:
-                    pass
 
         if not self.synchronizer_map.has_key(self.synchronizer):
             return
@@ -451,16 +440,28 @@ class OnosCord(Container):
             print('Installing tester app from url: %s' %app_url)
             OnosCtrl.install_app_from_url(None, None, app_url = app_url, onos_ip = self.onos_ip)
 
-        #restart the xos synchronizer container
+        cfg = None
+        #restore the saved config after applications are activated
+        if os.access(self.onos_cfg_save_loc, os.F_OK):
+            with open(self.onos_cfg_save_loc, 'r') as f:
+                cfg = json.load(f)
+                try:
+                    OnosCtrl.config(cfg, controller = self.onos_ip)
+                    if cfg_unlink is True:
+                        os.unlink(self.onos_cfg_save_loc)
+                except:
+                    pass
+
+        if hasattr(self, 'synchronize_{}'.format(self.synchronizer)):
+            getattr(self, 'synchronize_{}'.format(self.synchronizer))(cfg = cfg)
+
+        #now restart the xos synchronizer container
         cmd = 'cd /opt/cord_profile/onboarding-docker-compose && \
         docker-compose -p {} restart xos_synchronizer_{}'.format(self.service_profile, self.synchronizer)
         try:
             print(cmd)
             os.system(cmd)
         except: pass
-
-        if hasattr(self, 'synchronize_{}'.format(self.synchronizer)):
-            getattr(self, 'synchronize_{}'.format(self.synchronizer))(cfg = cfg)
 
     def start(self, restart = False, network_cfg = None):
         if network_cfg is not None:
@@ -473,7 +474,7 @@ class OnosCord(Container):
         #stop and start and synchronize the services before installing tester cord apps
         cmds = [ 'cd {} && docker-compose down'.format(self.onos_cord_dir),
                  'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
-                 'sleep 45',
+                 'sleep 60',
         ]
         for cmd in cmds:
             try:
@@ -506,7 +507,7 @@ class OnosCord(Container):
                 'rm -rf {}'.format(self.onos_config_dir),
                 'mv {} {}'.format(self.docker_yaml_saved, self.docker_yaml),
                 'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
-                'sleep 45',
+                'sleep 60',
         ]
         for cmd in cmds:
             try:
