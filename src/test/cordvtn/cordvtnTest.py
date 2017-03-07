@@ -19,12 +19,13 @@ import keystoneclient.v2_0.client as ksclient
 import keystoneclient.apiclient.exceptions
 import neutronclient.v2_0.client as nclient
 import neutronclient.common.exceptions
-import novaclient.v1_1.client as novaclient
+#import novaclient.v1_1.client as novaclient
 from multiprocessing import Pool
 from neutronclient.v2_0 import client as neutron_client
 from nose.tools import assert_equal
 from OnosCtrl import OnosCtrl, get_mac
 from CordLogger import CordLogger
+from vtn-model import vtnconfig
 import time
 import py_compile
 
@@ -143,6 +144,7 @@ class cordvtn_exchange(CordLogger):
         n['password'] = os.environ['OS_PASSWORD']
         n['auth_url'] = os.environ['OS_AUTH_URL']
         n['tenant_name'] = os.environ['OS_TENANT_NAME']
+        n['ca_cert'] = os.environ['REQUESTS_CA_BUNDLE']
         return n
 
     def create_network(i):
