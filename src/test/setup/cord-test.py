@@ -449,6 +449,33 @@ def set_ssh_key_file(identity_file):
 
     return ssh_key_file
 
+def openstack_setup(test_cnt_env):
+    admin_rc = os.path.join(os.getenv('HOME'), 'admin-openrc.sh')
+    if os.access(admin_rc, os.F_OK):
+        dest = os.path.join(CordTester.tester_base, 'admin-openrc.sh')
+        shutil.copy(admin_rc, dest)
+        with open(dest, 'r') as f:
+            cfg = {}
+            for data in f.read().splitlines():
+                try:
+                    k, v = data.split('=')
+                except:
+                    continue
+
+                k = k.split()[-1]
+                cfg[k] = v
+
+            if 'REQUESTS_CA_BUNDLE' in cfg:
+                #copy the certificate to setup directory
+                cert_src = cfg['REQUESTS_CA_BUNDLE']
+                shutil.copy(cert_src, CordTester.tester_base)
+                test_cert_loc = os.path.join(CordTester.sandbox_setup,
+                                             os.path.basename(cert_src))
+                cfg['REQUESTS_CA_BUNDLE'] = test_cert_loc
+
+            for key, value in cfg.iteritems():
+                test_cnt_env[key] = value
+
 def runTest(args):
     #Start the cord test tcp server
     test_manifest = TestManifest(args = args)
@@ -650,6 +677,8 @@ def runTest(args):
 
     if iterations is not None:
         test_cnt_env['ITERATIONS'] = iterations
+
+    openstack_setup(test_cnt_env)
 
     if args.num_containers > 1 and args.container:
         print('Cannot specify number of containers with container option')
@@ -911,6 +940,9 @@ def setupCordTester(args):
         if use_manifest:
             test_cnt_env['MANIFEST'] = os.path.join(CordTester.sandbox_setup,
                                                     os.path.basename(args.manifest))
+
+        openstack_setup(test_cnt_env)
+
         test_cnt = CordTester((),
                               ctlr_ip = ctlr_addr,
                               image = nose_cnt['image'],
