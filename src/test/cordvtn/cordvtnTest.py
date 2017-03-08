@@ -19,15 +19,18 @@ import keystoneclient.v2_0.client as ksclient
 import keystoneclient.apiclient.exceptions
 import neutronclient.v2_0.client as nclient
 import neutronclient.common.exceptions
-#import novaclient.v1_1.client as novaclient
+import novaclient.v1_1.client as novaclient
 from multiprocessing import Pool
 from neutronclient.v2_0 import client as neutron_client
+import neutronclient.v2_0.client as neutronclient
 from nose.tools import assert_equal
 from OnosCtrl import OnosCtrl, get_mac
 from CordLogger import CordLogger
-from vtn-model import vtnconfig
+from scapy.all import *
+import requests
 import time
 import py_compile
+import json
 
 PROTO_NAME_TCP = 'tcp'
 PROTO_NAME_ICMP = 'icmp'
@@ -53,7 +56,7 @@ CIDR_PREFIX = '192.168'
 
 class vtn_validation_utils:
 
-    endpoint = "http://172.17.0.2:8101"
+    endpoint = "http://172.17.0.5:8101"
     version=""
     def __init__(self, version):
         self.version = version
@@ -110,15 +113,15 @@ class cordvtn_exchange(CordLogger):
         time.sleep(3)
         cls.onos_ctrl = OnosCtrl(cls.app_cordvtn)
         status, _ = cls.onos_ctrl.activate()
-        assert_equal(status, False)
+        assert_equal(status, True)
         time.sleep(3)
         cls.cordvtn_setup()
 
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the cord vtn app'''
-        cls.onos_ctrl.deactivate()
-        cls.cord_vtn_cleanup()
+        #cls.onos_ctrl.deactivate()
+        #cls.cord_vtn_cleanup()
 
     @classmethod
     def cordvtn_setup(cls):
@@ -127,8 +130,7 @@ class cordvtn_exchange(CordLogger):
     @classmethod
     def cord_vtn_cleanup(cls):
         ##reset the ONOS port configuration back to default
-        for config in cls.configs.items():
-            OnosCtrl.delete(config)
+        pass
 
     @classmethod
     def onos_load_config(cls, cordvtn_conf_file):
@@ -138,7 +140,7 @@ class cordvtn_exchange(CordLogger):
             assert_equal(status, True)
         time.sleep(3)
 
-    def get_neutron_credentials():
+    def get_neutron_credentials(self):
         n = {}
         n['username'] = os.environ['OS_USERNAME']
         n['password'] = os.environ['OS_PASSWORD']
@@ -250,36 +252,36 @@ class cordvtn_exchange(CordLogger):
         return True
 
     def set_environment(tenants_num=0, networks_per_tenant=1, vms_per_network=2):
-	octet = 115
-	vm_inc = 11
-	image = nova_connection.images.get(IMAGE_ID)
-	flavor = nova_connection.flavors.get(FLAVOR_ID)
+        octet = 115
+        vm_inc = 11
+        image = nova_connection.images.get(IMAGE_ID)
+        flavor = nova_connection.flavors.get(FLAVOR_ID)
 
-	admin_user_id = keystone_connection.users.find(name=OS_USERNAME).id
-	member_role_id = keystone_connection.roles.find(name='Member').id
-	for num_tenant in range(1, tenants_num+1):
-	    tenant = keystone_connection.tenants.create('%stenant%s' % (TENANT_PREFIX, num_tenant))
-	    keystone_connection.roles.add_user_role(admin_user_id, member_role_id, tenant=tenant.id)
-	    for num_network in range(networks_per_tenant):
-		network_json = {'name': '%snet%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
-				'admin_state_up': True,
-				'tenant_id': tenant.id}
-		network = neutron_connection.create_network({'network': network_json})
-		subnet_json = {'name': '%ssubnet%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
-			       'network_id': network['network']['id'],
-			       'tenant_id': tenant.id,
-			       'enable_dhcp': True,
-			       'cidr': '%s.%s.0/24' % (CIDR_PREFIX, octet), 'ip_version': 4}
-		octet += 1
-		subnet = neutron_connection.create_subnet({'subnet': subnet_json})
-		router_json = {'name': '%srouter%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
-			       'tenant_id': tenant.id}
-		router = neutron_connection.router_create({'router': router_json})
-		port = neutron_connection.add_interface_router(router['router']['id'], {'subnet_id': subnet['subnet']['id']})
-		for num_vm in range(vms_per_network):
-		    tenant_nova_connection = novacli.Client(OS_USERNAME, OS_PASSWORD, tenant.name, OS_AUTH_URL)
-		    m = tenant_nova_connection.servers.create('%svm%s' % (VM_PREFIX, vm_inc), image, flavor, nics=[{'net-id': network['network']['id']}, {'net-id': MGMT_NET}])
-		    vm_inc += 1
+        admin_user_id = keystone_connection.users.find(name=OS_USERNAME).id
+        member_role_id = keystone_connection.roles.find(name='Member').id
+        for num_tenant in range(1, tenants_num+1):
+            tenant = keystone_connection.tenants.create('%stenant%s' % (TENANT_PREFIX, num_tenant))
+            keystone_connection.roles.add_user_role(admin_user_id, member_role_id, tenant=tenant.id)
+            for num_network in range(networks_per_tenant):
+                network_json = {'name': '%snet%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
+                                'admin_state_up': True,
+                                'tenant_id': tenant.id}
+                network = neutron_connection.create_network({'network': network_json})
+                subnet_json = {'name': '%ssubnet%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
+                               'network_id': network['network']['id'],
+                               'tenant_id': tenant.id,
+                               'enable_dhcp': True,
+                               'cidr': '%s.%s.0/24' % (CIDR_PREFIX, octet), 'ip_version': 4}
+                octet += 1
+                subnet = neutron_connection.create_subnet({'subnet': subnet_json})
+                router_json = {'name': '%srouter%s' % (NETWORK_PREFIX, num_tenant*10+num_network),
+                               'tenant_id': tenant.id}
+                router = neutron_connection.router_create({'router': router_json})
+                port = neutron_connection.add_interface_router(router['router']['id'], {'subnet_id': subnet['subnet']['id']})
+                for num_vm in range(vms_per_network):
+                    tenant_nova_connection = novacli.Client(OS_USERNAME, OS_PASSWORD, tenant.name, OS_AUTH_URL)
+                    m = tenant_nova_connection.servers.create('%svm%s' % (VM_PREFIX, vm_inc), image, flavor, nics=[{'net-id': network['network']['id']}, {'net-id': MGMT_NET}])
+                    vm_inc += 1
 
     def verify_neutron_crud():
         x = os.system("neutron_test.sh")
@@ -404,7 +406,7 @@ class cordvtn_exchange(CordLogger):
                   cordvtn_config[k] = config[k]
         self.onos_load_config(self.cordvtn_dict)
 
-    def search_value(d, pat):
+    def search_value(self, d, pat):
         for k, v in d.items():
             if isinstance(v, dict):
                search_value(v, pat)
@@ -424,63 +426,17 @@ class cordvtn_exchange(CordLogger):
         3. Do GET Rest API and validate creation of network
         4. Validate network synch with created network in cord-onos
         """
-
-        vtnconfig = {
-         "apps" : {
-           "org.opencord.vtn" : {
-             "cordvtn" : {
-               "controllers" : [ "10.1.0.1:6654" ],
-               "localManagementIp" : "172.27.0.1/24",
-               "nodes" : [ {
-                 "bridgeId" : "of:0000525400201852",
-                 "dataPlaneIntf" : "fabric",
-                 "dataPlaneIp" : "10.6.1.2/24",
-                 "hostManagementIp" : "10.1.0.14/24",
-                 "hostname" : "cold-flag"
-               } ],
-               "openstack" : {
-                 "endpoint" : "https://keystone.cord.lab:5000/v2.0",
-                 "password" : "VeryLongKeystoneAdminPassword",
-                 "tenant" : "admin",
-                 "user" : "admin"
-               },
-               "ovsdbPort" : "6641",
-               "privateGatewayMac" : "00:00:00:00:00:01",
-               "publicGateways" : [ {
-                 "gatewayIp" : "10.6.1.193",
-                 "gatewayMac" : "02:42:0a:06:01:01"
-               }, {
-                 "gatewayIp" : "10.6.1.129",
-                 "gatewayMac" : "02:42:0a:06:01:01"
-               } ],
-               "ssh" : {
-                 "sshKeyFile" : "/root/node_key",
-                 "sshPort" : "22",
-                 "sshUser" : "root"
-               },
-               "xos" : {
-                 "endpoint" : "http://xos:8888/",
-                 "password" : "letmein",
-                 "user" : "padmin@vicci.org"
-               }
-             }
-           }
-         }
-        }
-
-        self.onos_load_config(vtnconfig)
-        creds = get_neutron_credentials()
+        creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**creds)
-        body_example = {"network":{"name": "Test-Net","admin_state_up":True}}
+        body_example = {"network":{"name": "Test-Net-1","admin_state_up":True}}
         net = neutron.create_network(body=body_example)
-
-        url = "http://172.17.0.2/onos/cordvtn/serviceNetworks"
+        url = "http://172.19.0.2:8181/onos/cordvtn/serviceNetworks"
         auth = ('karaf','karaf')
 
         resp = requests.get(url=url, auth=auth)
         data = json.loads(resp.text)
-
-        result = search_response(data, "Test-Net")
+        print data
+        result = self.search_value(data, "Test-Net-1")
         assert_equal(result, True)
 
     def test_cordvtn_basic_tenant(self):
