@@ -111,6 +111,17 @@ class OnosCtrl:
         return None
 
     @classmethod
+    def get_links(cls, controller = None):
+        if controller is None:
+            controller = cls.controller
+        url = 'http://%s:8181/onos/v1/links' %(controller)
+        result = requests.get(url, auth = cls.auth)
+        if result.ok:
+            links = result.json()['links']
+            return links
+        return None
+
+    @classmethod
     def get_device_id(cls, controller = None):
         '''If running under olt, we get the first switch connected to onos'''
         olt = OltConfig()

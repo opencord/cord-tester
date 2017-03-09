@@ -26,6 +26,7 @@ import neutronclient.v2_0.client as neutronclient
 from nose.tools import assert_equal
 from OnosCtrl import OnosCtrl, get_mac
 from CordLogger import CordLogger
+from TestManifest import TestManifest
 from scapy.all import *
 import requests
 import time
@@ -56,49 +57,36 @@ CIDR_PREFIX = '192.168'
 
 class vtn_validation_utils:
 
-    endpoint = "http://172.17.0.5:8101"
-    version=""
+    endpoint = '172.17.0.5'
+    version = ''
+    vtn_app = 'org.opencord.vtn'
+
     def __init__(self, version):
         self.version = version
-        self.devices = '/onos/v1/devices'
-        self.links = '/onos/v1/links'
-        self.flows = '/onos/v1/flows'
-        self.apps = '/onos/v1/applications'
+        self.manifest = None
+        self.vtn_enabled = False
+        manifest = os.getenv('MANIFEST', None)
+        if manifest:
+            self.manifest = TestManifest(manifest = manifest)
+            self.endpoint = self.manifest.onos_ip
+            self.vtn_enabled = self.manifest.synchronizer == 'vtn'
 
-    def getDevices(self, endpoint, user, passwd):
-        headers = {'Accept': 'application/json'}
-        url = endpoint+self.devices
-        response = requests.get(url, headers=headers, auth=(user, passwd))
-        response.raise_for_status()
-        return response.json()
+        self.app_ctrl = OnosCtrl(self.vtn_app, controller = self.endpoint)
 
-    def getLinks(self, endpoint, user, passwd):
-        headers = {'Accept': 'application/json'}
-        url = endpoint+self.links
-        response = requests.get(url, headers=headers, auth=(user, passwd))
-        response.raise_for_status()
-        return response.json()
+    def getDevices(self):
+        return OnosCtrl.get_devices(controller = self.endpoint)
 
-    def getDevicePorts(self, endpoint, user, passwd, switch_id):
-        headers = {'Accept': 'application/json'}
-        url = endpoint+self.devices+"/"+str(switch_id)+"/ports"
-        response = requests.get(url, headers=headers, auth=(user, passwd))
-        response.raise_for_status()
-        return response.json()
+    def getLinks(self):
+        return OnosCtrl.get_links(controller = self.endpoint)
 
-    def activateVTNApp(self, endpoint, user, passwd, app_name):
-        headers = {'Accept': 'application/json'}
-        url = endpoint+self.apps+"/"+str(app_name)+"/active"
-        response = requests.post(url, headers=headers, auth=(user, passwd))
-        response.raise_for_status()
-        return response.json()
+    def getDevicePorts(self, switch_id):
+        return OnosCtrl.get_ports_device(switch_id, controller = self.endpoint)
 
-    def deactivateVTNApp(self, endpoint, user, passwd, app_name):
-        headers = {'Accept': 'application/json'}
-        url = endpoint+self.apps+"/"+str(app_name)+"/active"
-        response = requests.delete(url, headers=headers, auth=(user, passwd))
-        response.raise_for_status()
-        return response.json()
+    def activateVTNApp(self):
+        return self.app_ctrl.activate()
+
+    def deactivateVTNApp(self):
+        return self.app_ctrl.deactivate()
 
 class cordvtn_exchange(CordLogger):
 
