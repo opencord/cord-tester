@@ -1,0 +1,30 @@
+To update expired certificates,
+use the current working certs_2 directory and copy it as certs_4
+cp -rv certs_2 certs_4
+cd certs_4
+Update ca.cnf,server.cnf,client.cnf default_days field to update certificate expiry.
+Then type:
+make clean
+make
+to create the new certificates.
+
+Now decrypt the openssl rsa keys for:
+client.key, server.key and ca.key
+
+openssl rsa -in ca.key -out ca.key.decrypted
+openssl rsa -in client.key -out client.key.decrypted
+openssl rsa -in server.key -out server.key.decrypted
+
+passphrase for all 3 is whatever
+
+Next step is to update client.pem and server.pem,
+BEGIN ENCRYPTED KEY SECTIONS
+with the decrypted contents of client.key.decrypted and server.key.decrypted respectively.
+
+Then rename the decrypted files back to overwrite the encrypted key files.
+mv ca.key.decrypted ca.key
+mv client.key.decrypted client.key
+mv server.key.decrypted server.key
+
+Now update the test code in cord-tester/src/test/utils/EapTLS.py with the contents of client.crt and client.key.
+If you want, you can also populate the INVALID cert key field in cord-tester/src/test/tls/tlsTest.py with the contents of ca.pem (optional)
