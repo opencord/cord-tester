@@ -79,10 +79,10 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         self.onos_aaa_config()
 
     def onos_aaa_config(self):
-        aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
-                                                                   'radiusIp': '172.17.0.2' } } } }
+        aaa_dict = {'apps' : { self.app : { 'AAA' : { 'radiusSecret': 'radius_password',
+                                                      'radiusIp': '172.17.0.2' } } } }
         radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
-        aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
+        aaa_dict['apps'][self.app]['AAA']['radiusIp'] = radius_ip
         self.onos_ctrl.activate()
         time.sleep(2)
         self.onos_load_config(aaa_dict)

@@ -543,7 +543,7 @@ class Onos(Container):
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
     onos_cord_apps = ( ('cord-config', '1.1-SNAPSHOT'),
-                       ('aaa', '1.1-SNAPSHOT'),
+                       ('aaa', '1.2-SNAPSHOT'),
                        ('igmp', '1.1-SNAPSHOT'),
                        #('vtn', '1.1-SNAPSHOT'),
                        )
