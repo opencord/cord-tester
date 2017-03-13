@@ -542,10 +542,9 @@ class Onos(Container):
     JAVA_OPTS_DEFAULT = JAVA_OPTS_FORMAT.format(*SYSTEM_MEMORY) #-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
-    onos_cord_apps = ( ('cord-config', '1.1-SNAPSHOT'),
+    onos_cord_apps = ( ('cord-config', '1.2-SNAPSHOT'),
                        ('aaa', '1.2-SNAPSHOT'),
-                       ('igmp', '1.1-SNAPSHOT'),
-                       #('vtn', '1.1-SNAPSHOT'),
+                       ('igmp', '1.2-SNAPSHOT'),
                        )
     ports = [] #[ 8181, 8101, 9876, 6653, 6633, 2000, 2620, 5005 ]
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')

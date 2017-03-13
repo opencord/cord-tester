@@ -299,10 +299,10 @@ gfwn9fovmpeqCEyupy2JNNUTJibEuFknwx7JAX+htPL27nEgwV1FYtwI3qLiZqkM
 
     def onos_aaa_config(self,controller=None):
 	log.info('controller in onos_aaa_config is %s'%controller)
-        aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
-                                                                   'radiusIp': '172.17.0.2' } } } }
+        aaa_dict = {'apps' : { 'org.opencord.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
+                                                                'radiusIp': '172.17.0.2' } } } }
         radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
-        aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
+        aaa_dict['apps']['org.opencord.aaa']['AAA']['radiusIp'] = radius_ip
         self.onos_ctrl.activate()
         time.sleep(2)
         self.onos_load_config(aaa_dict,controller=controller)
@@ -1805,11 +1805,11 @@ yg==
 	    log.info('controller ip in cluster.py onos_aaa_load is %s'%controller)
             if self.aaa_loaded:
                   return
-            aaa_dict = {'apps' : { 'org.onosproject.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
-                                                                       'radiusIp': '172.17.0.2' } } } }
+            aaa_dict = {'apps' : { 'org.opencord.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
+                                                                    'radiusIp': '172.17.0.2' } } } }
             radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
-            aaa_dict['apps']['org.onosproject.aaa']['AAA']['radiusIp'] = radius_ip
-            self.onos_load_config('org.onosproject.aaa', aaa_dict,controller=controller)
+            aaa_dict['apps']['org.opencord.aaa']['AAA']['radiusIp'] = radius_ip
+            self.onos_load_config('org.opencord.aaa', aaa_dict,controller=controller)
             self.aaa_loaded = True
 
       def onos_dhcp_table_load(self, config = None,controller=None):
@@ -2543,4 +2543,3 @@ yg==
                 log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %
                          (cip, sip, mac, lval) )
                 assert_not_equal(lval, 700)
-
