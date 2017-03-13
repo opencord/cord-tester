@@ -84,7 +84,7 @@ class CordLogger(unittest.TestCase):
         except: pass
 
     @classmethod
-    def archive_results(cls, testName, controllers = None, iteration = None):
+    def archive_results(cls, testName, controllers = None, iteration = None, archive_partition = False):
         if not os.path.exists(cls.onos_data_dir):
             return cls.archive_results_unshared(testName, controllers = controllers, iteration = iteration)
         if not os.path.exists(cls.archive_dir):
@@ -96,11 +96,18 @@ class CordLogger(unittest.TestCase):
             controller_map = get_controller_map(controllers)
 
         iteration_str = '' if iteration is None else '_{}'.format(iteration)
+        if archive_partition is False:
+            archive_target = 'log'
+            tar_options = ''
+        else:
+            archive_target = ''
+            tar_options = '--exclude=cache --exclude=tmp'
+
         for c in controller_map.keys():
             archive_file = os.path.join(cls.archive_dir,
                                         'logs_{}_{}{}.tar.gz'.format(controller_map[c], testName, iteration_str))
-            archive_path = os.path.join(cls.setup_dir, '{}-data'.format(c), 'log')
-            cmd = 'cd {} && tar cvzf {} .'.format(archive_path, archive_file)
+            archive_path = os.path.join(cls.setup_dir, '{}-data'.format(c), archive_target)
+            cmd = 'cd {} && tar cvzf {} . {}'.format(archive_path, archive_file, tar_options)
             try:
                 os.system(cmd)
             except: pass

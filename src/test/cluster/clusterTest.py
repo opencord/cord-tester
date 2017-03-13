@@ -65,6 +65,7 @@ class cluster_exchange(CordLogger):
     testcaseLoggers = ('test_cluster_controller_restarts', 'test_cluster_graceful_controller_restarts',
                        'test_cluster_single_controller_restarts', 'test_cluster_restarts')
     ITERATIONS = int(os.getenv('ITERATIONS', 10))
+    ARCHIVE_PARTITION = False
 
     def setUp(self):
         if self._testMethodName not in self.testcaseLoggers:
@@ -377,7 +378,8 @@ class cluster_exchange(CordLogger):
                         log.error('Test failed on ITERATION %d' %iteration)
                         CordLogger.archive_results(self._testMethodName,
                                                    controllers = controllers,
-                                                   iteration = 'FAILED')
+                                                   iteration = 'FAILED',
+                                                   archive_partition = self.ARCHIVE_PARTITION)
                         assert_equal(len(failed), 0)
                     return controller
 
@@ -393,7 +395,8 @@ class cluster_exchange(CordLogger):
                 log.error('Test failed on ITERATION %d' %iteration)
                 CordLogger.archive_results(self._testMethodName,
                                            controllers = controllers,
-                                           iteration = 'FAILED')
+                                           iteration = 'FAILED',
+                                           archive_partition = self.ARCHIVE_PARTITION)
             assert_equal(len(failed), 0)
             if st is False:
                 log.info('No storage exception and ONOS cluster was not formed successfully')
@@ -429,7 +432,8 @@ class cluster_exchange(CordLogger):
             #first archive the test case logs for this run
             CordLogger.archive_results(self._testMethodName,
                                        controllers = controllers,
-                                       iteration = 'iteration_{}'.format(num+1))
+                                       iteration = 'iteration_{}'.format(num+1),
+                                       archive_partition = self.ARCHIVE_PARTITION)
             next_controller = check_exception(num, controller = controller)
 
     def test_cluster_controller_restarts(self):
@@ -476,7 +480,8 @@ class cluster_exchange(CordLogger):
                     log.error('Test failed on ITERATION %d' %iteration)
                     CordLogger.archive_results('test_cluster_single_controller_restarts',
                                                controllers = controllers,
-                                               iteration = 'FAILED')
+                                               iteration = 'FAILED',
+                                               archive_partition = self.ARCHIVE_PARTITION)
                     assert_equal(len(failed), 0)
                     return controller
 
@@ -518,7 +523,8 @@ class cluster_exchange(CordLogger):
             #archive the logs for this run
             CordLogger.archive_results('test_cluster_single_controller_restarts',
                                        controllers = controllers,
-                                       iteration = 'iteration_{}'.format(num+1))
+                                       iteration = 'iteration_{}'.format(num+1),
+                                       archive_partition = self.ARCHIVE_PARTITION)
             check_exception(num, controller, inclusive = True)
 
     def test_cluster_restarts(self):
@@ -555,7 +561,8 @@ class cluster_exchange(CordLogger):
                     log.error('Test failed on ITERATION %d' %iteration)
                     CordLogger.archive_results('test_cluster_restarts',
                                                controllers = controllers,
-                                               iteration = 'FAILED')
+                                               iteration = 'FAILED',
+                                               archive_partition = self.ARCHIVE_PARTITION)
                     assert_equal(len(failed), 0)
                     return
 
@@ -568,7 +575,8 @@ class cluster_exchange(CordLogger):
                     log.error('Test failed on ITERATION %d' %iteration)
                     CordLogger.archive_results('test_cluster_restarts',
                                                controllers = controllers,
-                                               iteration = 'FAILED')
+                                               iteration = 'FAILED',
+                                               archive_partition = self.ARCHIVE_PARTITION)
                 assert_equal(len(ips), len(controllers))
 
         tries = self.ITERATIONS
@@ -587,7 +595,8 @@ class cluster_exchange(CordLogger):
             #archive the logs for this run before verification
             CordLogger.archive_results('test_cluster_restarts',
                                        controllers = controllers,
-                                       iteration = 'iteration_{}'.format(num+1))
+                                       iteration = 'iteration_{}'.format(num+1),
+                                       archive_partition = self.ARCHIVE_PARTITION)
             #check for exceptions on the adjacent nodes
             check_exception(num)
 
