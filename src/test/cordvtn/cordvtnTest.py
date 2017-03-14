@@ -27,6 +27,7 @@ from nose.tools import assert_equal
 from OnosCtrl import OnosCtrl, get_mac
 from CordLogger import CordLogger
 from TestManifest import TestManifest
+from OnosFlowCtrl import OnosFlowCtrl
 from scapy.all import *
 import requests
 import time
@@ -381,6 +382,15 @@ class cordvtn_exchange(CordLogger):
         egress_map = { 'ether': '00:00:00:00:00:03', 'ip': '192.168.30.1' }
         ingress_map = { 'ether': '00:00:00:00:00:04', 'ip': '192.168.40.1' }
         device_id = 'of:{}'.format(get_mac(switch))
+        ctlr = self.ctlr_ip.split(',')[0]
+        flow = OnosFlowCtrl(deviceId = device_id,
+                            egressPort = egress,
+                            ingressPort = ingress,
+                            ethType = '0x800',
+                            ipSrc = ('IPV4_SRC', ingress_map['ip']+'/32'),
+                            ipDst = ('IPV4_DST', egress_map['ip']+'/32'),
+                            controller = ctlr
+                            )
         flow_id = flow.findFlow(device_id, IN_PORT = ('port', ingress),
                                 ETH_TYPE = ('ethType','0x800'), IPV4_SRC = ('ip', ingress_map['ip']+'/32'),
                                 IPV4_DST = ('ip', egress_map['ip']+'/32'))
@@ -487,17 +497,44 @@ class cordvtn_exchange(CordLogger):
         neutron = neutronclient.Client(**creds)
         body_example = {"network":{"name": "Test-Net-1","admin_state_up":True}}
         net = neutron.create_network(body=body_example)
-        url = "http://172.19.0.2:8181/onos/cordvtn/serviceNetworks"
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+        body_create_subnet = {'subnets': [{'cidr': '192.168.199.0/24',
+                             'ip_version': 4, 'network_id': network_id}]}
+
+        subnet = neutron.create_subnet(body=body_create_subnet)
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        result = self.search_value(data, "Test-Net-1")
+        assert_equal(result, True)
+
+    def test_cordvtn_neutron_port_sync(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Load cordvtn config, vtn-cfg-1.json to cord-onos
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        body_example = {"network":{"name": "Test-Net-1","admin_state_up":True}}
+        net = neutron.create_network(body=body_example)
+        network_id = net['network']['id']
+        device_id = 'of:{}'.format(get_mac(self.switch))
+        body_example = {'port': {'admin_state_up': True,'device_id':device_id, 'network_id':network_id}}
+        response = neutron.create_port(body=body_example)
+        url = "http://{0}:8181/onos/cordvtn/servicePorts".format(vtn_util.endpoint)
         auth = ('karaf','karaf')
 
         resp = requests.get(url=url, auth=auth)
         data = json.loads(resp.text)
-        print data
-        result = self.search_value(data, "Test-Net-1")
+        result = self.search_value(data, device_id)
         assert_equal(result, True)
 
     def test_cordvtn_basic_tenant(self):
-        onos_load_config()
 
         tenant_1= create_tenant("CORD_Subscriber_Test_Tenant_1")
         if tenant1 != 0:
@@ -544,7 +581,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_for_creation_of_network(self):
-        onos_load_config()
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -560,7 +596,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_to_create_net_work_with_subnet(self):
-        onos_load_config()
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -629,7 +664,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_floatingip_limit(self):
-        onos_load_config()
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -651,7 +685,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_for_10_neutron_networks(self):
-        onos_load_config()
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
@@ -673,7 +706,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_for_100_neutron_networks(self):
-        onos_load_config()
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
