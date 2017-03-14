@@ -176,14 +176,209 @@ class vsg_exchange(CordLogger):
         status = stdout.channel.recv_exit_status()
         assert_equal( status, False)
 
-    def test_vsg_cord_subscriber_creation(self):
-        pass
+    def test_vsg_vm_for_login_to_vsg(self):
+        client = SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        keyfile = open('/root/id_rsa','r')
+        key = str(keyfile.read())
+        keyfile.close()
+        log.info('read key is %s'%key)
+        key = paramiko.RSAKey.from_private_key(StringIO(key), password=None)
+        client.connect( '10.1.0.17', username = 'ubuntu', pkey=key, password=None)
+        cmd = "ls"
+        stdin, stdout, stderr = client.exec_command(cmd)
+        status = stdout.channel.recv_exit_status()
+        assert_equal( status, False)
+        log.info('ls output at compute node is %s'%stdout.read())
+        client.connect( '172.27.0.2', username = 'ubuntu', pkey=key, password=None)
+        cmd = "pwd"
+        stdin, stdout, stderr = client.exec_command(cmd)
+        status = stdout.channel.recv_exit_status()
+        assert_equal( status, False)
+        log.info('ls output at compute node is %s'%stdout.read())
 
-    def test_vsg_for_dhcp_client(self):
-        pass
+    def test_vsg_external_connectivity_with_sending_icmp_echo_requests(self):
+        host = '8.8.8.8'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('Recieved icmp echo reply as expected')
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: IP in p and p[ICMP].type==0, #p[IP].src == host,
+                 prn = recv_cb, iface = 'vcpe0.222.111')
+        t = threading.Thread(target = mac_recv_task)
+        t.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp echo requests to external network')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t.join()
+        assert_equal(self.success, True)
 
-    def test_vsg_for_snat(self):
-        pass
+    def test_vsg_external_connectivity_sending_icmp_ping_on_different_interface(self):
+        host = '8.8.8.8'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('Recieved icmp echo reply which is not expected')
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
+                 prn = recv_cb, iface = 'vcpe0.222.112')
+        t = threading.Thread(target = mac_recv_task)
+        t.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp echo requests to external network')
+        send(pkt, count=3, iface = 'vcpe0.222.112')
+        t.join()
+        assert_equal(self.success, False)
+
+    def test_vsg_external_connectivity_pinging_with_single_tag_negative_scenario(self):
+        host = '8.8.8.8'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('Recieved icmp echo reply which is not expected')
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
+                 prn = recv_cb, iface = 'vcpe0.222')
+        t = threading.Thread(target = mac_recv_task)
+        t.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp echo requests to external network')
+        send(pkt, count=3, iface = 'vcpe0.222')
+        t.join()
+        assert_equal(self.success, False)
+
+    def test_vsg_external_connectivity_pinging_to_google(self):
+        host = 'www.google.com'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('Recieved icmp echo reply as expected')
+                self.success = True
+            sniff(count=3, timeout=5,
+                 lfilter = lambda p: IP in p and p[ICMP].type== 0,
+                 prn = recv_cb, iface = 'vcpe0.222.111')
+        t = threading.Thread(target = mac_recv_task)
+        t.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp ping requests to google.com')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t.join()
+        assert_equal(self.success, True)
+
+    def test_vsg_external_connectivity_pinging_to_non_existing_website(self):
+        host = 'www.goglee.com'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('Recieved icmp echo reply which is not expected')
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
+                 prn = recv_cb, iface = 'vcpe0.222.111')
+        t = threading.Thread(target = mac_recv_task)
+        t.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp ping  requests to non existing website')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t.join()
+        assert_equal(self.success, False)
+
+    def test_vsg_external_connectivity_ping_to_google_with_ttl_1(self):
+        host = '8.8.8.8'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('icmp ping reply received Pkt is %s' %pkt.show())
+                #log.info('icmp ping reply received Pkt is %s' %pkt[ICMP])
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
+                 prn = recv_cb, iface = 'vcpe0.222.111')
+        t = threading.Thread(target = mac_recv_task)
+        t.start()
+        L3 = IP(dst = host, ttl=1)
+        pkt = L3/ICMP()
+        log.info('Sending icmp ping requests to external network with ip ttl value set to 1')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t.join()
+        assert_equal(self.success, False)
+
+    def test_vsg_for_external_connectivity_with_wan_interface_down_and_making_up_in_vcpe_container(self):
+        host = '8.8.8.8'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('icmp ping reply received')
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: ICMP in p and p[ICMP].type == 0,
+                 prn = recv_cb, iface = 'vcpe0.222.111')
+        t1 = threading.Thread(target = mac_recv_task)
+        t2 = threading.Thread(target = mac_recv_task)
+        t3 = threading.Thread(target = mac_recv_task)
+        t1.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp ping requests to external network before wan interface on vpce container does down')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t1.join()
+        assert_equal(self.success, True)
+        #logging into vcpe and down wan interface
+        self.success = False
+        t2.start()
+        log.info('Sending icmp ping requests to external network after wan interface on vpce container does down')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t2.join()
+        assert_equal(self.success, False)
+        #logging into vcpe and bringing up wan interface
+        t3.start()
+        log.info('Sending icmp ping requests to external network after wan interface on vpce container comes up')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t3.join()
+        assert_equal(self.success, True)
+
+    def test_vsg_for_external_connectivity_with_lan_interface_down_and_up_in_vcpe_container(self):
+        host = '8.8.8.8'
+        self.success = False
+        def mac_recv_task():
+            def recv_cb(pkt):
+                log.info('icmp ping reply received Pkt is %s' %pkt.show())
+                self.success = True
+            sniff(count=1, timeout=5,
+                 lfilter = lambda p: ICMP in p and p[ICMP].type == 1,
+                 prn = recv_cb, iface = 'vcpe0.222.111')
+        t1 = threading.Thread(target = mac_recv_task)
+        t2 = threading.Thread(target = mac_recv_task)
+        t3 = threading.Thread(target = mac_recv_task)
+        t1.start()
+        L3 = IP(dst = host)
+        pkt = L3/ICMP()
+        log.info('Sending icmp ping requests to external network before lan interface on vpce container does down')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t1.join()
+        assert_equal(self.success, True)
+        #logging into vcpe and down lan interface
+        self.success = False
+        t2.start()
+        log.info('Sending icmp ping requests to external network after lan interface on vpce container does down')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t2.join()
+        assert_equal(self.success, False)
+        #logging into vcpe and bringing up lan interface
+        t3.start()
+        log.info('Sending icmp ping requests to external network after lan interface on vpce container comes up')
+        send(pkt, count=3, iface = 'vcpe0.222.111')
+        t3.join()
+        assert_equal(self.success, True)
 
     def test_vsg_for_ping_from_vsg_to_external_network(self):
 	"""
