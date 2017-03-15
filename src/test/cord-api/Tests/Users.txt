@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation     Test suite for Utility Synchronizer API
+Documentation     Test suite for Users API
 Suite Setup       Read InputFile
 Test Template     Verify User functionality
 Library           Collections
