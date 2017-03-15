@@ -422,7 +422,213 @@ class cordvtn_exchange(CordLogger):
                  return True
         return match
 
-    def test_cordvtn_neutron_network_creation_and_validation_on_neutron_openstack(self):
+    def get_key_value(self, d, key = None, value = None,):
+        match = False
+        ret_k = ""
+        ret_v = ""
+        if type(d) is not dict:
+           if type(d) is not list:
+              match = 'NOT_FOUND'
+              return [match, ret_k, ret_v]
+           else:
+              for i in range(len(d)):
+                  if type(d[i]) is dict:
+                     match,ret_k,ret_v = self.get_key_value(d[i], key, value)
+                     if match is True:
+                        print "Network creation is successful"
+                        break
+        else:
+           for k, v in d.items():
+              if isinstance(v, dict):
+                 match,ret_k,ret_v = self.get_key_value(v, key, value)
+              elif type(v) is list:
+                   for i in range(len(v)):
+                      if type(v[i]) is dict:
+                         match,ret_k,ret_v = self.get_key_value(v[i], key, value)
+                      else:
+                         if key:
+                            if k == key:
+                               match = True
+                               return [match, key, v]
+                         elif value:
+                              if v == value:
+                                 match = True
+                                 return [match, k, value]
+              else:
+                  if key:
+                     if k == key:
+                        match = True
+                        return [match, key, v]
+                     elif value:
+                        if v == value:
+                           match = True
+                           return [match, k, value]
+        if match == False:
+           match = 'NOT_FOUND'
+        return [match, ret_k, ret_v]
+
+    def neutron_network_creation_and_validation(self, net_name):
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        body_example = {"network":{"name": net_name,"admin_state_up":True}}
+        net = neutron.create_network(body=body_example)
+        networks = neutron.list_networks(name=net_name)
+        data = networks
+        return [self.search_value(data, net_name)]
+
+    def neutron_network_deletion(self, net_name):
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        networks = neutron.list_networks(name=net_name)
+        net_id = self.get_key_value(d=networks, key = 'id')
+        net = neutron.delete_network(net_id[2])
+        return [self.get_key_value(d=networks, value = net_name)]
+
+    def neutron_subnet_creation_and_validation(self,net_name,sub_cird):
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        networks = neutron.list_networks(name=net_name)
+        net_id = self.get_key_value(d=networks, key = 'id')
+        cidr = sub_cird
+        body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr),  "allocation_pools": [{"start": "172.27.0.20", "end": "172.27.0.21"}]}}
+        neutron_sub = neutron.create_subnet(body_subnet_example)
+        networks = neutron.list_networks(name=net_name)
+        return [self.get_key_value(d=networks, key = 'subnets')]
+
+    def test_cordvtn_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
+        """
+        Algo:
+        0. Create vtn_test_1_net.
+        1. Do GET Rest API and validate creation of network.
+        2. Validate network on neutron openstack.
+        """
+        result = self.neutron_network_creation_and_validation('vtn_test_1_net')
+        if result is True:
+           self.neutron_network_deletion('vtn_test_1_net')
+        assert_equal(result, True)
+
+    def test_cordvtn_neutron_network_creation_and_validation_on_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Load cordvtn config, vtn-cfg-1.json to cord-onos
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        body_example = {"network":{"name": "vtn_test_2_net","admin_state_up":True}}
+        net = neutron.create_network(body=body_example)
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        result = self.search_value(data, "vtn_test_2_net")
+        self.neutron_network_deletion('vtn_test_2_net')
+        assert_equal(result, True)
+
+    def test_cordvtn_with_neutron_network_deletion_recreation_and_validation_on_head_node_with_neutron_service(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Load cordvtn config, vtn-cfg-1.json to cord-onos
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+        result = self.neutron_network_creation_and_validation('vtn_test_3_net')
+        if result is True:
+           self.neutron_network_deletion('vtn_test_1_net')
+        assert_equal(result, True)
+        result_again = self.neutron_network_creation_and_validation('vtn_test_3_net')
+        if result_again is True:
+           self.neutron_network_deletion('vtn_test_1_net')
+        assert_equal(result, True)
+
+    def test_cordvtn_with_neutron_network_deletion_recreation_and_validation_on_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Load cordvtn config, vtn-cfg-1.json to cord-onos
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        body_example = {"network":{"name": "vtn_test_4_net","admin_state_up":True}}
+        net = neutron.create_network(body=body_example)
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        result = self.search_value(data, "vtn_test_4_net")
+        assert_equal(result, True)
+        self.neutron_network_deletion('vtn_test_4_net')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        result = self.search_value(data, "vtn_test_4_net")
+        assert_equal(result, False)
+        net = neutron.create_network(body=body_example)
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        result = self.search_value(data, "vtn_test_4_net")
+        self.neutron_network_deletion('vtn_test_4_net')
+        assert_equal(result, True)
+
+    def test_cordvtn_with_neutron_management_network_creation_and_validation_on_head_node_with_neutron_service(self):
+        test_net_name = 'vtn_test_5_net_management'
+        test_sub_net_cidr = "172.27.0.0/24"
+        result = self.neutron_network_creation_and_validation('vtn_test_5_net_management')
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        if sub_result[0] is True:
+           self.neutron_network_deletion('vtn_test_5_net_management')
+        assert_equal(sub_result[0], True)
+
+    def test_cordvtn_with_neutron_management_network_creation_and_validation_on_onos(self):
+        self.neutron_network_creation_and_validation('vtn_test_6_net_management')
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        networks = neutron.list_networks(name='vtn_test_6_net_management')
+        net_id = self.get_key_value(d=networks, key = 'id')
+        cidr = "172.27.0.0/24"
+        body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr),  "allocation_pools": [{"start": "172.27.0.20", "end": "172.27.0.21"}]}}
+        neutron_sub = neutron.create_subnet(body_subnet_example)
+
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        for i in range(len(data['ServiceNetworks'])):
+              if data['ServiceNetworks'][i]['name'] == 'vtn_test_5_net_management':
+                 sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
+                 if sub_net_id[2] == " ":
+                    log.info('Sub network is not successful')
+                    self.neutron_network_deletion('vtn_test_6_net_management')
+                    assert_equal(False, True)
+                    break
+                 elif sub_net_id[2] == cidr:
+                    log.info('Sub network is successful')
+                    self.neutron_network_deletion('vtn_test_6_net_management')
+                    assert_equal(sub_net_id[0], True)
+                    break
+
+    def test_cordvtn_with_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
         Algo:
         0. Create Test-Net,
@@ -516,7 +722,7 @@ class cordvtn_exchange(CordLogger):
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
         3. Do GET Rest API and validate creation of network
-        4. Validate network synch with created network in cord-onos
+        4. Validate network synch with created port in cord-onos
         """
         creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**creds)
