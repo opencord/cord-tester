@@ -16,7 +16,8 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from OnosCtrl import OnosCtrl, get_mac
+from CordTestUtils import get_mac
+from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
 from onosclidriver import OnosCliDriver
@@ -773,4 +774,3 @@ line vty
         time.sleep(60)
         self.vrouter_traffic_verify(positive_test = True)
         assert_equal(res, True)
-

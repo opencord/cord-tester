@@ -21,7 +21,8 @@ from scapy.all import *
 import time
 import os, sys
 from DHCP import DHCPTest
-from OnosCtrl import OnosCtrl, get_mac
+from CordTestUtils import get_mac
+from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from CordTestServer import cord_test_onos_restart
 from CordLogger import CordLogger
@@ -1386,7 +1387,3 @@ subnet 192.168.0.0 netmask 255.255.0.0 {
 	   log.info('Got dhcp client IP %s from server %s for mac %s.Which is not expected behavior as IP %s is already consumed.'
 		    %(new_cip, new_sip, new_mac, new_cip) )
 	   assert_equal(new_cip, None)
-
-
-
-

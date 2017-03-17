@@ -7,8 +7,9 @@ from DHCP import DHCPTest
 from Channels import Channels, IgmpChannel
 from subscriberDb import SubscriberDB
 import time, monotonic
+from CordTestUtils import get_mac
 from OltConfig import OltConfig
-from OnosCtrl import OnosCtrl, get_mac
+from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 from CordContainer import Container, Onos, Quagga
 from onosclidriver import OnosCliDriver

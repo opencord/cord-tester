@@ -15,7 +15,8 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from OnosCtrl import OnosCtrl, get_mac
+from CordTestUtils import get_mac, get_controllers
+from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from socket import socket
 from OnosFlowCtrl import OnosFlowCtrl
@@ -53,17 +54,12 @@ class vsg_exchange(CordLogger):
 
     def setUp(self):
         super(vsg_exchange, self).setUp()
-        self.controllers = self.get_controllers()
+        self.controllers = get_controllers()
         self.controller = self.controllers[0]
         self.cli = None
 
     def tearDown(self):
         super(vsg_exchange, self).tearDown()
-
-    @classmethod
-    def get_controllers(cls):
-        controllers = os.getenv('ONOS_CONTROLLER_IP') or ''
-        return controllers.split(',')
 
     def cliEnter(self, controller = None):
         retries = 0

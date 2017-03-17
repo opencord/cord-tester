@@ -24,7 +24,8 @@ from multiprocessing import Pool
 from neutronclient.v2_0 import client as neutron_client
 import neutronclient.v2_0.client as neutronclient
 from nose.tools import assert_equal
-from OnosCtrl import OnosCtrl, get_mac
+from CordTestUtils import get_mac
+from OnosCtrl import OnosCtrl
 from CordLogger import CordLogger
 from TestManifest import TestManifest
 from OnosFlowCtrl import OnosFlowCtrl

@@ -17,7 +17,8 @@ import json
 import requests
 import os,sys,time
 from scapy.all import *
-from OnosCtrl import OnosCtrl, get_mac, get_controller
+from CordTestUtils import get_mac, get_controller
+from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 log.setLevel('INFO')
 
@@ -137,4 +138,3 @@ class ACLTest:
         json_data = json.dumps(ports_dict)
         resp = requests.post(self.iface_create_onos_url, auth = self.auth, data = json_data)
         return resp.ok, resp.status_code, egress_host_list
-

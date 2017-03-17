@@ -17,26 +17,7 @@ import json
 import requests
 import os,sys,time
 from OltConfig import OltConfig
-import fcntl, socket, struct
-
-def get_mac(iface = None, pad = 4):
-    if iface is None:
-        iface = os.getenv('TEST_SWITCH', 'ovsbr0')
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        info = fcntl.ioctl(s.fileno(), 0x8927, struct.pack('256s', bytes(iface[:15])))
-    except:
-        info = ['0'] * 24
-    s.close()
-    sep = ''
-    if pad == 0:
-        sep = ':'
-    return '0'*pad + sep.join(['%02x' %ord(char) for char in info[18:24]])
-
-def get_controller():
-    controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
-    controller = controller.split(',')[0]
-    return controller
+from CordTestUtils import get_mac, get_controller
 
 class OnosCtrl:
 

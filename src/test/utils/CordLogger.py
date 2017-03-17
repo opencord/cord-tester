@@ -1,7 +1,7 @@
 from OnosLog import OnosLog
 from scapy.all import log
 from onosclidriver import OnosCliDriver
-from OnosCtrl import OnosCtrl, get_mac
+from OnosCtrl import OnosCtrl
 from docker import Client
 from CordContainer import *
 import json

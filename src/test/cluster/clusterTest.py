@@ -15,9 +15,9 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from OnosCtrl import OnosCtrl, get_mac
+from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
-from socket import socket
+from CordTestUtils import get_mac, get_controller, get_controllers
 from OnosFlowCtrl import OnosFlowCtrl
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
@@ -75,16 +75,6 @@ class cluster_exchange(CordLogger):
         if self._testMethodName not in self.testcaseLoggers:
             super(cluster_exchange, self).tearDown()
 
-    def get_controller(self):
-        controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
-        controller = controller.split(',')[0]
-        return controller
-
-    @classmethod
-    def get_controllers(cls):
-        controllers = os.getenv('ONOS_CONTROLLER_IP') or ''
-        return controllers.split(',')
-
     def cliEnter(self, controller = None):
         retries = 0
         while retries < 30:
@@ -130,7 +120,7 @@ class cluster_exchange(CordLogger):
     def get_leaders(self, controller = None):
         result_map = {}
         if controller is None:
-            controller = self.get_controller()
+            controller = get_controller()
         if type(controller) in [ list, tuple ]:
             for c in controller:
                 leaders = self.get_leader(controller = c)
@@ -202,7 +192,7 @@ class cluster_exchange(CordLogger):
 
     def get_cluster_container_names_ips(self,controller=None):
         onos_names_ips = {}
-        controllers = self.get_controllers()
+        controllers = get_controllers()
         i = 0
         for controller in controllers:
             if i == 0:
@@ -347,7 +337,7 @@ class cluster_exchange(CordLogger):
 	return True
 
     def cluster_controller_restarts(self, graceful = False):
-        controllers = self.get_controllers()
+        controllers = get_controllers()
         ctlr_len = len(controllers)
         if ctlr_len <= 1:
             log.info('ONOS is not running in cluster mode. This test only works for cluster mode')
@@ -446,7 +436,7 @@ class cluster_exchange(CordLogger):
 
     def test_cluster_single_controller_restarts(self):
         '''Test the cluster by repeatedly restarting the same controller'''
-        controllers = self.get_controllers()
+        controllers = get_controllers()
         ctlr_len = len(controllers)
         if ctlr_len <= 1:
             log.info('ONOS is not running in cluster mode. This test only works for cluster mode')
@@ -529,7 +519,7 @@ class cluster_exchange(CordLogger):
 
     def test_cluster_restarts(self):
         '''Test the cluster by repeatedly restarting the entire cluster'''
-        controllers = self.get_controllers()
+        controllers = get_controllers()
         ctlr_len = len(controllers)
         if ctlr_len <= 1:
             log.info('ONOS is not running in cluster mode. This test only works for cluster mode')

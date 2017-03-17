@@ -22,7 +22,8 @@ cli_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../cli')
 sys.path.append(utils_dir)
 sys.path.append(cli_dir)
 sys.path.insert(1, '/usr/local/lib/python2.7/dist-packages')
-from OnosCtrl import OnosCtrl, get_mac
+from CordTestUtils import get_mac
+from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
 from threadPool import ThreadPool

@@ -16,7 +16,7 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from OnosCtrl import OnosCtrl, get_mac
+from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
 from onosclidriver import OnosCliDriver
@@ -42,7 +42,7 @@ class acl_exchange(unittest.TestCase):
     ingress_iface = 1
     egress_iface = 2
     MAX_PORTS = 100
-    CURRENT_PORT_NUM = egress_iface 
+    CURRENT_PORT_NUM = egress_iface
     ACL_SRC_IP = '192.168.20.3/32'
     ACL_DST_IP = '192.168.30.2/32'
     ACL_SRC_IP_RULE_2 = '192.168.40.3/32'
@@ -79,7 +79,7 @@ class acl_exchange(unittest.TestCase):
     def tearDown(self):
         '''Deactivate the acl app'''
         log.info('Tear down setup')
-        self.CURRENT_PORT_NUM = 4 
+        self.CURRENT_PORT_NUM = 4
 
     def cliEnter(self):
         retries = 0
@@ -115,12 +115,12 @@ class acl_exchange(unittest.TestCase):
                break
             egress_iface_count += 1
             egress_iface_num += 1
-            
+
 
     @classmethod
     def acl_hosts_remove(cls, egress_iface_count = 1,  egress_iface_num = None):
         if egress_iface_num is None:
-           egress_iface_num = cls.egress_iface  
+           egress_iface_num = cls.egress_iface
         n = 0
         for n in range(egress_iface_count):
            egress = cls.port_map[egress_iface_num]
@@ -246,7 +246,7 @@ class acl_exchange(unittest.TestCase):
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
-        
+
     def test_acl_remove_all_rules_without_add(self):
         status, _ = ACLTest.remove_acl_rule()
         if status is False:
@@ -272,7 +272,7 @@ class acl_exchange(unittest.TestCase):
         if status is False:
             log.info('JSON request returned status %d' %code)
             assert_equal(status, True)
-        
+
     def test_acl_allow_rules_for_matched_dst_ips(self):
         acl_rule = ACLTest()
         status, code = acl_rule.adding_acl_rule('v4', srcIp=self.ACL_SRC_IP, dstIp ='192.168.30.2/24', action = 'allow')
@@ -1152,6 +1152,3 @@ class acl_exchange(unittest.TestCase):
         self.acl_rule_traffic_send_recv(srcMac = srcMac, dstMac = dstMac ,srcIp =self.ACL_SRC_IP, dstIp = self.ACL_DST_IP,ingress =ingress, egress = egress, ip_proto = 'UDP', dstPortNum = 987, positive_test = False)
         self.cliExit()
         self.acl_hosts_remove(egress_iface_count = 2,  egress_iface_num = egress-1)
-
-
-
