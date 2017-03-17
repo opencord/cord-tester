@@ -24,43 +24,41 @@ from twisted.internet import defer
 from onosclidriver import OnosCliDriver
 from CordContainer import Container, Onos, Quagga
 from CordTestServer import cord_test_onos_restart, cord_test_onos_shutdown
+from SSHTestAgent import SSHTestAgent
 from portmaps import g_subscriber_port_map
 from scapy.all import *
 import time, monotonic
 from OnosLog import OnosLog
 from CordLogger import CordLogger
-from os import environ as env
 import os
 import json
 import random
 import collections
 import paramiko
 from paramiko import SSHClient
+from neutronclient.v2_0 import client as neutron_client
+from novaclient import client as nova_client
 log.setLevel('INFO')
 
 class vsg_exchange(CordLogger):
     ONOS_INSTANCES = 3
     V_INF1 = 'veth0'
     device_id = 'of:' + get_mac()
-    testcaseLoggers = ("")
     TEST_IP = '8.8.8.8'
     HOST = "10.1.0.1"
     USER = "vagrant"
     PASS = "vagrant"
-
+    head_node = os.environ['HEAD_NODE']
+    HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
 
     def setUp(self):
-        if self._testMethodName not in self.testcaseLoggers:
-            super(vsg_exchange, self).setUp()
+        super(vsg_exchange, self).setUp()
+        self.controllers = self.get_controllers()
+        self.controller = self.controllers[0]
+        self.cli = None
 
     def tearDown(self):
-        if self._testMethodName not in self.testcaseLoggers:
-            super(vsg_exchange, self).tearDown()
-
-    def get_controller(self):
-        controller = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
-        controller = controller.split(',')[0]
-        return controller
+        super(vsg_exchange, self).tearDown()
 
     @classmethod
     def get_controllers(cls):
@@ -92,90 +90,98 @@ class vsg_exchange(CordLogger):
         self.cliExit()
         return status
 
-    def log_set(self, level = None, app = 'org.onosproject', controllers = None):
-        CordLogger.logSet(level = level, app = app, controllers = controllers, forced = True)
+    def log_set(self, level = None, app = 'org.onosproject'):
+        CordLogger.logSet(level = level, app = app, controllers = self.controllers, forced = True)
 
-    def get_nova_credentials_v2():
+    def get_nova_credentials_v2(self):
         credential = {}
-        credential['version'] = '2'
-        credential['username'] = env['OS_USERNAME']
-        credential['api_key'] = env['OS_PASSWORD']
-        credential['auth_url'] = env['OS_AUTH_URL']
-        credential['project_id'] = env['OS_TENANT_NAME']
+        credential['username'] = os.environ['OS_USERNAME']
+        credential['api_key'] = os.environ['OS_PASSWORD']
+        credential['auth_url'] = os.environ['OS_AUTH_URL']
+        credential['project_id'] = os.environ['OS_TENANT_NAME']
         return credential
 
-    def get_vsg_ip(vm_id):
-        credentials = get_nova_credentials_v2()
-        nova_client = Client(**credentials)
-        result = nova_client.servers.list()
-        for server in result:
-            print server;
+    def get_compute_nodes(self):
+        credentials = self.get_nova_credentials_v2()
+        nvclient = nova_client.Client('2', **credentials)
+        return nvclient.hypervisors.list()
 
+    def get_vsgs(self, active = True):
+        credentials = self.get_nova_credentials_v2()
+        nvclient = nova_client.Client('2', **credentials)
+        vsgs = nvclient.servers.list(search_opts = {'all_tenants': 1})
+        if active is True:
+            return filter(lambda vsg: vsg.status == True, vsgs)
+        return vsgs
+
+    def get_vsg_ip(self, vm_name):
+        vsgs = self.get_vsgs()
+        vm = filter(lambda vsg: vsg.name == vm_name, vsgs)
+        if vm:
+            if vm.networks.has_key('management'):
+                ips = vm.networks['management']
+                if len(ips) > 0:
+                    return ips[0]
+        return None
+
+    def get_compute_node(self, vsg):
+        return vsg._info['OS-EXT-SRV-ATTR:hypervisor_hostname']
+
+    #ping the vsg through the compute node.
+    #the ssh key is already used by SSHTestAgent in cord-tester
+    def get_vsg_health(self, vsg):
+        compute_node = self.get_compute_node(vsg)
+        vsg_ip = self.get_vsg_ip(vsg.name)
+        if vsg_ip is None:
+            return False
+        ssh_agent = SSHTestAgent(compute_node)
+        st, _ = ssh_agent.run_cmd('ping -c 1 {}'.format(vsg_ip))
+        return st
+
+    #returns 0 if all active vsgs are reachable through the compute node
     def health_check(self):
-        cmd = "nova list --all-tenants|grep mysite_vsg|cut -d '|' -f 2"
-        status, nova_id = commands.getstatusoutput(cmd)
-        cmd = "nova interface-list {{ nova_id }}|grep -o -m 1 '172\.27\.[[:digit:]]*\.[[:digit:]]*'"
-        status, ip = commands.getstatusoutput(cmd)
-        cmd = "ping -c1 {0}".format(ip)
-        status =  os.system(cmd)
-        return status
+        vsgs = self.get_vsgs()
+        vsg_status = []
+        for vsg in vsgs:
+            vsg_status.append(self.get_vsg_health(vsg))
+        unreachable = filter(lambda st: st == False, vsg_status)
+        return len(unreachable) == 0
 
-    def ping_ip(remote, ip):
-        results = []
-        cmd = "ping -c1 {0}".format(ip)
-        result = remote.execute(cmd, verbose=False)
-        return results
-
-    def vsg_vm_ssh_check(vsg_ip):
-        cmd = "nc -z -v "+str(vsg_ip)+" 22"
-        status =  os.system(cmd)
-        return status
-
-    def get_vcpe(self):
-        cmd = "nova list --all-tenants|grep mysite_vsg|cut -d '|' -f 2"
-        status, node_id = commands.getstatusoutput(cmd)
-
-    def connect_ssh(vsg_ip, private_key_file=None, user='ubuntu'):
-        key = ssh.RSAKey.from_private_key_file(private_key_file)
-        client = ssh.SSHClient()
-        client.set_missing_host_key_policy(ssh.WarningPolicy())
-        client.connect(ip, username=user, pkey=key, timeout=5)
-        return client
+    #use SSHTestAgent to talk to the vsg through the compute node like in get_vsg_health
+    # def connect_ssh(vsg_ip, private_key_file=None, user='ubuntu'):
+    #     key = ssh.RSAKey.from_private_key_file(private_key_file)
+    #     client = ssh.SSHClient()
+    #     client.set_missing_host_key_policy(ssh.WarningPolicy())
+    #     client.connect(ip, username=user, pkey=key, timeout=5)
+    #     return client
 
     def test_vsg_vm(self):
         status = self.health_check()
-        assert_equal( status, False)
+        assert_equal( status, True)
 
     def test_vsg_for_default_route_to_vsg_vm(self):
-        client = SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect( self.HOST, username = self.USER, password=self.PASS)
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "sudo lxc exec testclient -- route | grep default"
-        stdin, stdout, stderr = client.exec_command(cmd)
-        status = stdout.channel.recv_exit_status()
-        assert_equal( status, False)
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
 
     def test_vsg_vm_for_vcpe(self):
-        client = SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect( self.HOST, username = self.USER, password=self.PASS)
-        cmd = "nova service-list|grep nova-compute|cut -d '|' -f 3"
-        stdin, stdout, stderr = client.exec_command(cmd)
-        cmd = "nova list --all-tenants | grep mysite_vsg|cut -d '|' -f 7 | cut -d '=' -f 2 | cut -d ';' -f 1"
-        status, ip = commands.getstatusoutput(cmd)
-        #cmd = "ssh -o ProxyCommand="ssh -W %h:%p -l ubuntu {0}" ubuntu@{1} "sudo docker ps|grep vcpe"".format(compute_node_name, ip)
-        status = stdout.channel.recv_exit_status()
-        assert_equal( status, False)
+        vsgs = self.get_vsgs()
+        compute_nodes = self.get_compute_nodes()
+        assert_not_equal(len(vsgs), 0)
+        assert_not_equal(len(compute_nodes), 0)
 
+    #TODO: use cord-test container itself to dhclient on vcpe interfaces
+    #using the info from OltConfig().get_vcpes()
+    #deleting default through eth0, fetching ip through dhclient on vcpe,
+    #and testing for dhcp ip on vcpe0 and default route on vcpe0 before pinging 8.8.8.8
     def test_vsg_for_external_connectivity(self):
-        client = SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect( self.HOST, username = self.USER, password=self.PASS)
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
-        stdin, stdout, stderr = client.exec_command(cmd)
-        status = stdout.channel.recv_exit_status()
-        assert_equal( status, False)
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal( status, True)
 
+    #below tests need to be changed to login to vsg through the compute node as in health check
     def test_vsg_vm_for_login_to_vsg(self):
         client = SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -197,6 +203,7 @@ class vsg_exchange(CordLogger):
         assert_equal( status, False)
         log.info('ls output at compute node is %s'%stdout.read())
 
+    #these need to first get dhcp through dhclient on vcpe interfaces (using OltConfig get_vcpes())
     def test_vsg_external_connectivity_with_sending_icmp_echo_requests(self):
         host = '8.8.8.8'
         self.success = False
@@ -1009,4 +1016,3 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_iptables_with_neutron(self):
         pass
-

@@ -31,7 +31,6 @@ def get_nova_credentials():
 
 def get_nova_credentials_v2():
     n = {}
-    n['version'] = '2'
     n['username'] = os.environ['OS_USERNAME']
     n['api_key'] = os.environ['OS_PASSWORD']
     n['auth_url'] = os.environ['OS_AUTH_URL']
