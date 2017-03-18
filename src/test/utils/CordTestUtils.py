@@ -36,6 +36,17 @@ def get_mac(iface = None, pad = 4):
         sep = ':'
     return '0'*pad + sep.join(['%02x' %ord(char) for char in info[18:24]])
 
+def get_default_gw():
+    cmd = "ip route show | grep default | head -1 | awk '{print $3}'"
+    cmd_dev = "ip route show | grep default | head -1 | awk '{print $NF}'"
+    st, gw = getstatusoutput(cmd)
+    st2, gw_device = getstatusoutput(cmd_dev)
+    if st != 0:
+        gw = None
+    if st2 != 0:
+        gw_device = None
+    return gw, gw_device
+
 def get_controllers():
     controllers = os.getenv('ONOS_CONTROLLER_IP') or 'localhost'
     return controllers.split(',')

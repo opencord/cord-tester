@@ -15,7 +15,7 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from CordTestUtils import get_mac, get_controllers
+from CordTestUtils import *
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from socket import socket
@@ -32,6 +32,7 @@ import time, monotonic
 from OnosLog import OnosLog
 from CordLogger import CordLogger
 import os
+import shutil
 import json
 import random
 import collections
@@ -52,14 +53,23 @@ class vsg_exchange(CordLogger):
     head_node = os.environ['HEAD_NODE']
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
 
-    def setUp(self):
-        super(vsg_exchange, self).setUp()
-        self.controllers = get_controllers()
-        self.controller = self.controllers[0]
-        self.cli = None
+    @classmethod
+    def setUpClass(cls):
+        cls.controllers = get_controllers()
+        cls.controller = cls.controllers[0]
+        cls.cli = None
+        cls.interface_map = {}
+        try:
+            shutil.copy('/etc/resolv.conf', '/etc/resolv.conf.orig')
+        except:
+            pass
 
-    def tearDown(self):
-        super(vsg_exchange, self).tearDown()
+    @classmethod
+    def tearDownClass(cls):
+        try:
+            shutil.copy('/etc/resolv.conf.orig', '/etc/resolv.conf')
+        except:
+            pass
 
     def cliEnter(self, controller = None):
         retries = 0
@@ -107,13 +117,14 @@ class vsg_exchange(CordLogger):
         nvclient = nova_client.Client('2', **credentials)
         vsgs = nvclient.servers.list(search_opts = {'all_tenants': 1})
         if active is True:
-            return filter(lambda vsg: vsg.status == True, vsgs)
+            return filter(lambda vsg: vsg.status == 'ACTIVE', vsgs)
         return vsgs
 
     def get_vsg_ip(self, vm_name):
         vsgs = self.get_vsgs()
-        vm = filter(lambda vsg: vsg.name == vm_name, vsgs)
-        if vm:
+        vms = filter(lambda vsg: vsg.name == vm_name, vsgs)
+        if vms:
+            vm = vms[0]
             if vm.networks.has_key('management'):
                 ips = vm.networks['management']
                 if len(ips) > 0:
@@ -177,47 +188,94 @@ class vsg_exchange(CordLogger):
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal( status, True)
 
-    #below tests need to be changed to login to vsg through the compute node as in health check
+    def check_vsg_access(self, vsg):
+        compute_node = self.get_compute_node(vsg)
+        vsg_ip = self.get_vsg_ip(vsg.name)
+        if vsg_ip is None:
+            return False
+        ssh_agent = SSHTestAgent(compute_node)
+        st, _ = ssh_agent.run_cmd('ls', timeout=10)
+        if st == False:
+            return st
+        st, _ = ssh_agent.run_cmd('ssh {} ls'.format(vsg_ip), timeout=30)
+        return st
+
     def test_vsg_vm_for_login_to_vsg(self):
-        client = SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        keyfile = open('/root/id_rsa','r')
-        key = str(keyfile.read())
-        keyfile.close()
-        log.info('read key is %s'%key)
-        key = paramiko.RSAKey.from_private_key(StringIO(key), password=None)
-        client.connect( '10.1.0.17', username = 'ubuntu', pkey=key, password=None)
-        cmd = "ls"
-        stdin, stdout, stderr = client.exec_command(cmd)
-        status = stdout.channel.recv_exit_status()
-        assert_equal( status, False)
-        log.info('ls output at compute node is %s'%stdout.read())
-        client.connect( '172.27.0.2', username = 'ubuntu', pkey=key, password=None)
-        cmd = "pwd"
-        stdin, stdout, stderr = client.exec_command(cmd)
-        status = stdout.channel.recv_exit_status()
-        assert_equal( status, False)
-        log.info('ls output at compute node is %s'%stdout.read())
+        vsgs = self.get_vsgs()
+        vsg_access_status = map(self.check_vsg_access, vsgs)
+        status = filter(lambda st: st == False, vsg_access_status)
+        assert_equal(len(status), 0)
+
+    def save_interface_config(self, intf):
+        if intf not in self.interface_map:
+            ip = get_ip(intf)
+            if ip is None:
+                ip = '0.0.0.0'
+            default_gw, default_gw_device = get_default_gw()
+            if default_gw_device != intf:
+                default_gw = '0.0.0.0'
+            self.interface_map[intf] = { 'ip' : ip, 'gw': default_gw }
+            #bounce the interface to remove default gw
+            cmds = ['ifconfig {} 0 down'.format(intf),
+                    'ifconfig {} 0 up'.format(intf)
+                    ]
+            for cmd in cmds:
+                os.system(cmd)
+
+    def restore_interface_config(self, intf, vcpe = None):
+        if intf in self.interface_map:
+            ip = self.interface_map[intf]['ip']
+            gw = self.interface_map[intf]['gw']
+            del self.interface_map[intf]
+            cmds = []
+            if vcpe is not None:
+                shutil.copy('/etc/resolv.conf.orig', '/etc/resolv.conf')
+                #bounce the vcpes to clear default gw
+                cmds.append('ifconfig {} 0 down'.format(vcpe))
+                cmds.append('ifconfig {} 0 up'.format(vcpe))
+            cmds.append('ifconfig {} {} up'.format(intf, ip))
+            if gw and gw != '0.0.0.0':
+                cmds.append('route add default gw {} dev {}'.format(gw, intf))
+            for cmd in cmds:
+                os.system(cmd)
+
+    def vcpe_get_dhcp(self, vcpe, mgmt = 'eth0'):
+        self.save_interface_config(mgmt)
+        st, output = getstatusoutput('dhclient -q {}'.format(vcpe))
+        vcpe_ip = get_ip(vcpe)
+        if vcpe_ip is None:
+            self.restore_interface_config(mgmt)
+            return None
+        if output:
+            #workaround for docker container apparmor that prevents moving dhclient resolv.conf
+            start = output.find('/etc/resolv.conf')
+            if start >= 0:
+                end = output.find("'", start)
+                dns_file = output[start:end]
+                if os.access(dns_file, os.F_OK):
+                    shutil.copy(dns_file, '/etc/resolv.conf')
+
+        default_gw, default_gw_device = get_default_gw()
+        if default_gw and default_gw_device == vcpe:
+            return vcpe_ip
+        self.restore_interface_config(mgmt, vcpe = vcpe)
+        return None
 
     #these need to first get dhcp through dhclient on vcpe interfaces (using OltConfig get_vcpes())
     def test_vsg_external_connectivity_with_sending_icmp_echo_requests(self):
+        vcpe = 'vcpe0.222.111'
+        mgmt = 'eth0'
         host = '8.8.8.8'
         self.success = False
-        def mac_recv_task():
-            def recv_cb(pkt):
-                log.info('Recieved icmp echo reply as expected')
-                self.success = True
-            sniff(count=1, timeout=5,
-                 lfilter = lambda p: IP in p and p[ICMP].type==0, #p[IP].src == host,
-                 prn = recv_cb, iface = 'vcpe0.222.111')
-        t = threading.Thread(target = mac_recv_task)
-        t.start()
-        L3 = IP(dst = host)
-        pkt = L3/ICMP()
-        log.info('Sending icmp echo requests to external network')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t.join()
-        assert_equal(self.success, True)
+        #we can assume that dhcp vcpe is tagged 222.111 for now.
+        #otherwise we can make the list for others with OltConfig get_vcpes
+        vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Sending icmp echo requests to external network 8.8.8.8')
+        st, _ = getstatusoutput('ping -c 3 8.8.8.8')
+        self.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(st, 0)
 
     def test_vsg_external_connectivity_sending_icmp_ping_on_different_interface(self):
         host = '8.8.8.8'
@@ -259,61 +317,39 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_external_connectivity_pinging_to_google(self):
         host = 'www.google.com'
-        self.success = False
-        def mac_recv_task():
-            def recv_cb(pkt):
-                log.info('Recieved icmp echo reply as expected')
-                self.success = True
-            sniff(count=3, timeout=5,
-                 lfilter = lambda p: IP in p and p[ICMP].type== 0,
-                 prn = recv_cb, iface = 'vcpe0.222.111')
-        t = threading.Thread(target = mac_recv_task)
-        t.start()
-        L3 = IP(dst = host)
-        pkt = L3/ICMP()
-        log.info('Sending icmp ping requests to google.com')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t.join()
-        assert_equal(self.success, True)
+        vcpe = 'vcpe0.222.111'
+        mgmt = 'eth0'
+        vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Sending icmp ping requests to %s' %host)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        self.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(st, 0)
 
     def test_vsg_external_connectivity_pinging_to_non_existing_website(self):
         host = 'www.goglee.com'
-        self.success = False
-        def mac_recv_task():
-            def recv_cb(pkt):
-                log.info('Recieved icmp echo reply which is not expected')
-                self.success = True
-            sniff(count=1, timeout=5,
-                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
-                 prn = recv_cb, iface = 'vcpe0.222.111')
-        t = threading.Thread(target = mac_recv_task)
-        t.start()
-        L3 = IP(dst = host)
-        pkt = L3/ICMP()
-        log.info('Sending icmp ping  requests to non existing website')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t.join()
-        assert_equal(self.success, False)
+        vcpe = 'vcpe0.222.111'
+        mgmt = 'eth0'
+        vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Sending icmp ping requests to non existent host %s' %host)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        self.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_not_equal(st, 0)
 
     def test_vsg_external_connectivity_ping_to_google_with_ttl_1(self):
         host = '8.8.8.8'
-        self.success = False
-        def mac_recv_task():
-            def recv_cb(pkt):
-                log.info('icmp ping reply received Pkt is %s' %pkt.show())
-                #log.info('icmp ping reply received Pkt is %s' %pkt[ICMP])
-                self.success = True
-            sniff(count=1, timeout=5,
-                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
-                 prn = recv_cb, iface = 'vcpe0.222.111')
-        t = threading.Thread(target = mac_recv_task)
-        t.start()
-        L3 = IP(dst = host, ttl=1)
-        pkt = L3/ICMP()
-        log.info('Sending icmp ping requests to external network with ip ttl value set to 1')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t.join()
-        assert_equal(self.success, False)
+        vcpe = 'vcpe0.222.111'
+        mgmt = 'eth0'
+        vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Sending icmp ping requests to host %s with ttl 1' %host)
+        st, _ = getstatusoutput('ping -c 1 -t 1 {}'.format(host))
+        self.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_not_equal(st, 0)
 
     def test_vsg_for_external_connectivity_with_wan_interface_down_and_making_up_in_vcpe_container(self):
         host = '8.8.8.8'
