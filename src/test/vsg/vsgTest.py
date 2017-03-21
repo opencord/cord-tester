@@ -14,8 +14,6 @@
 #
 import time
 import os
-import shutil
-import re
 from nose.tools import *
 from scapy.all import *
 from CordTestUtils import *
