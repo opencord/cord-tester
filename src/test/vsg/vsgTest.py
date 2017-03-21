@@ -139,7 +139,10 @@ class vsg_exchange(CordLogger):
             return filter(lambda vsg: vsg.status == 'ACTIVE', vsgs)
         return vsgs
 
-    def get_vsg_ip(self, vm_name):
+    def get_vsg_ip(self, vm_name, vcpe = None):
+        if vcpe is not None:
+            if vcpe in self.vcpe_map:
+                return self.vcpe_map[vcpe]['vsg_ip']
         vsgs = self.get_vsgs()
         vms = filter(lambda vsg: vsg.name == vm_name, vsgs)
         if vms:
@@ -290,10 +293,7 @@ class vsg_exchange(CordLogger):
             vsg = self.get_vcpe_vsg(vcpe)
             if vsg is None:
                 return False
-        if vcpe in self.vcpe_map:
-            vsg_ip = self.vcpe_map[vcpe]['vsg_ip']
-        else:
-            vsg_ip = self.get_vsg_ip(vsg.name)
+        vsg_ip = self.get_vsg_ip(vsg.name, vcpe = vcpe)
         compute_node = self.get_compute_node(vsg)
         cmd = 'sudo docker exec {} ip link set eth1 up'.format(vcpe)
         st, _ = self.run_cmd_vsg(compute_node, vsg_ip, cmd, timeout = 30)
@@ -307,7 +307,7 @@ class vsg_exchange(CordLogger):
                 return False
         if not self.save_vcpe_config(vsg, vcpe):
             return False
-        vsg_ip = self.get_vsg_ip(vsg.name)
+        vsg_ip = self.get_vsg_ip(vsg.name, vcpe = vcpe)
         compute_node = self.get_compute_node(vsg)
         cmd = 'sudo docker exec {} ip link set {} down'.format(vcpe, port)
         st, _ = self.run_cmd_vsg(compute_node, vsg_ip, cmd, timeout = 30)
@@ -581,8 +581,7 @@ class vsg_exchange(CordLogger):
             self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, True)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        if st != 0:
-            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
 
     def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe_container(self):
@@ -614,8 +613,7 @@ class vsg_exchange(CordLogger):
             self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, True)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        if st != 0:
-            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
 
     def test_vsg_for_ping_from_vsg_to_external_network(self):
