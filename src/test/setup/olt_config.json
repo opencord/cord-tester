@@ -5,7 +5,7 @@
   "vcpe" :
       [
         {
-          "port" : "fabric", "s_tag" : 222, "c_tag" : 111
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 222, "c_tag" : 111
         }
       ]
 }

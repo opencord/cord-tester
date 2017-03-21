@@ -37,6 +37,7 @@ import json
 import random
 import collections
 import paramiko
+import re
 from paramiko import SSHClient
 from neutronclient.v2_0 import client as neutron_client
 from novaclient import client as nova_client
@@ -52,6 +53,9 @@ class vsg_exchange(CordLogger):
     PASS = "vagrant"
     head_node = os.environ['HEAD_NODE']
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
+    test_path = os.path.dirname(os.path.realpath(__file__))
+    olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+    ip_addr_pattern = re.compile('[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$')
 
     @classmethod
     def setUpClass(cls):
@@ -59,6 +63,21 @@ class vsg_exchange(CordLogger):
         cls.controller = cls.controllers[0]
         cls.cli = None
         cls.interface_map = {}
+        cls.vcpe_map = {}
+        cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
+        cls.vcpes = cls.olt.get_vcpes()
+        cls.vcpes_dhcp = cls.olt.get_vcpes_by_type('dhcp')
+        vcpe_dhcp = None
+        vcpe_dhcp_stag = None
+        vcpe_container = None
+        #cache the first dhcp vcpe in the class for quick testing
+        if cls.vcpes_dhcp:
+            vcpe_container = 'vcpe-{}-{}'.format(cls.vcpes_dhcp[0]['s_tag'], cls.vcpes_dhcp[0]['c_tag'])
+            vcpe_dhcp = 'vcpe0.{}.{}'.format(cls.vcpes_dhcp[0]['s_tag'], cls.vcpes_dhcp[0]['c_tag'])
+            vcpe_dhcp_stag = 'vcpe0.{}'.format(cls.vcpes_dhcp[0]['s_tag'])
+        cls.vcpe_container = vcpe_container
+        cls.vcpe_dhcp = vcpe_dhcp
+        cls.vcpe_dhcp_stag = vcpe_dhcp_stag
         try:
             shutil.copy('/etc/resolv.conf', '/etc/resolv.conf.orig')
         except:
@@ -134,6 +153,28 @@ class vsg_exchange(CordLogger):
     def get_compute_node(self, vsg):
         return vsg._info['OS-EXT-SRV-ATTR:hypervisor_hostname']
 
+    def run_cmd_compute(self, compute, cmd, timeout = 5):
+        ssh_agent = SSHTestAgent(compute)
+        st, output = ssh_agent.run_cmd(cmd, timeout = timeout)
+        if st == True and output:
+            output = output.strip()
+        else:
+            output = None
+
+        return st, output
+
+    def run_cmd_vsg(self, compute, vsg_ip, cmd, timeout = 5, mgmt = 'eth0'):
+        last_gw = self.open_compute(mgmt)
+        ssh_agent = SSHTestAgent(compute)
+        ssh_cmd = 'ssh {} {}'.format(vsg_ip, cmd)
+        st, output = ssh_agent.run_cmd(ssh_cmd, timeout = timeout)
+        if st == True and output:
+            output = output.strip()
+        else:
+            output = None
+        self.close_compute(last_gw, mgmt)
+        return st, output
+
     #ping the vsg through the compute node.
     #the ssh key is already used by SSHTestAgent in cord-tester
     def get_vsg_health(self, vsg):
@@ -141,8 +182,8 @@ class vsg_exchange(CordLogger):
         vsg_ip = self.get_vsg_ip(vsg.name)
         if vsg_ip is None:
             return False
-        ssh_agent = SSHTestAgent(compute_node)
-        st, _ = ssh_agent.run_cmd('ping -c 1 {}'.format(vsg_ip))
+        cmd = 'ping -c 1 {}'.format(vsg_ip)
+        st, _ = self.run_cmd_compute(compute_node, cmd)
         return st
 
     #returns 0 if all active vsgs are reachable through the compute node
@@ -153,6 +194,133 @@ class vsg_exchange(CordLogger):
             vsg_status.append(self.get_vsg_health(vsg))
         unreachable = filter(lambda st: st == False, vsg_status)
         return len(unreachable) == 0
+
+    #find the vsg hosting the vcpe service
+    def get_vcpe_vsg(self, vcpe):
+        if vcpe in self.vcpe_map:
+            return self.vcpe_map[vcpe]['vsg']
+        vsgs = self.get_vsgs()
+        for vsg in vsgs:
+            vsg_ip = self.get_vsg_ip(vsg.name)
+            compute_node = self.get_compute_node(vsg)
+            cmd = 'sudo docker exec {} ls 2>/dev/null'.format(vcpe)
+            st, _ = self.run_cmd_vsg(compute_node, vsg_ip, cmd, timeout = 30)
+            if st == True:
+                return vsg
+        return None
+
+    def save_vcpe_config(self, vsg, vcpe):
+        if vcpe not in self.vcpe_map:
+            cmd_gw = "sudo docker exec %s ip route show | grep default | head -1 | awk '{print $3}'" %(vcpe)
+            vsg_ip = self.get_vsg_ip(vsg.name)
+            if vsg_ip is None:
+                return False
+            compute_node = self.get_compute_node(vsg)
+            st, output = self.run_cmd_vsg(compute_node, vsg_ip, cmd_gw, timeout = 30)
+            if st == False or not output:
+                return False
+            gw = output
+            cmd_wan = "sudo docker exec %s ip addr show eth0 |grep inet |head -1 | tr -s ' ' | awk '{print $2}' | awk '{print $1}'" %(vcpe)
+            cmd_lan = "sudo docker exec %s ip addr show eth1 |grep inet |head -1 | tr -s ' ' | awk '{print $2}' | awk '{print $1}'" %(vcpe)
+            st, output = self.run_cmd_vsg(compute_node, vsg_ip, cmd_wan, timeout = 30)
+            ip_wan = '0.0.0.0/24'
+            ip_lan = '0.0.0.0/24'
+            if st and output:
+                if self.ip_addr_pattern.match(output):
+                    ip_wan = output
+
+            st, output = self.run_cmd_vsg(compute_node, vsg_ip, cmd_lan, timeout = 30)
+            if st and output:
+                if self.ip_addr_pattern.match(output):
+                    ip_lan = output
+
+            self.vcpe_map[vcpe] = { 'vsg': vsg, 'vsg_ip': vsg_ip, 'gw': gw, 'wan': ip_wan, 'lan': ip_lan }
+
+        return True
+
+    def restore_vcpe_config(self, vcpe, gw = True, wan = False, lan = False):
+        if vcpe in self.vcpe_map:
+            vsg = self.vcpe_map[vcpe]['vsg']
+            vsg_ip = self.vcpe_map[vcpe]['vsg_ip']
+            compute_node = self.get_compute_node(vsg)
+            cmds = []
+            if gw is True:
+                #restore default gw
+                gw = self.vcpe_map[vcpe]['gw']
+                cmds.append('sudo docker exec {} ip link set eth0 up'.format(vcpe))
+                cmds.append('sudo docker exec {} route add default gw {} dev eth0'.format(vcpe, gw))
+            if wan is True:
+                ip_wan = self.vcpe_map[vcpe]['wan']
+                cmds.append('sudo docker exec {} ip addr set {} dev eth0'.format(vcpe, ip_wan))
+            if lan is True:
+                ip_lan = self.vcpe_map[vcpe]['lan']
+                cmds.append('sudo docker exec {} ip addr set {} dev eth1'.format(vcpe, ip_lan))
+            ret_status = True
+            for cmd in cmds:
+                st, _ = self.run_cmd_vsg(compute_node, vsg_ip, cmd, timeout = 30)
+                if st == False:
+                    ret_status = False
+            return ret_status
+        return False
+
+    def get_vcpe_gw(self, vcpe):
+        if vcpe in self.vcpe_map:
+            return self.vcpe_map[vcpe]['gw']
+        return None
+
+    def get_vcpe_wan(self, vcpe):
+        if vcpe in self.vcpe_map:
+            return self.vcpe_map[vcpe]['wan']
+        return None
+
+    def get_vcpe_lan(self, vcpe):
+        if vcpe in self.vcpe_map:
+            return self.vcpe_map[vcpe]['lan']
+        return None
+
+    def vcpe_wan_up(self, vcpe, vsg = None):
+        if vsg is None:
+            vsg = self.get_vcpe_vsg(vcpe)
+            if vsg is None:
+                return False
+        return self.restore_vcpe_config(vcpe)
+
+    def vcpe_lan_up(self, vcpe, vsg = None):
+        if vsg is None:
+            vsg = self.get_vcpe_vsg(vcpe)
+            if vsg is None:
+                return False
+        if vcpe in self.vcpe_map:
+            vsg_ip = self.vcpe_map[vcpe]['vsg_ip']
+        else:
+            vsg_ip = self.get_vsg_ip(vsg.name)
+        compute_node = self.get_compute_node(vsg)
+        cmd = 'sudo docker exec {} ip link set eth1 up'.format(vcpe)
+        st, _ = self.run_cmd_vsg(compute_node, vsg_ip, cmd, timeout = 30)
+        return st
+
+    #we cannot access compute node if the vcpe port gets dhcp as default would be through fabric
+    def vcpe_port_down(self, vcpe, port, vsg = None):
+        if vsg is None:
+            vsg = self.get_vcpe_vsg(vcpe)
+            if vsg is None:
+                return False
+        if not self.save_vcpe_config(vsg, vcpe):
+            return False
+        vsg_ip = self.get_vsg_ip(vsg.name)
+        compute_node = self.get_compute_node(vsg)
+        cmd = 'sudo docker exec {} ip link set {} down'.format(vcpe, port)
+        st, _ = self.run_cmd_vsg(compute_node, vsg_ip, cmd, timeout = 30)
+        if st is False:
+            self.restore_vcpe_config(vcpe)
+            return False
+        return st
+
+    def vcpe_wan_down(self, vcpe, vsg = None):
+        return self.vcpe_port_down(vcpe, 'eth0', vsg = vsg)
+
+    def vcpe_lan_down(self, vcpe, vsg = None):
+        return self.vcpe_port_down(vcpe, 'eth1', vsg = vsg)
 
     #use SSHTestAgent to talk to the vsg through the compute node like in get_vsg_health
     # def connect_ssh(vsg_ip, private_key_file=None, user='ubuntu'):
@@ -222,6 +390,34 @@ class vsg_exchange(CordLogger):
             for cmd in cmds:
                 os.system(cmd)
 
+    #open up access to compute node
+    def open_compute(self, intf = 'eth0'):
+        if intf in self.interface_map:
+            gw = self.interface_map[intf]['gw']
+            ip = self.interface_map[intf]['ip']
+            if gw != '0.0.0.0':
+                current_gw, _ = get_default_gw()
+                cmds = [ 'route del default gw {}'.format(current_gw),
+                         'ifconfig {} {} up'.format(intf, ip),
+                         'route add default gw {}'.format(gw) ]
+                for cmd in cmds:
+                    os.system(cmd)
+                shutil.copy('/etc/resolv.conf', '/etc/resolv.conf.lastdhcp')
+                shutil.copy('/etc/resolv.conf.orig', '/etc/resolv.conf')
+                return current_gw
+
+        return None
+
+    def close_compute(self, restore_gw, intf = 'eth0'):
+        if restore_gw:
+            cmds = [ 'route del default gw 0.0.0.0',
+                     'route add default gw {}'.format(restore_gw),
+                     'cp /etc/resolv.conf.lastdhcp /etc/resolv.conf',
+                     'rm -f /etc/resolv.conf.lastdhcp'
+                     ]
+            for cmd in cmds:
+                os.system(cmd)
+
     def restore_interface_config(self, intf, vcpe = None):
         if intf in self.interface_map:
             ip = self.interface_map[intf]['ip']
@@ -241,7 +437,9 @@ class vsg_exchange(CordLogger):
 
     def vcpe_get_dhcp(self, vcpe, mgmt = 'eth0'):
         self.save_interface_config(mgmt)
+        getstatusoutput('pkill -9 dhclient')
         st, output = getstatusoutput('dhclient -q {}'.format(vcpe))
+        getstatusoutput('pkill -9 dhclient')
         vcpe_ip = get_ip(vcpe)
         if vcpe_ip is None:
             self.restore_interface_config(mgmt)
@@ -263,12 +461,11 @@ class vsg_exchange(CordLogger):
 
     #these need to first get dhcp through dhclient on vcpe interfaces (using OltConfig get_vcpes())
     def test_vsg_external_connectivity_with_sending_icmp_echo_requests(self):
-        vcpe = 'vcpe0.222.111'
+        vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
         host = '8.8.8.8'
         self.success = False
-        #we can assume that dhcp vcpe is tagged 222.111 for now.
-        #otherwise we can make the list for others with OltConfig get_vcpes
+        assert_not_equal(vcpe, None)
         vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
@@ -299,26 +496,28 @@ class vsg_exchange(CordLogger):
     def test_vsg_external_connectivity_pinging_with_single_tag_negative_scenario(self):
         host = '8.8.8.8'
         self.success = False
+        assert_not_equal(self.vcpe_dhcp_stag, None)
         def mac_recv_task():
             def recv_cb(pkt):
                 log.info('Recieved icmp echo reply which is not expected')
                 self.success = True
             sniff(count=1, timeout=5,
-                 lfilter = lambda p: IP in p and p[ICMP].type == 0,
-                 prn = recv_cb, iface = 'vcpe0.222')
+                  lfilter = lambda p: IP in p and p[ICMP].type == 0,
+                  prn = recv_cb, iface = self.vcpe_dhcp_stag)
         t = threading.Thread(target = mac_recv_task)
         t.start()
         L3 = IP(dst = host)
         pkt = L3/ICMP()
         log.info('Sending icmp echo requests to external network')
-        send(pkt, count=3, iface = 'vcpe0.222')
+        send(pkt, count=3, iface = self.vcpe_dhcp_stag)
         t.join()
         assert_equal(self.success, False)
 
     def test_vsg_external_connectivity_pinging_to_google(self):
         host = 'www.google.com'
-        vcpe = 'vcpe0.222.111'
+        vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
         vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
@@ -329,8 +528,9 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_external_connectivity_pinging_to_non_existing_website(self):
         host = 'www.goglee.com'
-        vcpe = 'vcpe0.222.111'
+        vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
         vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
@@ -341,8 +541,9 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_external_connectivity_ping_to_google_with_ttl_1(self):
         host = '8.8.8.8'
-        vcpe = 'vcpe0.222.111'
+        vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
         vcpe_ip = self.vcpe_get_dhcp(vcpe, mgmt = mgmt)
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
@@ -353,71 +554,69 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_with_wan_interface_down_and_making_up_in_vcpe_container(self):
         host = '8.8.8.8'
-        self.success = False
-        def mac_recv_task():
-            def recv_cb(pkt):
-                log.info('icmp ping reply received')
-                self.success = True
-            sniff(count=1, timeout=5,
-                 lfilter = lambda p: ICMP in p and p[ICMP].type == 0,
-                 prn = recv_cb, iface = 'vcpe0.222.111')
-        t1 = threading.Thread(target = mac_recv_task)
-        t2 = threading.Thread(target = mac_recv_task)
-        t3 = threading.Thread(target = mac_recv_task)
-        t1.start()
-        L3 = IP(dst = host)
-        pkt = L3/ICMP()
-        log.info('Sending icmp ping requests to external network before wan interface on vpce container does down')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t1.join()
-        assert_equal(self.success, True)
-        #logging into vcpe and down wan interface
-        self.success = False
-        t2.start()
-        log.info('Sending icmp ping requests to external network after wan interface on vpce container does down')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t2.join()
-        assert_equal(self.success, False)
-        #logging into vcpe and bringing up wan interface
-        t3.start()
-        log.info('Sending icmp ping requests to external network after wan interface on vpce container comes up')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t3.join()
-        assert_equal(self.success, True)
+        mgmt = 'eth0'
+        vcpe = self.vcpe_container
+        assert_not_equal(vcpe, None)
+        assert_not_equal(self.vcpe_dhcp, None)
+        #first get dhcp on the vcpe interface
+        vcpe_ip = self.vcpe_get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
+        log.info('Sending ICMP pings to host %s' %(host))
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        if st != 0:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, 0)
+        #bring down the wan interface and check again
+        st = self.vcpe_wan_down(vcpe)
+        if st is False:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, True)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        if st == 0:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_not_equal(st, 0)
+        st = self.vcpe_wan_up(vcpe)
+        if st is False:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, True)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        if st != 0:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, 0)
 
     def test_vsg_for_external_connectivity_with_lan_interface_down_and_up_in_vcpe_container(self):
         host = '8.8.8.8'
-        self.success = False
-        def mac_recv_task():
-            def recv_cb(pkt):
-                log.info('icmp ping reply received Pkt is %s' %pkt.show())
-                self.success = True
-            sniff(count=1, timeout=5,
-                 lfilter = lambda p: ICMP in p and p[ICMP].type == 1,
-                 prn = recv_cb, iface = 'vcpe0.222.111')
-        t1 = threading.Thread(target = mac_recv_task)
-        t2 = threading.Thread(target = mac_recv_task)
-        t3 = threading.Thread(target = mac_recv_task)
-        t1.start()
-        L3 = IP(dst = host)
-        pkt = L3/ICMP()
-        log.info('Sending icmp ping requests to external network before lan interface on vpce container does down')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t1.join()
-        assert_equal(self.success, True)
-        #logging into vcpe and down lan interface
-        self.success = False
-        t2.start()
-        log.info('Sending icmp ping requests to external network after lan interface on vpce container does down')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t2.join()
-        assert_equal(self.success, False)
-        #logging into vcpe and bringing up lan interface
-        t3.start()
-        log.info('Sending icmp ping requests to external network after lan interface on vpce container comes up')
-        send(pkt, count=3, iface = 'vcpe0.222.111')
-        t3.join()
-        assert_equal(self.success, True)
+        mgmt = 'eth0'
+        vcpe = self.vcpe_container
+        assert_not_equal(vcpe, None)
+        assert_not_equal(self.vcpe_dhcp, None)
+        #first get dhcp on the vcpe interface
+        vcpe_ip = self.vcpe_get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
+        log.info('Sending ICMP pings to host %s' %(host))
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        if st != 0:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, 0)
+        #bring down the lan interface and check again
+        st = self.vcpe_lan_down(vcpe)
+        if st is False:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, True)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        if st == 0:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_not_equal(st, 0)
+        st = self.vcpe_lan_up(vcpe)
+        if st is False:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, True)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        if st != 0:
+            self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+        assert_equal(st, 0)
 
     def test_vsg_for_ping_from_vsg_to_external_network(self):
 	"""

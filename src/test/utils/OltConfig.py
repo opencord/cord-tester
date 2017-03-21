@@ -136,3 +136,6 @@ class OltConfig:
             if self.olt_conf.has_key('vcpe'):
                 return self.olt_conf['vcpe']
         return []
+
+    def get_vcpes_by_type(self, service):
+        return filter(lambda vcpe: vcpe['type'].lower() == service.lower(), self.get_vcpes())
