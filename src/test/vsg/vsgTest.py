@@ -460,7 +460,7 @@ class vsg_exchange(CordLogger):
         return None
 
     #these need to first get dhcp through dhclient on vcpe interfaces (using OltConfig get_vcpes())
-    def test_vsg_external_connectivity_with_sending_icmp_echo_requests(self):
+    def test_vsg_external_connectivity_sending_icmp_echo_requests(self):
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
         host = '8.8.8.8'
@@ -552,7 +552,7 @@ class vsg_exchange(CordLogger):
         self.restore_interface_config(mgmt, vcpe = vcpe)
         assert_not_equal(st, 0)
 
-    def test_vsg_for_external_connectivity_with_wan_interface_down_and_making_up_in_vcpe_container(self):
+    def test_vsg_for_external_connectivity_with_wan_interface_toggle_in_vcpe_container(self):
         host = '8.8.8.8'
         mgmt = 'eth0'
         vcpe = self.vcpe_container
@@ -585,7 +585,7 @@ class vsg_exchange(CordLogger):
             self.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
 
-    def test_vsg_for_external_connectivity_with_lan_interface_down_and_up_in_vcpe_container(self):
+    def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe_container(self):
         host = '8.8.8.8'
         mgmt = 'eth0'
         vcpe = self.vcpe_container
