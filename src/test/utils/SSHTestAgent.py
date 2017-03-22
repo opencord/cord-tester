@@ -19,7 +19,7 @@ class SSHTestAgent(object):
 
     def run_cmd(self, cmd, timeout = 5):
         """Run the command on the test host"""
-        host_remove = 'ssh-keygen -f "%s" -R [%s]:8101' %(self.hosts_file, self.host)
+        host_remove = 'ssh-keygen -f "%s" -R [%s]:8101 2>/dev/null' %(self.hosts_file, self.host)
         try:
             os.system(host_remove)
         except: pass
@@ -30,7 +30,7 @@ class SSHTestAgent(object):
         except:
             log.error('Unable to connect to test host %s' %self.host)
             return False, None
-        
+
         channel = self.client.get_transport().open_session()
         channel.exec_command(cmd)
         if channel.exit_status_ready():

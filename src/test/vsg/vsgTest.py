@@ -14,6 +14,7 @@
 #
 import time
 import os
+import warnings
 from nose.tools import *
 from scapy.all import *
 from CordTestUtils import *
@@ -40,6 +41,7 @@ class vsg_exchange(CordLogger):
 
     @classmethod
     def setUpClass(cls):
+        warnings.simplefilter('ignore')
         cls.controllers = get_controllers()
         cls.controller = cls.controllers[0]
         cls.cli = None
