@@ -33,7 +33,7 @@ class vsg_exchange(CordLogger):
     HOST = "10.1.0.1"
     USER = "vagrant"
     PASS = "vagrant"
-    head_node = os.environ['HEAD_NODE']
+    head_node = os.getenv('HEAD_NODE', 'prod')
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
     olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
@@ -91,35 +91,35 @@ class vsg_exchange(CordLogger):
     def log_set(self, level = None, app = 'org.onosproject'):
         CordLogger.logSet(level = level, app = app, controllers = self.controllers, forced = True)
 
-    def test_vsg_vm(self):
+    def test_vsg_health(self):
         status = VSGAccess.health_check()
         assert_equal(status, True)
 
-    def test_vsg_for_default_route_to_vsg_vm(self):
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "sudo lxc exec testclient -- route | grep default"
-        status, output = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-
-    def test_vsg_vm_for_vcpe(self):
+    def test_vsg_for_vcpe(self):
         vsgs = VSGAccess.get_vsgs()
         compute_nodes = VSGAccess.get_compute_nodes()
         assert_not_equal(len(vsgs), 0)
         assert_not_equal(len(compute_nodes), 0)
 
-    def test_vsg_for_external_connectivity(self):
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
-        status, output = ssh_agent.run_cmd(cmd)
-        assert_equal( status, True)
-
-    def test_vsg_vm_for_login_to_vsg(self):
+    def test_vsg_for_login(self):
         vsgs = VSGAccess.get_vsgs()
         vsg_access_status = map(lambda vsg: vsg.check_access(), vsgs)
         status = filter(lambda st: st == False, vsg_access_status)
         assert_equal(len(status), 0)
 
-    def test_vsg_external_connectivity_sending_icmp_echo_requests(self):
+    def test_vsg_for_default_route_through_testclient(self):
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "sudo lxc exec testclient -- route | grep default"
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+
+    def test_vsg_for_external_connectivity_through_testclient(self):
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal( status, True)
+
+    def test_vsg_for_external_connectivity(self):
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
         host = '8.8.8.8'
@@ -133,7 +133,7 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_equal(st, 0)
 
-    def test_vsg_external_connectivity_pinging_to_google(self):
+    def test_vsg_for_external_connectivity_to_google(self):
         host = 'www.google.com'
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
@@ -146,7 +146,7 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_equal(st, 0)
 
-    def test_vsg_external_connectivity_pinging_to_non_existing_website(self):
+    def test_vsg_for_external_connectivity_to_invalid_host(self):
         host = 'www.goglee.com'
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
@@ -159,7 +159,7 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_not_equal(st, 0)
 
-    def test_vsg_external_connectivity_ping_to_google_with_ttl_1(self):
+    def test_vsg_for_external_connectivity_with_ttl_1(self):
         host = '8.8.8.8'
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
@@ -172,7 +172,7 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_not_equal(st, 0)
 
-    def test_vsg_for_external_connectivity_with_wan_interface_toggle_in_vcpe_container(self):
+    def test_vsg_for_external_connectivity_with_wan_interface_toggle_in_vcpe(self):
         host = '8.8.8.8'
         mgmt = 'eth0'
         vcpe = self.vcpe_container
@@ -204,7 +204,7 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
 
-    def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe_container(self):
+    def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe(self):
         host = '8.8.8.8'
         mgmt = 'eth0'
         vcpe = self.vcpe_container
@@ -246,6 +246,7 @@ class vsg_exchange(CordLogger):
 	5.Verify that ping gets success
 	6.Verify ping success flows added in OvS
 	"""
+
     def test_vsg_for_ping_from_vcpe_to_external_network(self):
         """
         Algo:
@@ -270,6 +271,7 @@ class vsg_exchange(CordLogger):
 	7. Now  send ping request to invalid domain address say 'www.invalidaddress'.com'
 	8. Verify that dns resolve should fail and hence ping
         """
+
     def test_vsg_for_10_subscribers_for_same_service(self):
 	"""
 	Algo:
@@ -279,6 +281,7 @@ class vsg_exchange(CordLogger):
 	4.From each of the subscriber, with same s-tag and different c-tag, send a ping to valid external public IP
 	5.Verify that ping success for all 10 subscribers
 	"""
+
     def test_vsg_for_10_subscribers_for_same_service_ping_invalid_ip(self):
         """
         Algo:
@@ -288,6 +291,7 @@ class vsg_exchange(CordLogger):
         4.From each of the subscriber, with same s-tag and different c-tag, send a ping to invalid IP
         5.Verify that ping fails for all 10 subscribers
         """
+
     def test_vsg_for_10_subscribers_for_same_service_ping_valid_and_invalid_ip(self):
         """
         Algo:
@@ -299,6 +303,7 @@ class vsg_exchange(CordLogger):
         6.From next 5 subscribers, with same s-tag and different c-tag, send a ping to invalid IP
         7.Verify that ping fails for all 5 subscribers
         """
+
     def test_vsg_for_100_subscribers_for_same_service(self):
 	"""
 	Algo:
@@ -308,6 +313,7 @@ class vsg_exchange(CordLogger):
 	4.From each of the subscriber, with same s-tag and different c-tag, send a ping to valid external public IP
 	5.Verify that ping success for all 100 subscribers
 	"""
+
     def test_vsg_for_100_subscribers_for_same_service_ping_invalid_ip(self):
         """
         Algo:
@@ -317,6 +323,7 @@ class vsg_exchange(CordLogger):
         4.From each of the subscriber, with same s-tag and different c-tag, send a ping to invalid IP
         5.Verify that ping fails for all 100 subscribers
         """
+
     def test_vsg_for_100_subscribers_for_same_service_ping_valid_and_invalid_ip(self):
         """
         Algo:
@@ -328,6 +335,7 @@ class vsg_exchange(CordLogger):
         6.From next 5 subscribers, with same s-tag and different c-tag, send a ping to invalid IP
         7.Verify that ping fails for all 5 subscribers
         """
+
     def test_vsg_for_packet_received_with_invalid_ip_fields(self):
 	"""
 	Algo:
@@ -338,6 +346,7 @@ class vsg_exchange(CordLogger):
 	5.Verify that vSG drops the packet
 	6.Verify ping fails
 	"""
+
     def test_vsg_for_packet_received_with_invalid_mac_fields(self):
         """
         Algo:
@@ -348,6 +357,7 @@ class vsg_exchange(CordLogger):
         5.Verify that vSG drops the packet
         6.Verify ping fails
         """
+
     def test_vsg_for_vlan_id_mismatch_in_stag(self):
         """
         Algo:
@@ -359,6 +369,7 @@ class vsg_exchange(CordLogger):
         6.Repeat step 4 with correct s-tag
 	7.Verify that ping success
         """
+
     def test_vsg_for_vlan_id_mismatch_in_ctag(self):
         """
         Algo:
@@ -370,6 +381,7 @@ class vsg_exchange(CordLogger):
         6.Repeat step 4 with valid s-tag and c-tag
         7.Verify that ping success
         """
+
     def test_vsg_for_matching_and_mismatching_vlan_id_in_stag(self):
         """
         Algo:
@@ -380,6 +392,7 @@ class vsg_exchange(CordLogger):
         5.From subscriber two, send ping request with vlan id mismatch in s-tag and valid c tags
         6.Verify that ping success for only subscriber one and fails for two.
         """
+
     def test_vsg_for_matching_and_mismatching_vlan_id_in_ctag(self):
         """
         Algo:
@@ -390,6 +403,7 @@ class vsg_exchange(CordLogger):
         5.From subscriber two, send ping request with valid s-tag and vlan id mismatch in c-tag
         6.Verify that ping success for only subscriber one and fails for two
         """
+
     def test_vsg_for_out_of_range_vlanid_in_ctag(self):
         """
         Algo:
@@ -399,6 +413,7 @@ class vsg_exchange(CordLogger):
         4.From subscriber, send ping request with valid stag and vlan id in c-tag is an out of range value ( like 0,4097 )
         4.Verify that ping fails as the ping packets drops at vCPE container entry
         """
+
     def test_vsg_for_out_of_range_vlanid_in_stag(self):
         """
         Algo:
@@ -408,6 +423,7 @@ class vsg_exchange(CordLogger):
         2.From subscriber, send ping request with vlan id in s-tag is an out of range value ( like 0,4097 ), with valid c-tag
         4.Verify that ping fails as the ping packets drops at vSG VM entry
         """
+
     def test_vsg_without_creating_vcpe_instance(self):
 	"""
 	Algo:
@@ -417,6 +433,7 @@ class vsg_exchange(CordLogger):
 	4.From a subscriber, send ping to external valid IP
 	5.Verify that ping fails as the ping packet drops at vSG VM entry itself.
 	"""
+
     def test_vsg_for_remove_vcpe_instance(self):
 	"""
         Algo:
@@ -431,6 +448,7 @@ class vsg_exchange(CordLogger):
 	9.Repeat step 4
 	10.Verify that now, ping fails
         """
+
     def test_vsg_for_restart_vcpe_instance(self):
         """
         Algo:
@@ -445,6 +463,7 @@ class vsg_exchange(CordLogger):
         9.Repeat step 4
         10.Verify that now,ping gets success and flows added in OvS
         """
+
     def test_vsg_for_restart_vsg_vm(self):
         """
         Algo:
@@ -460,6 +479,7 @@ class vsg_exchange(CordLogger):
         10.Repeat step 4
         11.Verify that now,ping gets success and flows added in OvS
         """
+
     def test_vsg_for_pause_vcpe_instance(self):
         """
         Algo:
@@ -478,6 +498,7 @@ class vsg_exchange(CordLogger):
 	13.Verify that now, ping gets success
 	14.Verify ping success flows in OvS
         """
+
     def test_vsg_for_extract_all_compute_stats_from_all_vcpe_containers(self):
 	"""
 	Algo:
@@ -488,6 +509,7 @@ class vsg_exchange(CordLogger):
 	4.Get all compute stats from all vCPE containers
 	5.Verify the stats # verification method need to add
 	"""
+
     def test_vsg_for_extract_dns_stats_from_all_vcpe_containers(self):
         """
         Algo:
@@ -502,6 +524,7 @@ class vsg_exchange(CordLogger):
 	9.Extract all dns stats
 	10.Verify dns stats for queries sent, queries received for dns host resolve success and failed scenarios
         """
+
     def test_vsg_for_subscriber_access_two_vsg_services(self):
 	"""
 	# Intention is to verify if subscriber can reach internet via two vSG VMs
@@ -516,6 +539,7 @@ class vsg_exchange(CordLogger):
 	8.Verify that ping again success
 	9.Verify ping success flows in OvS
 	"""
+
     def test_vsg_for_subscriber_access_service2_if_service1_goes_down(self):
 	"""
 	# Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
@@ -532,6 +556,7 @@ class vsg_exchange(CordLogger):
         10.Repeat step 4 with stag corresponding to vSG-2
         9.Verify ping success and flows added in OvS
         """
+
     def test_vsg_for_subscriber_access_service2_if_service1_goes_restart(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
@@ -548,6 +573,7 @@ class vsg_exchange(CordLogger):
         10.Repeat step 4 with stag corresponding to vSG-2 while vSG-1 VM restarts
         11.Verify ping success and flows added in OvS
         """
+
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_goes_down(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
@@ -564,6 +590,7 @@ class vsg_exchange(CordLogger):
         10.Repeat step 4 with ctag corresponding to vCPE-2 container
         11.Verify ping success and flows added in OvS
         """
+
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_restart(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
@@ -580,6 +607,7 @@ class vsg_exchange(CordLogger):
         10.Repeat step 4 with ctag corresponding to vCPE-2 container while vCPE-1 restarts
         11..Verify ping success and flows added in OvS
         """
+
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_pause(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 paused
@@ -612,6 +640,7 @@ class vsg_exchange(CordLogger):
         10.Repeat step 4 with ctag corresponding to vCPE-2 container
         11.Verify ping success and flows added in OvS
         """
+
     def test_vsg_for_vcpe_instance_removed_and_added_again(self):
         """
         Algo:
@@ -629,6 +658,7 @@ class vsg_exchange(CordLogger):
         12.Now repeat step 4
         13.Verify ping success and flows added in OvS
         """
+
     def test_vsg_for_vsg_vm_removed_and_added_again(self):
         """
         Algo:
