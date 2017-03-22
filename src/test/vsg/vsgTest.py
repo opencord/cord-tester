@@ -43,8 +43,6 @@ class vsg_exchange(CordLogger):
         cls.controllers = get_controllers()
         cls.controller = cls.controllers[0]
         cls.cli = None
-        cls.interface_map = {}
-        cls.vcpe_map = {}
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.vcpes = cls.olt.get_vcpes()
         cls.vcpes_dhcp = cls.olt.get_vcpes_by_type('dhcp')
