@@ -1,5 +1,7 @@
-import os, sys
+import os, sys, time
 from paramiko import SSHClient, WarningPolicy, AutoAddPolicy
+import logging
+logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import *
 
 class SSHTestAgent(object):
@@ -47,6 +49,7 @@ class SSHTestAgent(object):
                     output += data
                 else:
                     break
+        time.sleep(0.1)
         channel.close()
         self.client.close()
         return st, output

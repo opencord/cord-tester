@@ -23,6 +23,8 @@ import json
 from socket import socket
 import pexpect
 from Stats import Stats
+import logging
+logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import *
 from OnosFlowCtrl import OnosFlowCtrl
 from nose.twistedtools import reactor, deferred

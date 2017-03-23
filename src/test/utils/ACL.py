@@ -16,6 +16,8 @@
 import json
 import requests
 import os,sys,time
+import logging
+logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import *
 from CordTestUtils import get_mac, get_controller
 from OnosCtrl import OnosCtrl

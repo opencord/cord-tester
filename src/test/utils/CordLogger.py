@@ -1,4 +1,6 @@
 from OnosLog import OnosLog
+import logging
+logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import log
 from onosclidriver import OnosCliDriver
 from OnosCtrl import OnosCtrl
@@ -9,6 +11,7 @@ import requests
 import unittest
 import os
 import time
+import warnings
 
 def get_controller_names(controllers):
         controller_names = [ 'cord-onos' if controllers.index(c) == 0 else 'cord-onos-{}'.format(controllers.index(c)+1) for c in controllers ]
@@ -30,6 +33,10 @@ class CordLogger(unittest.TestCase):
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup')
     archive_dir = os.path.join(setup_dir, 'test_logs')
     onos_data_dir = os.path.join(setup_dir, 'cord-onos-data')
+
+    def __init__(self, *args, **kwargs):
+        warnings.simplefilter('ignore')
+        super(CordLogger, self).__init__(*args, **kwargs)
 
     @classmethod
     def cliSessionEnter(cls):

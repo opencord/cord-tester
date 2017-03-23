@@ -19,6 +19,8 @@ import os
 import time
 import monotonic
 import random
+import logging
+logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import *
 from McastTraffic import *
 from IGMP import *

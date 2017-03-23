@@ -17,6 +17,8 @@ import json
 import requests
 import os,sys,time
 from nose.tools import *
+import logging
+logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import *
 from OnosCtrl import OnosCtrl, get_controller
 
@@ -304,4 +306,3 @@ class OnosFlowCtrl:
             log.error('Flow post request returned with status %d' %response.status_code)
 
         return False
-
