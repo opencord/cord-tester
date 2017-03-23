@@ -244,6 +244,10 @@ class CordTester(Container):
         port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
         print('Provisioning the ports for the test container\n')
         for host_intf, ports in port_list:
+            #if the host interface/switch does not exist, just create a dummy ovs switch
+            #needed if we are running with no-switch option
+            if not os.access('/sys/class/net/{}'.format(host_intf), os.F_OK):
+                os.system('ovs-vsctl add-br {}'.format(host_intf))
             uplink = self.port_map[host_intf]['uplink']
             for port in ports:
                 guest_if = port
