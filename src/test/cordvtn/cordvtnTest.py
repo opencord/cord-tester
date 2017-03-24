@@ -485,7 +485,7 @@ class cordvtn_exchange(CordLogger):
         net = neutron.delete_network(net_id[2])
         return [self.get_key_value(d=networks, value = net_name)]
 
-    def neutron_subnet_creation_and_validation(self,net_name,sub_cird):
+    def neutron_subnet_creation_and_validation_v1(self,net_name,sub_cird):
         creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**creds)
         networks = neutron.list_networks(name=net_name)
@@ -494,7 +494,71 @@ class cordvtn_exchange(CordLogger):
         body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr),  "allocation_pools": [{"start": "172.27.0.20", "end": "172.27.0.21"}]}}
         neutron_sub = neutron.create_subnet(body_subnet_example)
         networks = neutron.list_networks(name=net_name)
-        return [self.get_key_value(d=networks, key = 'subnets')]
+        return self.get_key_value(d=networks, key = 'subnets')
+
+    def neutron_subnet_creation_and_validation(self,net_name,sub_cird):
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        networks = neutron.list_networks(name=net_name)
+        net_id = self.get_key_value(d=networks, key = 'id')
+        if sub_cird[0] == 'management':
+           cidr = sub_cird[1]
+           body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr),  "allocation_pools": [{"start": "172.27.0.20", "end": "172.27.0.21"}]}}
+        elif sub_cird[0] == 'public':
+           cidr = sub_cird[1]
+           gate_way = sub_cird[2]
+           body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr), "gateway_ip":str(gate_way)}}
+        elif sub_cird[0] == 'private':
+           cidr = sub_cird[1]
+           gate_way = sub_cird[2]
+           body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr), "gateway_ip":str(gate_way)}}
+
+        neutron_sub = neutron.create_subnet(body_subnet_example)
+        networks = neutron.list_networks(name=net_name)
+        return self.get_key_value(d=networks, key = 'subnets')
+
+    def sub_network_type_post_to_onos(self,net_name,sub_net_type):
+
+        creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**creds)
+        networks = neutron.list_networks(name=net_name)
+        net_id = self.get_key_value(d=networks, key = 'id')
+        vtn_util = vtn_validation_utils('')
+
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+        network_data = {"ServiceNetwork":{"id": net_id[2],"type":sub_net_type, "providerNetworks":[]}}
+        json_network_type_data = json.dumps(network_data)
+        resp = requests.post(url=url, auth=auth, data =json_network_type_data)
+        return resp
+
+    def nova_instance_creation_and_validation(self,net_name,nova_obj,instance_name,image_name, flavor_id):
+        image = nova_obj.images.find(name=image_name)
+        flavor = nova_obj.flavors.find(name=flavor_id)
+        network = nova_obj.networks.find(label=net_name)
+        print network.id
+
+        server = nova_obj.servers.create(name = instance_name,
+                                         image = image.id,
+                                         flavor = flavor.id,
+                                         nics = [{'net-id':network.id}])
+        server_details =  nova_obj.servers.find(id=server.id)
+        print('Server is launched and status is %s' %server_details.status)
+        if server_details.status == 'BUILD':
+           time.sleep(20)
+        server_details =  nova_obj.servers.find(id=server.id)
+        print('After delay server status is %s state'%server_details.status)
+        if server_details.status == 'ERROR':
+           print('Server status is still in %s state'%server_details.status)
+        return server_details
+
+    def nova_instance_deletion(self, nova_obj, server_details):
+        results_nova_instance_deletion=nova_obj.servers.delete(server_details.id)
+        if results_nova_instance_deletion == None:
+           print"Nova intance is deleted"
+        else:
+           print"Nova intance is not deleted"
+        return results_nova_instance_deletion
 
     def test_cordvtn_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
@@ -629,6 +693,330 @@ class cordvtn_exchange(CordLogger):
                     assert_equal(sub_net_id[0], True)
                     break
 
+    def test_cordvtn_neutron_management_network_creation_and_post_network_type_management_local_to_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Pushed the network type as management local to onos
+        5. Verified that onos is having under management network
+        """
+        test_net_name = 'vtn_test_7_net_management'
+        test_sub_net_cidr = ["management","172.27.0.0/24"]
+        test_management_type = "management_local"
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        for i in range(len(data['ServiceNetworks'])):
+              if data['ServiceNetworks'][i]['name'] == test_net_name:
+                 sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
+                 if sub_net_id[2] == " ":
+                    log.info('Sub network is not successful')
+                    assert_equal(False, True)
+                    break
+                 elif sub_net_id[2] == test_sub_net_cidr[1]:
+                    log.info('Sub network is successful')
+                    assert_equal(sub_net_id[0], True)
+                    break
+
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        print("Response from onos to change network service type as management local = %s" %net_type_post.text)
+        net_type_json = json.loads(net_type_post.text)
+
+        self.neutron_network_deletion(test_net_name)
+        assert_equal(net_type_json['message'], 'null already exists')
+
+
+    def test_cordvtn_management_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
+
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under management network
+        5. Validate new nova instance is created on nova service
+        """
+        test_net_name = 'vtn_test_8_net_management'
+        test_sub_net_cidr = ["management","172.27.0.0/24"]
+        test_management_type = "management_local"
+        instance_vm_name = 'vtn_test_8_nova_instance_management_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        creds = self.get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(new_instance_details.status, 'ACTIVE')
+
+
+
+    def test_cordvtn_neutron_public_network_creation_and_validation_on_head_node_with_neutron_service(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork who ip is under management network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+        test_net_name = 'vtn_test_9_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26",'10.6.1.193']
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        if sub_result[0] is True:
+           self.neutron_network_deletion(test_net_name)
+        assert_equal(sub_result[0], True)
+
+    def test_cordvtn_neutron_public_network_creation_and_validation_on_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whoes ip is under management network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        """
+        test_net_name = 'vtn_test_10_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26", '10.6.1.193']
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        for i in range(len(data['ServiceNetworks'])):
+              if data['ServiceNetworks'][i]['name'] == test_net_name:
+                 sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
+                 if sub_net_id[2] == " ":
+                    print('Sub network is not successful')
+                    self.neutron_network_deletion(test_net_name)
+                    assert_equal(False, True)
+                    break
+                 elif sub_net_id[2] == test_sub_net_cidr[1]:
+                    print('Sub network is successful')
+                    self.neutron_network_deletion(test_net_name)
+                    assert_equal(sub_net_id[0], True)
+                    break
+
+    def test_cordvtn_neutron_public_network_creation_and_post_network_type_as_public_to_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Pushed the network type as management local to onos
+        5. Verified that onos is having under management network
+        """
+        test_net_name = 'vtn_test_11_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26", '10.6.1.193']
+        test_management_type = "public"
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        for i in range(len(data['ServiceNetworks'])):
+              if data['ServiceNetworks'][i]['name'] == test_net_name:
+                 sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
+                 if sub_net_id[2] == " ":
+                    log.info('Sub network is not successful')
+                    assert_equal(False, True)
+                    break
+                 elif sub_net_id[2] == test_sub_net_cidr[1]:
+                    log.info('Sub network is successful')
+                    assert_equal(sub_net_id[0], True)
+                    break
+
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        print("Response from onos to change network service type as management local = %s" %net_type_post.text)
+        net_type_json = json.loads(net_type_post.text)
+
+        self.neutron_network_deletion(test_net_name)
+        assert_equal(net_type_json['message'], 'null already exists')
+
+    def test_cordvtn_public_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
+
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under public network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under public network
+        5. Validate new nova instance is created on nova service
+        """
+        test_net_name = 'vtn_test_12_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26",'10.6.1.193']
+        instance_vm_name = 'vtn_test_12_nova_instance_public_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        creds = self.get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(new_instance_details.status, 'ACTIVE')
+
+    def test_cordvtn_neutron_private_network_creation_and_validation_on_head_node_with_neutron_service(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork who ip is under private network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Validate network synch with created network in cord-onos
+        """
+        test_net_name = 'vtn_test_13_net_private'
+        test_sub_net_cidr = ["private","10.160.160.160/24",'10.160.160.1']
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        if sub_result[0] is True:
+           self.neutron_network_deletion(test_net_name)
+        assert_equal(sub_result[0], True)
+
+    def test_cordvtn_neutron_private_network_creation_and_validation_on_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whoes ip is under management network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        """
+        test_net_name = 'vtn_test_14_net_private'
+        test_sub_net_cidr = ["private","10.160.160.160/24", '10.160.160.1']
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        for i in range(len(data['ServiceNetworks'])):
+              if data['ServiceNetworks'][i]['name'] == test_net_name:
+                 sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
+                 if sub_net_id[2] == " ":
+                    print('Sub network is not successful')
+                    self.neutron_network_deletion(test_net_name)
+                    assert_equal(False, True)
+                    break
+                 elif sub_net_id[2] == '10.160.160.0/24':
+                 #elif sub_net_id[2] == test_sub_net_cidr[1]:
+                    print('Sub network is successful')
+                    assert_equal(sub_net_id[0], True)
+                    break
+
+    def test_cordvtn_neutron_private_network_creation_and_post_network_type_as_private_to_onos(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        2. Run sync command for cordvtn
+        3. Do GET Rest API and validate creation of network
+        4. Pushed the network type as management local to onos
+        5. Verified that onos is having under management network
+        """
+        test_net_name = 'vtn_test_15_net_private'
+        test_sub_net_cidr = ["private","192.168.160.160/24", '192.168.160.1']
+        test_management_type = "private"
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+
+        vtn_util = vtn_validation_utils('')
+        url = "http://{0}:8181/onos/cordvtn/serviceNetworks".format(vtn_util.endpoint)
+        auth = ('karaf','karaf')
+
+        resp = requests.get(url=url, auth=auth)
+        data = json.loads(resp.text)
+        for i in range(len(data['ServiceNetworks'])):
+              if data['ServiceNetworks'][i]['name'] == test_net_name:
+                 sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
+                 if sub_net_id[2] == " ":
+                    log.info('Sub network is not successful')
+                    assert_equal(False, True)
+                    break
+                 elif sub_net_id[2] == "192.168.160.0/24":
+                    log.info('Sub network is successful')
+                    assert_equal(sub_net_id[0], True)
+                    break
+
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        print("Response from onos to change network service type as management local = %s" %net_type_post.text)
+        net_type_json = json.loads(net_type_post.text)
+
+        self.neutron_network_deletion(test_net_name)
+        assert_equal(net_type_json['message'], 'null already exists')
+
+    def test_cordvtn_private_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
+
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under private network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under private network
+        5. Validate new nova instance is created on nova service
+        """
+        test_net_name = 'vtn_test_16_net_private'
+        test_sub_net_cidr = ["private","192.168.160.160/24", '192.168.160.1']
+        instance_vm_name = 'vtn_test_12_nova_instance_private_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        creds = self.get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(new_instance_details.status, 'ACTIVE')
+
     def test_cordvtn_with_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
         Algo:
@@ -671,7 +1059,7 @@ class cordvtn_exchange(CordLogger):
         result = self.search_value(data, "Net-1")
         assert_equal(result, True)
 
-    def test_cordvtn_neutron_network_delete_and_validation_on_neutron_openstack(self):
+    def test_cordvtn_neutron_network_deletion_and_validation_on_neutron_openstack(self):
 
         """
         Algo:
