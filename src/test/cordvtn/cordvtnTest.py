@@ -1335,19 +1335,6 @@ class cordvtn_exchange(CordLogger):
 	"""
 	pass
 
-    def test_cordvtn_creating_virtual_public_network(self):
-	"""
-	Algo:
-	    1) Validate that required openstack service is up and running.
-	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
-	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
-	       (neutron net-create net-A-public, neutron subnet-create net-A-public 198.0.0.0/24).
-	    4) Verify that NetA is being created and validate IP in nova list command.
-	    5) Verify that flow is being added in ovs-switch in compute-node.
-	    6) Verify that onos-ml2 plugin syncs through ReST call  from openstack service neutron.
-	"""
-	pass
-
     def test_cordvtn_creating_virtual_local_management_network(self):
 	"""
 	Algo:
