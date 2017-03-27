@@ -3,6 +3,12 @@ import socket
 import fcntl
 import struct
 import os
+import logging
+
+log_test = logging.getLogger('cordTester')
+test_consolehandler = logging.StreamHandler()
+#test_consolehandler.setFormatter(logging.Formatter("%(levelname)s:%(message)s"))
+log_test.addHandler(test_consolehandler)
 
 # we use subprocess as commands.getstatusoutput would be deprecated
 def getstatusoutput(cmd):

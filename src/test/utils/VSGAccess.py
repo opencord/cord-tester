@@ -4,6 +4,9 @@ import re
 from novaclient import client as nova_client
 from SSHTestAgent import SSHTestAgent
 from CordTestUtils import *
+from CordTestUtils import log_test as log
+
+log.setLevel('INFO')
 
 class VSGAccess(object):
 
@@ -319,15 +322,21 @@ class VSGWrapper(object):
         if self.ip is None:
             return True
         cmd = 'ping -c 1 {}'.format(self.ip)
+        log.info('Pinging VSG %s at IP %s' %(self.name, self.ip))
         st, _ = self.run_cmd_compute(cmd)
+        log.info('VSG %s at IP %s is %s' %(self.name, self.ip, 'reachable' if st == True else 'unreachable'))
         return st
 
     def check_access(self):
         if self.ip is None:
-            return False
+            return True
         ssh_agent = SSHTestAgent(self.compute_node)
         st, _ = ssh_agent.run_cmd('ls', timeout=10)
         if st == False:
+            log.error('Compute node at %s is not accessible' %(self.compute_node))
             return st
+        log.info('Checking if VSG at %s is accessible from compute node %s' %(self.ip, self.compute_node))
         st, _ = ssh_agent.run_cmd('ssh {} ls'.format(self.ip), timeout=30)
+        if st == True:
+            log.info('OK')
         return st

@@ -15,14 +15,13 @@
 import time
 import os
 from nose.tools import *
-from scapy.all import *
 from CordTestUtils import *
 from OltConfig import OltConfig
 from onosclidriver import OnosCliDriver
 from SSHTestAgent import SSHTestAgent
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
-
+from CordTestUtils import log_test as log
 log.setLevel('INFO')
 
 class vsg_exchange(CordLogger):
