@@ -35,8 +35,10 @@ class SSHTestAgent(object):
 
         channel = self.client.get_transport().open_session()
         channel.exec_command(cmd)
+        status_ready = False
         if channel.exit_status_ready():
             status = channel.recv_exit_status()
+            status_ready = True
         else:
             status = 0
         output = None
@@ -49,6 +51,9 @@ class SSHTestAgent(object):
                     output += data
                 else:
                     break
+        if status_ready is False:
+            status = channel.recv_exit_status()
+            st = status == 0
         time.sleep(0.1)
         channel.close()
         self.client.close()

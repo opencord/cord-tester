@@ -317,7 +317,7 @@ class VSGWrapper(object):
 
     def get_health(self):
         if self.ip is None:
-            return False
+            return True
         cmd = 'ping -c 1 {}'.format(self.ip)
         st, _ = self.run_cmd_compute(cmd)
         return st
