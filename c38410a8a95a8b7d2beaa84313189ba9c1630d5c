@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_ed64ede6",
+        "filename": "src/test/setup/prerequisites.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 84,
+      "author": {
+        "id": 1000015
+      },
+      "writtenOn": "2017-03-27T21:18:43Z",
+      "side": 1,
+      "message": "do we need to upgrade this for virtualenv case?\nAnd if yes, don\u0027t we need to add the same setuptools upgrade to the else path (where venv is not set or 0)",
+      "revId": "c38410a8a95a8b7d2beaa84313189ba9c1630d5c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
