@@ -474,7 +474,7 @@ class OnosCord(Container):
         #stop and start and synchronize the services before installing tester cord apps
         cmds = [ 'cd {} && docker-compose down'.format(self.onos_cord_dir),
                  'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
-                 'sleep 60',
+                 'sleep 90',
         ]
         for cmd in cmds:
             try:
@@ -507,7 +507,7 @@ class OnosCord(Container):
                 'rm -rf {}'.format(self.onos_config_dir),
                 'mv {} {}'.format(self.docker_yaml_saved, self.docker_yaml),
                 'cd {} && docker-compose up -d'.format(self.onos_cord_dir),
-                'sleep 60',
+                'sleep 90',
         ]
         for cmd in cmds:
             try:
