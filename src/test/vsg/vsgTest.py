@@ -14,6 +14,8 @@
 #
 import time
 import os
+import sys
+import json
 from nose.tools import *
 from CordTestUtils import *
 from OltConfig import OltConfig
@@ -22,6 +24,7 @@ from SSHTestAgent import SSHTestAgent
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
+
 log.setLevel('INFO')
 
 class vsg_exchange(CordLogger):
@@ -36,6 +39,44 @@ class vsg_exchange(CordLogger):
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
     olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+    restApiXos =  None
+    subscriber_account_num_base = 200
+
+    @classmethod
+    def setUpCordApi(cls):
+        our_path = os.path.dirname(os.path.realpath(__file__))
+        cord_api_path = os.path.join(our_path, '..', 'cord-api')
+        framework_path = os.path.join(cord_api_path, 'Framework')
+        utils_path = os.path.join(framework_path, 'utils')
+        data_path = os.path.join(cord_api_path, 'Tests', 'data')
+        subscriber_cfg = os.path.join(data_path, 'Subscriber.json')
+        volt_tenant_cfg = os.path.join(data_path, 'VoltTenant.json')
+
+        with open(subscriber_cfg) as f:
+            subscriber_data = json.load(f)
+            subscriber_info = subscriber_data['SubscriberInfo']
+            account_num = cls.subscriber_account_num_base
+            for subscriber in subscriber_info:
+                subscriber['identity']['account_num'] = str(account_num)
+                account_num += 1
+            cls.subscriber_info = subscriber_info
+
+        with open(volt_tenant_cfg) as f:
+            volt_tenant_data = json.load(f)
+            volt_subscriber_info = volt_tenant_data['voltSubscriberInfo']
+            assert_equal(len(volt_subscriber_info), len(cls.subscriber_info))
+            account_num = cls.subscriber_account_num_base
+            for volt_subscriber in volt_subscriber_info:
+                volt_subscriber['account_num'] = account_num
+                account_num += 1
+            cls.volt_subscriber_info = volt_subscriber_info
+
+        sys.path.append(utils_path)
+        sys.path.append(framework_path)
+        from restApi import restApi
+        restApiXos = restApi()
+        restApiXos.controllerIP = cls.HEAD_NODE
+        cls.restApiXos = restApiXos
 
     @classmethod
     def setUpClass(cls):
@@ -57,6 +98,7 @@ class vsg_exchange(CordLogger):
         cls.vcpe_dhcp = vcpe_dhcp
         cls.vcpe_dhcp_stag = vcpe_dhcp_stag
         VSGAccess.setUp()
+        cls.setUpCordApi()
 
     @classmethod
     def tearDownClass(cls):
@@ -234,6 +276,22 @@ class vsg_exchange(CordLogger):
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
+
+    def test_vsg_xos_subscriber(self):
+        subscriber_info = self.subscriber_info[0]
+        volt_subscriber_info = self.volt_subscriber_info[0]
+        result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
+        assert_equal(result, True)
+        result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+        assert_not_equal(result, None)
+        subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
+        assert_not_equal(subId, '0')
+        log.info('Subscriber ID for account num %d = %s' %(volt_subscriber_info['account_num'], subId))
+        volt_tenant = volt_subscriber_info['voltTenant']
+        #update the subscriber id in the tenant info before making the rest
+        volt_tenant['subscriber'] = subId
+        result = self.restApiXos.ApiPost('TENANT_VOLT', volt_tenant)
+        assert_equal(result, True)
 
     def test_vsg_for_ping_from_vsg_to_external_network(self):
 	"""
