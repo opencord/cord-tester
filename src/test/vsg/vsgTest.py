@@ -277,6 +277,349 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
 
+    def test_vsg_firewall_with_deny_destination_ip(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_with_rule_add_and_delete_dest_ip(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,_ = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_verifying_reachability_for_non_blocked_dest_ip(self, vcpe=None):
+        host1 = '8.8.8.8'
+        host2 = '204.79.197.203'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+        assert_equal(st, False)
+        try:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host1))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st,False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_appending_rules_with_deny_dest_ip(self, vcpe=None):
+        host1 = '8.8.8.8'
+        host2 = '204.79.197.203'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host1))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st, False)
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host2))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st,True)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_removing_one_rule_denying_dest_ip(self, vcpe=None):
+        host1 = '8.8.8.8'
+        host2 = '204.79.197.203'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host1))
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host2))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st,True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host2))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st,False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_changing_rule_id_deny_dest_ip(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -j ACCEPT 2'.format(vcpe))
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -A FORWARD 2 -d {} -j DROP '.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_changing_deny_rule_to_accept_dest_ip(self, vcpe=None):
+        host1 = '8.8.8.8'
+        host2 = '204.79.197.203'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -A FORWARD -d {} -j ACCEPT 1'.format(vcpe,host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_denying_destination_network(self, vcpe=None):
+        network = '206.190.36.44/28'
+        host1 = '204.79.197.46'
+        host2 = '204.79.197.51'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,network))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st,False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_denying_destination_network_subnet_modification(self, vcpe=None):
+        network1 = '206.190.36.44/28'
+        network2 = '206.190.36.44/26'
+        host1 = '204.79.197.46'
+        host2 = '204.79.197.51'
+        host2 = '204.79.197.63'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,network1))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st,False)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -A FORWARD -d {} -j DROP'.format(vcpe,network2))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host3))
+            assert_equal(st, False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_with_deny_source_ip(self, vcpe=None):
+        host = '8.8.8.8'
+        source_ip = self.vcpe_dhcp
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -s {} -j DROP'.format(vcpe,source_ip))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_rule_with_add_and_delete_deny_source_ip(self, vcpe=None):
+        host = '8.8.8.8'
+        source_ip = self.vcpe_dhcp
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -s {} -j DROP'.format(vcpe,source_ip))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -s {} -j DROP'.format(vcpe,source_ip))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_rule_with_deny_icmp_protocol_echo_requests_type(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p icmp --icmp-type echo-request -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p icmp --icmp-type echo-request -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+        finally:
+            vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+
+    def test_vsg_firewall_rule_with_deny_icmp_protocol_echo_reply_type(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format('8.8.8.8'))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p icmp --icmp-type echo-reply -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p icmp --icmp-type echo-reply -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_requests_type(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD 1 -p icmp --icmp-type echo-request -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD 1 -p icmp --icmp-type echo-request -j ACCEPT'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_reply_type(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, out1 = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD 1 -p icmp --icmp-type echo-reply -j DROP'.format(vcpe))
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD 1 -p icmp --icmp-type echo-reply -j ACCEPT'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_for_deny_icmp_protocol(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p icmp -j DROP'.format(vcpe))
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p icmp -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_rule_deny_icmp_protocol_and_destination_ip(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p icmp -j DROP'.format(vcpe))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p icmp -j DROP'.format(vcpe))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st,False)
+        finally:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
+    def test_vsg_firewall_flushing_all_configured_rules(self, vcpe=None):
+        host = '8.8.8.8'
+        if not vcpe:
+                vcpe = self.vcpe_container
+        vsg = VSGAccess.get_vcpe_vsg(vcpe)
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        try:
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p icmp -j DROP'.format(vcpe))
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+        finally:
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
+
     def test_vsg_xos_subscriber(self):
         subscriber_info = self.subscriber_info[0]
         volt_subscriber_info = self.volt_subscriber_info[0]
