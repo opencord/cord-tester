@@ -24,6 +24,7 @@ from SSHTestAgent import SSHTestAgent
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
+from OnosCtrl import OnosCtrl
 
 log.setLevel('INFO')
 
@@ -41,6 +42,27 @@ class vsg_exchange(CordLogger):
     olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
     restApiXos =  None
     subscriber_account_num_base = 200
+
+    @classmethod
+    def getXosCredentials(cls):
+        onos_cfg = OnosCtrl.get_config()
+        if onos_cfg is None:
+            return None
+        if 'apps' in onos_cfg and \
+           'org.opencord.vtn' in onos_cfg['apps'] and \
+           'cordvtn' in onos_cfg['apps']['org.opencord.vtn'] and \
+           'xos' in onos_cfg['apps']['org.opencord.vtn']['cordvtn']:
+            xos_cfg = onos_cfg['apps']['org.opencord.vtn']['cordvtn']['xos']
+            endpoint = xos_cfg['endpoint']
+            user = xos_cfg['user']
+            password = xos_cfg['password']
+            xos_endpoints = endpoint.split(':')
+            xos_host = xos_endpoints[1][len('//'):]
+            xos_port = xos_endpoints[2][:-1]
+            #log.info('xos_host: %s, port: %s, user: %s, password: %s' %(xos_host, xos_port, user, password))
+            return dict(host = xos_host, port = xos_port, user = user, password = password)
+
+        return None
 
     @classmethod
     def setUpCordApi(cls):
@@ -75,7 +97,15 @@ class vsg_exchange(CordLogger):
         sys.path.append(framework_path)
         from restApi import restApi
         restApiXos = restApi()
-        restApiXos.controllerIP = cls.HEAD_NODE
+        xos_credentials = cls.getXosCredentials()
+        if xos_credentials is None:
+            restApiXos.controllerIP = cls.HEAD_NODE
+            restApiXos.controllerPort = '9000'
+        else:
+            restApiXos.controllerIP = xos_credentials['host']
+            restApiXos.controllerPort = xos_credentials['port']
+            restApiXos.user = xos_credentials['user']
+            restApiXos.password = xos_credentials['password']
         cls.restApiXos = restApiXos
 
     @classmethod
