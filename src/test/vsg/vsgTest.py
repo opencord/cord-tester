@@ -41,7 +41,25 @@ class vsg_exchange(CordLogger):
     test_path = os.path.dirname(os.path.realpath(__file__))
     olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
     restApiXos =  None
-    subscriber_account_num_base = 200
+    subscriber_account_num = 200
+    subscriber_s_tag = 304
+    subscriber_c_tag = 304
+    subscribers_per_s_tag = 8
+    subscriber_map = {}
+
+    @classmethod
+    def getSubscriberCredentials(cls, subId):
+        """Generate our own account num, s_tag and c_tags"""
+        if subId in cls.subscriber_map:
+            return cls.subscriber_map[subId]
+        account_num = cls.subscriber_account_num
+        cls.subscriber_account_num += 1
+        s_tag, c_tag = cls.subscriber_s_tag, cls.subscriber_c_tag
+        cls.subscriber_c_tag += 1
+        if cls.subscriber_c_tag % cls.subscribers_per_s_tag == 0:
+            cls.subscriber_s_tag += 1
+        cls.subscriber_map[subId] = account_num, s_tag, c_tag
+        return cls.subscriber_map[subId]
 
     @classmethod
     def getXosCredentials(cls):
@@ -77,20 +95,22 @@ class vsg_exchange(CordLogger):
         with open(subscriber_cfg) as f:
             subscriber_data = json.load(f)
             subscriber_info = subscriber_data['SubscriberInfo']
-            account_num = cls.subscriber_account_num_base
-            for subscriber in subscriber_info:
+            for i in xrange(len(subscriber_info)):
+                subscriber = subscriber_info[i]
+                account_num, _, _ = cls.getSubscriberCredentials('sub{}'.format(i))
                 subscriber['identity']['account_num'] = str(account_num)
-                account_num += 1
             cls.subscriber_info = subscriber_info
 
         with open(volt_tenant_cfg) as f:
             volt_tenant_data = json.load(f)
             volt_subscriber_info = volt_tenant_data['voltSubscriberInfo']
             assert_equal(len(volt_subscriber_info), len(cls.subscriber_info))
-            account_num = cls.subscriber_account_num_base
-            for volt_subscriber in volt_subscriber_info:
+            for i in xrange(len(volt_subscriber_info)):
+                volt_subscriber = volt_subscriber_info[i]
+                account_num, s_tag, c_tag = cls.getSubscriberCredentials('sub{}'.format(i))
                 volt_subscriber['account_num'] = account_num
-                account_num += 1
+                volt_subscriber['voltTenant']['s_tag'] = str(s_tag)
+                volt_subscriber['voltTenant']['c_tag'] = str(c_tag)
             cls.volt_subscriber_info = volt_subscriber_info
 
         sys.path.append(utils_path)
