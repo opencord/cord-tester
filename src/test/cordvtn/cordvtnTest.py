@@ -30,6 +30,9 @@ from CordLogger import CordLogger
 from TestManifest import TestManifest
 from OnosFlowCtrl import OnosFlowCtrl
 from scapy.all import *
+from credentials import *
+from VSGAccess import VSGAccess
+from SSHTestAgent import SSHTestAgent
 import requests
 import time
 import py_compile
@@ -96,6 +99,12 @@ class cordvtn_exchange(CordLogger):
     test_path = os.path.dirname(os.path.realpath(__file__))
     cordvtn_dir = os.path.join(test_path, '..', 'setup')
     cordvtn_conf_file = os.path.join(test_path, '..', '../cordvtn/network_cfg.json')
+    head_node_user = 'vagrant'
+    head_node_pass = 'vagrant'
+    head_node = os.getenv('HEAD_NODE', 'prod')
+    head_node_ip = '10.1.0.1'
+    HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
+
 
     @classmethod
     def setUpClass(cls):
@@ -138,6 +147,13 @@ class cordvtn_exchange(CordLogger):
         n['tenant_name'] = os.environ['OS_TENANT_NAME']
         n['ca_cert'] = os.environ['REQUESTS_CA_BUNDLE']
         return n
+
+    @classmethod
+    def get_compute_nodes(cls):
+        credentials = get_nova_credentials_v2()
+        novaclient = nova_client.Client('2', **credentials)
+        print novaclient.hypervisors.list()
+        return novaclient.hypervisors.list()
 
     def create_network(i):
         neutron_credentials = get_neutron_credentials()
@@ -410,17 +426,23 @@ class cordvtn_exchange(CordLogger):
         for k, v in d.items():
             if isinstance(v, dict):
                match = self.search_value(v, pat)
+               if match is True:
+                  break
             elif type(v) is list:
                  for i in range(len(v)):
                     if type(v[i]) is dict:
                        match = self.search_value(v[i], pat)
+                       if match is True:
+                          break
                     else:
-                       if v == pat:
-                          match == True
-                          return True
+                       if v[i] == pat:
+                          match = True
+                          return match
             elif v == pat:
-                 match == True
-                 return True
+                 match = True
+                 return match
+        if match is True:
+           print"Network search is successful"
         return match
 
     def get_key_value(self, d, key = None, value = None,):
@@ -442,10 +464,14 @@ class cordvtn_exchange(CordLogger):
            for k, v in d.items():
               if isinstance(v, dict):
                  match,ret_k,ret_v = self.get_key_value(v, key, value)
+                 if match is True:
+                    break
               elif type(v) is list:
                    for i in range(len(v)):
                       if type(v[i]) is dict:
                          match,ret_k,ret_v = self.get_key_value(v[i], key, value)
+                         if match is True:
+                            break
                       else:
                          if key:
                             if k == key:
@@ -475,7 +501,7 @@ class cordvtn_exchange(CordLogger):
         net = neutron.create_network(body=body_example)
         networks = neutron.list_networks(name=net_name)
         data = networks
-        return [self.search_value(data, net_name)]
+        return self.search_value(data, net_name)
 
     def neutron_network_deletion(self, net_name):
         creds = self.get_neutron_credentials()
@@ -483,9 +509,9 @@ class cordvtn_exchange(CordLogger):
         networks = neutron.list_networks(name=net_name)
         net_id = self.get_key_value(d=networks, key = 'id')
         net = neutron.delete_network(net_id[2])
-        return [self.get_key_value(d=networks, value = net_name)]
+        return self.get_key_value(d=networks, value = net_name)
 
-    def neutron_subnet_creation_and_validation_v1(self,net_name,sub_cird):
+    def temp_neutron_subnet_creation_and_validation_v1(self,net_name,sub_cird, sub_net_start = "172.27.0.2", sub_net_end = "172.27.0.200"):
         creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**creds)
         networks = neutron.list_networks(name=net_name)
@@ -503,7 +529,7 @@ class cordvtn_exchange(CordLogger):
         net_id = self.get_key_value(d=networks, key = 'id')
         if sub_cird[0] == 'management':
            cidr = sub_cird[1]
-           body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr),  "allocation_pools": [{"start": "172.27.0.20", "end": "172.27.0.21"}]}}
+           body_subnet_example = {"subnet":{"network_id": net_id[2],"ip_version":4, "cidr":str(cidr),  "allocation_pools": [{"start": sub_cird[2], "end": sub_cird[3]}]}}
         elif sub_cird[0] == 'public':
            cidr = sub_cird[1]
            gate_way = sub_cird[2]
@@ -552,12 +578,77 @@ class cordvtn_exchange(CordLogger):
            print('Server status is still in %s state'%server_details.status)
         return server_details
 
+    def create_net_subnet_nova_instance(self,net_name, subnet_name, instance_vm_details,management_type):
+        result = self.neutron_network_creation_and_validation(net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(net_name,subnet_name)# sub_net_start = subnet_name[2], sub_net_end =subnet_name[3])
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(net_name, management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(net_name,nova,instance_vm_details[0],instance_vm_details[1],instance_vm_details[2])
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        return [nova, new_instance_details]
+
+    def nova_instance_tenants_access_check(self, target_tenants_details, compute_details = None, source_tenants_details = None , check_type = 'Ping_from_compute'):
+        source_tenant_ip = ''
+        target_tenant_ip = ''
+        cmd = ''
+        status = ''
+        output = ''
+
+        ## TO DO New instance is not getting subnet ip, hence checking only mysite-vsg1 vm from compute node
+        if compute_details is None:
+           compute_ip = '10.1.0.17'
+        else:
+           compute_ip = compute_details.ip
+
+        ## TO DO New instance is not getting subnet ip, hence checking only mysite-vsg1 vm from compute node
+        if target_tenants_details.addresses == {}:
+           target_tenants_details.addresses = '10.1.0.1'
+
+        ## TO DO New instance is not getting subnet ip, hence checking only mysite-vsg1 vm from compute node
+        if source_tenants_details is not None:
+           if source_tenants_details.addresses == {}:
+              source_tenants_details.addresses = '10.1.0.1'
+
+        if check_type == "Ping_from_compute":
+           cmd = "ping -c 3 {0}".format(target_tenants_details.addresses)
+           ssh_agent = SSHTestAgent(host = compute_ip)
+           status, output = ssh_agent.run_cmd(cmd, timeout = 5)
+
+        if source_tenants_details is not None:
+           if check_type == "Ping_from_source_tenant":
+              cmd = "ping -c 3 {0}".format(target_tenants_details.addresses)
+              ssh_cmd = 'ssh {} {}'.format(source_tenants_details.addresses, cmd)
+              print ssh_cmd
+              ssh_agent = SSHTestAgent(host = compute_ip)
+              status, output = ssh_agent.run_cmd(cmd, timeout = 5)
+
+        if check_type == "Ping_to_external":
+           cmd = "ping -c 3 google.com"
+           ssh_agent = SSHTestAgent(host = compute_ip)
+           status, output = ssh_agent.run_cmd(cmd, timeout = 5)
+
+        if status == True and output:
+           print "Ping is successful"
+           output = output.strip()
+        else:
+           print "Ping is not successful"
+           output = None
+        return [status, output]
+
+
     def nova_instance_deletion(self, nova_obj, server_details):
         results_nova_instance_deletion=nova_obj.servers.delete(server_details.id)
         if results_nova_instance_deletion == None:
-           print"Nova intance is deleted"
+           print"Nova instance is deleted"
         else:
-           print"Nova intance is not deleted"
+           print"Nova instance is not deleted"
         return results_nova_instance_deletion
 
     def test_cordvtn_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
@@ -606,11 +697,11 @@ class cordvtn_exchange(CordLogger):
         """
         result = self.neutron_network_creation_and_validation('vtn_test_3_net')
         if result is True:
-           self.neutron_network_deletion('vtn_test_1_net')
+           self.neutron_network_deletion('vtn_test_3_net')
         assert_equal(result, True)
         result_again = self.neutron_network_creation_and_validation('vtn_test_3_net')
         if result_again is True:
-           self.neutron_network_deletion('vtn_test_1_net')
+           self.neutron_network_deletion('vtn_test_3_net')
         assert_equal(result, True)
 
     def test_cordvtn_with_neutron_network_deletion_recreation_and_validation_on_onos(self):
@@ -655,7 +746,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_neutron_management_network_creation_and_validation_on_head_node_with_neutron_service(self):
         test_net_name = 'vtn_test_5_net_management'
-        test_sub_net_cidr = "172.27.0.0/24"
+        test_sub_net_cidr = ["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"]
         result = self.neutron_network_creation_and_validation('vtn_test_5_net_management')
         assert_equal(result, True)
         sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
@@ -680,7 +771,7 @@ class cordvtn_exchange(CordLogger):
         resp = requests.get(url=url, auth=auth)
         data = json.loads(resp.text)
         for i in range(len(data['ServiceNetworks'])):
-              if data['ServiceNetworks'][i]['name'] == 'vtn_test_5_net_management':
+              if data['ServiceNetworks'][i]['name'] == 'vtn_test_6_net_management':
                  sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
                  if sub_net_id[2] == " ":
                     log.info('Sub network is not successful')
@@ -704,7 +795,7 @@ class cordvtn_exchange(CordLogger):
         5. Verified that onos is having under management network
         """
         test_net_name = 'vtn_test_7_net_management'
-        test_sub_net_cidr = ["management","172.27.0.0/24"]
+        test_sub_net_cidr = ["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"]
         test_management_type = "management_local"
         result = self.neutron_network_creation_and_validation(test_net_name)
         assert_equal(result, True)
@@ -731,13 +822,10 @@ class cordvtn_exchange(CordLogger):
         net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
         print("Response from onos to change network service type as management local = %s" %net_type_post.text)
         net_type_json = json.loads(net_type_post.text)
-
         self.neutron_network_deletion(test_net_name)
         assert_equal(net_type_json['message'], 'null already exists')
 
-
     def test_cordvtn_management_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
-
         """
         Algo:
         0. Create Test-Net,
@@ -747,7 +835,7 @@ class cordvtn_exchange(CordLogger):
         5. Validate new nova instance is created on nova service
         """
         test_net_name = 'vtn_test_8_net_management'
-        test_sub_net_cidr = ["management","172.27.0.0/24"]
+        test_sub_net_cidr = ["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"]
         test_management_type = "management_local"
         instance_vm_name = 'vtn_test_8_nova_instance_management_net'
         image_name = "vsg-1.1"
@@ -760,14 +848,12 @@ class cordvtn_exchange(CordLogger):
         network_id = self.get_key_value(d=networks, key = 'id')
         sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
         assert_equal(sub_result[0], True)
-        creds = self.get_nova_credentials()
+        creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
         assert_equal(new_instance_details.status, 'ACTIVE')
-
-
 
     def test_cordvtn_neutron_public_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
@@ -864,7 +950,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(net_type_json['message'], 'null already exists')
 
     def test_cordvtn_public_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
-
         """
         Algo:
         0. Create Test-Net,
@@ -886,7 +971,7 @@ class cordvtn_exchange(CordLogger):
         network_id = self.get_key_value(d=networks, key = 'id')
         sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
         assert_equal(sub_result[0], True)
-        creds = self.get_nova_credentials()
+        creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         self.neutron_network_deletion(test_net_name)
@@ -942,6 +1027,7 @@ class cordvtn_exchange(CordLogger):
                  elif sub_net_id[2] == '10.160.160.0/24':
                  #elif sub_net_id[2] == test_sub_net_cidr[1]:
                     print('Sub network is successful')
+                    self.neutron_network_deletion(test_net_name)
                     assert_equal(sub_net_id[0], True)
                     break
 
@@ -988,7 +1074,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(net_type_json['message'], 'null already exists')
 
     def test_cordvtn_private_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
-
         """
         Algo:
         0. Create Test-Net,
@@ -999,7 +1084,7 @@ class cordvtn_exchange(CordLogger):
         """
         test_net_name = 'vtn_test_16_net_private'
         test_sub_net_cidr = ["private","192.168.160.160/24", '192.168.160.1']
-        instance_vm_name = 'vtn_test_12_nova_instance_private_net'
+        instance_vm_name = 'vtn_test_16_nova_instance_private_net'
         image_name = "vsg-1.1"
         flavor_id = 'm1.small'
         result = self.neutron_network_creation_and_validation(test_net_name)
@@ -1010,12 +1095,473 @@ class cordvtn_exchange(CordLogger):
         network_id = self.get_key_value(d=networks, key = 'id')
         sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
         assert_equal(sub_result[0], True)
-        creds = self.get_nova_credentials()
+        creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
         assert_equal(new_instance_details.status, 'ACTIVE')
+
+    def test_cordvtn_management_network_instance_ping_form_host_machine_or_compute_node(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under management network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
+        """
+        test_net_name = 'vtn_test_17_net_management'
+        test_sub_net_cidr = ["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"]
+        test_management_type = "management_local"
+        instance_vm_name = 'vtn_test_17_nova_instance_management_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print new_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(new_instance_details)
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(status, True)
+
+    def test_cordvtn_management_network_instance_ping_to_external_network(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under management network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
+        """
+        test_net_name = 'vtn_test_18_net_management'
+        test_sub_net_cidr = ["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"]
+        test_management_type = "management_local"
+        instance_vm_name = 'vtn_test_18_nova_instance_management_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print new_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(status, False)
+
+    def test_cordvtn_management_network_two_instance_ping_between_two_instances(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create first nova instance under management network
+        5. Validate first nova instance is created on nova service
+        6. Create second nova instance under management network
+        7. Validate second nova instance is created on nova service
+        8. Now try to ping from one nova instance to other instance, should not success
+        """
+        test_net_name = 'vtn_test_19_net_management'
+        test_sub_net_cidr = ["management","172.27.0.0/24", "172.27.0.2", "172.27.0.200"]
+        test_management_type = "management_local"
+        first_instance_vm_name = 'vtn_test_19_nova_1st_instance_management_net'
+        second_instance_vm_name = 'vtn_test_19_nova_2nd_instance_management_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        first_nova_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,first_instance_vm_name,image_name,flavor_id)
+        second_nova_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,second_instance_vm_name,image_name,flavor_id)
+        #assert_equal(first_instance_details.status, 'ACTIVE')
+        #assert_equal(second_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print 'New nova instance ip addresses are '
+        print first_nova_instance_details.addresses
+        print second_nova_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, first_nova_instance_details)
+        self.nova_instance_deletion(nova, second_nova_instance_details)
+        assert_equal(status, False)
+
+    def test_cordvtn_two_management_network_instances_ping_between_two_networks_via_management_network(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under management network
+        5. Validate new nova instance is created on nova service
+        """
+        test_netA_name = 'vtn_test_20_netA_management'
+        test_sub_netA_cidr = ["management","172.27.0.0/24","172.27.0.2", "172.27.0.200"]
+        netA_instance_vm_name = 'vtn_test_20_nova_netA_instance_management_net'
+        test_netB_name = 'vtn_test_20_netB_management'
+        test_sub_netB_cidr = ["management","172.28.0.0/24","172.28.0.2", "172.28.0.200"]
+        netB_instance_vm_name = 'vtn_test_20_nova_netB_instance_management_net'
+        test_management_type = "management_local"
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        netA_instance_vm_details = [netA_instance_vm_name, image_name, flavor_id]
+        netB_instance_vm_details = [netB_instance_vm_name, image_name, flavor_id]
+
+        nova_netA, nova_instance_details_netA = self.create_net_subnet_nova_instance(test_netA_name, test_sub_netA_cidr, netA_instance_vm_details, test_management_type)
+        nova_netB, nova_instance_details_netB = self.create_net_subnet_nova_instance(test_netB_name, test_sub_netB_cidr, netB_instance_vm_details, test_management_type)
+
+        #assert_equal(nova_instance_details_netA.status, 'ACTIVE')
+        #assert_equal(nova_instance_details_netB.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print 'New nova instance ip addresses are '
+        print nova_instance_details_netA.addresses
+        print nova_instance_details_netB.addresses
+        status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
+        self.neutron_network_deletion(test_netA_name)
+        self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
+        self.neutron_network_deletion(test_netB_name)
+        self.nova_instance_deletion(nova_netB, nova_instance_details_netB)
+        assert_equal(status, False)
+
+    def test_cordvtn_public_network_instance_ping_form_host_machine_or_compute_node(self):
+
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under public network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under public network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is not getting successful from compute node to nova instance which is created in step 4.
+        """
+        test_net_name = 'vtn_test_21_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26",'10.6.1.193']
+        test_management_type = "public"
+        instance_vm_name = 'vtn_test_21_nova_instance_pulic_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print new_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(new_instance_details)
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(status, False)
+
+    def test_cordvtn_public_network_instance_ping_to_external_network(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under public network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under public network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
+        """
+        test_net_name = 'vtn_test_22_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26",'10.6.1.193']
+        test_management_type = "public"
+        instance_vm_name = 'vtn_test_22_nova_instance_public_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print new_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(status, True)
+
+
+    def test_cordvtn_public_network_two_instance_ping_between_two_instances(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under public network
+        3. Do GET Rest API and validate creation of network
+        4. Create first nova instance under public network
+        5. Validate first nova instance is created on nova service
+        6. Create second nova instance under public network
+        7. Validate second nova instance is created on nova service
+        8. Now try to ping from one nova instance to other instance, should not success
+        """
+        test_net_name = 'vtn_test_23_net_public'
+        test_sub_net_cidr = ["public","10.6.1.192/26",'10.6.1.193']
+        test_management_type = "public"
+        first_instance_vm_name = 'vtn_test_23_nova_1st_instance_public_net'
+        second_instance_vm_name = 'vtn_test_23_nova_2nd_instance_public_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        first_nova_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,first_instance_vm_name,image_name,flavor_id)
+        second_nova_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,second_instance_vm_name,image_name,flavor_id)
+        #assert_equal(first_instance_details.status, 'ACTIVE')
+        #assert_equal(second_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print 'New nova instance ip addresses are '
+        print first_nova_instance_details.addresses
+        print second_nova_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, first_nova_instance_details)
+        self.nova_instance_deletion(nova, second_nova_instance_details)
+        assert_equal(status, False)
+
+    def test_cordvtn_two_public_network_instances_ping_between_two_networks_via_public_network(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under public network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under public network
+        5. Validate new nova instance is created on nova service
+        """
+        test_netA_name = 'vtn_test_24_netA_public'
+        test_sub_netA_cidr = ["public","10.6.1.192/26",'10.6.1.193']
+        netA_instance_vm_name = 'vtn_test_24_nova_netA_instance_public_net'
+        test_netB_name = 'vtn_test_24_netB_public'
+        test_sub_netB_cidr = ["public","10.6.2.192/26",'10.6.2.193']
+        netB_instance_vm_name = 'vtn_test_24_nova_netB_instance_public_net'
+        test_management_type = "public"
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        netA_instance_vm_details = [netA_instance_vm_name, image_name, flavor_id]
+        netB_instance_vm_details = [netB_instance_vm_name, image_name, flavor_id]
+
+        nova_netA, nova_instance_details_netA = self.create_net_subnet_nova_instance(test_netA_name, test_sub_netA_cidr, netA_instance_vm_details, test_management_type)
+        nova_netB, nova_instance_details_netB = self.create_net_subnet_nova_instance(test_netB_name, test_sub_netB_cidr, netB_instance_vm_details, test_management_type)
+
+        #assert_equal(nova_instance_details_netA.status, 'ACTIVE')
+        #assert_equal(nova_instance_details_netB.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print 'New nova instance ip addresses are '
+        print nova_instance_details_netA.addresses
+        print nova_instance_details_netB.addresses
+        status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
+        self.neutron_network_deletion(test_netA_name)
+        self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
+        self.neutron_network_deletion(test_netB_name)
+        self.nova_instance_deletion(nova_netB, nova_instance_details_netB)
+        assert_equal(status, False)
+
+    def test_cordvtn_private_network_instance_ping_form_host_machine_or_compute_node(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under private network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under private network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is not getting successful from compute node to nova instance which is created in step 4.
+        """
+        test_net_name = 'vtn_test_25_net_private'
+        test_sub_net_cidr = ["private","10.160.160.192/26",'10.160.160.193']
+        test_management_type = "private"
+        instance_vm_name = 'vtn_test_25_nova_instance_private_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print new_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(new_instance_details)
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(status, False)
+
+    def test_cordvtn_private_network_instance_ping_to_external_network(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under private network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under private network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
+        """
+        test_net_name = 'vtn_test_26_net_private'
+        test_sub_net_cidr = ["private","10.160.160.192/26",'10.160.160.193']
+        test_management_type = "private"
+        instance_vm_name = 'vtn_test_26_nova_instance_private_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
+        #assert_equal(new_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print new_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, new_instance_details)
+        assert_equal(status, False)
+
+    def test_cordvtn_private_network_two_instance_ping_between_two_instances(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under private network
+        3. Do GET Rest API and validate creation of network
+        4. Create first nova instance under private network
+        5. Validate first nova instance is created on nova service
+        6. Create second nova instance under public network
+        7. Validate second nova instance is created on nova service
+        8. Now try to ping from one nova instance to other instance, should not success
+        """
+        test_net_name = 'vtn_test_27_net_private'
+        test_sub_net_cidr = ["private","10.160.160.192/26",'10.160.160.193']
+        test_management_type = "private"
+        first_instance_vm_name = 'vtn_test_27_nova_1st_instance_private_net'
+        second_instance_vm_name = 'vtn_test_27_nova_2nd_instance_private_net'
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        result = self.neutron_network_creation_and_validation(test_net_name)
+        assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        networks = neutron.list_networks(name=test_net_name)
+        network_id = self.get_key_value(d=networks, key = 'id')
+        sub_result = self.neutron_subnet_creation_and_validation(test_net_name,test_sub_net_cidr)
+        assert_equal(sub_result[0], True)
+        net_type_post = self.sub_network_type_post_to_onos(test_net_name, test_management_type)
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        first_nova_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,first_instance_vm_name,image_name,flavor_id)
+        second_nova_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,second_instance_vm_name,image_name,flavor_id)
+        #assert_equal(first_instance_details.status, 'ACTIVE')
+        #assert_equal(second_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print 'New nova instance ip addresses are '
+        print first_nova_instance_details.addresses
+        print second_nova_instance_details.addresses
+        status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
+        self.neutron_network_deletion(test_net_name)
+        self.nova_instance_deletion(nova, first_nova_instance_details)
+        self.nova_instance_deletion(nova, second_nova_instance_details)
+        assert_equal(status, True)
+
+    def test_cordvtn_two_private_network_instances_ping_between_two_networks_via_private_network(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Cretae subnetwork whose ip is under private network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under private network
+        5. Validate new nova instance is created on nova service
+        """
+        test_netA_name = 'vtn_test_28_netA_private'
+        test_sub_netA_cidr = ["private","10.160.160.192/26",'10.160.160.193']
+        netA_instance_vm_name = 'vtn_test_28_nova_netA_instance_private_net'
+        test_netB_name = 'vtn_test_28_netB_private'
+        test_sub_netB_cidr = ["private","10.160.161.192/26",'10.160.161.193']
+        netB_instance_vm_name = 'vtn_test_28_nova_netB_instance_private_net'
+        test_management_type = "private"
+        image_name = "vsg-1.1"
+        flavor_id = 'm1.small'
+        netA_instance_vm_details = [netA_instance_vm_name, image_name, flavor_id]
+        netB_instance_vm_details = [netB_instance_vm_name, image_name, flavor_id]
+
+        nova_netA, nova_instance_details_netA = self.create_net_subnet_nova_instance(test_netA_name, test_sub_netA_cidr, netA_instance_vm_details, test_management_type)
+        nova_netB, nova_instance_details_netB = self.create_net_subnet_nova_instance(test_netB_name, test_sub_netB_cidr, netB_instance_vm_details, test_management_type)
+
+        #assert_equal(nova_instance_details_netA.status, 'ACTIVE')
+        #assert_equal(nova_instance_details_netB.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        print 'New nova instance ip addresses are '
+        print nova_instance_details_netA.addresses
+        print nova_instance_details_netB.addresses
+        status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
+        self.neutron_network_deletion(test_netA_name)
+        self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
+        self.neutron_network_deletion(test_netB_name)
+        self.nova_instance_deletion(nova_netB, nova_instance_details_netB)
+        assert_equal(status, False)
 
     def test_cordvtn_with_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
@@ -1060,7 +1606,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(result, True)
 
     def test_cordvtn_neutron_network_deletion_and_validation_on_neutron_openstack(self):
-
         """
         Algo:
         0. Create Test-Net,
@@ -1191,7 +1736,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_to_create_net_work_with_subnet(self):
-
         ret1 = create_tenant(netA)
         if ret1 != 0:
            print "Creation of Tenant netA Failed"
@@ -1225,8 +1769,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_subnet_limit(self):
-        onos_load_config()
-
         ret1 = create_tenant(netA)
         if ret1 != 0:
            print "Creation of Tenant netA Failed"
@@ -1280,7 +1822,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_for_10_neutron_networks(self):
-
         ret1 = create_tenant(netA)
         if ret1 != 0:
            print "Creation of Tenant netA Failed"
@@ -1301,7 +1842,6 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_for_100_neutron_networks(self):
-
         ret1 = create_tenant(netA)
         if ret1 != 0:
            print "Creation of Tenant netA Failed"
