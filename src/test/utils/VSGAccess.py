@@ -28,6 +28,12 @@ class VSGAccess(object):
         except:
             pass
 
+    '''
+    @method: get_nova_credentials_v2
+    @Description: Get nova credentials
+    @params:
+    returns credential from env
+    '''
     @classmethod
     def get_nova_credentials_v2(cls):
         credential = {}
@@ -37,12 +43,24 @@ class VSGAccess(object):
         credential['project_id'] = os.environ['OS_TENANT_NAME']
         return credential
 
+    '''
+    @method: get_compute_nodes
+    @Description: Get the list of compute nodes
+    @params:
+    returns  node list
+    '''
     @classmethod
     def get_compute_nodes(cls):
         credentials = cls.get_nova_credentials_v2()
         nvclient = nova_client.Client('2', **credentials)
         return nvclient.hypervisors.list()
 
+    '''
+    @method: get_vsgs
+    @Description: Get list of vsg's running in compute node
+    @params: status of vsg
+    returns vsg wrappers
+    '''
     @classmethod
     def get_vsgs(cls, active = True):
         credentials = cls.get_nova_credentials_v2()
@@ -55,6 +73,12 @@ class VSGAccess(object):
             vsg_wrappers.append(VSGWrapper(vsg))
         return vsg_wrappers
 
+    '''
+    @method: open_mgmt
+    @Description: Bringing up Interface for access to management
+    @params: intf = "Interface to open"
+    returns Gateway
+    '''
     @classmethod
     def open_mgmt(cls, intf = 'eth0'):
         if intf in cls.interface_map:
@@ -72,6 +96,13 @@ class VSGAccess(object):
                 return current_gw
         return None
 
+    '''
+    @method: close_mgmt
+    @Description: Bringing up gateway deleting default
+    @params: intf = "Interface to open"
+             dict2 = retrieved data from GET method
+    returns: NA
+    '''
     @classmethod
     def close_mgmt(cls, restore_gw, intf = 'eth0'):
         if restore_gw:
@@ -83,6 +114,12 @@ class VSGAccess(object):
             for cmd in cmds:
                 os.system(cmd)
 
+    '''
+    @method: health_check
+    @Description: Check if vsgs are reachable
+    @params:
+    returns True
+    '''
     @classmethod
     def health_check(cls):
         '''Returns 0 if all active vsgs are reachable through the compute node'''
@@ -93,6 +130,12 @@ class VSGAccess(object):
         unreachable = filter(lambda st: st == False, vsg_status)
         return len(unreachable) == 0
 
+    '''
+    @method: get_vcpe_vsg
+    @Description: Getting vsg vm instance info from given vcpe
+    @params: vcpe = "vcpe name"
+    returns vsg
+    '''
     @classmethod
     def get_vcpe_vsg(cls, vcpe):
         '''Find the vsg hosting the vcpe service'''
@@ -106,6 +149,13 @@ class VSGAccess(object):
                 return vsg
         return None
 
+    '''
+    @method: save_vcpe_config
+    @Description: Saving vcpe config with lan & wan side info
+    @params: vsg
+             vcpe
+    returns True
+    '''
     @classmethod
     def save_vcpe_config(cls, vsg, vcpe):
         if vcpe not in cls.vcpe_map:
@@ -135,6 +185,15 @@ class VSGAccess(object):
 
         return True
 
+    '''
+    @method: restore_vcpe_config
+    @Description: Restoring saved config for lan & wan
+    @params: vcpe
+             gw
+             wan
+             lan
+    returns True/False
+    '''
     @classmethod
     def restore_vcpe_config(cls, vcpe, gw = True, wan = False, lan = False):
         if vcpe in cls.vcpe_map:
@@ -159,28 +218,58 @@ class VSGAccess(object):
             return ret_status
         return False
 
+    '''
+    @method: get_vcpe_gw
+    @Description: Get gw of vcpe from created map
+    @params: vcpe
+    returns gw
+    '''
     @classmethod
     def get_vcpe_gw(cls, vcpe):
         if vcpe in cls.vcpe_map:
             return cls.vcpe_map[vcpe]['gw']
         return None
 
+    '''
+    @method: get_vcpe_wan
+    @Description:
+    @params:
+    return wan side of vcpe
+    '''
     @classmethod
     def get_vcpe_wan(cls, vcpe):
         if vcpe in cls.vcpe_map:
             return cls.vcpe_map[vcpe]['wan']
         return None
 
+    '''
+    @method: get_vcpe_lan
+    @Description:
+    @params:
+    returns True if contents of dict1 exists in dict2
+    '''
     @classmethod
     def get_vcpe_lan(cls, vcpe):
         if vcpe in cls.vcpe_map:
             return cls.vcpe_map[vcpe]['lan']
         return None
 
+    '''
+    @method: vcpe_wan_up
+    @Description:
+    @params:
+    returns status
+    '''
     @classmethod
     def vcpe_wan_up(cls, vcpe):
         return cls.restore_vcpe_config(vcpe)
 
+    '''
+    @method: vcpe_lan_up
+    @Description:
+    @params:
+    returns status
+    '''
     @classmethod
     def vcpe_lan_up(cls, vcpe, vsg = None):
         if vsg is None:
@@ -191,6 +280,12 @@ class VSGAccess(object):
         st, _ = vsg.run_cmd(cmd, timeout = 30)
         return st
 
+    '''
+    @method: vcpe_port_down
+    @Description:
+    @params:
+    returns status
+    '''
     #we cannot access compute node if the vcpe port gets dhcp as default would be through fabric
     @classmethod
     def vcpe_port_down(cls, vcpe, port, vsg = None):
@@ -207,14 +302,32 @@ class VSGAccess(object):
             return False
         return st
 
+    '''
+    @method: vcpe_wan_down
+    @Description:
+    @params:
+    returns status
+    '''
     @classmethod
     def vcpe_wan_down(cls, vcpe, vsg = None):
         return cls.vcpe_port_down(vcpe, 'eth0', vsg = vsg)
 
+    '''
+    @method: vcpe_lan_down
+    @Description:
+    @params:
+    returns status
+    '''
     @classmethod
     def vcpe_lan_down(cls, vcpe, vsg = None):
         return cls.vcpe_port_down(vcpe, 'eth1', vsg = vsg)
 
+    '''
+    @method: save_interface_config
+    @Description:
+    @params:
+    returns NA
+    '''
     @classmethod
     def save_interface_config(cls, intf):
         if intf not in cls.interface_map:
@@ -232,6 +345,12 @@ class VSGAccess(object):
             for cmd in cmds:
                 os.system(cmd)
 
+    '''
+    @method: restore_interface_config
+    @Description:
+    @params:
+    returns NA
+    '''
     #open up access to compute node
     @classmethod
     def restore_interface_config(cls, intf, vcpe = None):
@@ -251,6 +370,12 @@ class VSGAccess(object):
             for cmd in cmds:
                 os.system(cmd)
 
+    '''
+    @method: vcpe_get_dhcp
+    @Description: Get DHCP from vcpe dhcp interface.
+    @params:
+    returns vcpe ip
+    '''
     @classmethod
     def vcpe_get_dhcp(cls, vcpe, mgmt = 'eth0'):
         '''Get DHCP from vcpe dhcp interface.'''
@@ -286,9 +411,21 @@ class VSGWrapper(object):
         self.compute_node = self.get_compute_node()
         self.ip = self.get_ip()
 
+    '''
+    @method: get_compute_node
+    @Description:
+    @params:
+    returns compute node name
+    '''
     def get_compute_node(self):
         return self.vsg._info['OS-EXT-SRV-ATTR:hypervisor_hostname']
 
+    '''
+    @method: get_ip
+    @Description:
+    @params:
+    returns ip of network
+    '''
     def get_ip(self):
         if 'management' in self.vsg.networks:
             ips = self.vsg.networks['management']
@@ -296,6 +433,12 @@ class VSGWrapper(object):
                 return ips[0]
         return None
 
+    '''
+    @method: run_cmd_compute
+    @Description:
+    @params:
+    returns Status & output
+    '''
     def run_cmd_compute(self, cmd, timeout = 5):
         ssh_agent = SSHTestAgent(self.compute_node)
         st, output = ssh_agent.run_cmd(cmd, timeout = timeout)
@@ -306,6 +449,12 @@ class VSGWrapper(object):
 
         return st, output
 
+    '''
+    @method: run_cmd
+    @Description:
+    @params:
+    returns status & output
+    '''
     def run_cmd(self, cmd, timeout = 5, mgmt = 'eth0'):
         last_gw = VSGAccess.open_mgmt(mgmt)
         ssh_agent = SSHTestAgent(self.compute_node)
@@ -318,6 +467,12 @@ class VSGWrapper(object):
         VSGAccess.close_mgmt(last_gw, mgmt)
         return st, output
 
+    '''
+    @method: get_health
+    @Description:
+    @params:
+    returns Status
+    '''
     def get_health(self):
         if self.ip is None:
             return True
@@ -327,6 +482,12 @@ class VSGWrapper(object):
         log.info('VSG %s at IP %s is %s' %(self.name, self.ip, 'reachable' if st == True else 'unreachable'))
         return st
 
+    '''
+    @method: check_access
+    @Description: validates access
+    @params:
+    returns Status
+    '''
     def check_access(self):
         if self.ip is None:
             return True
