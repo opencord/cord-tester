@@ -26,7 +26,7 @@ class OnosCtrl:
     cfg_url = 'http://%s:8181/onos/v1/network/configuration/' %(controller)
     maven_repo = 'http://central.maven.org/maven2/org/onosproject'
     applications_url = 'http://%s:8181/onos/v1/applications' %(controller)
-    host_cfg_url = 'http://%s:8181/onos/v1/hosts/' %(controller)
+    host_cfg_url = 'http://%s:8181/onos/v1/network/configuration/hosts/' %(controller)
 
     def __init__(self, app, controller = None):
         self.app = app
@@ -249,10 +249,10 @@ class OnosCtrl:
         return resp.ok, resp.status_code
 
     @classmethod
-    def host_config(cls, config,onos_ip=None):
+    def host_config(cls, config, onos_ip=None):
         if config:
            json_data = json.dumps(config)
-	   url = cls.host_cfg_url if onos_ip is None else 'http://%s:8181/onos/v1/hosts/'.format(onos_ip)
-           resp = requests.post(cls.host_cfg_url, auth = cls.auth, data = json_data)
+           url = cls.host_cfg_url if onos_ip is None else 'http://{}:8181/onos/v1/network/configuration/hosts/'.format(onos_ip)
+           resp = requests.post(url, auth = cls.auth, data = json_data)
            return resp.ok, resp.status_code
         return False, 400
