@@ -334,7 +334,7 @@ class igmp_exchange(CordLogger):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_join_verify_traffic(self):
-        groups = ['224.0.1.1', '225.0.0.1']
+        groups = [self.MGROUP1, self.MGROUP1]
 	self.onos_ssm_table_load(groups)
         df = defer.Deferred()
         igmpState = IGMPTestState(groups = groups, df = df)
@@ -364,7 +364,7 @@ class igmp_exchange(CordLogger):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+40)
     def test_igmp_leave_verify_traffic(self):
-        groups = ['224.0.1.10', '225.0.0.10']
+        groups = [self.MGROUP1, self.MGROUP1]
         leave_groups = ['224.0.1.10']
 	self.onos_ssm_table_load(groups)
         df = defer.Deferred()
@@ -511,7 +511,7 @@ class igmp_exchange(CordLogger):
 
     @deferred(timeout=IGMP_QUERY_TIMEOUT + 10)
     def test_igmp_2group_join_latency(self):
-        groups = ['239.0.1.1', '240.0.1.1']
+        groups = [self.MGROUP1, self.MGROUP1]
         df = defer.Deferred()
         def igmp_2group_join_latency():
             self.group_latency_check(groups)
