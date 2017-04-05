@@ -251,7 +251,7 @@ class dhcp_exchange(CordLogger):
         assert_equal(ip_map, ip_map2)
 
 
-    def test_dhcp_starvation_passitive(self):
+    def test_dhcp_starvation_positive_scenario(self):
         config = {'startip':'193.170.1.20', 'endip':'193.170.1.69',
                   'ip':'193.170.1.2', 'mac': "ca:fe:c2:fe:cc:fe",
                   'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
@@ -266,7 +266,7 @@ class dhcp_exchange(CordLogger):
             ip_map[cip] = sip
 
 
-    def test_dhcp_starvation_negative(self):
+    def test_dhcp_starvation_negative_scenario(self):
         config = {'startip':'182.17.0.20', 'endip':'182.17.0.69',
                   'ip':'182.17.0.2', 'mac': "ca:fe:c3:fe:ca:fe",
                   'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
