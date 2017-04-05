@@ -25,6 +25,7 @@ from OltConfig import *
 from OnosCtrl import OnosCtrl
 from portmaps import g_subscriber_port_map
 from CordLogger import CordLogger
+from CordTestConfig import setup_module
 log.setLevel('INFO')
 
 class dhcp_exchange(CordLogger):
@@ -42,6 +43,14 @@ class dhcp_exchange(CordLogger):
         "endip": "10.1.11.100"
     }
 
+    STARTIP = "10.10.10.40"
+    ENDIP = "10.10.10.41"
+    IP = "10.10.10.2"
+    MAC = "ca:fe:ca:fe:ca:fe"
+    SUBNET = "255.255.255.0"
+    BROADCAST = "10.10.10.255"
+    ROUTER = "10.10.10.1"
+
     app = 'org.onosproject.dhcp'
 
     ip_count = 0
@@ -57,6 +66,9 @@ class dhcp_exchange(CordLogger):
 
     @classmethod
     def setUpClass(cls):
+        cls.config_dhcp = {'startip': cls.STARTIP, 'endip': cls.ENDIP,
+                           'ip':cls.IP, 'mac': cls.MAC, 'subnet': cls.SUBNET,
+                           'broadcast':cls.BROADCAST, 'router':cls.ROUTER}
         cls.olt = OltConfig()
         cls.port_map, _ = cls.olt.olt_port_map()
         if not cls.port_map:
@@ -95,6 +107,8 @@ class dhcp_exchange(CordLogger):
 
     def send_recv(self, mac = None, update_seed = False, validate = True):
         cip, sip = self.dhcp.discover(mac = mac, update_seed = update_seed)
+        log.info("discover cip %s"%(cip))
+        log.info("discover sip %s"%(sip))
         if validate:
             assert_not_equal(cip, None)
             assert_not_equal(sip, None)
@@ -142,10 +156,7 @@ class dhcp_exchange(CordLogger):
 	self.total_failure += self.failure_count
 
     def test_dhcp_1request(self):
-        config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
-                  'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
-                  'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
-        self.onos_dhcp_table_load(config)
+        self.onos_dhcp_table_load(self.config_dhcp)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = self.iface)
         self.send_recv()
 
@@ -179,7 +190,7 @@ class dhcp_exchange(CordLogger):
         assert_equal(cip,None)
         log.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
 
-    def test_dhcp_Nrequest(self,requests=10):
+    def test_dhcp_Nrequest(self, requests=10):
         config = {'startip':'192.168.1.20', 'endip':'192.168.1.69',
                   'ip':'192.168.1.2', 'mac': "ca:fe:ca:fe:cc:fe",
                   'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
@@ -353,7 +364,7 @@ class dhcp_exchange(CordLogger):
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = self.iface)
 	self.dhcp.return_option = 'lease'
 	log.info('Sending DHCP discover with lease time of 700')
-	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True, lease_value = lease_time)	
+	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True, lease_value = lease_time)
         assert_equal(lval, 700)
 	log.info('dhcp server offered IP address with client requested lease  time')
 
@@ -375,7 +386,7 @@ class dhcp_exchange(CordLogger):
 	new_cip, new_sip = self.dhcp.only_request(cip, mac, cl_reboot = True)
 	assert_equal(new_cip,cip)
 	log.info('client got same ip after reboot, as expected')
-	
+
 
     def test_dhcp_server_after_reboot(self):
 	config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
@@ -441,7 +452,7 @@ class dhcp_exchange(CordLogger):
 		  (cip, sip, mac) )
 	assert_not_equal(cip, None)
 	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
-	log.info('waiting renew  time %d seconds to send next request packet'%lval) 
+	log.info('waiting renew  time %d seconds to send next request packet'%lval)
 	time.sleep(lval)
 	latest_cip, latest_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
 	assert_equal(latest_cip,cip)
