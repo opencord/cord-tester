@@ -19,7 +19,8 @@ import keystoneclient.v2_0.client as ksclient
 import keystoneclient.apiclient.exceptions
 import neutronclient.v2_0.client as nclient
 import neutronclient.common.exceptions
-import novaclient.v1_1.client as novaclient
+#import novaclient.v1_1.client as novaclient
+from novaclient import client as nova_client
 from multiprocessing import Pool
 from neutronclient.v2_0 import client as neutron_client
 import neutronclient.v2_0.client as neutronclient
