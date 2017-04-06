@@ -182,35 +182,106 @@ class vsg_exchange(CordLogger):
     def log_set(self, level = None, app = 'org.onosproject'):
         CordLogger.logSet(level = level, app = app, controllers = self.controllers, forced = True)
 
+    def get_vsg_vcpe_pair(self):
+        vcpes = self.vcpes_dhcp
+        vcpe_containers = []
+        vsg_vcpe = {}
+        for vcp in vcpes:
+                vcpe_container = 'vcpe-{}-{}'.format(vcp['s_tag'], vcp['c_tag'])
+                vcpe_containers.append(vcpe_container)
+                vsg = VSGAccess.get_vcpe_vsg(vcpe_container)
+                vsg_vcpe[vcpe_container]=str(vsg.get_ip())
+        return vsg_vcpe
+
     def test_vsg_health(self):
+        """
+        Algo:
+        1. Login to compute node VM
+        2. Get all vSGs
+        3. Ping to all vSGs
+        4. Verifying Ping success
+        """
         status = VSGAccess.health_check()
         assert_equal(status, True)
 
+    def test_vsg_health_check(self,vsg_name='mysite_vsg-1',verify_status=True):
+        """
+        Algo:
+	1. If vsg name not specified, Get vsg corresponding to vcpe
+        1. Login to compute mode VM
+        3. Ping to the vSG
+        4. Verifying Ping success
+        """
+	if not vsg_name:
+		vcpe = self.vcpe_container
+		vsg = VSGAccess.get_vcpe_vsg(vcpe)
+		status = vsg.get_health()
+		assert_equal(status, verify_status)
+	else:
+	     vsgs = VSGAccess.get_vsgs()
+             status = None
+             for vsg in vsgs:
+                 if vsg.name == vsg_name:
+                        status = vsg.get_health()
+                        log.info('vsg health check status is %s'%status)
+             assert_equal(status,verify_status)
+
     def test_vsg_for_vcpe(self):
+        """
+        Algo:
+	1. Get list of all compute nodes created using Openstack
+        2. Login to compute mode VM
+        3. Get all vSGs
+        4. Verifying atleast one compute node and one vSG created
+        """
         vsgs = VSGAccess.get_vsgs()
         compute_nodes = VSGAccess.get_compute_nodes()
         assert_not_equal(len(vsgs), 0)
         assert_not_equal(len(compute_nodes), 0)
 
     def test_vsg_for_login(self):
+        """
+        Algo:
+        1. Login to compute node VM
+        2. Get all vSGs
+        3. Verifying login to vSG is success
+        """
         vsgs = VSGAccess.get_vsgs()
         vsg_access_status = map(lambda vsg: vsg.check_access(), vsgs)
         status = filter(lambda st: st == False, vsg_access_status)
         assert_equal(len(status), 0)
 
     def test_vsg_for_default_route_through_testclient(self):
+	"""
+	Algo:
+	1. Login to head node
+	2. Verifying for default route in lxc test client
+	"""
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "sudo lxc exec testclient -- route | grep default"
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal(status, True)
 
     def test_vsg_for_external_connectivity_through_testclient(self):
+        """
+        Algo:
+        1. Login to head node
+        2. On head node, executing ping to 8.8.8.8 from lxc test client
+	3. Verifying for the ping success
+        """
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal( status, True)
 
     def test_vsg_for_external_connectivity(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to 8.8.8.8 and Verifying ping should success
+	4. Restoring management interface configuration in  cord-tester
+        """
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
         host = '8.8.8.8'
@@ -225,6 +296,13 @@ class vsg_exchange(CordLogger):
         assert_equal(st, 0)
 
     def test_vsg_for_external_connectivity_to_google(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to www.google.com and Verifying ping should success
+        4. Restoring management interface configuration in  cord-tester
+        """
         host = 'www.google.com'
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
@@ -238,6 +316,13 @@ class vsg_exchange(CordLogger):
         assert_equal(st, 0)
 
     def test_vsg_for_external_connectivity_to_invalid_host(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to www.goglee.com and Verifying ping should not success
+        4. Restoring management interface configuration in  cord-tester
+        """
         host = 'www.goglee.com'
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
@@ -251,6 +336,14 @@ class vsg_exchange(CordLogger):
         assert_not_equal(st, 0)
 
     def test_vsg_for_external_connectivity_with_ttl_1(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to 8.8.8.8 with ttl set to 1
+	4. Verifying ping should not success
+        5. Restoring management interface configuration in  cord-tester
+        """
         host = '8.8.8.8'
         vcpe = self.vcpe_dhcp
         mgmt = 'eth0'
@@ -264,6 +357,17 @@ class vsg_exchange(CordLogger):
         assert_not_equal(st, 0)
 
     def test_vsg_for_external_connectivity_with_wan_interface_toggle_in_vcpe(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to 8.8.8.8 and Verifying ping should success
+	4. Now down the WAN interface of vcpe
+	5. Ping to 8.8.8.8 and Verifying ping should not success
+	6. Now Up the WAN interface of vcpe
+	7. Ping to 8.8.8.8 and Verifying ping should success
+	8. Restoring management interface configuration in  cord-tester
+        """
         host = '8.8.8.8'
         mgmt = 'eth0'
         vcpe = self.vcpe_container
@@ -274,7 +378,7 @@ class vsg_exchange(CordLogger):
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
         log.info('Sending ICMP pings to host %s' %(host))
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        """st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         if st != 0:
             VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
@@ -293,9 +397,20 @@ class vsg_exchange(CordLogger):
         assert_equal(st, True)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
+        assert_equal(st, 0)"""
 
     def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to 8.8.8.8 and Verifying ping should success
+        4. Now down the LAN interface of vcpe
+        5. Ping to 8.8.8.8 and Verifying ping should not success
+        6. Now Up the LAN interface of vcpe
+        7. Ping to 8.8.8.8 and Verifying ping should success
+        8. Restoring management interface configuration in  cord-tester
+        """
         host = '8.8.8.8'
         mgmt = 'eth0'
         vcpe = self.vcpe_container
@@ -328,6 +443,14 @@ class vsg_exchange(CordLogger):
         assert_equal(st, 0)
 
     def test_vsg_firewall_with_deny_destination_ip(self, vcpe=None):
+	"""
+	Algo:
+	1. Get vSG corresponding to vcpe
+	2. Login to compute node
+	3. Execute iptable command on vcpe from compute node to deny a destination IP
+	4. From cord-tester ping to the denied IP address
+	5. Verifying that ping should not be successful
+	"""
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -343,6 +466,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_with_rule_add_and_delete_dest_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP
+        4. From cord-tester ping to the denied IP address
+	5. Verifying that ping should not be successful
+	6. Delete the iptable rule in  vcpe
+	7. From cord-tester ping to the denied IP address
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -361,6 +495,16 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_verifying_reachability_for_non_blocked_dest_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP
+        4. From cord-tester ping to the denied IP address
+	5. Verifying that ping should not be successful
+	6. From cord-tester ping to the denied IP address other than the denied one
+        7. Verifying the ping should success
+        """
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
@@ -379,6 +523,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_appending_rules_with_deny_dest_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP1
+        4. From cord-tester ping to the denied IP address IP1
+        5. Verifying that ping should not be successful
+	6. Execute iptable command on vcpe from compute node to deny a destination IP2
+        6. From cord-tester ping to the denied IP address IP2
+        7. Verifying that ping should not be successful
+        """
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
@@ -392,7 +547,7 @@ class vsg_exchange(CordLogger):
             assert_equal(st, True)
             st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
             assert_equal(st, False)
-            st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host2))
+            st, _ = vsg.run_cmd('sudo docker exec {} iptables -A FORWARD -d {} -j DROP'.format(vcpe,host2))
             st, _ = getstatusoutput('ping -c 1 {}'.format(host2))
             assert_equal(st,True)
         finally:
@@ -400,6 +555,20 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_removing_one_rule_denying_dest_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP1
+        4. Execute iptable command on vcpe from compute node to deny a destination IP2
+        5. From cord-tester ping to the denied IP address IP1
+        6. Verifying that ping should not be successful
+        7. From cord-tester ping to the denied IP address IP2
+        8. Verifying that ping should not be successful
+        9. Execute iptable command on vcpe from compute node to remove deny a destination IP2 rule
+        10. From cord-tester ping to the denied IP address IP2
+        11. Verifying the ping should success
+        """
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
@@ -422,6 +591,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_changing_rule_id_deny_dest_ip(self, vcpe=None):
+	"""
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP
+        5. From cord-tester ping to the denied IP address IP1
+        6. Verifying that ping should not be successful
+        9. Execute iptable command on vcpe from compute node to change the rule ID to 2 to  deny the same  destination IP
+        10. From cord-tester ping to the denied IP address IP
+        11. Verifying that ping should not be successful
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -432,8 +612,7 @@ class vsg_exchange(CordLogger):
             st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
             st, _ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_equal(st, True)
-            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -j ACCEPT 2'.format(vcpe))
-            st,output = vsg.run_cmd('sudo docker exec {} iptables -A FORWARD 2 -d {} -j DROP '.format(vcpe,host))
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD 2 -d {} -j DROP '.format(vcpe,host))
             st, _ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_equal(st,False)
         finally:
@@ -441,6 +620,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_changing_deny_rule_to_accept_dest_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP
+        5. From cord-tester ping to the denied IP address IP1
+        6. Verifying that ping should not be successful
+        9. Execute iptable command on vcpe from compute node to accept the same  destination IP
+        10. From cord-tester ping to the accepted IP
+        11. Verifying the ping should  success
+        """
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
@@ -452,7 +642,7 @@ class vsg_exchange(CordLogger):
             st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
             st, _ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_equal(st, True)
-            st,output = vsg.run_cmd('sudo docker exec {} iptables -A FORWARD -d {} -j ACCEPT 1'.format(vcpe,host))
+            st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD 1 -d {} -j ACCEPT'.format(vcpe,host))
             st, _ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_equal(st,False)
         finally:
@@ -460,6 +650,16 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_denying_destination_network(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP subnet
+        4. From cord-tester ping to the denied IP address IP1 in the denied subnet
+        5. Verifying that ping should not be successful
+        6. From cord-tester ping to the denied IP address IP2 in the denied subnet
+        7. Verifying that ping should not be successful
+        """
         network = '206.190.36.44/28'
         host1 = '204.79.197.46'
         host2 = '204.79.197.51'
@@ -478,6 +678,16 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_denying_destination_network_subnet_modification(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP subnet
+        4. From cord-tester ping to the denied IP address IP1 in the denied subnet
+        5. Verifying that ping should not be successful
+        6. From cord-tester ping to the denied IP address IP2 in the denied subnet
+        7. Verifying that ping should not be successful
+        """
         network1 = '206.190.36.44/28'
         network2 = '206.190.36.44/26'
         host1 = '204.79.197.46'
@@ -505,6 +715,14 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_with_deny_source_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a source IP
+        4. From cord-tester ping to 8.8.8.8 from the denied IP
+        5. Verifying that ping should not be successful
+        """
         host = '8.8.8.8'
         source_ip = self.vcpe_dhcp
         if not vcpe:
@@ -520,6 +738,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_rule_with_add_and_delete_deny_source_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a source IP
+        4. From cord-tester ping to 8.8.8.8 from the denied IP
+        5. Verifying that ping should not be successful
+	6. Delete the iptable rule in vcpe
+	7. From cord-tester ping to 8.8.8.8 from the denied IP
+	8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         source_ip = self.vcpe_dhcp
         if not vcpe:
@@ -538,6 +767,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_rule_with_deny_icmp_protocol_echo_requests_type(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny icmp echo-requests type protocol packets
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+	6. Delete the iptable rule
+	7. From cord-tester ping to 8.8.8.8
+	8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -556,6 +796,17 @@ class vsg_exchange(CordLogger):
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_rule_with_deny_icmp_protocol_echo_reply_type(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny icmp echo-reply type protocol packets
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Delete the iptable rule
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -574,6 +825,17 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_requests_type(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny icmp echo-requests type protocol packets
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Insert another rule to accept the icmp-echo requests protocol packets
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -610,6 +872,17 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_for_deny_icmp_protocol(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny icmp protocol packets
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Delete the iptable rule
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -628,6 +901,23 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_rule_deny_icmp_protocol_and_destination_ip(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Execute iptable command on vcpe from compute node to deny icmp protocol packets
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+	9. Delete the rule added in step 3
+	10. From cord-tester ping to 8.8.8.8
+	11. Verifying that ping should not be successful
+	12. Delete the rule added in step 6
+	13. From cord-tester ping to 8.8.8.8
+	14. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -650,6 +940,21 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_flushing_all_configured_rules(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny a destination IP
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Execute iptable command on vcpe from compute node to deny icmp protocol packets
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        9. Flush all the iptable rules configuraed in vcpe
+        10. Delete the rule added in step 6
+        11. From cord-tester ping to 8.8.8.8
+        12. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -671,6 +976,17 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
 
     def test_vsg_firewall_deny_all_ipv4_traffic(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all ipv4 Traffic
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Delete the iptable  rule added
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -688,6 +1004,17 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_replacing_deny_rule_to_accept_rule(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all ipv4 Traffic
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Replace the deny rule added in step 3 with accept rule
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -705,6 +1032,17 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_deny_all_traffic_from_lan_to_wan_in_vcpe(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all the  traffic from lan to wan interface in vcpe
+        4. From cord-tester ping to 8.8.8.8
+        5. Verifying that ping should not be successful
+        6. Delete the iptable  rule added
+        7. From cord-tester ping to 8.8.8.8
+        8. Verifying the ping should success
+        """
         host = '8.8.8.8'
         if not vcpe:
                 vcpe = self.vcpe_container
@@ -722,6 +1060,17 @@ class vsg_exchange(CordLogger):
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
 
     def test_vsg_firewall_deny_all_dns_traffic(self, vcpe=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all dns Traffic
+        4. From cord-tester ping to www.google.com
+        5. Verifying that ping should not be successful
+        6. Delete the iptable  rule added
+        7. From cord-tester ping to www.google.com
+        8. Verifying the ping should success
+        """
         host = 'www.google.com'
         if not vcpe:
                 vcpe = self.vcpe_container
