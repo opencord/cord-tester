@@ -361,12 +361,12 @@ class vsg_exchange(CordLogger):
         Algo:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
-        3. Ping to 8.8.8.8 and Verifying ping should success
+        3. Ping to 8.8.8.8 and Verifying ping succeeds
 	4. Now down the WAN interface of vcpe
-	5. Ping to 8.8.8.8 and Verifying ping should not success
+	5. Ping to 8.8.8.8 and Verifying ping fails
 	6. Now Up the WAN interface of vcpe
-	7. Ping to 8.8.8.8 and Verifying ping should success
-	8. Restoring management interface configuration in  cord-tester
+	7. Ping to 8.8.8.8 and Verifying ping succeeds
+	8. Restoring management interface configuration in cord-tester
         """
         host = '8.8.8.8'
         mgmt = 'eth0'
@@ -378,7 +378,7 @@ class vsg_exchange(CordLogger):
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
         log.info('Sending ICMP pings to host %s' %(host))
-        """st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         if st != 0:
             VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
@@ -397,7 +397,7 @@ class vsg_exchange(CordLogger):
         assert_equal(st, True)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)"""
+        assert_equal(st, 0)
 
     def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe(self):
         """
@@ -453,7 +453,7 @@ class vsg_exchange(CordLogger):
 	"""
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -479,7 +479,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -508,7 +508,7 @@ class vsg_exchange(CordLogger):
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
         assert_equal(st, False)
@@ -537,7 +537,7 @@ class vsg_exchange(CordLogger):
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
         assert_equal(st, False)
@@ -572,7 +572,7 @@ class vsg_exchange(CordLogger):
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
         assert_equal(st, False)
@@ -604,7 +604,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -634,7 +634,7 @@ class vsg_exchange(CordLogger):
         host1 = '8.8.8.8'
         host2 = '204.79.197.203'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -664,7 +664,7 @@ class vsg_exchange(CordLogger):
         host1 = '204.79.197.46'
         host2 = '204.79.197.51'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
         assert_equal(st, False)
@@ -694,7 +694,7 @@ class vsg_exchange(CordLogger):
         host2 = '204.79.197.51'
         host2 = '204.79.197.63'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host1))
         assert_equal(st, False)
@@ -726,7 +726,7 @@ class vsg_exchange(CordLogger):
         host = '8.8.8.8'
         source_ip = self.vcpe_dhcp
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -752,7 +752,7 @@ class vsg_exchange(CordLogger):
         host = '8.8.8.8'
         source_ip = self.vcpe_dhcp
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -780,7 +780,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -809,7 +809,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format('8.8.8.8'))
         assert_equal(st, False)
@@ -838,7 +838,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -856,7 +856,7 @@ class vsg_exchange(CordLogger):
     def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_reply_type(self, vcpe=None):
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, out1 = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -885,7 +885,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -920,7 +920,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -957,7 +957,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -989,7 +989,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -1017,7 +1017,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -1045,7 +1045,7 @@ class vsg_exchange(CordLogger):
         """
         host = '8.8.8.8'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
@@ -1073,7 +1073,7 @@ class vsg_exchange(CordLogger):
         """
         host = 'www.google.com'
         if not vcpe:
-                vcpe = self.vcpe_container
+            vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         assert_equal(st, False)
