@@ -26,7 +26,7 @@ class CordTestConfigRestore(Plugin):
                 self.context = context
 
     #reset the context on exit
-    def afterContext(self, context):
+    def stopContext(self, context):
         if inspect.isclass(context) and issubclass(context, unittest.TestCase):
             if context.__name__.endswith('exchange'):
                 self.context = None
