@@ -15,7 +15,6 @@
 #
 import os,sys
 import logging
-from nose import main as nosetest_main
 logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 ##add the python path to lookup the utils
 working_dir = os.path.dirname(os.path.realpath(sys.argv[-1]))
@@ -27,5 +26,7 @@ __path__.append(fsm_dir)
 __path__.append(subscriber_dir)
 cli_dir = os.path.join(working_dir, '../cli')
 __path__.append(cli_dir)
-from CordTestConfig import CordTestConfigRestore
-nosetest_main(addplugins = [ CordTestConfigRestore() ])
+
+#from nose import main as nosetest_main
+#from CordTestConfig import CordTestConfigRestore
+#nosetest_main(addplugins = [ CordTestConfigRestore() ])

@@ -393,22 +393,24 @@ class vsg_exchange(CordLogger):
         assert_not_equal(vcpe, None)
         assert_not_equal(self.vcpe_dhcp, None)
         #first get dhcp on the vcpe interface
-        vcpe_ip = self.get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
-        log.info('Sending ICMP pings to host %s' %(host))
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, 0)
-        #bring down the wan interface and check again
-        st = VSGAccess.vcpe_wan_down(vcpe)
-        assert_equal(st, True)
-        st_ping, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        st = VSGAccess.vcpe_wan_up(vcpe)
-        assert_not_equal(st_ping, 0)
-        assert_equal(st, True)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
+        try:
+            vcpe_ip = self.get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
+            assert_not_equal(vcpe_ip, None)
+            log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
+            log.info('Sending ICMP pings to host %s' %(host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, 0)
+            #bring down the wan interface and check again
+            st = VSGAccess.vcpe_wan_down(vcpe)
+            assert_equal(st, True)
+            st_ping, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            st = VSGAccess.vcpe_wan_up(vcpe)
+            assert_not_equal(st_ping, 0)
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, 0)
+        finally:
+            self.config_restore()
 
     def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe(self):
         """
@@ -428,22 +430,24 @@ class vsg_exchange(CordLogger):
         assert_not_equal(vcpe, None)
         assert_not_equal(self.vcpe_dhcp, None)
         #first get dhcp on the vcpe interface
-        vcpe_ip = self.get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
-        log.info('Sending ICMP pings to host %s' %(host))
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, 0)
-        #bring down the lan interface and check again
-        st = VSGAccess.vcpe_lan_down(vcpe)
-        assert_equal(st, True)
-        st_ping, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        st = VSGAccess.vcpe_lan_up(vcpe)
-        assert_not_equal(st_ping, 0)
-        assert_equal(st, True)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
+        try:
+            vcpe_ip = self.get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
+            assert_not_equal(vcpe_ip, None)
+            log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
+            log.info('Sending ICMP pings to host %s' %(host))
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, 0)
+            #bring down the lan interface and check again
+            st = VSGAccess.vcpe_lan_down(vcpe)
+            assert_equal(st, True)
+            st_ping, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            st = VSGAccess.vcpe_lan_up(vcpe)
+            assert_not_equal(st_ping, 0)
+            assert_equal(st, True)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, 0)
+        finally:
+            self.config_restore()
 
     def test_vsg_firewall_with_deny_destination_ip(self, vcpe=None):
 	"""
@@ -461,18 +465,18 @@ class vsg_exchange(CordLogger):
             vcpe = self.vcpe_container
         vsg = VSGAccess.get_vcpe_vsg(vcpe)
         assert_not_equal(vsg, None)
-        vcpe_ip = self.get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, 0)
         try:
+            vcpe_ip = self.get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
+            assert_not_equal(vcpe_ip, None)
+            st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, 0)
             st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
             st, _ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_not_equal(st, 0)
         finally:
             vsg.run_cmd('sudo docker exec {} iptables -F'.format(vcpe))
             vsg.run_cmd('sudo docker exec {} iptables -X'.format(vcpe))
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
+            self.config_restore()
 
     def test_vsg_firewall_with_rule_add_and_delete_dest_ip(self, vcpe=None):
         """
