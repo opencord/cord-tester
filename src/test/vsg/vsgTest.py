@@ -147,6 +147,8 @@ class vsg_exchange(CordLogger):
         if cls.vcpes_dhcp:
             vcpe_container = 'vcpe-{}-{}'.format(cls.vcpes_dhcp[0]['s_tag'], cls.vcpes_dhcp[0]['c_tag'])
             vcpe_dhcp = 'vcpe0.{}.{}'.format(cls.vcpes_dhcp[0]['s_tag'], cls.vcpes_dhcp[0]['c_tag'])
+            if 'untagged' in cls.vcpes_dhcp[0] and cls.vcpes_dhcp[0]['untagged']:
+                vcpe_dhcp = 'vcpe0'
             vcpe_dhcp_stag = 'vcpe0.{}'.format(cls.vcpes_dhcp[0]['s_tag'])
         cls.vcpe_container = vcpe_container
         cls.vcpe_dhcp = vcpe_dhcp
