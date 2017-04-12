@@ -1,7 +1,7 @@
 from OnosLog import OnosLog
 import logging
 logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
-from scapy.all import log
+from CordTestUtils import log_test as log
 from onosclidriver import OnosCliDriver
 from OnosCtrl import OnosCtrl
 from docker import Client

@@ -16,7 +16,7 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from CordTestUtils import get_mac
+from CordTestUtils import get_mac, log_test
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
@@ -29,7 +29,7 @@ from threading import current_thread
 import time
 import os
 import json
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 
 class proxyarp_exchange(unittest.TestCase):
@@ -99,7 +99,7 @@ class proxyarp_exchange(unittest.TestCase):
             index += 1
             config_cmds = ('ifconfig {} 0'.format(iface), )
             for cmd in config_cmds:
-		log.info('host unload command %s' % cmd)
+		log_test.info('host unload command %s' % cmd)
                 os.system(cmd)
 
     @classmethod
@@ -124,7 +124,7 @@ class proxyarp_exchange(unittest.TestCase):
 	for host in host_config:
 	    status, code = OnosCtrl.host_config(host)
 	    if status is False:
-                log.info('JSON request returned status %d' %code)
+                log_test.info('JSON request returned status %d' %code)
                 assert_equal(status, True)
 
     @classmethod
@@ -191,18 +191,18 @@ class proxyarp_exchange(unittest.TestCase):
         return proxyarp_configs
 
     def proxyarp_arpreply_verify(self, ingress, hostip, hostmac, PositiveTest=True):
-	log.info('verifying arp reply for host ip %s host mac %s on interface %s'%(hostip ,hostmac ,self.port_map[ingress]))
+	log_test.info('verifying arp reply for host ip %s host mac %s on interface %s'%(hostip ,hostmac ,self.port_map[ingress]))
 	self.success = False
         def recv_task():
             def recv_cb(pkt):
-                log.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
+                log_test.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
                 self.success = True if PositiveTest == True else False
             sniff(count=1, timeout=2, lfilter = lambda p: ARP in p and p[ARP].op == 2 and p[ARP].hwsrc == hostmac,
                   prn = recv_cb, iface = self.port_map[ingress])
         t = threading.Thread(target = recv_task)
         t.start()
         pkt = (Ether(dst = 'ff:ff:ff:ff:ff:ff')/ARP(op=1,pdst=hostip))
-        log.info('sending arp request  for dest ip %s on interface %s' %
+        log_test.info('sending arp request  for dest ip %s on interface %s' %
                  (hostip, self.port_map[ingress]))
         sendp( pkt, count = 10, iface = self.port_map[ingress])
         t.join()
@@ -213,10 +213,10 @@ class proxyarp_exchange(unittest.TestCase):
 
     def __proxyarp_hosts_verify(self, hosts = 1,PositiveTest = True):
         _,_,hosts_config = self.proxyarp_config(hosts = hosts)
-	log.info('\nhosts_config %s and its type %s'%(hosts_config,type(hosts_config)))
+	log_test.info('\nhosts_config %s and its type %s'%(hosts_config,type(hosts_config)))
         self.cliEnter()
         connected_hosts = json.loads(self.cli.hosts(jsonFormat = True))
-        log.info('Discovered hosts: %s' %connected_hosts)
+        log_test.info('Discovered hosts: %s' %connected_hosts)
         #We read from cli if we expect less number of routes to avoid cli timeouts
         if hosts <= 10000:
             assert_equal(len(connected_hosts), hosts)
@@ -243,12 +243,12 @@ class proxyarp_exchange(unittest.TestCase):
 	for hostip, hostmac in hosts_config:
 	    self.proxyarp_arpreply_verify(ingress,hostip,hostmac,PositiveTest = True)
 	    time.sleep(1)
-	log.info('Deactivating proxyarp  app and expecting not to get arp reply from ONOS')
+	log_test.info('Deactivating proxyarp  app and expecting not to get arp reply from ONOS')
 	self.proxyarp_activate(deactivate = True)
 	for hostip, hostmac in hosts_config:
 	    self.proxyarp_arpreply_verify(ingress,hostip,hostmac,PositiveTest = False)
 	    time.sleep(1)
-	log.info('activating proxyarp  app and expecting to get arp reply from ONOS')
+	log_test.info('activating proxyarp  app and expecting to get arp reply from ONOS')
 	self.proxyarp_activate(deactivate = False)
 	for hostip, hostmac in hosts_config:
             self.proxyarp_arpreply_verify(ingress,hostip,hostmac,PositiveTest = True)
@@ -263,10 +263,10 @@ class proxyarp_exchange(unittest.TestCase):
 	new_host[2] = str(int(new_host[2])+1)
 	new_host = '.'.join(new_host)
 	new_mac =  RandMAC()._fix()
-	log.info('verifying arp reply for host ip %s on interface %s'%(new_host,self.port_map[ingress]))
+	log_test.info('verifying arp reply for host ip %s on interface %s'%(new_host,self.port_map[ingress]))
 	res=srp1(Ether(dst='ff:ff:ff:ff:ff:ff')/ARP(op=1,pdst=new_host),timeout=2,iface=self.port_map[ingress])
 	assert_equal(res, None)
-	log.info('arp reply not seen for host ip %s on interface %s as expected'%(new_host,self.port_map[ingress]))
+	log_test.info('arp reply not seen for host ip %s on interface %s as expected'%(new_host,self.port_map[ingress]))
 	hosts = hosts + 1
 	_,_,hosts_config = self.proxyarp_config(hosts = hosts)
 	for host in hosts_config:
@@ -281,7 +281,7 @@ class proxyarp_exchange(unittest.TestCase):
             self.proxyarp_arpreply_verify(ingress,hostip,hostmac,PositiveTest = True)
             time.sleep(1)
 	host_mac = hosts_config[0][1]
-        log.info('removing host entry %s' % host_mac)
+        log_test.info('removing host entry %s' % host_mac)
         self.cliEnter()
         hostentries = json.loads(self.cli.hosts(jsonFormat = True))
         for host in hostentries:
@@ -316,14 +316,14 @@ class proxyarp_exchange(unittest.TestCase):
             ingress,hostmac,hostip = r[0],r[1],r[2]
             def mac_recv_task():
                 def recv_cb(pkt):
-		    log.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
+		    log_test.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
                     success_dir[current_thread().name] = True
 		sniff(count=1, timeout=5,lfilter = lambda p: ARP in p and p[ARP].op == 2 and p[ARP].hwsrc == hostmac,
                     prn = recv_cb, iface = self.port_map[ingress])
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = (Ether(dst = 'ff:ff:ff:ff:ff:ff')/ARP(op=1,pdst= hostip))
-            log.info('sending arp request  for dest ip %s on interface %s' %
+            log_test.info('sending arp request  for dest ip %s on interface %s' %
                  (hostip,self.port_map[ingress]))
             sendp(pkt, count = 10,iface = self.port_map[ingress])
             t.join()
@@ -354,14 +354,14 @@ class proxyarp_exchange(unittest.TestCase):
             ingress,hostmac,hostip = r[0],r[1],r[2]
             def mac_recv_task():
                 def recv_cb(pkt):
-                    log.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
+                    log_test.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
                     success_dir[current_thread().name] = True
                 sniff(count=1, timeout=5,lfilter = lambda p: ARP in p and p[ARP].op == 2 and p[ARP].hwsrc == hostmac,
                     prn = recv_cb, iface = self.port_map[ingress])
             t = threading.Thread(target = mac_recv_task)
             t.start()
             pkt = (Ether(dst = 'ff:ff:ff:ff:ff:ff')/ARP(op=1,pdst= hostip))
-            log.info('sending arp request  for dest ip %s on interface %s' %
+            log_test.info('sending arp request  for dest ip %s on interface %s' %
                  (hostip,self.port_map[ingress]))
             sendp(pkt, count = 10,iface = self.port_map[ingress])
             t.join()
@@ -426,7 +426,7 @@ class proxyarp_exchange(unittest.TestCase):
             ingress,hostmac,hostip = r[0],r[1],r[2]
             def mac_recv_task():
                 def recv_cb(pkt):
-                    log.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
+                    log_test.info('Arp Reply seen with source Mac is %s' %(pkt[ARP].hwsrc))
                     success_dir[current_thread().name] = True
 		    replied_hosts.append(hostip)
                 sniff(count=1, timeout=5,lfilter = lambda p: ARP in p and p[ARP].op == 2 and p[ARP].psrc == hostip,
@@ -434,7 +434,7 @@ class proxyarp_exchange(unittest.TestCase):
             t = threading.Thread(target = mac_recv_task)
             t.start()
             pkt = (Ether(dst = 'ff:ff:ff:ff:ff:ff')/ARP(op=1,pdst= hostip))
-            log.info('sending arp request  for dest ip %s on interface %s' %
+            log_test.info('sending arp request  for dest ip %s on interface %s' %
                  (hostip,self.port_map[ingress]))
             sendp(pkt, count = 10,iface = self.port_map[ingress])
             t.join()

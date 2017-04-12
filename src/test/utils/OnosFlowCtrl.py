@@ -19,8 +19,8 @@ import os,sys,time
 from nose.tools import *
 import logging
 logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
-from scapy.all import *
 from OnosCtrl import OnosCtrl, get_controller
+from CordTestUtils import log_test
 
 class OnosFlowCtrl:
 
@@ -296,13 +296,13 @@ class OnosFlowCtrl:
         response = requests.post(url, auth = self.auth, data = json.dumps(flowJson) )
         if response.ok:
             if response.status_code in [200, 201]:
-                log.info('Successfully POSTED flow for device %s' %str(deviceId))
+                log_test.info('Successfully POSTED flow for device %s' %str(deviceId))
                 return True
             else:
-                log.info('Post flow for device %s failed with status %d' %(str(deviceId),
+                log_test.info('Post flow for device %s failed with status %d' %(str(deviceId),
                                                                            response.status_code))
                 return False
         else:
-            log.error('Flow post request returned with status %d' %response.status_code)
+            log_test.error('Flow post request returned with status %d' %response.status_code)
 
         return False

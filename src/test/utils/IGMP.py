@@ -66,7 +66,7 @@ class IGMPv3gr(Packet):
     def post_build(self, pkt, payload):
         pkt += payload
         if self.aux_data_len != 0:
-            print "WARNING: Auxiliary Data Length must be zero (0)"
+            print("WARNING: Auxiliary Data Length must be zero (0)")
         return pkt
 
 
@@ -197,7 +197,7 @@ bind_layers(IGMPv3gr, IGMPv3gr, frag=0, proto=2)
 
 if __name__ == "__main__":
 
-    print "test float encoding"
+    print("test float encoding")
     from math import log
     max_expected_error = 1.0 / (2<<3) # four bit precision
     p = IGMPv3()
@@ -207,37 +207,37 @@ if __name__ == "__main__":
         rel_err = float(v-d)/v if v!=0 else 0.0
         assert rel_err <= max_expected_error
 
-    print "construct membership query - general query"
+    print("construct membership query - general query")
     mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY, max_resp_code=120)
     hexdump(str(mq))
 
-    print "construct membership query - group-specific query"
+    print("construct membership query - group-specific query")
     mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY, max_resp_code=120, gaddr="224.0.0.1")
     hexdump(str(mq))
 
-    print "construct membership query - group-and-source-specific query"
+    print("construct membership query - group-and-source-specific query")
     mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY, max_resp_code=120, gaddr="224.0.0.1")
     mq.srcs = ['1.2.3.4', '5.6.7.8']
     hexdump(str(mq))
 
-    print "fixup"
+    print("fixup")
     mq = IGMPv3(type=IGMP_TYPE_MEMBERSHIP_QUERY)
     mq.srcs = ['1.2.3.4', '5.6.7.8']
     pkt = Ether() / IP() / mq
-    print "before fixup:"
+    print("before fixup:")
     hexdump(str(pkt))
 
-    print "after fixup:"
+    print("after fixup:")
 
     IGMPv3.fixup(pkt,'no')
     hexdump(str(pkt))
 
-    print "construct v3 membership report - join a single group"
+    print("construct v3 membership report - join a single group")
     mr = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.1")
     mr.grps = [IGMPv3gr( rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr="229.10.20.30")]
     hexdump(mr)
 
-    print "construct v3 membership report - join two groups"
+    print("construct v3 membership report - join two groups")
     mr = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.1")
     mr.grps = [
         IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr="229.10.20.30"),
@@ -245,9 +245,9 @@ if __name__ == "__main__":
     ]
     hexdump(mr)
 
-    print "construct v3 membership report - leave a group"
+    print("construct v3 membership report - leave a group")
     mr = IGMPv3(type=IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30, gaddr="224.0.0.1")
     mr.grps = [IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr="229.10.20.30")]
     hexdump(mr)
 
-    print "all ok"
+    print("all ok")

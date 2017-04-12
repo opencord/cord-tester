@@ -16,7 +16,7 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from CordTestUtils import get_mac
+from CordTestUtils import get_mac, log_test
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
@@ -40,7 +40,7 @@ from netaddr.ip import IPNetwork, IPAddress
 #from cli import system
 #from generic import *
 
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 class ipv6vrouter_exchange(CordLogger):
 
@@ -130,7 +130,7 @@ line vty
     def onos_load_config(cls, config):
         status, code = OnosCtrl.config(config)
         if status is False:
-            log.info('JSON request returned status %d' %code)
+            log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
 
     @classmethod
@@ -145,7 +145,7 @@ line vty
         for host in host_config:
             status, code = OnosCtrl.host_config(host)
             if status is False:
-                log.info('JSON request returned status %d' %code)
+                log_test.info('JSON request returned status %d' %code)
                 assert_equal(status, True)
 
     @classmethod
@@ -171,7 +171,7 @@ line vty
         for host,_ in peer_info:
             iface = cls.port_map[index]
             index += 1
-            log.info('Assigning ip %s to interface %s' %(host, iface))
+            log_test.info('Assigning ip %s to interface %s' %(host, iface))
             config_cmds = ( 'ifconfig {} 0'.format(iface),
                             'ifconfig {0} inet6 add {1}/64'.format(iface, host),
                             'arping -I {0} {1} -c 2'.format(iface, host),
@@ -200,7 +200,7 @@ line vty
             config = dict(res)
         else:
             config = network_cfg
-        log.info('Restarting ONOS with new network configuration %s'%config)
+        log_test.info('Restarting ONOS with new network configuration %s'%config)
         return cord_test_onos_restart(config = config)
 
     @classmethod
@@ -214,8 +214,8 @@ line vty
 
     @classmethod
     def start_quagga(cls, networks = 4, peer_address = None, router_address = None):
-	log.info('Peer address in quagga start is %s'%peer_address)
-        log.info('Restarting Quagga container with configuration for %d networks' %(networks))
+	log_test.info('Peer address in quagga start is %s'%peer_address)
+        log_test.info('Restarting Quagga container with configuration for %d networks' %(networks))
         config = cls.generate_conf(networks = networks, peer_address = peer_address, router_address = router_address)
         if networks <= 10000:
             boot_delay = 25
@@ -259,7 +259,7 @@ line vty
 	    peer_nt = peer_ip + '/112'
 	    mac = RandMAC()._fix()
 	    peer_list.append((peer_ip, mac))
-	    log.info('peer ip is %s and and peer network is %s'%(peer_ip,peer_nt))
+	    log_test.info('peer ip is %s and and peer network is %s'%(peer_ip,peer_nt))
 	    if num < cls.MAX_PORTS - 1:
                 interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [peer_nt], 'mac' : mac }
                 interfaces.append(interface_dict)
@@ -351,7 +351,7 @@ line vty
         self.start_sending = True
         def recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
                 self.success = True if positive_test else False
             sniff(count=count, timeout=timeout,
                   lfilter = lambda p: IP in p and p[IP].dst == dst_ip and p[IP].src == src_ip,
@@ -363,7 +363,7 @@ line vty
         L2 = Ether(src = src_mac, dst = dst_mac)
         L3 = IPv6(src=src_ip,dst = dst_ip)
         pkt = L2/L3
-        log.info('Sending a packet with dst ip %s, dst mac %s on port %s to verify if flows are correct' %
+        log_test.info('Sending a packet with dst ip %s, dst mac %s on port %s to verify if flows are correct' %
                  (dst_ip, dst_mac, self.port_map[egress]))
         while self.start_sending is True:
             sendp(pkt, count=50, iface = self.port_map[egress])
@@ -413,7 +413,7 @@ line vty
 	if self.network_list > 50:
 		wait = len(self.network_list)/20
 		time.sleep(wait)
-		log.info('waiting for %d seconds to verify routes in ONOS'%wait)
+		log_test.info('waiting for %d seconds to verify routes in ONOS'%wait)
 	else:
 		time.sleep(5)
 	self.cliEnter()
@@ -430,16 +430,16 @@ line vty
             self.vrouter_traffic_verify(positive_test = False)
             self.network_list = network_list_backup
 	if deactivate_activate_vrouter is True:
-            log.info('Deactivating vrouter app in ONOS controller for negative scenario')
+            log_test.info('Deactivating vrouter app in ONOS controller for negative scenario')
             self.vrouter_activate(deactivate = True)
             #routes = json.loads(self.cli.routes(jsonFormat = False, cmd_exist = False))
             #assert_equal(len(routes['routes4']), 'Command not found')
-            log.info('Activating vrouter app again in ONOS controller for negative scenario')
+            log_test.info('Activating vrouter app again in ONOS controller for negative scenario')
             self.vrouter_activate(deactivate = False)
 	    if self.network_list > 50:
                 wait = len(self.network_list)/20
                 time.sleep(wait)
-                log.info('waiting for %d seconds to verify routes in ONOS'%wait)
+                log_test.info('waiting for %d seconds to verify routes in ONOS'%wait)
             else:
                 time.sleep(5)
             routes = json.loads(self.cli.routes(jsonFormat = True))
@@ -450,13 +450,13 @@ line vty
 
     def __vrouter_network_verify_negative(self, networks, peers = 1):
         ##Stop quagga. Test traffic again to see if flows were removed
-        log.info('Stopping Quagga container')
+        log_test.info('Stopping Quagga container')
         cord_test_quagga_stop()
         self.vrouter_traffic_verify(positive_test = False)
-        log.info('OVS flows have been removed successfully after Quagga was stopped')
+        log_test.info('OVS flows have been removed successfully after Quagga was stopped')
         self.start_quagga(networks = networks)
         self.vrouter_traffic_verify()
-        log.info('OVS flows have been successfully reinstalled after Quagga was restarted')
+        log_test.info('OVS flows have been successfully reinstalled after Quagga was restarted')
 
     def quagga_shell(self, cmd):
         shell_cmds = ('vtysh', '"conf t"', '"{}"'.format(cmd))
@@ -470,14 +470,14 @@ line vty
     def test_vrouter_ipv6_with_5_routes_quagga_restart_without_config(self):
 	res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('Restart Quagga container without config retain')
+        log_test.info('Restart Quagga container without config retain')
         cord_test_quagga_restart()
         self.vrouter_traffic_verify(positive_test = False)
 
     def test_vrouter_ipv6_with_5_routes_quagga_restart_with_config(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('verifying vrouter traffic after Quagga restart with config retain')
+        log_test.info('verifying vrouter traffic after Quagga restart with config retain')
         #cord_test_quagga_restart()
         self.start_quagga(networks=5)
         self.vrouter_traffic_verify(positive_test = True)
@@ -485,14 +485,14 @@ line vty
     def test_vrouter_ipv6_with_5_routes_quagga_stop(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('verifying vrouter traffic after Quagga stop')
+        log_test.info('verifying vrouter traffic after Quagga stop')
         cord_test_quagga_stop()
         self.vrouter_traffic_verify(positive_test = False)
 
     def test_vrouter_ipv6_with_5_routes_quagga_stop_and_start(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('verifying vrouter traffic after Quagga stop and start again')
+        log_test.info('verifying vrouter traffic after Quagga stop and start again')
         cord_test_quagga_stop()
         self.vrouter_traffic_verify(positive_test = False)
 	self.start_quagga(networks=5)
@@ -501,14 +501,14 @@ line vty
     def test_vrouter_ipv6_with_5_routes_onos_restart_without_config(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('verifying vrouter traffic after ONOS restart without config retain')
+        log_test.info('verifying vrouter traffic after ONOS restart without config retain')
 	cord_test_onos_restart()
         self.vrouter_traffic_verify(positive_test = False)
 
     def test_vrouter_ipv6_with_5_routes_onos_restart_with_config(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('verifying vrouter traffic after ONOS restart with config retain')
+        log_test.info('verifying vrouter traffic after ONOS restart with config retain')
 	vrouter_configs = self.vrouter_config_get(networks = 5, peers = 1,
                                                  peer_address = None, route_update = None)
         self.start_onos(network_cfg=vrouter_configs)
@@ -521,7 +521,7 @@ line vty
     def test_vrouter_ipv6_with_5_routes_restart_quagga_and_onos_with_config(self):
         res = self.__vrouter_network_verify(5, peers = 1)
         assert_equal(res, True)
-        log.info('verifying vrouter traffic after Quagga and ONOS restart with config retain')
+        log_test.info('verifying vrouter traffic after Quagga and ONOS restart with config retain')
 	#cord_test_quagga_restart()
 	self.start_quagga(networks=5)
         vrouter_configs = self.vrouter_config_get(networks = 5, peers = 1,
@@ -660,7 +660,7 @@ line vty
         self.network_list = [ '4001:0:0:0:0:0:677:0' ]
         self.network_mask = 64
         self.vrouter_traffic_verify()
-	log.info('verifying vrouter traffic for added  routes after Quagga restart with old config only retain')
+	log_test.info('verifying vrouter traffic for added  routes after Quagga restart with old config only retain')
         #cord_test_quagga_restart()
         self.start_quagga(networks=5)
         self.vrouter_traffic_verify(positive_test = False)

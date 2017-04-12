@@ -28,8 +28,8 @@ class CordTester(object):
     def runTest(self):
         while self.currentState != self.stopState and self.currentEvent != None:
             if self.stateTable and self.eventTable:
-                print 'Current state: %s, Current event: %s' %(self.stateTable.toStr(self.currentState),
-                                                               self.eventTable.toStr(self.currentEvent))
+                print('Current state: %s, Current event: %s' %(self.stateTable.toStr(self.currentState),
+                                                               self.eventTable.toStr(self.currentEvent)))
             key = (self.currentState, self.currentEvent)
             (actions, nextState) = self.fsmTable[key]
             if actions:

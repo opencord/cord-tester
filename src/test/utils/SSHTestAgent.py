@@ -2,7 +2,7 @@ import os, sys, time
 from paramiko import SSHClient, WarningPolicy, AutoAddPolicy
 import logging
 logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
-from scapy.all import *
+from CordTestUtils import log_test
 
 class SSHTestAgent(object):
     key_file = os.getenv('SSH_KEY_FILE', None)
@@ -30,7 +30,7 @@ class SSHTestAgent(object):
             self.client.connect(self.host, username = self.user, password = self.password,
                                 key_filename = self.key_file, timeout=timeout, port = self.port)
         except:
-            log.error('Unable to connect to test host %s' %self.host)
+            log_test.error('Unable to connect to test host %s' %self.host)
             return False, None
 
         channel = self.client.get_transport().open_session()

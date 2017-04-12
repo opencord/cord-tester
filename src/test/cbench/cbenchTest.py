@@ -20,7 +20,8 @@ from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from OnosCtrl import OnosCtrl
-from scapy.all import *
+from CordTestUtils import log_test as log
+
 log.setLevel('INFO')
 
 class cbench_exchange(unittest.TestCase):
@@ -74,7 +75,7 @@ class cbench_exchange(unittest.TestCase):
         log.info('Starting back switch with command: \"%s\"', cmd)
         os.system(cmd)
         time.sleep(3)
-        
+
     @deferred(CBENCH_TIMEOUT)
     def test_cbench_igmp(self):
         df = defer.Deferred()

@@ -20,7 +20,7 @@ from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from OnosCtrl import OnosCtrl
-from scapy.all import *
+from CordTestUtils import log_test as log
 from CordContainer import *
 from docker import Client
 import json

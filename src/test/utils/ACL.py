@@ -19,10 +19,10 @@ import os,sys,time
 import logging
 logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from scapy.all import *
-from CordTestUtils import get_mac, get_controller
+from CordTestUtils import get_mac, get_controller, log_test
 from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 conf.verb = 0 # Disable Scapy verbosity
 conf.checkIPaddr = 0 # Don't check response packets for matching destination IPs
@@ -71,7 +71,7 @@ class ACLTest:
             resp = requests.post(self.add_acl_rule_url, auth = self.auth, data = json_data)
 	else:
 	    add_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
-	    log.info('add_acl_rule_acl url is %s'%add_acl_rule_url)
+	    log_test.info('add_acl_rule_acl url is %s'%add_acl_rule_url)
             resp = requests.post(add_acl_rule_url, auth = self.auth, data = json_data)
         return resp.ok, resp.status_code
 
@@ -81,7 +81,7 @@ class ACLTest:
             resp = requests.get(self.add_acl_rule_url, auth = self.auth)
 	else:
 	    add_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules' %(controller)
-	    log.info('get_acl_rule_url is %s'%add_acl_rule_url)
+	    log_test.info('get_acl_rule_url is %s'%add_acl_rule_url)
 	    resp = requests.get(add_acl_rule_url, auth = self.auth)
         return resp
 
@@ -98,7 +98,7 @@ class ACLTest:
                 remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(cls.controller, id)
 	    else:
 		remove_acl_rule_url = 'http://%s:8181/onos/v1/acl/rules/%s' %(controller, id)
-	log.info('remove_acl_rule_url is %s'%remove_acl_rule_url)
+	log_test.info('remove_acl_rule_url is %s'%remove_acl_rule_url)
         resp = requests.delete(remove_acl_rule_url, auth = cls.auth)
         return resp.ok, resp.status_code
 

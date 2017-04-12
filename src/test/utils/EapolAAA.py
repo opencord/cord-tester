@@ -20,6 +20,7 @@ from socket import *
 from struct import *
 import sys
 from nose.tools import assert_equal, assert_not_equal, assert_raises, assert_true
+from CordTestUtils import log_test
 
 USER = "raduser"
 PASS = "radpass"
@@ -71,8 +72,8 @@ class EapolPacket(object):
         if mac is None:
             mac = self.mymac
         self.llheader = Ether(dst = PAE_GROUP_ADDR, src = mac, type = ETHERTYPE_PAE)
-	log.info('llheader packet is %s'%self.llheader.show())
-	log.info('source mac of  packet is %s'%mac)
+	log_test.info('llheader packet is %s'%self.llheader.show())
+	log_test.info('source mac of  packet is %s'%mac)
         self.recv_sock = L2Socket(iface = self.intf, type = ETHERTYPE_PAE)
 
     def cleanup(self):
@@ -225,43 +226,41 @@ class EapolPacket(object):
 
     @classmethod
     def eap_invalid_tls_packets_info(self, invalid_field_name = None, invalid_field_value = None):
-        log.info( 'Changing invalid field values in tls auth packets' )
+        log_test.info( 'Changing invalid field values in tls auth packets' )
         if invalid_field_name == 'eapolTlsVersion':
            global EAPOL_VERSION
-           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )
            EAPOL_VERSION = invalid_field_value
         if invalid_field_name == 'eapolTlsType':
            global EAP_TYPE_TLS
-           log.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
            EAP_TYPE_TLS = invalid_field_value
         if invalid_field_name == 'eapolTypeID':
            global EAP_TYPE_ID
-           log.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
            EAP_TYPE_ID = invalid_field_value
         if invalid_field_name == 'eapolResponse':
            global EAP_RESPONSE
-           log.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== EAP TYPE TLS changing' )
            EAP_RESPONSE = invalid_field_value
 
 
     @classmethod
     def eap_tls_packets_field_value_replace(self, invalid_field_name = None):
-        log.info( 'Changing invalid field values in tls auth packets' )
+        log_test.info( 'Changing invalid field values in tls auth packets' )
         if invalid_field_name == 'eapolTlsVersion':
            global EAPOL_VERSION
            EAPOL_VERSION = 1
-           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )
         if invalid_field_name == 'eapolTlsType':
            global EAP_TYPE_TLS
            EAP_TYPE_TLS = 13
-           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )
         if invalid_field_name == 'eapolTypeID':
            global EAP_TYPE_ID
            EAP_TYPE_ID = 1
-           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
+           log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )
         if invalid_field_name == 'eapolResponse':
            global EAP_RESPONSE
            EAP_RESPONSE = 2
-           log.info( 'Changing invalid field values in tls auth packets====== version changing' )
-
-
+           log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )

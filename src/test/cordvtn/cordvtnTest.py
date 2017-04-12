@@ -25,12 +25,11 @@ from multiprocessing import Pool
 from neutronclient.v2_0 import client as neutron_client
 import neutronclient.v2_0.client as neutronclient
 from nose.tools import assert_equal
-from CordTestUtils import get_mac
+from CordTestUtils import get_mac, log_test
 from OnosCtrl import OnosCtrl
 from CordLogger import CordLogger
 from TestManifest import TestManifest
 from OnosFlowCtrl import OnosFlowCtrl
-from scapy.all import *
 from credentials import *
 from VSGAccess import VSGAccess
 from SSHTestAgent import SSHTestAgent
@@ -136,7 +135,7 @@ class cordvtn_exchange(CordLogger):
     def onos_load_config(cls, cordvtn_conf_file):
         status, code = OnosCtrl.config(cordvtn_conf_file)
         if status is False:
-            log.info('JSON request returned status %d' %code)
+            log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
         time.sleep(3)
 
@@ -153,7 +152,7 @@ class cordvtn_exchange(CordLogger):
     def get_compute_nodes(cls):
         credentials = get_nova_credentials_v2()
         novaclient = nova_client.Client('2', **credentials)
-        print novaclient.hypervisors.list()
+        print(novaclient.hypervisors.list())
         return novaclient.hypervisors.list()
 
     def create_network(i):
@@ -164,10 +163,10 @@ class cordvtn_exchange(CordLogger):
         while True:
            try:
               net = neutron.create_network(body=json)
-              print '\nnetwork-' + str(i) + ' created'
+              print('\nnetwork-' + str(i) + ' created')
               return net
            except Exception as e:
-              print e
+              print(e)
               continue
 
     def create_tenant(tenant_name):
@@ -183,7 +182,7 @@ class cordvtn_exchange(CordLogger):
             user_name = tenant_name + '-user-' + str(j)
             user_data.append(create_user(user_name, tenant_id))
 
-        print " Tenant and User Created"
+        print(" Tenant and User Created")
 
         tenant_data = {'tenant_name': tenant_name,
                        'tenant_id': tenant_id,
@@ -443,7 +442,7 @@ class cordvtn_exchange(CordLogger):
                  match = True
                  return match
         if match is True:
-           print"Network search is successful"
+           print("Network search is successful")
         return match
 
     def get_key_value(self, d, key = None, value = None,):
@@ -459,7 +458,7 @@ class cordvtn_exchange(CordLogger):
                   if type(d[i]) is dict:
                      match,ret_k,ret_v = self.get_key_value(d[i], key, value)
                      if match is True:
-                        print "Network creation is successful"
+                        print("Network creation is successful")
                         break
         else:
            for k, v in d.items():
@@ -563,7 +562,7 @@ class cordvtn_exchange(CordLogger):
         image = nova_obj.images.find(name=image_name)
         flavor = nova_obj.flavors.find(name=flavor_id)
         network = nova_obj.networks.find(label=net_name)
-        print network.id
+        print(network.id)
 
         server = nova_obj.servers.create(name = instance_name,
                                          image = image.id,
@@ -626,7 +625,7 @@ class cordvtn_exchange(CordLogger):
            if check_type == "Ping_from_source_tenant":
               cmd = "ping -c 3 {0}".format(target_tenants_details.addresses)
               ssh_cmd = 'ssh {} {}'.format(source_tenants_details.addresses, cmd)
-              print ssh_cmd
+              print(ssh_cmd)
               ssh_agent = SSHTestAgent(host = compute_ip)
               status, output = ssh_agent.run_cmd(cmd, timeout = 5)
 
@@ -636,10 +635,10 @@ class cordvtn_exchange(CordLogger):
            status, output = ssh_agent.run_cmd(cmd, timeout = 5)
 
         if status == True and output:
-           print "Ping is successful"
+           print("Ping is successful")
            output = output.strip()
         else:
-           print "Ping is not successful"
+           print("Ping is not successful")
            output = None
         return [status, output]
 
@@ -647,9 +646,9 @@ class cordvtn_exchange(CordLogger):
     def nova_instance_deletion(self, nova_obj, server_details):
         results_nova_instance_deletion=nova_obj.servers.delete(server_details.id)
         if results_nova_instance_deletion == None:
-           print"Nova instance is deleted"
+           print("Nova instance is deleted")
         else:
-           print"Nova instance is not deleted"
+           print("Nova instance is not deleted")
         return results_nova_instance_deletion
 
     def test_cordvtn_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
@@ -775,12 +774,12 @@ class cordvtn_exchange(CordLogger):
               if data['ServiceNetworks'][i]['name'] == 'vtn_test_6_net_management':
                  sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
                  if sub_net_id[2] == " ":
-                    log.info('Sub network is not successful')
+                    log_test.info('Sub network is not successful')
                     self.neutron_network_deletion('vtn_test_6_net_management')
                     assert_equal(False, True)
                     break
                  elif sub_net_id[2] == cidr:
-                    log.info('Sub network is successful')
+                    log_test.info('Sub network is successful')
                     self.neutron_network_deletion('vtn_test_6_net_management')
                     assert_equal(sub_net_id[0], True)
                     break
@@ -812,11 +811,11 @@ class cordvtn_exchange(CordLogger):
               if data['ServiceNetworks'][i]['name'] == test_net_name:
                  sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
                  if sub_net_id[2] == " ":
-                    log.info('Sub network is not successful')
+                    log_test.info('Sub network is not successful')
                     assert_equal(False, True)
                     break
                  elif sub_net_id[2] == test_sub_net_cidr[1]:
-                    log.info('Sub network is successful')
+                    log_test.info('Sub network is successful')
                     assert_equal(sub_net_id[0], True)
                     break
 
@@ -935,11 +934,11 @@ class cordvtn_exchange(CordLogger):
               if data['ServiceNetworks'][i]['name'] == test_net_name:
                  sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
                  if sub_net_id[2] == " ":
-                    log.info('Sub network is not successful')
+                    log_test.info('Sub network is not successful')
                     assert_equal(False, True)
                     break
                  elif sub_net_id[2] == test_sub_net_cidr[1]:
-                    log.info('Sub network is successful')
+                    log_test.info('Sub network is successful')
                     assert_equal(sub_net_id[0], True)
                     break
 
@@ -1059,11 +1058,11 @@ class cordvtn_exchange(CordLogger):
               if data['ServiceNetworks'][i]['name'] == test_net_name:
                  sub_net_id = self.get_key_value(d=data['ServiceNetworks'][i], key = 'subnet')
                  if sub_net_id[2] == " ":
-                    log.info('Sub network is not successful')
+                    log_test.info('Sub network is not successful')
                     assert_equal(False, True)
                     break
                  elif sub_net_id[2] == "192.168.160.0/24":
-                    log.info('Sub network is successful')
+                    log_test.info('Sub network is successful')
                     assert_equal(sub_net_id[0], True)
                     break
 
@@ -1133,7 +1132,7 @@ class cordvtn_exchange(CordLogger):
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         #assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print new_instance_details.addresses
+        print(new_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(new_instance_details)
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
@@ -1169,7 +1168,7 @@ class cordvtn_exchange(CordLogger):
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         #assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print new_instance_details.addresses
+        print(new_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
@@ -1210,9 +1209,9 @@ class cordvtn_exchange(CordLogger):
         #assert_equal(first_instance_details.status, 'ACTIVE')
         #assert_equal(second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print 'New nova instance ip addresses are '
-        print first_nova_instance_details.addresses
-        print second_nova_instance_details.addresses
+        print('New nova instance ip addresses are ')
+        print(first_nova_instance_details.addresses)
+        print(second_nova_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, first_nova_instance_details)
@@ -1246,9 +1245,9 @@ class cordvtn_exchange(CordLogger):
         #assert_equal(nova_instance_details_netA.status, 'ACTIVE')
         #assert_equal(nova_instance_details_netB.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print 'New nova instance ip addresses are '
-        print nova_instance_details_netA.addresses
-        print nova_instance_details_netB.addresses
+        print('New nova instance ip addresses are ')
+        print(nova_instance_details_netA.addresses)
+        print(nova_instance_details_netB.addresses)
         status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
         self.neutron_network_deletion(test_netA_name)
         self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
@@ -1287,7 +1286,7 @@ class cordvtn_exchange(CordLogger):
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         #assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print new_instance_details.addresses
+        print(new_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(new_instance_details)
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
@@ -1323,7 +1322,7 @@ class cordvtn_exchange(CordLogger):
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         #assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print new_instance_details.addresses
+        print(new_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
@@ -1365,9 +1364,9 @@ class cordvtn_exchange(CordLogger):
         #assert_equal(first_instance_details.status, 'ACTIVE')
         #assert_equal(second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print 'New nova instance ip addresses are '
-        print first_nova_instance_details.addresses
-        print second_nova_instance_details.addresses
+        print('New nova instance ip addresses are ')
+        print(first_nova_instance_details.addresses)
+        print(second_nova_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, first_nova_instance_details)
@@ -1401,9 +1400,9 @@ class cordvtn_exchange(CordLogger):
         #assert_equal(nova_instance_details_netA.status, 'ACTIVE')
         #assert_equal(nova_instance_details_netB.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print 'New nova instance ip addresses are '
-        print nova_instance_details_netA.addresses
-        print nova_instance_details_netB.addresses
+        print('New nova instance ip addresses are ')
+        print(nova_instance_details_netA.addresses)
+        print(nova_instance_details_netB.addresses)
         status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
         self.neutron_network_deletion(test_netA_name)
         self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
@@ -1441,7 +1440,7 @@ class cordvtn_exchange(CordLogger):
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         #assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print new_instance_details.addresses
+        print(new_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(new_instance_details)
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
@@ -1477,7 +1476,7 @@ class cordvtn_exchange(CordLogger):
         new_instance_details = self.nova_instance_creation_and_validation(test_net_name,nova,instance_vm_name,image_name,flavor_id)
         #assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print new_instance_details.addresses
+        print(new_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, new_instance_details)
@@ -1518,9 +1517,9 @@ class cordvtn_exchange(CordLogger):
         #assert_equal(first_instance_details.status, 'ACTIVE')
         #assert_equal(second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print 'New nova instance ip addresses are '
-        print first_nova_instance_details.addresses
-        print second_nova_instance_details.addresses
+        print('New nova instance ip addresses are ')
+        print(first_nova_instance_details.addresses)
+        print(second_nova_instance_details.addresses)
         status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
         self.neutron_network_deletion(test_net_name)
         self.nova_instance_deletion(nova, first_nova_instance_details)
@@ -1554,9 +1553,9 @@ class cordvtn_exchange(CordLogger):
         #assert_equal(nova_instance_details_netA.status, 'ACTIVE')
         #assert_equal(nova_instance_details_netB.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
-        print 'New nova instance ip addresses are '
-        print nova_instance_details_netA.addresses
-        print nova_instance_details_netB.addresses
+        print('New nova instance ip addresses are ')
+        print(nova_instance_details_netA.addresses)
+        print(nova_instance_details_netB.addresses)
         status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
         self.neutron_network_deletion(test_netA_name)
         self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
@@ -1679,11 +1678,11 @@ class cordvtn_exchange(CordLogger):
 
         tenant_1= create_tenant("CORD_Subscriber_Test_Tenant_1")
         if tenant1 != 0:
-           print "Creation of CORD Subscriber Test Tenant 1"
+           print("Creation of CORD Subscriber Test Tenant 1")
 
         tenant_2 = create_tenant("CORD_Subscriber_Test_Tenant_2")
         if tenant2 != 0:
-           print "Creation of CORD Subscriber Test Tenant 2"
+           print("Creation of CORD Subscriber Test Tenant 2")
 
         create_net(tenant_1,"a1")
         create_subnet(tenant_1,"a1","as1","10.0.1.0/24")
@@ -1725,31 +1724,31 @@ class cordvtn_exchange(CordLogger):
 
         ret1 = create_tenant(netA)
         if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+           print("Creation of Tenant netA Failed")
 
         ret2 = create_tenant(netB)
         if ret2 != 0:
-           print "Creation of Tenant netB Failed"
+           print("Creation of Tenant netB Failed")
         network = {'name': self.network_name, 'admin_state_up': True}
         self.neutron.create_network({'network':network})
-        log.info("Created network:{0}".format(self.network_name))
+        log_test.info("Created network:{0}".format(self.network_name))
         status = validate_vtn_flows()
         assert_equal(status, True)
 
     def test_cordvtn_to_create_net_work_with_subnet(self):
         ret1 = create_tenant(netA)
         if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+           print("Creation of Tenant netA Failed")
 
         ret2 = create_tenant(netB)
         if ret2 != 0:
-           print "Creation of Tenant netB Failed"
+           print("Creation of Tenant netB Failed")
         network_name = self.network_name
         network = {'name': network_name, 'admin_state_up': True}
         network_info = self.neutron.create_network({'network':network})
         network_id = network_info['network']['id']
 
-        log.info("Created network:{0}".format(network_id))
+        log_test.info("Created network:{0}".format(network_id))
         self.network_ids.append(network_id)
         subnet_count = 1
         for cidr in self.subnet_cidrs:
@@ -1759,9 +1758,9 @@ class cordvtn_exchange(CordLogger):
                       "host_routes":[{"destination":"0.0.0.0/0", "nexthop":gateway_ip}]
                      }
             subnet = {"name":"subnet-"+str(subnet_count), "network_id": network_id, "ip_version":4, "cidr":str(cidr), "enable_dhcp":True}
-            print subnet
+            print(subnet)
             self.neutron.create_subnet({'subnet':subnet})
-            log.info("Created subnet:{0}".format(str(cidr)))
+            log_test.info("Created subnet:{0}".format(str(cidr)))
             if not self.number_of_subnet - 1:
                 break
         self.number_of_subnet -= 1
@@ -1772,15 +1771,15 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_subnet_limit(self):
         ret1 = create_tenant(netA)
         if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+           print("Creation of Tenant netA Failed")
 
         ret2 = create_tenant(netB)
         if ret2 != 0:
-           print "Creation of Tenant netB Failed"
+           print("Creation of Tenant netB Failed")
         network_name = uuid.uuid4().get_hex()
         network = {'name': network_name, 'admin_state_up': True}
         network_info = self.neutron.create_network({'network':network})
-        log.info("Created network:{0}".format(network_name))
+        log_test.info("Created network:{0}".format(network_name))
         network_id = network_info['network']['id']
         self.network_ids.append(network_id)
         subnet_cidrs = ['11.2.2.0/29',  '11.2.2.8/29']
@@ -1788,13 +1787,13 @@ class cordvtn_exchange(CordLogger):
             subnet = {"network_id": network_id, "ip_version":4, "cidr": cidr}
             subnet_info = self.neutron.create_subnet({'subnet':subnet})
             subnet_id = subnet_info['subnet']['id']
-            log.info("Created subnet:{0}".format(cidr))
+            log_test.info("Created subnet:{0}".format(cidr))
         while True:
             port = {"network_id": network_id, "admin_state_up": True}
             port_info = self.neutron.create_port({'port':port})
             port_id = port_info['port']['id']
             self.port_ids.append(port_id)
-            log.info("Created Port:{0}".format(port_info['port']['id']))
+            log_test.info("Created Port:{0}".format(port_info['port']['id']))
             if not self.quota_limit:
                break
             self.quota_limit -= 1
@@ -1802,19 +1801,18 @@ class cordvtn_exchange(CordLogger):
         assert_equal(status, True)
 
     def test_cordvtn_floatingip_limit(self):
-
         ret1 = create_tenant(netA)
         if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+           print("Creation of Tenant netA Failed")
 
         ret2 = create_tenant(netB)
         if ret2 != 0:
-           print "Creation of Tenant netB Failed"
+           print("Creation of Tenant netB Failed")
         while True:
             floatingip = {"floating_network_id": self.floating_nw_id}
             fip_info = self.neutron.create_floatingip({'floatingip':floatingip})
             fip_id = fip_info['floatingip']['id']
-            log.info("Created Floating IP:{0}".format(fip_id))
+            log_test.info("Created Floating IP:{0}".format(fip_id))
             self.fip_ids.append(fip_id)
             if not self.quota_limit:
                break
@@ -1825,15 +1823,15 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_for_10_neutron_networks(self):
         ret1 = create_tenant(netA)
         if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+           print("Creation of Tenant netA Failed")
 
         ret2 = create_tenant(netB)
         if ret2 != 0:
-           print "Creation of Tenant netB Failed"
+           print("Creation of Tenant netB Failed")
         pool = Pool(processes=10)
         ret = os.system("neutron quote-update --network 15")
         if ret1 != 0:
-           print "Neutron network install failed"
+           print("Neutron network install failed")
         for i in range(1, 11):
             pool.apply_async(create_network, (i, ))
 
@@ -1845,16 +1843,16 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_for_100_neutron_networks(self):
         ret1 = create_tenant(netA)
         if ret1 != 0:
-           print "Creation of Tenant netA Failed"
+           print("Creation of Tenant netA Failed")
 
         ret2 = create_tenant(netB)
         if ret2 != 0:
-           print "Creation of Tenant netB Failed"
+           print("Creation of Tenant netB Failed")
         pool = Pool(processes=10)
 
         ret = os.system("neutron quote-update --network 105")
         if ret1 != 0:
-           print "Neutron network install failed"
+           print("Neutron network install failed")
         for i in range(1, 101):
             pool.apply_async(create_network, (i, ))
 

@@ -23,7 +23,8 @@ from CordContainer import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from OnosCtrl import OnosCtrl
-from scapy.all import *
+from CordTestUtils import log_test as log
+
 log.setLevel('INFO')
 
 class iperf_exchange(unittest.TestCase):
@@ -200,4 +201,3 @@ class iperf_exchange(unittest.TestCase):
             df.callback(0)
         reactor.callLater(0, iperf_network_test, df)
         return df
-

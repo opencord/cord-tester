@@ -16,7 +16,6 @@ import unittest
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
-from scapy.all import *
 from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 from OltConfig import OltConfig
@@ -30,6 +29,7 @@ import time, monotonic
 from CordContainer import Onos
 from OnosLog import OnosLog
 from CordLogger import CordLogger
+from CordTestUtils import log_test as log
 import os
 import json
 import random
@@ -731,4 +731,3 @@ class mininet_exchange(unittest.TestCase):
             Cleanup.cleanup()
             raise
         Cleanup.cleanup()
-

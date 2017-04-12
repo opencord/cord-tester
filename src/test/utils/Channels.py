@@ -25,8 +25,9 @@ from scapy.all import *
 from McastTraffic import *
 from IGMP import *
 from OnosCtrl import OnosCtrl
+from CordTestUtils import log_test
 from nose.tools import *
-log.setLevel('DEBUG')
+log_test.setLevel('DEBUG')
 
 conf.verb = 0
 
@@ -85,7 +86,7 @@ class IgmpChannel:
     def onos_load_config(self, config):
         status, code = OnosCtrl.config(config,controller=self.controller)
         if status is False:
-            log.info('JSON config request returned status %d' %code)
+            log_test.info('JSON config request returned status %d' %code)
         time.sleep(2)
 
     def ssm_table_load(self, groups):
@@ -144,7 +145,7 @@ class Channels(IgmpChannel):
             for i in range(start, end):
                 if i&255:
                     g = '%s.%s.%s.%s' %((i>>24) &0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
-                    log.debug('Adding group %s' %g)
+                    log_test.debug('Adding group %s' %g)
                     group_addrs.append(g)
                     count += 1
             start = end
@@ -235,10 +236,10 @@ class Channels(IgmpChannel):
 
     def recv_cb(self, pkt):
         '''Default channel receive callback'''
-        log.debug('Received packet from source %s, destination %s' %(pkt[IP].src, pkt[IP].dst))
+        log_test.debug('Received packet from source %s, destination %s' %(pkt[IP].src, pkt[IP].dst))
         send_time = float(pkt[IP].payload.load)
         recv_time = monotonic.monotonic()
-        log.debug('Packet received in %.3f usecs' %(recv_time - send_time))
+        log_test.debug('Packet received in %.3f usecs' %(recv_time - send_time))
 
     def recv(self, chan, cb = None, count = 1, timeout = 5):
         if chan is None:

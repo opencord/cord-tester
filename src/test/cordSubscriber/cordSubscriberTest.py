@@ -17,7 +17,6 @@ import unittest
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
-from scapy.all import *
 import time, monotonic
 import os, sys
 import tempfile
@@ -35,9 +34,10 @@ from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
 from CordTestServer import cord_test_onos_restart, cord_test_shell
+from CordTestUtils import log_test
 from CordLogger import CordLogger
 
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 class Subscriber(Channels):
       PORT_TX_DEFAULT = 2
@@ -64,7 +64,7 @@ class Subscriber(Channels):
                   self.tx_intf = self.port_map[self.PORT_TX_DEFAULT]
                   self.rx_intf = self.port_map[self.PORT_RX_DEFAULT]
 
-            log.info('Subscriber %s, rx interface %s, uplink interface %s' %(name, self.rx_intf, self.tx_intf))
+            log_test.info('Subscriber %s, rx interface %s, uplink interface %s' %(name, self.rx_intf, self.tx_intf))
             Channels.__init__(self, num, channel_start = channel_start,
                               iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
             self.name = name
@@ -135,20 +135,20 @@ class Subscriber(Channels):
                         self.join_map[c][stats_type].update(packets = packets, t = t)
 
       def channel_receive(self, chan, cb = None, count = 1, timeout = 5):
-            log.info('Subscriber %s on port %s receiving from group %s, channel %d' %
+            log_test.info('Subscriber %s on port %s receiving from group %s, channel %d' %
                      (self.name, self.rx_intf, self.gaddr(chan), chan))
             r = self.recv(chan, cb = cb, count = count, timeout = timeout)
             if len(r) == 0:
-                  log.info('Subscriber %s on port %s timed out' %(self.name, self.rx_intf))
+                  log_test.info('Subscriber %s on port %s timed out' %(self.name, self.rx_intf))
             else:
-                  log.info('Subscriber %s on port %s received %d packets' %(self.name, self.rx_intf, len(r)))
+                  log_test.info('Subscriber %s on port %s received %d packets' %(self.name, self.rx_intf, len(r)))
             if self.recv_timeout:
                   ##Negative test case is disabled for now
                   assert_equal(len(r), 0)
 
       def recv_channel_cb(self, pkt):
             ##First verify that we have received the packet for the joined instance
-            log.info('Packet received for group %s, subscriber %s, port %s' %
+            log_test.info('Packet received for group %s, subscriber %s, port %s' %
                      (pkt[IP].dst, self.name, self.rx_intf))
             if self.recv_timeout:
                   return
@@ -159,7 +159,7 @@ class Subscriber(Channels):
             delta = recv_time - join_time
             self.join_rx_stats.update(packets=1, t = delta, usecs = True)
             self.channel_update(chan, self.STATS_RX, 1, t = delta)
-            log.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
+            log_test.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
 
 class subscriber_pool:
 
@@ -174,9 +174,9 @@ class subscriber_pool:
                         if self.test_status is not True:
                            ## This is chaning for other sub status has to check again
                            self.test_status = True
-                           log.info('This service is failed and other services will not run for this subscriber')
+                           log_test.info('This service is failed and other services will not run for this subscriber')
                            break
-            log.info('This Subscriber is tested for multiple service eligibility ')
+            log_test.info('This Subscriber is tested for multiple service eligibility ')
             self.test_status = True
 
 
@@ -320,7 +320,7 @@ yg==
             ##Uninstall the existing app if any
             OnosCtrl.uninstall_app(cls.table_app)
             time.sleep(2)
-            log.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
+            log_test.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
             OnosCtrl.install_app(cls.table_app_file)
             time.sleep(3)
             #onos_ctrl = OnosCtrl(cls.vtn_app)
@@ -331,7 +331,7 @@ yg==
             ##Uninstall the table app on class exit
             OnosCtrl.uninstall_app(cls.table_app)
             time.sleep(2)
-            log.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
+            log_test.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
             OnosCtrl.install_app(cls.app_file)
             #onos_ctrl = OnosCtrl(cls.vtn_app)
             #onos_ctrl.activate()
@@ -339,7 +339,7 @@ yg==
       @classmethod
       def start_onos(cls, network_cfg = None):
             if cls.onos_restartable is False:
-                  log.info('ONOS restart is disabled. Skipping ONOS restart')
+                  log_test.info('ONOS restart is disabled. Skipping ONOS restart')
                   return
             if network_cfg is None:
                   network_cfg = cls.device_dict
@@ -351,7 +351,7 @@ yg==
                   config = dict(res)
             else:
                   config = network_cfg
-            log.info('Restarting ONOS with new network configuration')
+            log_test.info('Restarting ONOS with new network configuration')
             return cord_test_onos_restart(config = config)
 
       @classmethod
@@ -410,7 +410,7 @@ yg==
       def onos_load_config(self, app, config):
           status, code = OnosCtrl.config(config)
           if status is False:
-             log.info('JSON config request for app %s returned status %d' %(app, code))
+             log_test.info('JSON config request for app %s returned status %d' %(app, code))
              assert_equal(status, True)
           time.sleep(2)
 
@@ -418,7 +418,7 @@ yg==
             cip, sip = dhcp.discover(update_seed = update_seed)
             assert_not_equal(cip, None)
             assert_not_equal(sip, None)
-            log.info('Got dhcp client IP %s from server %s for mac %s' %
+            log_test.info('Got dhcp client IP %s from server %s for mac %s' %
                      (cip, sip, dhcp.get_mac(cip)[0]))
             return cip,sip
 
@@ -440,7 +440,7 @@ yg==
             delta = recv_time - join_time
             self.subscriber.join_rx_stats.update(packets=1, t = delta, usecs = True)
             self.subscriber.channel_update(chan, self.subscriber.STATS_RX, 1, t = delta)
-            log.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
+            log_test.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
             self.test_status = True
 
       def traffic_verify(self, subscriber):
@@ -449,10 +449,10 @@ yg==
                   resp = requests.get(url)
                   self.test_status = resp.ok
                   if resp.ok == False:
-                        log.info('Subscriber %s failed get from url %s with status code %d'
+                        log_test.info('Subscriber %s failed get from url %s with status code %d'
                                  %(subscriber.name, url, resp.status_code))
                   else:
-                        log.info('GET request from %s succeeded for subscriber %s'
+                        log_test.info('GET request from %s succeeded for subscriber %s'
                                  %(url, subscriber.name))
                   return self.test_status
 
@@ -460,7 +460,7 @@ yg==
             if subscriber.has_service('TLS'):
                   time.sleep(2)
                   tls = TLSAuthTest(intf = subscriber.rx_intf)
-                  log.info('Running subscriber %s tls auth test' %subscriber.name)
+                  log_test.info('Running subscriber %s tls auth test' %subscriber.name)
                   tls.runTest()
                   self.test_status = True
                   return self.test_status
@@ -471,7 +471,7 @@ yg==
       def dhcp_verify(self, subscriber):
             if subscriber.has_service('DHCP'):
                   cip, sip = self.dhcp_request(subscriber, update_seed = True)
-                  log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
+                  log_test.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
                   subscriber.src_list = [cip]
                   self.test_status = True
                   return self.test_status
@@ -483,7 +483,7 @@ yg==
       def dhcp_jump_verify(self, subscriber):
             if subscriber.has_service('DHCP'):
                   cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.200.1')
-                  log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
+                  log_test.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
                   subscriber.src_list = [cip]
                   self.test_status = True
                   return self.test_status
@@ -495,7 +495,7 @@ yg==
       def dhcp_next_verify(self, subscriber):
             if subscriber.has_service('DHCP'):
                   cip, sip = self.dhcp_request(subscriber, seed_ip = '10.10.150.1')
-                  log.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
+                  log_test.info('Subscriber %s got client ip %s from server %s' %(subscriber.name, cip, sip))
                   subscriber.src_list = [cip]
                   self.test_status = True
                   return self.test_status
@@ -514,20 +514,20 @@ yg==
                   self.num_joins += 1
                   while self.num_joins < self.num_subscribers:
                         time.sleep(5)
-                  log.info('All subscribers have joined the channel')
+                  log_test.info('All subscribers have joined the channel')
                   for i in range(10):
                         subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
-                        log.info('Leaving channel %d for subscriber %s' %(chan, subscriber.name))
+                        log_test.info('Leaving channel %d for subscriber %s' %(chan, subscriber.name))
                         subscriber.channel_leave(chan)
                         time.sleep(5)
-                        log.info('Interface %s Join RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name,subscriber.join_rx_stats))
+                        log_test.info('Interface %s Join RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name,subscriber.join_rx_stats))
                         #Should not receive packets for this subscriber
                         self.recv_timeout = True
                         subscriber.recv_timeout = True
                         subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
                         subscriber.recv_timeout = False
                         self.recv_timeout = False
-                        log.info('Joining channel %d for subscriber %s' %(chan, subscriber.name))
+                        log_test.info('Joining channel %d for subscriber %s' %(chan, subscriber.name))
                         subscriber.channel_join(chan, delay = 0)
                   self.test_status = True
                   return self.test_status
@@ -535,12 +535,12 @@ yg==
       def igmp_jump_verify(self, subscriber):
             if subscriber.has_service('IGMP'):
                   for i in xrange(subscriber.num):
-                        log.info('Subscriber %s jumping channel' %subscriber.name)
+                        log_test.info('Subscriber %s jumping channel' %subscriber.name)
                         chan = subscriber.channel_jump(delay=0)
                         subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1)
-                        log.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
+                        log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
                         time.sleep(3)
-                  log.info('Interface %s Jump RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
+                  log_test.info('Interface %s Jump RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
                   self.test_status = True
                   return self.test_status
 
@@ -551,11 +551,11 @@ yg==
                               chan = subscriber.channel_join_next(delay=0)
                         else:
                               chan = subscriber.channel_join(i, delay=0)
-                        log.info('Joined next channel %d for subscriber %s' %(chan, subscriber.name))
+                        log_test.info('Joined next channel %d for subscriber %s' %(chan, subscriber.name))
                         subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count=1)
-                        log.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
+                        log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
                         time.sleep(3)
-                  log.info('Interface %s Join Next RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
+                  log_test.info('Interface %s Join Next RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
                   self.test_status = True
                   return self.test_status
 
@@ -629,7 +629,7 @@ yg==
       def tls_invalid_cert(self, subscriber):
           if subscriber.has_service('TLS'):
              time.sleep(2)
-             log.info('Running subscriber %s tls auth test' %subscriber.name)
+             log_test.info('Running subscriber %s tls auth test' %subscriber.name)
              tls = TLSAuthTest(client_cert = self.CLIENT_CERT_INVALID)
              tls.runTest()
              if tls.failTest == True:
@@ -642,7 +642,7 @@ yg==
       def tls_no_cert(self, subscriber):
           if subscriber.has_service('TLS'):
              time.sleep(2)
-             log.info('Running subscriber %s tls auth test' %subscriber.name)
+             log_test.info('Running subscriber %s tls auth test' %subscriber.name)
              tls = TLSAuthTest(client_cert = '')
              tls.runTest()
              if tls.failTest == True:
@@ -655,7 +655,7 @@ yg==
       def tls_self_signed_cert(self, subscriber):
           if subscriber.has_service('TLS'):
              time.sleep(2)
-             log.info('Running subscriber %s tls auth test' %subscriber.name)
+             log_test.info('Running subscriber %s tls auth test' %subscriber.name)
              tls = TLSAuthTest(client_cert = self.CLIENT_CERT)
              tls.runTest()
              if tls.failTest == False:
@@ -668,7 +668,7 @@ yg==
       def tls_non_ca_authrized_cert(self, subscriber):
           if subscriber.has_service('TLS'):
              time.sleep(2)
-             log.info('Running subscriber %s tls auth test' %subscriber.name)
+             log_test.info('Running subscriber %s tls auth test' %subscriber.name)
              tls = TLSAuthTest(client_cert = self.CLIENT_CERT_NON_CA_AUTHORIZED)
              tls.runTest()
              if tls.failTest == False:
@@ -678,11 +678,10 @@ yg==
               self.test_status = True
               return self.test_status
 
-
       def tls_Nsubscribers_use_same_valid_cert(self, subscriber):
           if subscriber.has_service('TLS'):
              time.sleep(2)
-             log.info('Running subscriber %s tls auth test' %subscriber.name)
+             log_test.info('Running subscriber %s tls auth test' %subscriber.name)
              num_users = 3
              for i in xrange(num_users):
                  tls = TLSAuthTest(intf = 'veth{}'.format(i*2))
@@ -697,7 +696,7 @@ yg==
       def dhcp_discover_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
              time.sleep(2)
-             log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+             log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
              t1 = self.subscriber_dhcp_1release()
              self.test_status = True
              return self.test_status
@@ -707,26 +706,25 @@ yg==
               return self.test_status
 
       def subscriber_dhcp_1release(self, iface = INTF_RX_DEFAULT):
-             config = {'startip':'10.10.100.20', 'endip':'10.10.100.21',
-                       'ip':'10.10.100.2', 'mac': "ca:fe:ca:fe:8a:fe",
-                       'subnet': '255.255.255.0', 'broadcast':'10.10.100.255', 'router':'10.10.100.1'}
-             self.onos_dhcp_table_load(config)
-             self.dhcp = DHCPTest(seed_ip = '10.10.100.10', iface = iface)
-             cip, sip = self.send_recv()
-             log.info('Releasing ip %s to server %s' %(cip, sip))
-             assert_equal(self.dhcp.release(cip), True)
-             log.info('Triggering DHCP discover again after release')
-             cip2, sip2 = self.send_recv(update_seed = True)
-             log.info('Verifying released IP was given back on rediscover')
-             assert_equal(cip, cip2)
-             log.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
-             assert_equal(self.dhcp.release(cip2), True)
-
+            config = {'startip':'10.10.100.20', 'endip':'10.10.100.21',
+                      'ip':'10.10.100.2', 'mac': "ca:fe:ca:fe:8a:fe",
+                      'subnet': '255.255.255.0', 'broadcast':'10.10.100.255', 'router':'10.10.100.1'}
+            self.onos_dhcp_table_load(config)
+            self.dhcp = DHCPTest(seed_ip = '10.10.100.10', iface = iface)
+            cip, sip = self.send_recv()
+            log_test.info('Releasing ip %s to server %s' %(cip, sip))
+            assert_equal(self.dhcp.release(cip), True)
+            log_test.info('Triggering DHCP discover again after release')
+            cip2, sip2 = self.send_recv(update_seed = True)
+            log_test.info('Verifying released IP was given back on rediscover')
+            assert_equal(cip, cip2)
+            log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+            assert_equal(self.dhcp.release(cip2), True)
 
       def dhcp_client_reboot_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                   time.sleep(2)
-                  log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                  log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                   tl = self.subscriber_dhcp_client_request_after_reboot()
                   self.test_status = True
                   return self.test_status
@@ -744,39 +742,39 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
           cip, sip, mac, lval = self.dhcp.only_discover()
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
 
-          log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+          log_test.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
 
           if (cip == None and mac != None):
-                log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+                log_test.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
                 assert_not_equal(cip, None)
 
           else:
                 new_cip, new_sip = self.dhcp.only_request(cip, mac)
                 if new_cip == None:
-                        log.info("Got DHCP server NAK.")
+                        log_test.info("Got DHCP server NAK.")
                 os.system('ifconfig '+iface+' down')
-                log.info('Client goes down.')
-                log.info('Delay for 5 seconds.')
+                log_test.info('Client goes down.')
+                log_test.info('Delay for 5 seconds.')
 
                 time.sleep(5)
 
                 os.system('ifconfig '+iface+' up')
-                log.info('Client is up now.')
+                log_test.info('Client is up now.')
 
                 new_cip, new_sip = self.dhcp.only_request(cip, mac)
                 if new_cip == None:
-                        log.info("Got DHCP server NAK.")
+                        log_test.info("Got DHCP server NAK.")
                         assert_not_equal(new_cip, None)
                 elif new_cip != None:
-                        log.info("Got DHCP ACK.")
+                        log_test.info("Got DHCP ACK.")
 
       def dhcp_client_renew_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_client_renew_time()
                 self.test_status = True
                 return self.test_status
@@ -792,35 +790,35 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
           cip, sip, mac , lval = self.dhcp.only_discover()
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
 
-          log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+          log_test.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
           if (cip == None and mac != None):
-                log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+                log_test.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
                 assert_not_equal(cip, None)
           elif cip and sip and mac:
-                log.info("Triggering DHCP Request.")
+                log_test.info("Triggering DHCP Request.")
                 new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
                 if new_cip and new_sip and lval:
-                        log.info("Client 's Renewal time is :%s",lval)
-                        log.info("Generating delay till renewal time.")
+                        log_test.info("Client 's Renewal time is :%s",lval)
+                        log_test.info("Generating delay till renewal time.")
                         time.sleep(lval)
-                        log.info("Client Sending Unicast DHCP request.")
+                        log_test.info("Client Sending Unicast DHCP request.")
                         latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac, unicast = True)
                         if latest_cip and latest_sip:
-                                log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
+                                log_test.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
                                                 (latest_cip, mac, latest_sip) )
 
                         elif latest_cip == None:
-                                log.info("Got DHCP NAK. Lease not renewed.")
+                                log_test.info("Got DHCP NAK. Lease not renewed.")
                 elif new_cip == None or new_sip == None or lval == None:
-                        log.info("Got DHCP NAK.")
+                        log_test.info("Got DHCP NAK.")
 
       def dhcp_server_reboot_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_server_after_reboot()
                 self.test_status = True
                 return self.test_status
@@ -837,51 +835,51 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
           cip, sip, mac, lval = self.dhcp.only_discover()
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
-          log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+          log_test.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
           if (cip == None and mac != None):
-                log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+                log_test.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
                 assert_not_equal(cip, None)
           else:
                 new_cip, new_sip = self.dhcp.only_request(cip, mac)
                 if new_cip == None:
-                        log.info("Got DHCP server NAK.")
+                        log_test.info("Got DHCP server NAK.")
                         assert_not_equal(new_cip, None)
-                log.info('Getting DHCP server Down.')
+                log_test.info('Getting DHCP server Down.')
                 onos_ctrl = OnosCtrl(self.dhcp_app)
                 onos_ctrl.deactivate()
                 for i in range(0,4):
-                        log.info("Sending DHCP Request.")
-                        log.info('')
+                        log_test.info("Sending DHCP Request.")
+                        log_test.info('')
                         new_cip, new_sip = self.dhcp.only_request(cip, mac)
                         if new_cip == None and new_sip == None:
-                                log.info('')
-                                log.info("DHCP Request timed out.")
+                                log_test.info('')
+                                log_test.info("DHCP Request timed out.")
                         elif new_cip and new_sip:
-                                log.info("Got Reply from DHCP server.")
+                                log_test.info("Got Reply from DHCP server.")
                                 assert_equal(new_cip,None) #Neagtive Test Case
-                log.info('Getting DHCP server Up.')
+                log_test.info('Getting DHCP server Up.')
 #               self.activate_apps(self.dhcp_app)
                 onos_ctrl = OnosCtrl(self.dhcp_app)
                 status, _ = onos_ctrl.activate()
                 assert_equal(status, True)
                 time.sleep(3)
                 for i in range(0,4):
-                        log.info("Sending DHCP Request after DHCP server is up.")
-                        log.info('')
+                        log_test.info("Sending DHCP Request after DHCP server is up.")
+                        log_test.info('')
                         new_cip, new_sip = self.dhcp.only_request(cip, mac)
                         if new_cip == None and new_sip == None:
-                                log.info('')
-                                log.info("DHCP Request timed out.")
+                                log_test.info('')
+                                log_test.info("DHCP Request timed out.")
                         elif new_cip and new_sip:
-                                log.info("Got Reply from DHCP server.")
+                                log_test.info("Got Reply from DHCP server.")
                                 assert_equal(new_cip,None) #Neagtive Test Case
 
       def dhcp_client_rebind_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_client_rebind_time()
                 self.test_status = True
                 return self.test_status
@@ -897,37 +895,37 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
           cip, sip, mac, lval = self.dhcp.only_discover()
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
-          log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+          log_test.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
           if (cip == None and mac != None):
-                log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+                log_test.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
                 assert_not_equal(cip, None)
           elif cip and sip and mac:
-                log.info("Triggering DHCP Request.")
+                log_test.info("Triggering DHCP Request.")
                 new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, rebind_time = True)
                 if new_cip and new_sip and lval:
-                        log.info("Client 's Rebind time is :%s",lval)
-                        log.info("Generating delay till rebind time.")
+                        log_test.info("Client 's Rebind time is :%s",lval)
+                        log_test.info("Generating delay till rebind time.")
                         time.sleep(lval)
-                        log.info("Client Sending broadcast DHCP requests for renewing lease or for getting new ip.")
+                        log_test.info("Client Sending broadcast DHCP requests for renewing lease or for getting new ip.")
                         self.dhcp.after_T2 = True
                         for i in range(0,4):
                                 latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac)
                                 if latest_cip and latest_sip:
-                                        log.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
+                                        log_test.info("Got DHCP Ack. Lease Renewed for ip %s and mac %s from server %s." %
                                                         (latest_cip, mac, latest_sip) )
                                         break
                                 elif latest_cip == None:
-                                        log.info("Got DHCP NAK. Lease not renewed.")
+                                        log_test.info("Got DHCP NAK. Lease not renewed.")
                         assert_not_equal(latest_cip, None)
                 elif new_cip == None or new_sip == None or lval == None:
-                        log.info("Got DHCP NAK.Lease not Renewed.")
+                        log_test.info("Got DHCP NAK.Lease not Renewed.")
 
       def dhcp_starvation_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_starvation()
                 self.test_status = True
                 return self.test_status
@@ -943,11 +941,11 @@ yg==
                     'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = iface)
-          log.info('Verifying 1 ')
+          log_test.info('Verifying 1 ')
           for x in xrange(50):
               mac = RandMAC()._fix()
               self.send_recv(mac = mac)
-          log.info('Verifying 2 ')
+          log_test.info('Verifying 2 ')
           cip, sip = self.send_recv(update_seed = True, validate = False)
           assert_equal(cip, None)
           assert_equal(sip, None)
@@ -955,7 +953,7 @@ yg==
       def dhcp_same_client_multi_discovers_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_same_client_multiple_discover()
                 self.test_status = True
                 return self.test_status
@@ -972,22 +970,22 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
           cip, sip, mac, lval = self.dhcp.only_discover()
-          log.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %
                   (cip, sip, mac) )
-          log.info('Triggering DHCP discover again.')
+          log_test.info('Triggering DHCP discover again.')
           new_cip, new_sip, new_mac , lval = self.dhcp.only_discover()
           if cip == new_cip:
-                 log.info('Got same ip for 2nd DHCP discover for client IP %s from server %s for mac %s. Triggering DHCP Request. '
+                 log_test.info('Got same ip for 2nd DHCP discover for client IP %s from server %s for mac %s. Triggering DHCP Request. '
                           % (new_cip, new_sip, new_mac) )
           elif cip != new_cip:
-                log.info('Ip after 1st discover %s' %cip)
-                log.info('Map after 2nd discover %s' %new_cip)
+                log_test.info('Ip after 1st discover %s' %cip)
+                log_test.info('Map after 2nd discover %s' %new_cip)
                 assert_equal(cip, new_cip)
 
       def dhcp_same_client_multi_request_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_same_client_multiple_request()
                 self.test_status = True
                 return self.test_status
@@ -1003,16 +1001,16 @@ yg==
                     'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-          log.info('Sending DHCP discover and DHCP request.')
+          log_test.info('Sending DHCP discover and DHCP request.')
           cip, sip = self.send_recv()
           mac = self.dhcp.get_mac(cip)[0]
-          log.info("Sending DHCP request again.")
+          log_test.info("Sending DHCP request again.")
           new_cip, new_sip = self.dhcp.only_request(cip, mac)
           if (new_cip,new_sip) == (cip,sip):
-                log.info('Got same ip for 2nd DHCP Request for client IP %s from server %s for mac %s.'
+                log_test.info('Got same ip for 2nd DHCP Request for client IP %s from server %s for mac %s.'
                           % (new_cip, new_sip, mac) )
           elif (new_cip,new_sip):
-                log.info('No DHCP ACK')
+                log_test.info('No DHCP ACK')
                 assert_equal(new_cip, None)
                 assert_equal(new_sip, None)
           else:
@@ -1021,7 +1019,7 @@ yg==
       def dhcp_client_desired_ip_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_client_desired_address()
                 self.test_status = True
                 return self.test_status
@@ -1038,21 +1036,21 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.31', iface = iface)
           cip, sip, mac , lval = self.dhcp.only_discover(desired = True)
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
           if cip == self.dhcp.seed_ip:
-                log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %
+                log_test.info('Got dhcp client IP %s from server %s for mac %s as desired .' %
                   (cip, sip, mac) )
           elif cip != self.dhcp.seed_ip:
-                log.info('Got dhcp client IP %s from server %s for mac %s .' %
+                log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
-                log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
+                log_test.info('The desired ip was: %s .' % self.dhcp.seed_ip)
                 assert_equal(cip, self.dhcp.seed_ip)
 
       def dhcp_client_request_pkt_with_non_offered_ip_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_server_nak_packet()
                 self.test_status = True
                 return self.test_status
@@ -1068,22 +1066,22 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
           cip, sip, mac, lval = self.dhcp.only_discover()
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
-          log.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
+          log_test.info("Verifying Client 's IP and mac in DHCP Offer packet. Those should not be none, which is expected.")
           if (cip == None and mac != None):
-                log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+                log_test.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
                 assert_not_equal(cip, None)
           else:
                 new_cip, new_sip = self.dhcp.only_request('20.20.20.31', mac)
                 if new_cip == None:
-                        log.info("Got DHCP server NAK.")
+                        log_test.info("Got DHCP server NAK.")
                         assert_equal(new_cip, None)  #Negative Test Case
 
       def dhcp_client_requested_out_pool_ip_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_client_desired_address_out_of_pool()
                 self.test_status = True
                 return self.test_status
@@ -1100,26 +1098,26 @@ yg==
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = iface)
           cip, sip, mac, lval = self.dhcp.only_discover(desired = True)
-          log.info('Got dhcp client IP %s from server %s for mac %s .' %
+          log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
           if cip == self.dhcp.seed_ip:
-                log.info('Got dhcp client IP %s from server %s for mac %s as desired .' %
+                log_test.info('Got dhcp client IP %s from server %s for mac %s as desired .' %
                   (cip, sip, mac) )
                 assert_equal(cip, self.dhcp.seed_ip) #Negative Test Case
 
           elif cip != self.dhcp.seed_ip:
-                log.info('Got dhcp client IP %s from server %s for mac %s .' %
+                log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
                   (cip, sip, mac) )
-                log.info('The desired ip was: %s .' % self.dhcp.seed_ip)
+                log_test.info('The desired ip was: %s .' % self.dhcp.seed_ip)
                 assert_not_equal(cip, self.dhcp.seed_ip)
 
           elif cip == None:
-                log.info('Got DHCP NAK')
+                log_test.info('Got DHCP NAK')
 
       def dhcp_client_specific_lease_scenario(self, subscriber):
           if subscriber.has_service('DHCP'):
                 time.sleep(2)
-                log.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
+                log_test.info('Running subscriber %s DHCP rediscover scenario test' %subscriber.name)
                 tl = self.subscriber_dhcp_specific_lease_packet()
                 self.test_status = True
                 return self.test_status
@@ -1135,15 +1133,15 @@ yg==
                    'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
           self.onos_dhcp_table_load(config)
           self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-          log.info('Sending DHCP discover with lease time of 700')
+          log_test.info('Sending DHCP discover with lease time of 700')
           cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True)
 
-          log.info("Verifying Client 's IP and mac in DHCP Offer packet.")
+          log_test.info("Verifying Client 's IP and mac in DHCP Offer packet.")
           if (cip == None and mac != None):
-                log.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
+                log_test.info("Verified that Client 's IP and mac in DHCP Offer packet are none, which is not expected behavior.")
                 assert_not_equal(cip, None)
           elif lval != 700:
-                log.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %
+                log_test.info('Getting dhcp client IP %s from server %s for mac %s with lease time %s. That is not 700.' %
                          (cip, sip, mac, lval) )
                 assert_not_equal(lval, 700)
 

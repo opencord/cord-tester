@@ -17,7 +17,6 @@ import unittest
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
-from scapy.all import *
 import time, monotonic
 import os, sys
 import tempfile
@@ -35,6 +34,7 @@ from OltConfig import *
 from CordContainer import *
 from CordTestServer import cord_test_radius_restart
 from CordLogger import CordLogger
+from CordTestUtils import log_test as log
 import copy
 log.setLevel('INFO')
 DEFAULT_NO_CHANNELS = 1

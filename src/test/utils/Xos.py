@@ -1,5 +1,6 @@
 import os,time
 from CordContainer import Container
+from CordTestUtils import log_test
 
 class XosBase(object):
     workspace = '/tmp/xos_scratch_workspace'
@@ -69,13 +70,13 @@ class XosServiceProfile(XosBase):
 
     def start_services(self):
         if not self.__ssh_key_check():
-            log.info('SSH keys need to be generated before building XOS service containers')
-            log.info('Use the following commands to generate ssh keys')
-            log.info('ssh-keygen -t rsa -q -N ""')
-            log.info('ssh-copy-id -i $HOME/.ssh/id_rsa ubuntu@localhost')
+            log_test.info('SSH keys need to be generated before building XOS service containers')
+            log_test.info('Use the following commands to generate ssh keys')
+            log_test.info('ssh-keygen -t rsa -q -N ""')
+            log_test.info('ssh-copy-id -i $HOME/.ssh/id_rsa ubuntu@localhost')
             return False
         if not os.access(self.profile_dir, os.F_OK):
-            log.error('Profile directory %s does not exist' %self.profile_dir)
+            log_test.error('Profile directory %s does not exist' %self.profile_dir)
             return False
         self.build_images()
         ##copy the keys to the profile dir

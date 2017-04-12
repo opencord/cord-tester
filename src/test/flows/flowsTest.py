@@ -26,10 +26,11 @@ from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 from OltConfig import OltConfig
 from CordLogger import CordLogger
+from CordTestUtils import log_test
 import random
 from threading import current_thread
 import collections
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 class flows_exchange(CordLogger):
 
@@ -128,7 +129,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+                log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
                 self.success = True
             sniff(count=2, timeout=5, lfilter = lambda p: p.src == ingress_mac,
                   prn = recv_cb, iface = self.port_map[egress])
@@ -136,7 +137,7 @@ class flows_exchange(CordLogger):
         t = threading.Thread(target = mac_recv_task)
         t.start()
         pkt = Ether(src = ingress_mac, dst = egress_mac)/IP()
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -161,7 +162,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IP in p and p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip'],
@@ -172,7 +173,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -196,7 +197,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
+                log_test.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
                 self.success = True
             sniff(count=2, timeout=5, lfilter = lambda p: TCP in p and p[TCP].dport == egress_map['tcp_port']
 			and p[TCP].sport == ingress_map['tcp_port'], prn = recv_cb, iface = self.port_map[egress])
@@ -207,7 +208,7 @@ class flows_exchange(CordLogger):
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
         L4 = TCP(sport = ingress_map['tcp_port'], dport = egress_map['tcp_port'])
         pkt = L2/L3/L4
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -230,7 +231,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
+                log_test.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
                 self.success = True
             sniff(count=2, timeout=5,
              lfilter = lambda p: UDP in p and p[UDP].dport == egress_map['udp_port']
@@ -242,7 +243,7 @@ class flows_exchange(CordLogger):
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
         L4 = UDP(sport = ingress_map['udp_port'], dport = egress_map['udp_port'])
         pkt = L2/L3/L4
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -266,8 +267,8 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
-                log.info('Pkt:%s', pkt.show())
+                log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+                log_test.info('Pkt:%s', pkt.show())
                 self.success = True
             sniff(count=2, timeout=5, lfilter = lambda p:p.src == ingress_mac,
                   prn = recv_cb, iface = self.port_map[egress])
@@ -275,8 +276,8 @@ class flows_exchange(CordLogger):
         t = threading.Thread(target = mac_recv_task)
         t.start()
         pkt = Ether(src = ingress_mac, dst = egress_mac)/Dot1Q(vlan = 0x10)/IP()
-	log.info("Sending Packet:%s",pkt.show())
-        log.info('Sending a packet to verify if flows are correct')
+	log_test.info("Sending Packet:%s",pkt.show())
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -301,7 +302,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IPv6].src, pkt[IPv6].dst))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IPv6].src, pkt[IPv6].dst))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IPv6 in p and p[IPv6].dst == egress_map['ipv6'] and p[IPv6].src == ingress_map['ipv6'],
@@ -312,7 +313,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'] , dst = egress_map['ipv6'])
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -335,7 +336,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s with flow label %s' %(pkt[IPv6].src, pkt[IPv6].dst, pkt[IPv6].fl))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s with flow label %s' %(pkt[IPv6].src, pkt[IPv6].dst, pkt[IPv6].fl))
                 self.success = True
             sniff(count=2, timeout=5, lfilter = lambda p: IPv6 in p and p[IPv6].dst == egress_map['ipv6']
 		and p[IPv6].src == ingress_map['ipv6'] and p[IPv6].fl == 25, prn = recv_cb, iface = self.port_map[egress])
@@ -345,7 +346,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'] , dst = egress_map['ipv6'], fl = 25)
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -368,7 +369,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s, Extension Header Type %s' %(pkt[IPv6].src, pkt[IPv6].dst, pkt[IPv6].nh))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s, Extension Header Type %s' %(pkt[IPv6].src, pkt[IPv6].dst, pkt[IPv6].nh))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IPv6 in p and p[IPv6].nh == 0, prn = recv_cb, iface = self.port_map[egress])
@@ -378,7 +379,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'] , dst = egress_map['ipv6'], nh = 0)
         pkt = L2/L3
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -401,7 +402,7 @@ class flows_exchange(CordLogger):
 	    time.sleep(1)
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s, Extension Header Type %s' %(pkt[IPv6].src, pkt[IPv6].dst, pkt[IPv6].nh))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s, Extension Header Type %s' %(pkt[IPv6].src, pkt[IPv6].dst, pkt[IPv6].nh))
                 self.success = True
             sniff(count=2, timeout=5, lfilter = lambda p: IPv6 in p and p[IPv6].nh == i,
 		    prn = recv_cb, iface = self.port_map[egress])
@@ -413,7 +414,7 @@ class flows_exchange(CordLogger):
 	    L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	    L3 = IPv6(src = ingress_map['ipv6'] , dst = egress_map['ipv6'], nh = i)
 	    pkt = L2/L3
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 	    assert_equal(self.success, True)
@@ -436,7 +437,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IP in p and p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip']
@@ -447,7 +448,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'], tos = 32)
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -471,7 +472,7 @@ class flows_exchange(CordLogger):
 
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IP in p and p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip']
@@ -484,7 +485,7 @@ class flows_exchange(CordLogger):
 	        L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	        L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'], tos = i)
 	        pkt = L2/L3
-	        log.info('Sending a packet to verify if flows are correct')
+	        log_test.info('Sending a packet to verify if flows are correct')
 	        sendp(pkt, count=50, iface = self.port_map[ingress])
 	        t.join()
 	        assert_equal(self.success, True)
@@ -506,7 +507,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IP in p and p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip']
@@ -518,7 +519,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'], tos = 1)
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -541,7 +542,7 @@ class flows_exchange(CordLogger):
 	        time.sleep(1)
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IP in p and p[IP].dst == egress_map['ip'] and p[IP].src == ingress_map['ip']
@@ -555,7 +556,7 @@ class flows_exchange(CordLogger):
 	        L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	        L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'], tos = i)
 	        pkt = L2/L3
-	        log.info('Sending a packet to verify if flows are correct')
+	        log_test.info('Sending a packet to verify if flows are correct')
 	        sendp(pkt, count=50, iface = self.port_map[ingress])
 	        t.join()
 	        assert_equal(self.success, True)
@@ -581,7 +582,7 @@ class flows_exchange(CordLogger):
 
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s and Type of Service %s' %(pkt[IP].src, pkt[IP].dst, pkt[IP].tos))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IP in p and p[IP].tos == int(bin(i).split('b')[1]+ bin(j).split('b')[1],2)
@@ -596,7 +597,7 @@ class flows_exchange(CordLogger):
 			L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 			L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'], tos = int(bin(i).split('b')[1]+ bin(j).split('b')[1],2))
 			pkt = L2/L3
-			log.info('Sending packets to verify if flows are correct')
+			log_test.info('Sending packets to verify if flows are correct')
 			sendp(pkt, count=50, iface = self.port_map[ingress])
 			t.join()
 			assert_equal(self.success, True)
@@ -620,7 +621,7 @@ class flows_exchange(CordLogger):
 
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMP type %s, ICMP code %s' %(pkt[ICMP].type, pkt[ICMP].code))
+                log_test.info('Pkt seen with ICMP type %s, ICMP code %s' %(pkt[ICMP].type, pkt[ICMP].code))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMP in p and p[ICMP].type == 3 and p[ICMP].code == 8,
@@ -631,7 +632,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])/ICMP(type = 3, code = 8)
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -671,7 +672,7 @@ class flows_exchange(CordLogger):
 
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMP type %s, ICMP code %s' %(pkt[ICMP].type, pkt[ICMP].code))
+                log_test.info('Pkt seen with ICMP type %s, ICMP code %s' %(pkt[ICMP].type, pkt[ICMP].code))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMP in p and p[ICMP].type == 3 and p[ICMP].code == 8,
@@ -682,7 +683,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])/ICMP(type = 3, code = 8)
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -705,7 +706,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6EchoRequest].type, pkt[ICMPv6EchoRequest].code))
+                log_test.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6EchoRequest].type, pkt[ICMPv6EchoRequest].code))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMPv6EchoRequest in p and p[ICMPv6EchoRequest].type == 128 and p[ICMPv6EchoRequest].code == 0,
@@ -716,7 +717,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6EchoRequest()
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -739,7 +740,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6EchoReply].type, pkt[ICMPv6EchoReply].code))
+                log_test.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6EchoReply].type, pkt[ICMPv6EchoReply].code))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMPv6EchoReply in p and p[ICMPv6EchoReply].type == 129 and p[ICMPv6EchoReply].code == 0,
@@ -750,7 +751,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6EchoReply()
         pkt = L2/L3
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -776,7 +777,7 @@ class flows_exchange(CordLogger):
 	        self.success = False
 	        def mac_recv_task():
 	            def recv_cb(pkt):
-	                log.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6DestUnreach].type, pkt[ICMPv6DestUnreach].code))
+	                log_test.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6DestUnreach].type, pkt[ICMPv6DestUnreach].code))
 	                self.success = True
 	            sniff(count=2, timeout=5,
 	                  lfilter = lambda p: ICMPv6DestUnreach in p and p[ICMPv6DestUnreach].type == 1 and p[ICMPv6DestUnreach].code == i,
@@ -787,7 +788,7 @@ class flows_exchange(CordLogger):
 	        L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	        L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6DestUnreach(code = i)
 	        pkt = L2/L3
-	        log.info('Sending packets to verify if flows are correct')
+	        log_test.info('Sending packets to verify if flows are correct')
 	        sendp(pkt, count=50, iface = self.port_map[ingress])
 	        t.join()
 	        assert_equal(self.success, True)
@@ -810,7 +811,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6PacketTooBig].type, pkt[ICMPv6PacketTooBig].code))
+                log_test.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6PacketTooBig].type, pkt[ICMPv6PacketTooBig].code))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMPv6PacketTooBig in p and p[ICMPv6PacketTooBig].type == 2 and p[ICMPv6PacketTooBig].code == 0,
@@ -821,7 +822,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6PacketTooBig()
         pkt = L2/L3
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -846,7 +847,7 @@ class flows_exchange(CordLogger):
 	        self.success = False
 	        def mac_recv_task():
 	            def recv_cb(pkt):
-	                log.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6TimeExceeded].type, pkt[ICMPv6TimeExceeded].code))
+	                log_test.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6TimeExceeded].type, pkt[ICMPv6TimeExceeded].code))
 	                self.success = True
 	            sniff(count=2, timeout=5,
 	                  lfilter = lambda p: ICMPv6TimeExceeded in p and p[ICMPv6TimeExceeded].type == 3 and p[ICMPv6TimeExceeded].code == i,
@@ -857,7 +858,7 @@ class flows_exchange(CordLogger):
 	        L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	        L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6TimeExceeded(code = i)
 	        pkt = L2/L3
-	        log.info('Sending packets to verify if flows are correct')
+	        log_test.info('Sending packets to verify if flows are correct')
 	        sendp(pkt, count=50, iface = self.port_map[ingress])
 	        t.join()
 	        assert_equal(self.success, True)
@@ -882,7 +883,7 @@ class flows_exchange(CordLogger):
 	        self.success = False
 	        def mac_recv_task():
 	            def recv_cb(pkt):
-	                log.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6ParamProblem].type, pkt[ICMPv6ParamProblem].code))
+	                log_test.info('Pkt seen with ICMPv6 type %s, ICMPv6 code %s' %(pkt[ICMPv6ParamProblem].type, pkt[ICMPv6ParamProblem].code))
 	                self.success = True
 	            sniff(count=2, timeout=5,
 	                  lfilter = lambda p: ICMPv6ParamProblem in p and p[ICMPv6ParamProblem].type == 4 and p[ICMPv6ParamProblem].code == i,
@@ -893,7 +894,7 @@ class flows_exchange(CordLogger):
 	        L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	        L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6ParamProblem(code = i)
 	        pkt = L2/L3
-	        log.info('Sending packets to verify if flows are correct')
+	        log_test.info('Sending packets to verify if flows are correct')
 	        sendp(pkt, count=50, iface = self.port_map[ingress])
 	        t.join()
 	        assert_equal(self.success, True)
@@ -913,7 +914,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMPv6 Neighbor Discovery type %s, target address %s' %(pkt[ICMPv6ND_NS].type, pkt[ICMPv6ND_NS].tgt))
+                log_test.info('Pkt seen with ICMPv6 Neighbor Discovery type %s, target address %s' %(pkt[ICMPv6ND_NS].type, pkt[ICMPv6ND_NS].tgt))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMPv6ND_NS in p and p[ICMPv6ND_NS].tgt == '2001:db8:a0b:12f0:1010:1010:1010:1001',
@@ -924,7 +925,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'])/ICMPv6ND_NS(tgt = '2001:db8:a0b:12f0:1010:1010:1010:1001')
         pkt = L2/L3
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -945,7 +946,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMPv6 Neighbor Discovery type %s, Source Link Layer address %s' %(pkt[ICMPv6ND_NS].type, pkt[ICMPv6NDOptSrcLLAddr].lladdr))
+                log_test.info('Pkt seen with ICMPv6 Neighbor Discovery type %s, Source Link Layer address %s' %(pkt[ICMPv6ND_NS].type, pkt[ICMPv6NDOptSrcLLAddr].lladdr))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMPv6NDOptSrcLLAddr in p and p[ICMPv6NDOptSrcLLAddr].lladdr == ingress_map['ether'],
@@ -956,7 +957,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'])#, dst = ingress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6ND_NS(tgt =  egress_map['ipv6'])/ICMPv6NDOptSrcLLAddr(lladdr = ingress_map['ether'])
         pkt = L2/L3
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -977,7 +978,7 @@ class flows_exchange(CordLogger):
         self.success = False
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ICMPv6 Neighbor Advertisement type %s, Target Link Layer address %s' %(pkt[ICMPv6ND_NA].type, pkt[ICMPv6NDOptDstLLAddr].lladdr))
+                log_test.info('Pkt seen with ICMPv6 Neighbor Advertisement type %s, Target Link Layer address %s' %(pkt[ICMPv6ND_NA].type, pkt[ICMPv6NDOptDstLLAddr].lladdr))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: ICMPv6NDOptDstLLAddr in p and p[ICMPv6NDOptDstLLAddr].lladdr == ingress_map['ether'],
@@ -988,7 +989,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'])#, dst = ingress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'], dst = egress_map['ipv6'])/ICMPv6ND_NA(tgt =  ingress_map['ipv6'])/ICMPv6NDOptDstLLAddr(lladdr = ingress_map['ether'])
         pkt = L2/L3
-        log.info('Sending packets to verify if flows are correct')
+        log_test.info('Sending packets to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -1016,7 +1017,7 @@ class flows_exchange(CordLogger):
 
         def mac_recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IPv6].src, pkt[IPv6].dst))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IPv6].src, pkt[IPv6].dst))
                 self.success = True
             sniff(count=2, timeout=5,
                   lfilter = lambda p: IPv6 in p and p[IPv6].dst == egress_map['ipv6'] and p[IPv6].src == ingress_map['ipv6']
@@ -1027,7 +1028,7 @@ class flows_exchange(CordLogger):
         L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
         L3 = IPv6(src = ingress_map['ipv6'] , dst = egress_map['ipv6'])/ICMPv6EchoRequest()
         pkt = L2/L3
-        log.info('Sending a packet to verify if flows are correct')
+        log_test.info('Sending a packet to verify if flows are correct')
         sendp(pkt, count=50, iface = self.port_map[ingress])
         t.join()
         assert_equal(self.success, True)
@@ -1051,12 +1052,12 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = False
 
 	def mac_recv_task():
 	    def recv_cb(pkt):
-		log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		self.success = True
 	    sniff(count=2, timeout=5, lfilter = lambda p: p.src == '00:00:00:00:00:02',
 		    prn = recv_cb, iface = self.port_map[egress])
@@ -1064,7 +1065,7 @@ class flows_exchange(CordLogger):
 	t = threading.Thread(target = mac_recv_task)
 	t.start()
 	pkt = Ether(src = '00:00:00:00:00:02', dst = egress_mac)/IP()
-	log.info('Sending packets to verify if flows are correct')
+	log_test.info('Sending packets to verify if flows are correct')
 	sendp(pkt, count=50, iface = self.port_map[ingress])
 	t.join()
         assert_equal(self.success, True)
@@ -1089,14 +1090,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
 	self.success = True
 
 	def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1104,7 +1105,7 @@ class flows_exchange(CordLogger):
 		t = threading.Thread(target = mac_recv_task)
 		t.start()
 		pkt = Ether(src = random_src, dst = egress_mac)/IP()
-		log.info('Sending packets to verify if flows are correct')
+		log_test.info('Sending packets to verify if flows are correct')
 		sendp(pkt, count=50, iface = self.port_map[ingress])
 		t.join()
 
@@ -1150,14 +1151,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1165,7 +1166,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = egress_mac)/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1227,14 +1228,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1242,7 +1243,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = egress_mac)/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1310,14 +1311,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1325,7 +1326,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = egress_mac)/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1394,14 +1395,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1409,7 +1410,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = egress_mac)/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1475,12 +1476,12 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = False
 
 	def mac_recv_task():
 	    def recv_cb(pkt):
-		log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		self.success = True
 	    sniff(count=2, timeout=5, lfilter = lambda p: p.src == '00:00:00:00:00:01' and p.dst == '00:00:00:00:01:02',
 		    prn = recv_cb, iface = self.port_map[egress])
@@ -1488,7 +1489,7 @@ class flows_exchange(CordLogger):
 	t = threading.Thread(target = mac_recv_task)
 	t.start()
 	pkt = Ether(src = ingress_mac, dst =  '00:00:00:00:01:02')/IP()
-	log.info('Sending packets to verify if flows are correct')
+	log_test.info('Sending packets to verify if flows are correct')
 	sendp(pkt, count=50, iface = self.port_map[ingress])
 	t.join()
         assert_equal(self.success, True)
@@ -1513,14 +1514,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
         def verify_flow(*r):
 	    random_src = ''.join(r)
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1528,7 +1529,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst =  self.to_egress_mac(random_src))/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1572,13 +1573,13 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1586,7 +1587,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
             pkt = Ether(src = random_src, dst =  self.to_egress_mac(random_src))/IP()
-            log.info('Sending packets to verify if flows are correct')
+            log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1648,13 +1649,13 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1662,7 +1663,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = self.to_egress_mac(random_src))/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1730,14 +1731,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1745,7 +1746,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = self.to_egress_mac(random_src))/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1813,14 +1814,14 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
         def verify_flow(*r):
 	    random_src = ''.join(r)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
+		    log_test.info('Pkt seen with ingress mac %s, egress mac %s' %(pkt.src, pkt.dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5, lfilter = lambda p: p.src == random_src,
 			prn = recv_cb, iface = self.port_map[egress])
@@ -1828,7 +1829,7 @@ class flows_exchange(CordLogger):
 	    t = threading.Thread(target = mac_recv_task)
 	    t.start()
 	    pkt = Ether(src = random_src, dst = egress_mac)/IP()
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -1901,24 +1902,24 @@ class flows_exchange(CordLogger):
 		flows_added += 1
 	##wait for flows to be added to ONOS
 		time.sleep(1)
-		log.info("%d flow added.",j+1)
+		log_test.info("%d flow added.",j+1)
 	    end_time = time.time()
 	    stats_dir['run '+str(i)] =  round((end_time - start_time),2)
 	for t in stats_dir.items():
-		log.info("----------------------------------------------")
-		log.info("Statics for %s",t[0])
-		log.info("----------------------------------------------")
-		log.info("No. of flows added               Running Time ")
-		log.info("       %d                             %s     " %(100, t[1]))
+		log_test.info("----------------------------------------------")
+		log_test.info("Statics for %s",t[0])
+		log_test.info("----------------------------------------------")
+		log_test.info("No. of flows added               Running Time ")
+		log_test.info("       %d                             %s     " %(100, t[1]))
 		running_time += float(t[1])
 
-	log.info("-------------------------------------------------------------------------------------------------------")
-	log.info("Final Statics")
-	log.info("-------------------------------------------------------------------------------------------------------")
-	log.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
-	log.info("       %d                                %s second                               %d                     "
+	log_test.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("Final Statics")
+	log_test.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
+	log_test.info("       %d                                %s second                               %d                     "
 		%(flows_added, running_time, round(flows_added/running_time,0)))
-	log.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("-------------------------------------------------------------------------------------------------------")
 
 
 
@@ -1948,24 +1949,24 @@ class flows_exchange(CordLogger):
 		flows_added += 1
 	##wait for flows to be added to ONOS
 		time.sleep(1)
-		log.info("%d flow added.",j+1)
+		log_test.info("%d flow added.",j+1)
 	    end_time = time.time()
 	    stats_dir['run '+str(i)] =  round((end_time - start_time),2)
 	for t in stats_dir.items():
-	    log.info("----------------------------------------------")
-	    log.info("Statics for %s",t[0])
-	    log.info("----------------------------------------------")
-	    log.info("No. of flows added               Running Time ")
-	    log.info("       %d                             %s     " %(500, t[1]))
+	    log_test.info("----------------------------------------------")
+	    log_test.info("Statics for %s",t[0])
+	    log_test.info("----------------------------------------------")
+	    log_test.info("No. of flows added               Running Time ")
+	    log_test.info("       %d                             %s     " %(500, t[1]))
 	    running_time += float(t[1])
 
-	log.info("-------------------------------------------------------------------------------------------------------")
-	log.info("Final Statics")
-	log.info("-------------------------------------------------------------------------------------------------------")
-	log.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
-	log.info("       %d                                %s second                               %d                     "
+	log_test.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("Final Statics")
+	log_test.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
+	log_test.info("       %d                                %s second                               %d                     "
 		%(flows_added, running_time, round(flows_added/running_time,0)))
-	log.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("-------------------------------------------------------------------------------------------------------")
 
     def test_rate_1k_flow_mac(self):
         egress = 1
@@ -1993,24 +1994,24 @@ class flows_exchange(CordLogger):
 		flows_added += 1
 	    ##wait for flows to be added to ONOS
 		time.sleep(1)
-		log.info("%d flow added.",j+1)
+		log_test.info("%d flow added.",j+1)
 	    end_time = time.time()
 	    stats_dir['run '+str(i)] =  round((end_time - start_time),2)
 	for t in stats_dir.items():
-	    log.info("----------------------------------------------")
-	    log.info("Statics for %s",t[0])
-	    log.info("----------------------------------------------")
-	    log.info("No. of flows added               Running Time ")
-	    log.info("       %d                             %s     " %(1000, t[1]))
+	    log_test.info("----------------------------------------------")
+	    log_test.info("Statics for %s",t[0])
+	    log_test.info("----------------------------------------------")
+	    log_test.info("No. of flows added               Running Time ")
+	    log_test.info("       %d                             %s     " %(1000, t[1]))
 	    running_time += float(t[1])
 
-	log.info("-------------------------------------------------------------------------------------------------------")
-	log.info("Final Statics")
-	log.info("-------------------------------------------------------------------------------------------------------")
-	log.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
-	log.info("       %d                                %s second                               %d                     "
+	log_test.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("Final Statics")
+	log_test.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("Total No. of flows added               Total Running Time               Average no. of flows per second ")
+	log_test.info("       %d                                %s second                               %d                     "
 		%(flows_added, running_time, round(flows_added/running_time,0)))
-	log.info("-------------------------------------------------------------------------------------------------------")
+	log_test.info("-------------------------------------------------------------------------------------------------------")
 
 
     def test_500_flow_ip(self):
@@ -2036,7 +2037,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
 	def verify_flow(*r):
@@ -2045,7 +2046,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+		    log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
 		    success_dir[current_thread().name] = True
 
 		sniff(count=2, timeout=5,  lfilter = lambda p: IP in p and p[IP].dst == random_dst and p[IP].src == random_src
@@ -2056,7 +2057,7 @@ class flows_exchange(CordLogger):
 	    L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	    L3 = IP(src = random_src, dst = random_dst)
 	    pkt = L2/L3
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2106,7 +2107,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
 	def verify_flow(*r):
@@ -2115,7 +2116,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+		    log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
 		    success_dir[current_thread().name] = True
 
 		sniff(count=2, timeout=5,  lfilter = lambda p: IP in p and p[IP].dst == random_dst and p[IP].src == random_src
@@ -2126,7 +2127,7 @@ class flows_exchange(CordLogger):
 	    L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	    L3 = IP(src = random_src, dst = random_dst)
 	    pkt = L2/L3
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2192,7 +2193,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
 	def verify_flow(*r):
@@ -2201,7 +2202,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+		    log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,  lfilter = lambda p: IP in p and p[IP].dst == random_dst and p[IP].src == random_src
 		      ,prn = recv_cb, iface = self.port_map[egress])
@@ -2211,7 +2212,7 @@ class flows_exchange(CordLogger):
 	    L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	    L3 = IP(src = random_src, dst = random_dst)
 	    pkt = L2/L3
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2278,7 +2279,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
 	def verify_flow(*r):
@@ -2286,7 +2287,7 @@ class flows_exchange(CordLogger):
 	    random_dst = self.to_egress_ip(random_src)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+		    log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,  lfilter = lambda p: IP in p and p[IP].dst == random_dst and p[IP].src == random_src
 			,prn = recv_cb, iface = self.port_map[egress])
@@ -2296,7 +2297,7 @@ class flows_exchange(CordLogger):
 	    L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	    L3 = IP(src = random_src, dst = random_dst)
 	    pkt = L2/L3
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2364,7 +2365,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
         self.success = True
 
 	def verify_flow(*r):
@@ -2372,7 +2373,7 @@ class flows_exchange(CordLogger):
 	    random_dst = self.to_egress_ip(random_src)
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+		    log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
 		    success_dir[current_thread().name] = True
 
 		sniff(count=2, timeout=5,  lfilter = lambda p: IP in p and p[IP].dst == random_dst and p[IP].src == random_src
@@ -2383,7 +2384,7 @@ class flows_exchange(CordLogger):
 	    L2 = Ether(src = ingress_map['ether'], dst = egress_map['ether'])
 	    L3 = IP(src = random_src, dst = random_dst)
 	    pkt = L2/L3
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2449,7 +2450,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d Flow added",i+1)
+	    log_test.info("%d Flow added",i+1)
         self.success = True
 
 	def verify_flow(*r):
@@ -2457,7 +2458,7 @@ class flows_exchange(CordLogger):
 	    random_dport = random_sport + 2000
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
+		    log_test.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,
 		      lfilter = lambda p: TCP in p and p[TCP].dport == random_dport and p[TCP].sport == random_sport                    			  ,prn = recv_cb, iface = self.port_map[egress])
@@ -2468,7 +2469,7 @@ class flows_exchange(CordLogger):
 	    L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
 	    L4 = TCP(sport = random_sport, dport = random_dport)
 	    pkt = L2/L3/L4
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 	t1 = threading.Thread(target = verify_flow, args = str(1101))
@@ -2516,7 +2517,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
 
         self.success = True
 
@@ -2526,7 +2527,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
+		    log_test.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,
 		      lfilter = lambda p: TCP in p and p[TCP].dport == random_dport and p[TCP].sport == random_sport                    			  ,prn = recv_cb, iface = self.port_map[egress])
@@ -2537,7 +2538,7 @@ class flows_exchange(CordLogger):
 	    L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
 	    L4 = TCP(sport = random_sport, dport = random_dport)
 	    pkt = L2/L3/L4
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2603,7 +2604,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
 
         self.success = True
 
@@ -2613,7 +2614,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
+		    log_test.info('Pkt seen with ingress TCP port %s, egress TCP port %s' %(pkt[TCP].sport, pkt[TCP].dport))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,
 		      lfilter = lambda p: TCP in p and p[TCP].dport == random_dport
@@ -2625,7 +2626,7 @@ class flows_exchange(CordLogger):
 	    L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
 	    L4 = TCP(sport = random_sport, dport = random_dport)
 	    pkt = L2/L3/L4
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2690,7 +2691,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
 
         self.success = True
 
@@ -2700,7 +2701,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
+		    log_test.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,
 		      lfilter = lambda p: UDP in p and p[UDP].dport == random_dport and p[UDP].sport == random_sport                    			  ,prn = recv_cb, iface = self.port_map[egress])
@@ -2711,7 +2712,7 @@ class flows_exchange(CordLogger):
 	    L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
 	    L4 = UDP(sport = random_sport, dport = random_dport)
 	    pkt = L2/L3/L4
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2761,7 +2762,7 @@ class flows_exchange(CordLogger):
 	    assert_equal(result, True)
 	    ##wait for flows to be added to ONOS
 	    time.sleep(1)
-	    log.info("%d flow added.",i+1)
+	    log_test.info("%d flow added.",i+1)
 
         self.success = True
 
@@ -2771,7 +2772,7 @@ class flows_exchange(CordLogger):
 
 	    def mac_recv_task():
 		def recv_cb(pkt):
-		    log.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
+		    log_test.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
 		    success_dir[current_thread().name] = True
 		sniff(count=2, timeout=5,
 		      lfilter = lambda p: UDP in p and p[UDP].dport == random_dport and p[UDP].sport == random_sport                    			  ,prn = recv_cb, iface = self.port_map[egress])
@@ -2782,7 +2783,7 @@ class flows_exchange(CordLogger):
 	    L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
 	    L4 = UDP(sport = random_sport, dport = random_dport)
 	    pkt = L2/L3/L4
-	    log.info('Sending packets to verify if flows are correct')
+	    log_test.info('Sending packets to verify if flows are correct')
 	    sendp(pkt, count=50, iface = self.port_map[ingress])
 	    t.join()
 
@@ -2847,7 +2848,7 @@ class flows_exchange(CordLogger):
 	        assert_equal(result, True)
 	        ##wait for flows to be added to ONOS
 	        time.sleep(1)
-		log.info("%d flow added.",i+1)
+		log_test.info("%d flow added.",i+1)
 
         self.success = True
 
@@ -2858,7 +2859,7 @@ class flows_exchange(CordLogger):
 	        def mac_recv_task():
 
 	            def recv_cb(pkt):
-	                log.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
+	                log_test.info('Pkt seen with ingress UDP port %s, egress UDP port %s' %(pkt[UDP].sport, pkt[UDP].dport))
 			success_dir[current_thread().name] = True
 	            sniff(count=2, timeout=5,
 	                  lfilter = lambda p: UDP in p and p[UDP].dport == random_dport and p[UDP].sport == random_sport                    			  ,prn = recv_cb, iface = self.port_map[egress])
@@ -2869,7 +2870,7 @@ class flows_exchange(CordLogger):
 	        L3 = IP(src = ingress_map['ip'], dst = egress_map['ip'])
 	        L4 = UDP(sport = random_sport, dport = random_dport)
 	        pkt = L2/L3/L4
-	        log.info('Sending packets to verify if flows are correct')
+	        log_test.info('Sending packets to verify if flows are correct')
 	        sendp(pkt, count=50, iface = self.port_map[ingress])
 	        t.join()
 

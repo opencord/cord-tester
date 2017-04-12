@@ -22,10 +22,11 @@ from twisted.internet import defer
 from EapTLS import TLSAuthTest
 from OnosCtrl import OnosCtrl
 from CordLogger import CordLogger
+from CordTestUtils import log_test
 from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 class eap_auth_exchange(CordLogger):
 
@@ -90,7 +91,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
     def onos_load_config(self, config):
         status, code = OnosCtrl.config(config)
         if status is False:
-            log.info('Configure request for AAA returned status %d' %code)
+            log_test.info('Configure request for AAA returned status %d' %code)
             assert_equal(status, True)
             time.sleep(3)
 
@@ -109,7 +110,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_no_cert(df):
             def tls_no_cert_cb():
-                log.info('TLS authentication failed with no certificate')
+                log_test.info('TLS authentication failed with no certificate')
             tls = TLSAuthTest(fail_cb = tls_no_cert_cb, client_cert = '')
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -122,7 +123,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_cert(df):
             def tls_invalid_cert_cb():
-                log.info('TLS authentication failed with invalid certificate')
+                log_test.info('TLS authentication failed with invalid certificate')
 
             tls = TLSAuthTest(fail_cb = tls_invalid_cert_cb,
                               client_cert = self.CLIENT_CERT_INVALID)
@@ -149,7 +150,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_session_id(df):
             def tls_invalid_session_id_cb():
-                log.info('TLS authentication failed with invalid session  id')
+                log_test.info('TLS authentication failed with invalid session  id')
             tls = TLSAuthTest(fail_cb = tls_invalid_session_id_cb,session_id = 12345, session_id_length = 1)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -162,9 +163,9 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_gmt_unix_time(df):
             def eap_tls_invalid_gmt_unix_time_cb():
-                log.info('TLS authentication failed with invalid gmt_unix_time in Client Hello Packet')
+                log_test.info('TLS authentication failed with invalid gmt_unix_time in Client Hello Packet')
             for i in [0,7265,98758,23627238]:
-                log.info("\nExecuting test case with gmt_unix_time value is set to %d"%i)
+                log_test.info("\nExecuting test case with gmt_unix_time value is set to %d"%i)
                 tls = TLSAuthTest(fail_cb = eap_tls_invalid_gmt_unix_time_cb, gmt_unix_time = i)
                 tls.runTest()
                 assert_equal(tls.failTest, True)
@@ -177,7 +178,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_content_type(df):
             def tls_invalid_content_type_cb():
-                log.info('TLS authentication failed with invalid content type in TLSContentType packet')
+                log_test.info('TLS authentication failed with invalid content type in TLSContentType packet')
             tls = TLSAuthTest(fail_cb = tls_invalid_content_type_cb, invalid_content_type = 24)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -190,7 +191,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_record_fragment_length(df):
             def eap_tls_invalid_record_fragment_length_cb():
-                log.info('TLS authentication failed with invalid fragment length field in TLSRecord packet')
+                log_test.info('TLS authentication failed with invalid fragment length field in TLSRecord packet')
             tls = TLSAuthTest(fail_cb = eap_tls_invalid_record_fragment_length_cb, record_fragment_length = 17384)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -204,7 +205,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_with_invalid_id_in_identifier_response_packet(df):
             def tls_with_invalid_id_in_identifier_response_packet_cb():
-                log.info('TLS authentication failed with invalid id in identifier packet')
+                log_test.info('TLS authentication failed with invalid id in identifier packet')
             tls = TLSAuthTest(fail_cb = tls_with_invalid_id_in_identifier_response_packet_cb,
                               id_mismatch_in_identifier_response_packet = True)
             tls.runTest()
@@ -219,7 +220,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_with_invalid_id_in_client_hello_packet(df):
             def tls_with_invalid_id_in_client_hello_packet_cb():
-                log.info('TLS authentication failed with invalid id in client hello packet')
+                log_test.info('TLS authentication failed with invalid id in client hello packet')
             tls = TLSAuthTest(fail_cb = tls_with_invalid_id_in_client_hello_packet_cb,
                               id_mismatch_in_client_hello_packet = True)
             tls.runTest()
@@ -233,7 +234,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_without_sending_client_hello(df):
             def tls_without_sending_client_hello_cb():
-                log.info('TLS authentication failed with not sending client hello')
+                log_test.info('TLS authentication failed with not sending client hello')
             tls = TLSAuthTest(fail_cb = tls_without_sending_client_hello_cb,
                               dont_send_client_hello = True)
             tls.runTest()
@@ -247,7 +248,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_aaa_app_deactivate(df):
             def tls_aaa_app_deactivate_cb():
-                log.info('TLS authentication failed with aaa app deactivated in ONOS')
+                log_test.info('TLS authentication failed with aaa app deactivated in ONOS')
             tls = TLSAuthTest(fail_cb = tls_aaa_app_deactivate_cb)
             self.onos_ctrl.deactivate()
             tls.runTest()
@@ -263,7 +264,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_incorrect_cipher_suite_length_field(df):
             def tls_incorrect_cipher_suite_length_field_cb():
-                log.info('TLS authentication failed with incorrect cipher suite length field in client hello packet')
+                log_test.info('TLS authentication failed with incorrect cipher suite length field in client hello packet')
             tls = TLSAuthTest(fail_cb = tls_incorrect_cipher_suite_length_field_cb, cipher_suites_length = 0)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -277,7 +278,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_incorrect_compression_methods_length_field(df):
             def tls_incorrect_compression_methods_length_field_cb():
-                log.info('TLS authentication failed with incorrect compression methods length field in client hello packet')
+                log_test.info('TLS authentication failed with incorrect compression methods length field in client hello packet')
             tls = TLSAuthTest(fail_cb = tls_incorrect_compression_methods_length_field_cb, compression_methods_length=1,compression_methods=TLSCompressionMethod.LZS)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -291,7 +292,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_source_mac_broadcast(df):
             def tls_invalid_source_mac_broadcast_cb():
-                log.info('TLS authentication failed with invalid source mac as broadcast in EAPOL packet')
+                log_test.info('TLS authentication failed with invalid source mac as broadcast in EAPOL packet')
             tls = TLSAuthTest(fail_cb = tls_invalid_source_mac_broadcast_cb, src_mac='bcast')
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -305,7 +306,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_source_mac_multicast(df):
             def tls_invalid_source_mac_multicast_cb():
-                log.info('TLS authentication failed with invalid source mac as multicast in EAPOL packet')
+                log_test.info('TLS authentication failed with invalid source mac as multicast in EAPOL packet')
             tls = TLSAuthTest(fail_cb = tls_invalid_source_mac_multicast_cb, src_mac='mcast')
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -319,7 +320,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_source_mac_zero(df):
             def tls_invalid_source_mac_zero_cb():
-                log.info('TLS authentication failed with invalid source mac as zero in EAPOL packet')
+                log_test.info('TLS authentication failed with invalid source mac as zero in EAPOL packet')
             tls = TLSAuthTest(fail_cb = tls_invalid_source_mac_zero_cb, src_mac='zeros')
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -333,7 +334,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_restart_radius_server(df):
             def tls_restart_radius_server_cb():
-                log.info('TLS authentication failed with  radius server down in middle of authentication process')
+                log_test.info('TLS authentication failed with  radius server down in middle of authentication process')
             tls = TLSAuthTest(fail_cb = tls_restart_radius_server_cb, restart_radius=True)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -346,7 +347,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_incorrect_handshake_type_client_hello(df):
             def tls_incorrect_handshake_type_client_hello_cb():
-                log.info('TLS authentication failed with incorrect handshake type in client hello packet')
+                log_test.info('TLS authentication failed with incorrect handshake type in client hello packet')
             tls = TLSAuthTest(fail_cb = tls_incorrect_handshake_type_client_hello_cb, invalid_client_hello_handshake_type=True)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -360,7 +361,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_incorrect_handshake_type_certificate_request(df):
             def tls_incorrect_handshake_type_certificate_request_cb():
-                log.info('TLS authentication failed with incorrect handshake type in client certificate request packet')
+                log_test.info('TLS authentication failed with incorrect handshake type in client certificate request packet')
             tls = TLSAuthTest(fail_cb = tls_incorrect_handshake_type_certificate_request_cb, invalid_cert_req_handshake=True)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -374,7 +375,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_incorrect_tlsrecord_certificate_request(df):
             def tls_incorrect_tlsrecord_certificate_request_cb():
-                log.info('TLS authentication failed with incorrect tlsrecord type  in certificate request packet')
+                log_test.info('TLS authentication failed with incorrect tlsrecord type  in certificate request packet')
             tls = TLSAuthTest(fail_cb = tls_incorrect_tlsrecord_certificate_request_cb, incorrect_tlsrecord_type_cert_req=True)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -388,7 +389,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_invalid_handshake_length_client_hello(df):
             def tls_invalid_handshake_length_client_hello_cb():
-                log.info('TLS authentication failed with invalid handshake length in client hello packet')
+                log_test.info('TLS authentication failed with invalid handshake length in client hello packet')
             tls = TLSAuthTest(fail_cb = tls_invalid_handshake_length_client_hello_cb, invalid_client_hello_handshake_length=True)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -401,7 +402,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         df = defer.Deferred()
         def eap_tls_clientkeyex_replace_with_serverkeyex(df):
             def tls_clientkeyex_replace_with_serverkeyex_cb():
-                log.info('TLS authentication failed with client key exchange replaced with server key exchange')
+                log_test.info('TLS authentication failed with client key exchange replaced with server key exchange')
             tls = TLSAuthTest(fail_cb = tls_clientkeyex_replace_with_serverkeyex_cb,clientkeyex_replace_with_serverkeyex=True)
             tls.runTest()
             assert_equal(tls.failTest, True)
@@ -417,7 +418,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
             for i in xrange(1000):
                 tls = TLSAuthTest(src_mac = 'random')
                 tls.runTest()
-		log.info('Authentication successfull for user %d'%i)
+		log_test.info('Authentication successfull for user %d'%i)
             df.callback(0)
         reactor.callLater(0, eap_tls_1k_with_diff_mac, df)
         return df
@@ -430,7 +431,7 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
             for i in xrange(5000):
                 tls = TLSAuthTest(src_mac = 'random')
                 tls.runTest()
-                log.info('Authentication successfull for user %d'%i)
+                log_test.info('Authentication successfull for user %d'%i)
             df.callback(0)
         reactor.callLater(0, eap_tls_5k_with_diff_mac, df)
         return df

@@ -16,7 +16,7 @@
 import unittest
 from nose.tools import *
 from scapy.all import *
-from CordTestUtils import get_mac
+from CordTestUtils import get_mac, log_test
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
@@ -38,7 +38,7 @@ import pexpect
 #from cli import system
 #from generic import *
 
-log.setLevel('INFO')
+log_test.setLevel('INFO')
 
 class vrouter_exchange(CordLogger):
 
@@ -136,7 +136,7 @@ line vty
     def onos_load_config(cls, config):
         status, code = OnosCtrl.config(config)
         if status is False:
-            log.info('JSON request returned status %d' %code)
+            log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
 
     @classmethod
@@ -158,7 +158,7 @@ line vty
         for host,_ in peer_info:
             iface = cls.port_map[index]
             index += 1
-            log.info('Assigning ip %s to interface %s' %(host, iface))
+            log_test.info('Assigning ip %s to interface %s' %(host, iface))
             config_cmds = ( 'ifconfig {} 0'.format(iface),
                             'ifconfig {0} {1}'.format(iface, host),
                             'arping -I {0} {1} -c 2'.format(iface, host),
@@ -187,12 +187,12 @@ line vty
             config = dict(res)
         else:
             config = network_cfg
-        log.info('Restarting ONOS with new network configuration')
+        log_test.info('Restarting ONOS with new network configuration')
         return cord_test_onos_restart(config = config)
 
     @classmethod
     def start_quagga(cls, networks = 4, peer_address = None, router_address = None):
-        log.info('Restarting Quagga container with configuration for %d networks' %(networks))
+        log_test.info('Restarting Quagga container with configuration for %d networks' %(networks))
         config = cls.generate_conf(networks = networks, peer_address = peer_address, router_address = router_address)
         if networks <= 10000:
             boot_delay = 25
@@ -286,7 +286,7 @@ line vty
         cls.network_list = network_list
         cls.network_mask = network_mask
         zebra_routes = '\n'.join(net_list)
-        #log.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
+        #log_test.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
         return cls.zebra_conf + zebra_routes
 
     @classmethod
@@ -321,7 +321,7 @@ line vty
         self.start_sending = True
         def recv_task():
             def recv_cb(pkt):
-                log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+                log_test.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
                 self.success = True if positive_test else False
             sniff(count=count, timeout=timeout,
                   lfilter = lambda p: IP in p and p[IP].dst == dst_ip and p[IP].src == src_ip,
@@ -333,7 +333,7 @@ line vty
         L2 = Ether(src = src_mac, dst = dst_mac)
         L3 = IP(src = src_ip, dst = dst_ip)
         pkt = L2/L3
-        log.info('Sending a packet with dst ip %s, dst mac %s on port %s to verify if flows are correct' %
+        log_test.info('Sending a packet with dst ip %s, dst mac %s on port %s to verify if flows are correct' %
                  (dst_ip, dst_mac, self.port_map[egress]))
         while self.start_sending is True:
             sendp(pkt, count=50, iface = self.port_map[egress])
@@ -382,11 +382,11 @@ line vty
         self.cliEnter()
         ##Now verify
         hosts = json.loads(self.cli.hosts(jsonFormat = True))
-        log.info('Discovered hosts: %s' %hosts)
+        log_test.info('Discovered hosts: %s' %hosts)
         ##We read from cli if we expect less number of routes to avoid cli timeouts
         if networks <= 10000:
             routes = json.loads(self.cli.routes(jsonFormat = True))
-            #log.info('Routes: %s' %routes)
+            #log_test.info('Routes: %s' %routes)
             if start_network is not None:
                if start_network.split('/')[1] is 24:
                   assert_equal(len(routes['routes4']), networks)
@@ -398,7 +398,7 @@ line vty
                assert_equal(len(routes['routes4']), 0)
             flows = json.loads(self.cli.flows(jsonFormat = True))
             flows = filter(lambda f: f['flows'], flows)
-            #log.info('Flows: %s' %flows)
+            #log_test.info('Flows: %s' %flows)
             assert_not_equal(len(flows), 0)
         if invalid_peers is None:
             self.vrouter_traffic_verify()
@@ -413,11 +413,11 @@ line vty
             self.vrouter_traffic_verify(positive_test = False)
             self.network_list = network_list_backup
         if deactivate_activate_vrouter is True:
-            log.info('Deactivating vrouter app in ONOS controller for negative scenario')
+            log_test.info('Deactivating vrouter app in ONOS controller for negative scenario')
             self.vrouter_activate(deactivate = True)
             #routes = json.loads(self.cli.routes(jsonFormat = False, cmd_exist = False))
             #assert_equal(len(routes['routes4']), 'Command not found')
-            log.info('Activating vrouter app again in ONOS controller for negative scenario')
+            log_test.info('Activating vrouter app again in ONOS controller for negative scenario')
             self.vrouter_activate(deactivate = False)
             routes = json.loads(self.cli.routes(jsonFormat = True))
             assert_equal(len(routes['routes4']), networks)
@@ -428,7 +428,7 @@ line vty
 
     def __vrouter_network_verify_negative(self, networks, peers = 1):
         ##Stop quagga. Test traffic again to see if flows were removed
-        log.info('Stopping Quagga container')
+        log_test.info('Stopping Quagga container')
         cord_test_quagga_stop()
         if networks <= 10000:
             routes = json.loads(self.cli.routes(jsonFormat = True))
@@ -436,14 +436,14 @@ line vty
             if routes and routes.has_key('routes4'):
                 assert_equal(len(routes['routes4']), 0)
         self.vrouter_traffic_verify(positive_test = False)
-        log.info('OVS flows have been removed successfully after Quagga was stopped')
+        log_test.info('OVS flows have been removed successfully after Quagga was stopped')
         self.start_quagga(networks = networks)
         ##Verify the flows again after restarting quagga back
         if networks <= 10000:
             routes = json.loads(self.cli.routes(jsonFormat = True))
             assert_equal(len(routes['routes4']), networks)
         self.vrouter_traffic_verify()
-        log.info('OVS flows have been successfully reinstalled after Quagga was restarted')
+        log_test.info('OVS flows have been successfully reinstalled after Quagga was restarted')
 
     def quagga_shell(self, cmd):
         shell_cmds = ('vtysh', '"conf t"', '"{}"'.format(cmd))

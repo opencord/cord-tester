@@ -18,8 +18,8 @@ import subprocess
 from docker import Client
 from itertools import chain
 from nose.tools import *
-from scapy.all import *
 from CordContainer import *
+from CordTestUtils import log_test as log
 import threading
 import time
 import os
@@ -522,4 +522,3 @@ class xos_exchange(unittest.TestCase):
 
     def test_xos_api_core_get_all_users(self):
         self.validate_url_response_data(url = self.XOS_API_CORE_GET_ALL_USERS)
-
