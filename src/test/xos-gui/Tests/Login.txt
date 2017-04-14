@@ -1,0 +1,25 @@
+*** Settings ***
+Documentation	Test suite for GUI Login
+Test Template	Verify UI Model Page
+Library			../Framework/utils/UI_Utils.py
+Library			../Framework/login.py
+
+*** Variables ***
+${PWDFILE}	${CURDIR}/../../../../../../build/platform-install/credentials/xosadmin@opencord.org
+${username}	xosadmin@opencord.org
+${targetUrl}	http://xos.dev/spa/#
+
+*** Test Cases ***	TYPE
+Test Do Login	SUCCESS
+Test Fail Login	FAILED
+
+*** Keywords ***
+
+Verify UI Model Page
+	[Arguments]	${type}
+	Run Keyword If	"${type}" == "SUCCESS"	Do Login	real_pwd
+	Run Keyword If	"${type}" == "FAILED"	Do Login	fake_pwd
+
+Do Login
+	[Arguments]	${pwd}
+	login.testLoginPage	${PWDFILE}	${targetUrl}	${username}	${pwd}

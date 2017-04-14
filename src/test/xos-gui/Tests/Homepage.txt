@@ -1,0 +1,27 @@
+*** Settings ***
+Documentation	Test suite for GUI Home Page
+Test Template	Verify UI Model Page
+Library			../Framework/utils/UI_Utils.py
+Library			../Framework/homepage.py
+
+*** Variables ***
+${PWDFILE}	${CURDIR}/../../../../../../build/platform-install/credentials/xosadmin@opencord.org
+${username}	xosadmin@opencord.org
+${targetUrl}	http://xos.dev/spa/#
+
+*** Test Cases ***  TYPE
+Verify Element presence	ELEMENT
+Test search box			SEARCH
+
+*** Keywords ***
+
+Verify UI Model Page
+	[Arguments]	${type}
+	Run Keyword If	"${type}" == "ELEMENT"	Check elements presesence
+	Run Keyword If	"${type}" == "SEARCH"	Search box
+
+Check elements presesence
+	homepage.testHomePageElements	${PWDFILE}	${targetUrl}	${username}
+
+Search box
+	homepage.testHomePageElements	${PWDFILE}	${targetUrl}	${username}
