@@ -35,7 +35,7 @@ from EapTLS import TLSAuthTest
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
 from EapolAAA import *
-from enum import *
+from Enum import *
 import noseTlsAuthHolder as tlsAuthHolder
 from tls_cert import Key
 from socket import *

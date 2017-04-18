@@ -15,7 +15,7 @@
 #
 import sys, os
 from EapolAAA import *
-from enum import *
+from Enum import *
 import noseTlsAuthHolder as tlsAuthHolder
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *

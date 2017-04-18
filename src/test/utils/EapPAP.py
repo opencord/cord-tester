@@ -15,7 +15,7 @@
 #
 import sys, os
 from EapolAAA import *
-from enum import *
+from Enum import *
 import nosePAPAuthHolder as PAPAuthHolder
 from socket import *
 from struct import *

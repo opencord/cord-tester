@@ -15,7 +15,7 @@
 #
 import sys, os
 from EapolAAA import *
-from enum import *
+from Enum import *
 import noseMd5AuthHolder as md5AuthHolder
 from socket import *
 from struct import *
