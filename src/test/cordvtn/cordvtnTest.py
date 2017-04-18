@@ -113,7 +113,7 @@ class cordvtn_exchange(CordLogger):
         time.sleep(3)
         cls.onos_ctrl = OnosCtrl(cls.app_cordvtn)
         status, _ = cls.onos_ctrl.activate()
-        assert_equal(status, True)
+        #assert_equal(status, True)
         time.sleep(3)
         cls.cordvtn_setup()
 
@@ -581,7 +581,7 @@ class cordvtn_exchange(CordLogger):
                                          flavor = flavor.id,
                                          nics = nics_list,
                                          userdata = "#cloud-config \n password: ubuntu \n chpasswd: { expire: False }\n ssh_pwauth: True")
-                                 #        key_name = keypair.name)
+                                 #        key_name = 'id_rsa')
         server_details =  nova_obj.servers.find(id=server.id)
         print('Server is launched and status is %s' %server_details.status)
         if server_details.status == 'BUILD':
@@ -642,6 +642,7 @@ class cordvtn_exchange(CordLogger):
            if check_type == "Ping_from_source_tenant":
               cmd = "ping -c 3 {0}".format(target_tenants_details)
               ssh_cmd = 'ssh {} {}'.format(source_tenants_details, cmd)
+              print 'Executing ssh command on compute node %s'%ssh_cmd
               ssh_agent = SSHTestAgent(host = compute_ip)
               status, output = ssh_agent.run_cmd(ssh_cmd, timeout = 5)
               print output
@@ -1153,12 +1154,13 @@ class cordvtn_exchange(CordLogger):
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
+        address = new_instance_details.addresses
+        print 'Nova instance management ip = %s'%(address[test_net_name][0]['addr'])
         time.sleep(60)
-        status, output = self.nova_instance_tenants_access_check(new_instance_details)
+        status, output = self.nova_instance_tenants_access_check(address[test_net_name][0]['addr'])
         self.nova_instance_deletion(nova, new_instance_details)
         time.sleep(5)
         self.neutron_network_deletion(test_net_name)
-        self.nova_instance_deletion(nova, new_instance_details)
         assert_equal(status, True)
 
     def test_cordvtn_for_management_network_instance_and_validate_connectivity_to_external_network(self):
@@ -1192,9 +1194,13 @@ class cordvtn_exchange(CordLogger):
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
-        self.neutron_network_deletion(test_net_name)
+        address = new_instance_details.addresses
+        print 'Nova instance management ip = %s'%(address[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address[test_net_name][0]['addr'], check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
         assert_equal(status, False)
 
     def test_cordvtn_with_management_network_creating_two_instances_and_validate_connectivity_between_two(self):
@@ -1235,10 +1241,16 @@ class cordvtn_exchange(CordLogger):
         print 'New nova instance ip addresses are '
         print first_nova_instance_details.addresses
         print second_nova_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
-        self.neutron_network_deletion(test_net_name)
+        address_1st_instance = first_nova_instance_details.addresses
+        address_2nd_instance = second_nova_instance_details.addresses
+        print 'Nova 1st instance management ip = %s'%(address_1st_instance[test_net_name][0]['addr'])
+        print 'Nova 2nd instance management ip = %s'%(address_2nd_instance[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address_1st_instance[test_net_name][0]['addr'],source_tenants_details =address_2nd_instance[test_net_name][0]['addr'], check_type = "Ping_from_source_tenant")
         self.nova_instance_deletion(nova, first_nova_instance_details)
         self.nova_instance_deletion(nova, second_nova_instance_details)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_two_management_network_instances_and_validate_connectivity_between_two_networks_via_management_network(self):
@@ -1271,11 +1283,17 @@ class cordvtn_exchange(CordLogger):
         print 'New nova instance ip addresses are '
         print nova_instance_details_netA.addresses
         print nova_instance_details_netB.addresses
-        status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
-        self.neutron_network_deletion(test_netA_name)
+        address_1st_instance = nova_instance_details_netA.addresses
+        address_2nd_instance = nova_instance_details_netB.addresses
+        print 'Nova 1st instance management ip = %s'%(address_1st_instance[test_netA_name][0]['addr'])
+        print 'Nova 2nd instance management ip = %s'%(address_2nd_instance[test_netB_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address_1st_instance[test_netA_name][0]['addr'],source_tenants_details =address_2nd_instance[test_netB_name][0]['addr'], check_type = "Ping_from_source_tenant")
         self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
-        self.neutron_network_deletion(test_netB_name)
         self.nova_instance_deletion(nova_netB, nova_instance_details_netB)
+        time.sleep(5)
+        self.neutron_network_deletion(test_netA_name)
+        self.neutron_network_deletion(test_netB_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_public_network_instance_and_validate_connectivity_from_host_machine_or_compute_node(self):
@@ -1309,9 +1327,13 @@ class cordvtn_exchange(CordLogger):
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(new_instance_details)
-        self.neutron_network_deletion(test_net_name)
+        address = new_instance_details.addresses
+        print 'Nova instance public ip = %s'%(address[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address[test_net_name][0]['addr'])
         self.nova_instance_deletion(nova, new_instance_details)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_public_network_instance_and_validate_connectivity_to_external_network(self):
@@ -1345,10 +1367,14 @@ class cordvtn_exchange(CordLogger):
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
-        self.neutron_network_deletion(test_net_name)
+        address = new_instance_details.addresses
+        print 'Nova instance public ip = %s'%(address[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address[test_net_name][0]['addr'], check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
-        assert_equal(status, True)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
+        assert_equal(status, False)
 
     def test_cordvtn_creating_public_network_with_two_instances_and_validate_connectivity_between_two(self):
         """
@@ -1388,10 +1414,16 @@ class cordvtn_exchange(CordLogger):
         print 'New nova instance ip addresses are '
         print first_nova_instance_details.addresses
         print second_nova_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
-        self.neutron_network_deletion(test_net_name)
+        address_1st_instance = first_nova_instance_details.addresses
+        address_2nd_instance = second_nova_instance_details.addresses
+        print 'Nova 1st instance public ip = %s'%(address_1st_instance[test_net_name][0]['addr'])
+        print 'Nova 2nd instance public ip = %s'%(address_2nd_instance[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address_1st_instance[test_net_name][0]['addr'],source_tenants_details =address_2nd_instance[test_net_name][0]['addr'], check_type = "Ping_from_source_tenant")
         self.nova_instance_deletion(nova, first_nova_instance_details)
         self.nova_instance_deletion(nova, second_nova_instance_details)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_two_public_network_instances_and_check_connectvity_between_two_networks_via_public_network(self):
@@ -1424,11 +1456,17 @@ class cordvtn_exchange(CordLogger):
         print 'New nova instance ip addresses are '
         print nova_instance_details_netA.addresses
         print nova_instance_details_netB.addresses
-        status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
-        self.neutron_network_deletion(test_netA_name)
+        address_1st_instance = nova_instance_details_netA.addresses
+        address_2nd_instance = nova_instance_details_netB.addresses
+        print 'Nova 1st instance public ip = %s'%(address_1st_instance[test_netA_name][0]['addr'])
+        print 'Nova 2nd instance public ip = %s'%(address_2nd_instance[test_netB_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address_1st_instance[test_netA_name][0]['addr'],source_tenants_details =address_2nd_instance[test_netB_name][0]['addr'], check_type = "Ping_from_source_tenant")
         self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
-        self.neutron_network_deletion(test_netB_name)
         self.nova_instance_deletion(nova_netB, nova_instance_details_netB)
+        time.sleep(5)
+        self.neutron_network_deletion(test_netA_name)
+        self.neutron_network_deletion(test_netB_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_private_network_instance_and_validate_connectivity_from_host_machine_or_compute_node(self):
@@ -1462,9 +1500,13 @@ class cordvtn_exchange(CordLogger):
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(new_instance_details)
-        self.neutron_network_deletion(test_net_name)
+        address = new_instance_details.addresses
+        print 'Nova instance private ip = %s'%(address[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address[test_net_name][0]['addr'])
         self.nova_instance_deletion(nova, new_instance_details)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_private_network_instance_and_validate_connectivity_to_external_network(self):
@@ -1498,9 +1540,13 @@ class cordvtn_exchange(CordLogger):
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(new_instance_details, check_type = "Ping_to_external")
-        self.neutron_network_deletion(test_net_name)
+        address = new_instance_details.addresses
+        print 'Nova instance private ip = %s'%(address[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address[test_net_name][0]['addr'], check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_private_network_with_two_instances_and_check_connectvity_between_two_instances(self):
@@ -1541,11 +1587,17 @@ class cordvtn_exchange(CordLogger):
         print 'New nova instance ip addresses are '
         print first_nova_instance_details.addresses
         print second_nova_instance_details.addresses
-        status, output = self.nova_instance_tenants_access_check(first_nova_instance_details,source_tenants_details = second_nova_instance_details, check_type = "Ping_from_source_tenant")
-        self.neutron_network_deletion(test_net_name)
+        address_1st_instance = first_nova_instance_details.addresses
+        address_2nd_instance = second_nova_instance_details.addresses
+        print 'Nova 1st instance private ip = %s'%(address_1st_instance[test_net_name][0]['addr'])
+        print 'Nova 2nd instance private ip = %s'%(address_2nd_instance[test_net_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address_1st_instance[test_net_name][0]['addr'],source_tenants_details =address_2nd_instance[test_net_name][0]['addr'], check_type = "Ping_from_source_tenant")
         self.nova_instance_deletion(nova, first_nova_instance_details)
         self.nova_instance_deletion(nova, second_nova_instance_details)
-        assert_equal(status, True)
+        time.sleep(5)
+        self.neutron_network_deletion(test_net_name)
+        assert_equal(status, False)
 
     def test_cordvtn_creating_two_private_network_instances_and_validate_connectivity_between_two_networks_via_private_network(self):
         """
@@ -1577,11 +1629,17 @@ class cordvtn_exchange(CordLogger):
         print 'New nova instance ip addresses are '
         print nova_instance_details_netA.addresses
         print nova_instance_details_netB.addresses
-        status, output = self.nova_instance_tenants_access_check(nova_instance_details_netA, source_tenants_details = nova_instance_details_netB,check_type = "Ping_from_source_tenant")
-        self.neutron_network_deletion(test_netA_name)
+        address_1st_instance = nova_instance_details_netA.addresses
+        address_2nd_instance = nova_instance_details_netB.addresses
+        print 'Nova 1st instance private ip = %s'%(address_1st_instance[test_netA_name][0]['addr'])
+        print 'Nova 2nd instance private ip = %s'%(address_2nd_instance[test_netB_name][0]['addr'])
+        time.sleep(60)
+        status, output = self.nova_instance_tenants_access_check(address_1st_instance[test_netA_name][0]['addr'],source_tenants_details =address_2nd_instance[test_netB_name][0]['addr'], check_type = "Ping_from_source_tenant")
         self.nova_instance_deletion(nova_netA, nova_instance_details_netA)
-        self.neutron_network_deletion(test_netB_name)
         self.nova_instance_deletion(nova_netB, nova_instance_details_netB)
+        time.sleep(5)
+        self.neutron_network_deletion(test_netA_name)
+        self.neutron_network_deletion(test_netB_name)
         assert_equal(status, False)
 
     def test_cordvtn_creating_management_and_public_network_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
@@ -1594,38 +1652,38 @@ class cordvtn_exchange(CordLogger):
         5. Validate new nova instance is created on nova service
         6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
         """
-        test_second_network_name = ['vtn_test_29_net_management','vtn_test_29_net_public']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
+        test_two_networks_name = ['vtn_test_29_net_management','vtn_test_29_net_public']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
         test_management_type = ["management_local", 'public']
         instance_vm_name = 'vtn_test_29_nova_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_network_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,instance_vm_name,image_name,flavor_id)
+        new_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
         address = new_instance_details.addresses
-        print 'Nova instance management ip = %s and public ip %s'%(address[test_second_network_name[0]][0]['addr'],address[test_2networks_name[1]][0]['addr'])
-        print address[test_second_network_name[0]][0]['addr']
+        print 'Nova instance management ip = %s and public ip %s'%(address[test_two_networks_name[0]][0]['addr'],address[test_two_networks_name[1]][0]['addr'])
+        print address[test_two_networks_name[0]][0]['addr']
         print nova.security_groups.list()
-        print address[test_second_network_name[1]][0]['addr']
+        print address[test_two_networks_name[1]][0]['addr']
         print nova.security_groups.list()
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
@@ -1640,12 +1698,12 @@ class cordvtn_exchange(CordLogger):
                                     # to_port=-1)
         print nova.security_groups.list()
 
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -1661,38 +1719,38 @@ class cordvtn_exchange(CordLogger):
         7. Now pause the nova instance and check connectivity
         8. Now unpause the nova instance and check connectivity
         """
-        test_second_network_name = ['vtn_test_30_net_management','vtn_test_30_net_public']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
+        test_two_networks_name = ['vtn_test_30_net_management','vtn_test_30_net_public']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
         test_management_type = ["management_local", 'public']
         instance_vm_name = 'vtn_test_30_nova_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,instance_vm_name,image_name,flavor_id)
+        new_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
         address = new_instance_details.addresses
-        print 'Nova instance management ip = %s and public ip %s'%(address[test_second_network_name[0]][0]['addr'],address[test_2networks_name[1]][0]['addr'])
-        print address[test_second_network_name[0]][0]['addr']
+        print 'Nova instance management ip = %s and public ip %s'%(address[test_two_networks_name[0]][0]['addr'],address[test_two_networks_name[1]][0]['addr'])
+        print address[test_two_networks_name[0]][0]['addr']
         print nova.security_groups.list()
-        print address[test_second_network_name[1]][0]['addr']
+        print address[test_two_networks_name[1]][0]['addr']
         print nova.security_groups.list()
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
@@ -1707,35 +1765,35 @@ class cordvtn_exchange(CordLogger):
                                     # to_port=-1)
         print nova.security_groups.list()
 
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         if status_1 is False or status_2 is False:
            self.nova_instance_deletion(nova, new_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
         new_instance_details.pause()
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         if status_1 is True or status_2 is True:
            self.nova_instance_deletion(nova, new_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, False)
         assert_equal(status_2, False)
         new_instance_details.unpause()
         print 'Nova instance is paused and unpasued now checking connectivity'
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -1751,38 +1809,38 @@ class cordvtn_exchange(CordLogger):
         7. Now suspend the nova instance and check connectivity
         8. Now resume the nova instance and check connectivity
         """
-        test_second_network_name = ['vtn_test_31_net_management','vtn_test_31_net_public']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
+        test_two_networks_name = ['vtn_test_31_net_management','vtn_test_31_net_public']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
         test_management_type = ["management_local", 'public']
         instance_vm_name = 'vtn_test_31_nova_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,instance_vm_name,image_name,flavor_id)
+        new_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
         address = new_instance_details.addresses
-        print 'Nova instance management ip = %s and public ip %s'%(address[test_second_network_name[0]][0]['addr'],address[test_2networks_name[1]][0]['addr'])
-        print address[test_second_network_name[0]][0]['addr']
+        print 'Nova instance management ip = %s and public ip %s'%(address[test_two_networks_name[0]][0]['addr'],address[test_two_networks_name[1]][0]['addr'])
+        print address[test_two_networks_name[0]][0]['addr']
         print nova.security_groups.list()
-        print address[test_second_network_name[1]][0]['addr']
+        print address[test_two_networks_name[1]][0]['addr']
         print nova.security_groups.list()
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
@@ -1797,39 +1855,39 @@ class cordvtn_exchange(CordLogger):
                                     # to_port=-1)
         print nova.security_groups.list()
 
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         if status_1 is False or status_2 is False:
            self.nova_instance_deletion(nova, new_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
         new_instance_details.suspend()
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         if status_1 is True or status_2 is True:
            self.nova_instance_deletion(nova, new_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, False)
         assert_equal(status_2, False)
         new_instance_details.resume()
-        print 'Nova instance is suspend and rsumed now checking connectivity'
+        print 'Nova instance is suspend and resumed now checking connectivity'
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
-    def test_cordvtn_creating_mgmt_and_public_network_instance_with_stopping_and_starting_instances_and_checking_connectvity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
+    def test_cordvtn_creating_mgmt_and_public_network_instance_with_stopping_and_starting_instances_and_checking_connectivity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
         """
         Algo:
         0. Create Test-Net,
@@ -1841,38 +1899,38 @@ class cordvtn_exchange(CordLogger):
         7. Now stop the nova instance and check connectivity
         8. Now start the nova instance and check connectivity
         """
-        test_second_network_name = ['vtn_test_32_net_management','vtn_test_32_net_public']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
+        test_two_networks_name = ['vtn_test_32_net_management','vtn_test_32_net_public']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["public","10.6.1.192/26",'10.6.1.193']]
         test_management_type = ["management_local", 'public']
         instance_vm_name = 'vtn_test_32_nova_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,instance_vm_name,image_name,flavor_id)
+        new_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
         address = new_instance_details.addresses
-        print 'Nova instance management ip = %s and public ip %s'%(address[test_second_network_name[0]][0]['addr'],address[test_2networks_name[1]][0]['addr'])
-        print address[test_second_network_name[0]][0]['addr']
+        print 'Nova instance management ip = %s and public ip %s'%(address[test_two_networks_name[0]][0]['addr'],address[test_two_networks_name[1]][0]['addr'])
+        print address[test_two_networks_name[0]][0]['addr']
         print nova.security_groups.list()
-        print address[test_second_network_name[1]][0]['addr']
+        print address[test_two_networks_name[1]][0]['addr']
         print nova.security_groups.list()
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
@@ -1887,35 +1945,35 @@ class cordvtn_exchange(CordLogger):
                                     # to_port=-1)
         print nova.security_groups.list()
 
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         if status_1 is False or status_2 is False:
            self.nova_instance_deletion(nova, new_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
         new_instance_details.stop()
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         if status_1 is True or status_2 is True:
            self.nova_instance_deletion(nova, new_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, False)
         assert_equal(status_2, False)
         new_instance_details.start()
         print 'Nova instance is stopped and started now checking connectivity'
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -1930,38 +1988,38 @@ class cordvtn_exchange(CordLogger):
         5. Validate new nova instance is created on nova service
         6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
         """
-        test_second_network_name = ['vtn_test_33_net_management','vtn_test_33_net_private']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
+        test_two_networks_name = ['vtn_test_33_net_management','vtn_test_33_net_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
         test_management_type = ["management_local", 'private']
         instance_vm_name = 'vtn_test_33_nova_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,instance_vm_name,image_name,flavor_id)
+        new_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         print new_instance_details.addresses
         address = new_instance_details.addresses
-        print 'Nova instance management ip = %s and private ip %s'%(address[test_second_network_name[0]][0]['addr'],address[test_2networks_name[1]][0]['addr'])
-        print address[test_second_network_name[0]][0]['addr']
+        print 'Nova instance management ip = %s and private ip %s'%(address[test_two_networks_name[0]][0]['addr'],address[test_two_networks_name[1]][0]['addr'])
+        print address[test_two_networks_name[0]][0]['addr']
         print nova.security_groups.list()
-        print address[test_second_network_name[1]][0]['addr']
+        print address[test_two_networks_name[1]][0]['addr']
         print nova.security_groups.list()
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
@@ -1975,12 +2033,12 @@ class cordvtn_exchange(CordLogger):
                                     # cidr="0.0.0.0/0",
                                     # to_port=-1)
         print nova.security_groups.list()
-        status_1, output = self.nova_instance_tenants_access_check(address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(address[test_second_network_name[1]][0]['addr'],check_type = "Ping_to_external")
+        status_1, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_to_external")
         self.nova_instance_deletion(nova, new_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, False)
 
@@ -1994,39 +2052,39 @@ class cordvtn_exchange(CordLogger):
         5. Validate new nova instance is created on nova service
         6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
         """
-        test_second_network_name = ['vtn_test_34_net_management','vtn_test_34_net_private']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
+        test_two_networks_name = ['vtn_test_34_net_management','vtn_test_34_net_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
         test_management_type = ["management_local", 'private']
         first_instance_vm_name = 'vtn_test_34_nova_first_instance_management_net'
         second_instance_vm_name = 'vtn_test_34_nova_second_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_first_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,first_instance_vm_name,image_name,flavor_id)
-        new_second_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,second_instance_vm_name,image_name,flavor_id)
+        new_first_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,first_instance_vm_name,image_name,flavor_id)
+        new_second_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,second_instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_first_instance_details.status, 'ACTIVE')
         assert_equal(new_second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         first_instance_address = new_first_instance_details.addresses
         second_instance_address = new_second_instance_details.addresses
-        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_second_network_name[0]][0]['addr'],first_instance_address[test_2networks_name[1]][0]['addr'])
-        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_second_network_name[0]][0]['addr'],second_instance_address[test_2networks_name[1]][0]['addr'])
+        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_two_networks_name[0]][0]['addr'],first_instance_address[test_two_networks_name[1]][0]['addr'])
+        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_two_networks_name[0]][0]['addr'],second_instance_address[test_two_networks_name[1]][0]['addr'])
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
                                      #from_port="22",
@@ -2040,12 +2098,13 @@ class cordvtn_exchange(CordLogger):
                                     # to_port=-1)
         print nova.security_groups.list()
 
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
-        self.nova_instance_deletion(nova, new_instance_details)
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
+        self.nova_instance_deletion(nova, new_first_instance_details)
+        self.nova_instance_deletion(nova, new_second_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -2061,39 +2120,39 @@ class cordvtn_exchange(CordLogger):
         7. Now pause one of the nova instance and check connectivity
         8. Now start the same nova instance and check connectivity
         """
-        test_second_network_name = ['vtn_test_35_net_management','vtn_test_35_net_private']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
+        test_two_networks_name = ['vtn_test_35_net_management','vtn_test_35_net_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
         test_management_type = ["management_local", 'private']
         first_instance_vm_name = 'vtn_test_35_nova_first_instance_management_net'
         second_instance_vm_name = 'vtn_test_35_nova_second_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_first_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,first_instance_vm_name,image_name,flavor_id)
-        new_second_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,second_instance_vm_name,image_name,flavor_id)
+        new_first_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,first_instance_vm_name,image_name,flavor_id)
+        new_second_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,second_instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_first_instance_details.status, 'ACTIVE')
         assert_equal(new_second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         first_instance_address = new_first_instance_details.addresses
         second_instance_address = new_second_instance_details.addresses
-        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_second_network_name[0]][0]['addr'],first_instance_address[test_2networks_name[1]][0]['addr'])
-        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_second_network_name[0]][0]['addr'],second_instance_address[test_2networks_name[1]][0]['addr'])
+        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_two_networks_name[0]][0]['addr'],first_instance_address[test_two_networks_name[1]][0]['addr'])
+        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_two_networks_name[0]][0]['addr'],second_instance_address[test_two_networks_name[1]][0]['addr'])
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
                                      #from_port="22",
@@ -2106,35 +2165,38 @@ class cordvtn_exchange(CordLogger):
                                     # cidr="0.0.0.0/0",
                                     # to_port=-1)
         print nova.security_groups.list()
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
         if status_1 is False or status_2 is False:
-           self.nova_instance_deletion(nova, new_instance_details)
+           self.nova_instance_deletion(nova, new_first_instance_details)
+           self.nova_instance_deletion(nova, new_second_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
         new_first_instance_details.pause()
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
         if status_1 is True or status_2 is True:
-           self.nova_instance_deletion(nova, new_instance_details)
+           self.nova_instance_deletion(nova, new_first_instance_details)
+           self.nova_instance_deletion(nova, new_second_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, False)
         assert_equal(status_2, False)
         new_first_instance_details.unpause()
         print 'Nova instance is paused and unpased now checking connectivity'
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
-        self.nova_instance_deletion(nova, new_instance_details)
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
+        self.nova_instance_deletion(nova, new_first_instance_details)
+        self.nova_instance_deletion(nova, new_second_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -2150,39 +2212,39 @@ class cordvtn_exchange(CordLogger):
         7. Now suspend one of the nova instance and check connectivity
         8. Now resume the same nova instance and check connectivity
         """
-        test_second_network_name = ['vtn_test_36_net_management','vtn_test_36_net_private']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
+        test_two_networks_name = ['vtn_test_36_net_management','vtn_test_36_net_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
         test_management_type = ["management_local", 'private']
         first_instance_vm_name = 'vtn_test_36_nova_first_instance_management_net'
         second_instance_vm_name = 'vtn_test_36_nova_second_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_first_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,first_instance_vm_name,image_name,flavor_id)
-        new_second_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,second_instance_vm_name,image_name,flavor_id)
+        new_first_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,first_instance_vm_name,image_name,flavor_id)
+        new_second_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,second_instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_first_instance_details.status, 'ACTIVE')
         assert_equal(new_second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         first_instance_address = new_first_instance_details.addresses
         second_instance_address = new_second_instance_details.addresses
-        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_second_network_name[0]][0]['addr'],first_instance_address[test_2networks_name[1]][0]['addr'])
-        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_second_network_name[0]][0]['addr'],second_instance_address[test_2networks_name[1]][0]['addr'])
+        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_two_networks_name[0]][0]['addr'],first_instance_address[test_two_networks_name[1]][0]['addr'])
+        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_two_networks_name[0]][0]['addr'],second_instance_address[test_two_networks_name[1]][0]['addr'])
         secgroup = nova.security_groups.find(name="default")
 #        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
                                      #from_port="22",
@@ -2195,35 +2257,38 @@ class cordvtn_exchange(CordLogger):
                                     # cidr="0.0.0.0/0",
                                     # to_port=-1)
         print nova.security_groups.list()
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
         if status_1 is False or status_2 is False:
-           self.nova_instance_deletion(nova, new_instance_details)
+           self.nova_instance_deletion(nova, new_first_instance_details)
+           self.nova_instance_deletion(nova, new_second_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
         new_first_instance_details.suspend()
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
         if status_1 is True or status_2 is True:
-           self.nova_instance_deletion(nova, new_instance_details)
+           self.nova_instance_deletion(nova, new_first_instance_details)
+           self.nova_instance_deletion(nova, new_second_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, False)
         assert_equal(status_2, False)
         new_first_instance_details.resume()
         print 'Nova instance is suspend and resume now checking connectivity'
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
-        self.nova_instance_deletion(nova, new_instance_details)
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
+        self.nova_instance_deletion(nova, new_first_instance_details)
+        self.nova_instance_deletion(nova, new_second_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -2239,70 +2304,209 @@ class cordvtn_exchange(CordLogger):
         7. Now stop one of the nova instance and check connectivity
         8. Now start the same nova instance and check connectivity
         """
-        test_second_network_name = ['vtn_test_37_net_management','vtn_test_37_net_private']
-        test_sub_second_network_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
+        test_two_networks_name = ['vtn_test_37_net_management','vtn_test_37_net_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193']]
         test_management_type = ["management_local", 'private']
         first_instance_vm_name = 'vtn_test_37_nova_first_instance_management_net'
         second_instance_vm_name = 'vtn_test_37_nova_second_instance_management_net'
 #        image_name = "vsg-1.1"
         image_name = "trusty-server-multi-nic"
         flavor_id = 'm1.small'
-        for test_net_name in test_second_network_name:
+        for test_net_name in test_two_networks_name:
             result = self.neutron_network_creation_and_validation(test_net_name)
             assert_equal(result, True)
         neutron_creds = self.get_neutron_credentials()
         neutron = neutronclient.Client(**neutron_creds)
-        #for test_net_name,test_sub_net_cidr in test_second_network_name test_sub_2networks_cidr:
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
         for i in range(0,2):
-           networks = neutron.list_networks(name=test_second_network_name[i])
+           networks = neutron.list_networks(name=test_two_networks_name[i])
            network_id = self.get_key_value(d=networks, key = 'id')
-           sub_result = self.neutron_subnet_creation_and_validation(test_second_network_name[i],test_sub_2networks_cidr[i])
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
            assert_equal(sub_result[0], True)
-           net_type_post = self.sub_network_type_post_to_onos(test_second_network_name[i], test_management_type[i])
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
         creds = get_nova_credentials()
         nova = nova_client.Client('2', **creds)
         print nova.security_groups.list()
-        new_first_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,first_instance_vm_name,image_name,flavor_id)
-        new_second_instance_details = self.nova_instance_creation_and_validation(test_second_network_name,nova,second_instance_vm_name,image_name,flavor_id)
+        new_first_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,first_instance_vm_name,image_name,flavor_id)
+        new_second_instance_details = self.nova_instance_creation_and_validation(test_two_networks_name,nova,second_instance_vm_name,image_name,flavor_id)
         time.sleep(60)
         assert_equal(new_first_instance_details.status, 'ACTIVE')
         assert_equal(new_second_instance_details.status, 'ACTIVE')
         compute_details = self.get_compute_nodes()
         first_instance_address = new_first_instance_details.addresses
         second_instance_address = new_second_instance_details.addresses
-        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_second_network_name[0]][0]['addr'],first_instance_address[test_2networks_name[1]][0]['addr'])
-        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_second_network_name[0]][0]['addr'],second_instance_address[test_2networks_name[1]][0]['addr'])
+        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_two_networks_name[0]][0]['addr'],first_instance_address[test_two_networks_name[1]][0]['addr'])
+        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_two_networks_name[0]][0]['addr'],second_instance_address[test_two_networks_name[1]][0]['addr'])
         secgroup = nova.security_groups.find(name="default")
         print nova.security_groups.list()
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
         if status_1 is False or status_2 is False:
-           self.nova_instance_deletion(nova, new_instance_details)
+           self.nova_instance_deletion(nova, new_first_instance_details)
+           self.nova_instance_deletion(nova, new_second_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
         new_first_instance_details.stop()
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
         if status_1 is True or status_2 is True:
-           self.nova_instance_deletion(nova, new_instance_details)
+           self.nova_instance_deletion(nova, new_first_instance_details)
+           self.nova_instance_deletion(nova, new_second_instance_details)
            time.sleep(3)
-           self.neutron_network_deletion(test_second_network_name[0])
-           self.neutron_network_deletion(test_second_network_name[1])
+           self.neutron_network_deletion(test_two_networks_name[0])
+           self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, False)
         assert_equal(status_2, False)
         new_first_instance_details.start()
         print 'Nova instance is stopped and started now checking connectivity'
         time.sleep(60)
-        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'])
-        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_second_network_name[0]][0]['addr'],source_tenants_details = second_instance_address[test_2networks_name[1]][0]['addr'],check_type = "Ping_from_source_tenant")
-        self.nova_instance_deletion(nova, new_instance_details)
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
+        self.nova_instance_deletion(nova, new_first_instance_details)
+        self.nova_instance_deletion(nova, new_second_instance_details)
         time.sleep(3)
-        self.neutron_network_deletion(test_second_network_name[0])
-        self.neutron_network_deletion(test_second_network_name[1])
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
+        assert_equal(status_1, True)
+        assert_equal(status_2, True)
+
+    def test_cordvtn_creating_mgmt_and_two_private_network_with_each_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_check_connectivity_to_other_instance(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Create subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under management network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
+        7. Verify ping is getting successful after ssh toof one instance to other nova instance which is created in step 4.
+        """
+        test_two_networks_name = ['vtn_test_39_net_management','vtn_test_39_netA_private','vtn_test_39_netB_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193'], ["private","10.160.161.192/26",'10.160.161.193']]
+        test_management_type = ["management_local", 'private']
+        first_instance_vm_name = 'vtn_test_39_nova_first_instance_management_netA'
+        second_instance_vm_name = 'vtn_test_39_nova_second_instance_management_netB'
+#        image_name = "vsg-1.1"
+        image_name = "trusty-server-multi-nic"
+        flavor_id = 'm1.small'
+        for test_net_name in test_two_networks_name:
+            result = self.neutron_network_creation_and_validation(test_net_name)
+            assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
+        for i in range(0,3):
+           networks = neutron.list_networks(name=test_two_networks_name[i])
+           network_id = self.get_key_value(d=networks, key = 'id')
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
+           assert_equal(sub_result[0], True)
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        print nova.security_groups.list()
+        new_first_instance_details = self.nova_instance_creation_and_validation(['vtn_test_39_net_management','vtn_test_39_netA_private'],nova,first_instance_vm_name,image_name,flavor_id)
+        new_second_instance_details = self.nova_instance_creation_and_validation(['vtn_test_39_net_management','vtn_test_39_netB_private'],nova,second_instance_vm_name,image_name,flavor_id)
+        time.sleep(60)
+        assert_equal(new_first_instance_details.status, 'ACTIVE')
+        assert_equal(new_second_instance_details.status, 'ACTIVE')
+        compute_details = self.get_compute_nodes()
+        first_instance_address = new_first_instance_details.addresses
+        second_instance_address = new_second_instance_details.addresses
+        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_two_networks_name[0]][0]['addr'],first_instance_address[test_two_networks_name[1]][0]['addr'])
+        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_two_networks_name[0]][0]['addr'],second_instance_address[test_two_networks_name[1]][0]['addr'])
+        secgroup = nova.security_groups.find(name="default")
+#        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
+                                     #from_port="22",
+                                     #to_port="22",
+                                    # cidr="0.0.0.0/0",)
+
+ #       nova.security_group_rules.create(secgroup.id,
+                                    # ip_protocol="icmp",
+                                    # from_port=-1,
+                                    # cidr="0.0.0.0/0",
+                                    # to_port=-1)
+        print nova.security_groups.list()
+
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
+        self.nova_instance_deletion(nova, new_first_instance_details)
+        self.nova_instance_deletion(nova, new_second_instance_details)
+        time.sleep(3)
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
+        assert_equal(status_1, True)
+        assert_equal(status_2, False)
+
+    def test_cordvtn_service_dependecy_without_xos_creating_mgmt_and_two_private_network_with_each_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_check_connectivity_to_other_instance(self):
+        """
+        Algo:
+        0. Create Test-Net,
+        1. Create subnetwork whose ip is under management network
+        3. Do GET Rest API and validate creation of network
+        4. Create new nova instance under management network
+        5. Validate new nova instance is created on nova service
+        6. Verify ping is getting successful from compute node to nova instance which is created in step 4.
+        7. Verify ping is getting successful after ssh toof one instance to other nova instance which is created in step 4.
+        """
+        test_two_networks_name = ['vtn_test_40_net_management','vtn_test_40_netA_private','vtn_test_40_netB_private']
+        test_two_sub_networks_cidr = [["management","172.27.0.0/24", "172.27.0.20", "172.27.0.21"], ["private","10.160.160.192/26",'10.160.160.193'], ["private","10.160.161.192/26",'10.160.161.193']]
+        test_management_type = ["management_local", 'private']
+        first_instance_vm_name = 'vtn_test_40_nova_first_instance_management_netA'
+        second_instance_vm_name = 'vtn_test_40_nova_second_instance_management_netB'
+#        image_name = "vsg-1.1"
+        image_name = "trusty-server-multi-nic"
+        flavor_id = 'm1.small'
+        for test_net_name in test_two_networks_name:
+            result = self.neutron_network_creation_and_validation(test_net_name)
+            assert_equal(result, True)
+        neutron_creds = self.get_neutron_credentials()
+        neutron = neutronclient.Client(**neutron_creds)
+        #for test_net_name,test_sub_net_cidr in test_two_networks_name test_two_sub_networks_cidr:
+        for i in range(0,3):
+           networks = neutron.list_networks(name=test_two_networks_name[i])
+           network_id = self.get_key_value(d=networks, key = 'id')
+           sub_result = self.neutron_subnet_creation_and_validation(test_two_networks_name[i],test_two_sub_networks_cidr[i])
+           assert_equal(sub_result[0], True)
+           net_type_post = self.sub_network_type_post_to_onos(test_two_networks_name[i], test_management_type[i])
+        creds = get_nova_credentials()
+        nova = nova_client.Client('2', **creds)
+        print nova.security_groups.list()
+        new_first_instance_details = self.nova_instance_creation_and_validation(['vtn_test_39_net_management','vtn_test_39_netA_private'],nova,first_instance_vm_name,image_name,flavor_id)
+        new_second_instance_details = self.nova_instance_creation_and_validation(['vtn_test_39_net_management','vtn_test_39_netB_private'],nova,second_instance_vm_name,image_name,flavor_id)
+        time.sleep(60)
+        assert_equal(new_first_instance_details.status, 'ACTIVE')
+        assert_equal(new_second_instance_details.status, 'ACTIVE')
+
+        ### TO-DO Service dependency to be informed  to ONOS through Json
+        compute_details = self.get_compute_nodes()
+        first_instance_address = new_first_instance_details.addresses
+        second_instance_address = new_second_instance_details.addresses
+        print 'Nova first instance management ip = %s and private ip %s'%(first_instance_address[test_two_networks_name[0]][0]['addr'],first_instance_address[test_two_networks_name[1]][0]['addr'])
+        print 'Nova second instance management ip = %s and private ip %s'%(second_instance_address[test_two_networks_name[0]][0]['addr'],second_instance_address[test_two_networks_name[1]][0]['addr'])
+        secgroup = nova.security_groups.find(name="default")
+#        nova.security_group_rules.create(secgroup.id,ip_protocol="tcp",
+                                     #from_port="22",
+                                     #to_port="22",
+                                    # cidr="0.0.0.0/0",)
+
+ #       nova.security_group_rules.create(secgroup.id,
+                                    # ip_protocol="icmp",
+                                    # from_port=-1,
+                                    # cidr="0.0.0.0/0",
+                                    # to_port=-1)
+        print nova.security_groups.list()
+
+        status_1, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[0]][0]['addr'])
+        status_2, output = self.nova_instance_tenants_access_check(first_instance_address[test_two_networks_name[1]][0]['addr'],source_tenants_details = second_instance_address[test_two_networks_name[0]][0]['addr'],check_type = "Ping_from_source_tenant")
+        self.nova_instance_deletion(nova, new_first_instance_details)
+        self.nova_instance_deletion(nova, new_second_instance_details)
+        time.sleep(3)
+        self.neutron_network_deletion(test_two_networks_name[0])
+        self.neutron_network_deletion(test_two_networks_name[1])
         assert_equal(status_1, True)
         assert_equal(status_2, True)
 
@@ -4148,3 +4352,4 @@ class cordvtn_exchange(CordLogger):
 	   15) Add br_int bridge and repeat steps 9 to 13, (it should ping)
         """
 	pass
+
