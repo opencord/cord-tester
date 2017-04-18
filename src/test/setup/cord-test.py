@@ -351,8 +351,9 @@ RUN apt-get update  && \
         openvswitch-common openvswitch-switch \
         python-twisted python-sqlite sqlite3 python-pexpect telnet arping isc-dhcp-server \
         python-paramiko python-maas-client python-keystoneclient python-neutronclient \
-        python-glanceclient python-novaclient
+        python-glanceclient python-novaclient python-dev libffi-dev libssl-dev
 RUN easy_install nose
+RUN python -m pip install --upgrade pip
 RUN mkdir -p /root/ovs
 WORKDIR /root
 RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/openvswitch-{}.tar.gz && \
@@ -361,6 +362,8 @@ RUN wget http://openvswitch.org/releases/openvswitch-{}.tar.gz -O /root/ovs/open
  ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-ssl && make && make install)
 RUN service openvswitch-switch restart || /bin/true
 RUN pip install scapy==2.3.2 scapy-ssl_tls==1.2.2 monotonic configObj docker-py pyyaml nsenter pyroute2 netaddr python-daemon
+RUN pip install -U cryptography
+RUN pip install -U paramiko
 RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 RUN mv /usr/sbin/dhcpd /sbin/

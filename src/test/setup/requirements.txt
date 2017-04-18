@@ -16,6 +16,6 @@ paramiko==1.10.1
 twisted
 pexpect
 apiclient
-python-libmaas
-maasclient
-maasutil
+#python-libmaas
+#maasclient
+#maasutil
