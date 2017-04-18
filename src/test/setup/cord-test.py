@@ -365,6 +365,8 @@ RUN mv /usr/sbin/tcpdump /sbin/
 RUN ln -sf /sbin/tcpdump /usr/sbin/tcpdump
 RUN mv /usr/sbin/dhcpd /sbin/
 RUN ln -sf /sbin/dhcpd /usr/sbin/dhcpd
+RUN mv /sbin/dhclient /usr/sbin/
+RUN ln -sf /usr/sbin/dhclient /sbin/dhclient
 WORKDIR /root
 RUN wget -nc http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/bison_2.5.dfsg-2.1_amd64.deb \
          http://de.archive.ubuntu.com/ubuntu/pool/main/b/bison/libbison-dev_2.5.dfsg-2.1_amd64.deb
