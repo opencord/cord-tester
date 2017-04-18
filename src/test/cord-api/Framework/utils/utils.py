@@ -6,6 +6,7 @@ import sys
 import robot
 import os.path
 from os.path import expanduser
+import uuid
 
 class utils(object):
 
@@ -212,6 +213,9 @@ class utils(object):
         else:
            print "list of values found for ", fieldName, ";", uniq_list
         return fieldValue
+
+    def generate_uuid(self):
+        return uuid.uuid4()
 
 '''
 #Test
