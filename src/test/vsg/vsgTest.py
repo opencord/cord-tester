@@ -218,11 +218,41 @@ class vsg_exchange(CordLogger):
                 vsg_vcpe[vcpe_container]=str(vsg.get_ip())
         return vsg_vcpe
 
-    def add_static_route_via_vcpe_interface(self, routes, vcpe=None):
+    def get_vcpe_containers_and_interfaces(self):
+	vcpe_containers = {}
+	vcpe_interfaces = []
+	vcpes = self.vcpes_dhcp
+	count = 0
+	for vcpe in vcpes:
+		vcpe_intf = 'vcpe{}.{}.{}'.format(count,vcpe['s_tag'],vcpe['c_tag'])
+		vcpe_interfaces.append(vcpe_intf)
+                vcpe_container = 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag'])
+                vcpe_containers[vcpe_intf] = vcpe_container
+		count += 1
+	log.info('vcpe interfaces are %s'%vcpe_interfaces)
+	log.info('vcpe containers are %s'%vcpe_containers)
+	return vcpe_interfaces,vcpe_containers
+
+    def get_vcpe_interface_dhcp_ip(self,vcpe=None):
+        if not vcpe:
+                vcpe = self.vcpe_dhcp
+        st, _ = getstatusoutput('dhclient {}'.format(vcpe))
+	vcpe_ip = get_ip(vcpe)
+	return vcpe_ip
+
+    def release_vcpe_interface_dhcp_ip(self,vcpe=None):
+        if not vcpe:
+                vcpe = self.vcpe_dhcp
+        st, _ = getstatusoutput('dhclient {} -r'.format(vcpe))
+        vcpe_ip = get_ip(vcpe)
+        assert_equal(vcpe_ip, None)
+
+    def add_static_route_via_vcpe_interface(self, routes, vcpe=None,dhcp_ip=True):
 	if not vcpe:
 		vcpe = self.vcpe_dhcp
-	os.system('dhclient '+self.vcpe_dhcp)
-	cmds = []
+	if dhcp_ip:
+		os.system('dhclient '+vcpe)
+	time.sleep(1)
 	for route in routes:
 		log.info('route is %s'%route)
 		cmd = 'ip route add ' + route + ' via 192.168.0.1 '+ 'dev ' + vcpe
@@ -231,23 +261,52 @@ class vsg_exchange(CordLogger):
 		os.system(cmd)
 	return True
 
-    def del_static_route_via_vcpe_interface(self,routes,vcpe=None):
+    def del_static_route_via_vcpe_interface(self,routes,vcpe=None,dhcp_release=True):
         if not vcpe:
                 vcpe = self.vcpe_dhcp
         cmds = []
         for route in routes:
                 cmd = 'ip route del ' + route + ' via 192.168.0.1 ' + 'dev ' + vcpe
-                cmds.append(cmd)
-        for cmd in cmds:
-                os.system(cmd)
-	os.system('dhclient '+self.vcpe_dhcp+' -r')
+		os.system(cmd)
+        if dhcp_release:
+		os.system('dhclient '+vcpe+' -r')
 	return True
 
-    def restart_vcpe_container(self,vcpe=None):
-	vsg = VSGAccess.get_vcpe_vsg(self.vcpe_container)
-	log.info('restarting vcpe container')
-	vsg.run_cmd('sudo docker restart {}'.format(self.vcpe_container))
-	return True
+    def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
+	vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+	for vcpe in vcpe_intfs:
+		vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+		assert_not_equal(vcpe_ip,None)
+        for vcpe in vcpe_intfs:
+                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
+    def test_vsg_multiple_subscribers_for_same_vcpe_instance_ping_to_external_connectivity(self):
+	host = '8.8.8.8'
+        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+                vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+		assert_not_equal(vcpe_ip,None)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
+                st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
+                assert_equal(st, 0)
+		self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
+        for vcpe in vcpe_intfs:
+                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
+    def test_vsg_vcpe_interface_gets_dhcp_ip_after_interface_toggle(self):
+        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+                vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+                assert_not_equal(vcpe_ip,None)
+		os.system('ifconfig {} down'.format(vcpe))
+		time.sleep(1)
+		os.system('ifconfig {} up'.format(vcpe))
+		time.sleep(1)
+		vcpe_ip2 = get_ip(vcpe)
+		assert_equal(vcpe_ip2,vcpe_ip)
+        for vcpe in vcpe_intfs:
+                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
 
     def test_vsg_health(self):
         """
@@ -1121,7 +1180,7 @@ class vsg_exchange(CordLogger):
         return df
 
     @deferred(TIMEOUT)
-    def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_requests_type(self,vcpe_name=None,vcpe_intf=None):
+    def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_requests_type(self, vcpe_name=None, vcpe_intf=None):
         """
         Algo:
         1. Get vSG corresponding to vcpe
@@ -1649,6 +1708,124 @@ class vsg_exchange(CordLogger):
                 vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
+        return df
+
+    @deferred(TIMEOUT)
+    def test_vsg_dnat_modifying_destination_ip(self,vcpe_name=None,vcpe_intf=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all dns Traffic
+        4. From cord-tester ping to www.google.com
+        5. Verifying the ping should not success
+        6. Delete the iptable  rule added
+        7. From cord-tester ping to www.google.com
+        8. Verifying the ping should success
+        """
+        if not vcpe_name:
+                vcpe_name = self.vcpe_container
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        df = defer.Deferred()
+        def vcpe_firewall(df):
+            host = '8.8.8.8'
+	    dst_ip = '123.123.123.123'
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+                st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, True)
+            finally:
+                vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+            df.callback(0)
+        reactor.callLater(0,vcpe_firewall,df)
+        return df
+
+    @deferred(TIMEOUT)
+    def test_vsg_dnat_modifying_destination_ip_and_delete(self,vcpe_name=None,vcpe_intf=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all dns Traffic
+        4. From cord-tester ping to www.google.com
+        5. Verifying the ping should not success
+        6. Delete the iptable  rule added
+        7. From cord-tester ping to www.google.com
+        8. Verifying the ping should success
+        """
+        if not vcpe_name:
+                vcpe_name = self.vcpe_container
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        df = defer.Deferred()
+        def vcpe_firewall(df):
+            host = '8.8.8.8'
+            dst_ip = '123.123.123.123'
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+                st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, True)
+		st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+            finally:
+                vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+            df.callback(0)
+        reactor.callLater(0,vcpe_firewall,df)
+        return df
+
+    @deferred(TIMEOUT)
+    def test_vsg_dnat_change_modifying_destination_ip_address(self,vcpe_name=None,vcpe_intf=None):
+        """
+        Algo:
+        1. Get vSG corresponding to vcpe
+        2. Login to compute node
+        3. Execute iptable command on vcpe from compute node to deny all dns Traffic
+        4. From cord-tester ping to www.google.com
+        5. Verifying the ping should not success
+        6. Delete the iptable  rule added
+        7. From cord-tester ping to www.google.com
+        8. Verifying the ping should success
+        """
+        if not vcpe_name:
+                vcpe_name = self.vcpe_container
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        df = defer.Deferred()
+        def vcpe_firewall(df):
+            host = '8.8.8.8'
+            dst_ip = '123.123.123.123'
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+                st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, True)
+                st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -R PREROUTING 1  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,host))
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+            finally:
+                vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,host))
+                self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+            df.callback(0)
+        reactor.callLater(0,vcpe_firewall,df)
         return df
 
     def test_vsg_xos_subscriber(self):
