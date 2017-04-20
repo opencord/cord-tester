@@ -26,6 +26,7 @@ from SSHTestAgent import SSHTestAgent
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
+from CordTestConfig import setup_module
 from OnosCtrl import OnosCtrl
 
 log.setLevel('INFO')
@@ -54,6 +55,7 @@ class vsg_exchange(CordLogger):
     FABRIC_PORT_COMPUTE_NODE = 2
     APP_NAME = 'org.ciena.xconnect'
     APP_FILE = os.path.join(test_path, '..', 'apps/xconnect-1.0-SNAPSHOT.oar')
+    NUM_SUBSCRIBERS = 5
 
     @classmethod
     def getSubscriberCredentials(cls, subId):
@@ -91,6 +93,44 @@ class vsg_exchange(CordLogger):
         return None
 
     @classmethod
+    def getSubscriberConfig(cls, num_subscribers):
+        features =  {
+            'cdn': True,
+            'uplink_speed': 1000000000,
+            'downlink_speed': 1000000000,
+            'uverse': True,
+            'status': 'enabled'
+        }
+        subscriber_map = []
+        for i in xrange(num_subscribers):
+            subId = 'sub{}'.format(i)
+            account_num, _, _ = cls.getSubscriberCredentials(subId)
+            identity = { 'account_num' : str(account_num),
+                         'name' : 'My House {}'.format(i)
+                         }
+            sub_info = { 'features' : features,
+                         'identity' : identity
+                         }
+            subscriber_map.append(sub_info)
+
+        return subscriber_map
+
+    @classmethod
+    def getVoltSubscriberConfig(cls, num_subscribers):
+        voltSubscriberMap = []
+        for i in xrange(num_subscribers):
+            subId = 'sub{}'.format(i)
+            account_num, s_tag, c_tag = cls.getSubscriberCredentials(subId)
+            voltSubscriberInfo = {}
+            voltSubscriberInfo['voltTenant'] = dict(s_tag = str(s_tag),
+                                                    c_tag = str(c_tag),
+                                                    subscriber = '')
+            voltSubscriberInfo['account_num'] = account_num
+            voltSubscriberMap.append(voltSubscriberInfo)
+
+        return voltSubscriberMap
+
+    @classmethod
     def setUpCordApi(cls):
         our_path = os.path.dirname(os.path.realpath(__file__))
         cord_api_path = os.path.join(our_path, '..', 'cord-api')
@@ -100,26 +140,8 @@ class vsg_exchange(CordLogger):
         subscriber_cfg = os.path.join(data_path, 'Subscriber.json')
         volt_tenant_cfg = os.path.join(data_path, 'VoltTenant.json')
 
-        with open(subscriber_cfg) as f:
-            subscriber_data = json.load(f)
-            subscriber_info = subscriber_data['SubscriberInfo']
-            for i in xrange(len(subscriber_info)):
-                subscriber = subscriber_info[i]
-                account_num, _, _ = cls.getSubscriberCredentials('sub{}'.format(i))
-                subscriber['identity']['account_num'] = str(account_num)
-            cls.subscriber_info = subscriber_info
-
-        with open(volt_tenant_cfg) as f:
-            volt_tenant_data = json.load(f)
-            volt_subscriber_info = volt_tenant_data['voltSubscriberInfo']
-            assert_equal(len(volt_subscriber_info), len(cls.subscriber_info))
-            for i in xrange(len(volt_subscriber_info)):
-                volt_subscriber = volt_subscriber_info[i]
-                account_num, s_tag, c_tag = cls.getSubscriberCredentials('sub{}'.format(i))
-                volt_subscriber['account_num'] = account_num
-                volt_subscriber['voltTenant']['s_tag'] = str(s_tag)
-                volt_subscriber['voltTenant']['c_tag'] = str(c_tag)
-            cls.volt_subscriber_info = volt_subscriber_info
+        cls.subscriber_info = cls.getSubscriberConfig(cls.NUM_SUBSCRIBERS)
+        cls.volt_subscriber_info = cls.getVoltSubscriberConfig(cls.NUM_SUBSCRIBERS)
 
         sys.path.append(utils_path)
         sys.path.append(framework_path)
