@@ -1,0 +1,18 @@
+{
+    "apps":
+    {
+        "org.ciena.xconnect":
+        {
+            "xconnectTestConfig":
+            {
+                "of:00007a916740ea43":
+                [
+                    {
+                        "vlan": 555,
+                        "ports": [1, 2]
+                    }
+                ]
+            }
+        }
+    }
+}

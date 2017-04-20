@@ -50,6 +50,10 @@ class vsg_exchange(CordLogger):
     subscriber_map = {}
     restore_methods = []
     TIMEOUT=120
+    FABRIC_PORT_HEAD_NODE = 1
+    FABRIC_PORT_COMPUTE_NODE = 2
+    APP_NAME = 'org.ciena.xconnect'
+    APP_FILE = os.path.join(test_path, '..', 'apps/xconnect-1.0-SNAPSHOT.oar')
 
     @classmethod
     def getSubscriberCredentials(cls, subId):
@@ -133,6 +137,35 @@ class vsg_exchange(CordLogger):
         cls.restApiXos = restApiXos
 
     @classmethod
+    def closeVCPEAccess(cls, vcpes):
+        return
+        OnosCtrl.uninstall_app(cls.APP_NAME, onos_ip = cls.HEAD_NODE)
+
+    @classmethod
+    def openVCPEAccess(cls, vcpes):
+        """
+        This code works below to configure the leaf switch.
+        But it needs the olt_config.json to be modified to not overlap with existing/default vcpes.
+        That is to avoid overwriting the flows already provisioned for eg: for 222 vcpe.
+        (default and created on CiaB).
+        So returning for now with a no-op
+        """
+        return
+        OnosCtrl.install_app(cls.APP_FILE, onos_ip = cls.HEAD_NODE)
+        time.sleep(2)
+        s_tags = map(lambda vcpe: int(vcpe['s_tag']), vcpes)
+        devices = OnosCtrl.get_device_ids(controller = cls.HEAD_NODE)
+        device_config = {}
+        for device in devices:
+            device_config[device] = []
+            for s_tag in s_tags:
+                xconnect_config = {'vlan': s_tag, 'ports' : [ cls.FABRIC_PORT_HEAD_NODE, cls.FABRIC_PORT_COMPUTE_NODE ] }
+                device_config[device].append(xconnect_config)
+
+        cfg = { 'apps' : { 'org.ciena.xconnect' : { 'xconnectTestConfig' : device_config } } }
+        OnosCtrl.config(cfg, controller = cls.HEAD_NODE)
+
+    @classmethod
     def setUpClass(cls):
         cls.controllers = get_controllers()
         cls.controller = cls.controllers[0]
@@ -156,10 +189,14 @@ class vsg_exchange(CordLogger):
         cls.vcpe_dhcp_stag = vcpe_dhcp_stag
         VSGAccess.setUp()
         cls.setUpCordApi()
+        if cls.on_podd is True:
+            cls.openVCPEAccess(cls.vcpes_dhcp)
 
     @classmethod
     def tearDownClass(cls):
         VSGAccess.tearDown()
+        if cls.on_podd is True:
+            cls.closeVCPEAccess(cls.vcpes_dhcp)
 
     def cliEnter(self, controller = None):
         retries = 0
