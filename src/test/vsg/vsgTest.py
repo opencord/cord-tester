@@ -49,6 +49,8 @@ class vsg_exchange(CordLogger):
     subscriber_c_tag = 304
     subscribers_per_s_tag = 8
     subscriber_map = {}
+    subscriber_info = []
+    volt_subscriber_info = []
     restore_methods = []
     TIMEOUT=120
     FABRIC_PORT_HEAD_NODE = 1
@@ -159,33 +161,33 @@ class vsg_exchange(CordLogger):
         cls.restApiXos = restApiXos
 
     @classmethod
-    def closeVCPEAccess(cls, vcpes):
-        return
+    def closeVCPEAccess(cls, volt_subscriber_info):
         OnosCtrl.uninstall_app(cls.APP_NAME, onos_ip = cls.HEAD_NODE)
 
     @classmethod
-    def openVCPEAccess(cls, vcpes):
+    def openVCPEAccess(cls, volt_subscriber_info):
         """
-        This code works below to configure the leaf switch.
-        But it needs the olt_config.json to be modified to not overlap with existing/default vcpes.
-        That is to avoid overwriting the flows already provisioned for eg: for 222 vcpe.
-        (default and created on CiaB).
-        So returning for now with a no-op
+        This code is used to configure leaf switch for head node access to compute node over fabric.
+        Care is to be taken to avoid overwriting existing/default vcpe flows.
+        The access is opened for generated subscriber info which should not overlap.
+        We target the fabric onos instance on head node.
         """
-        return
         OnosCtrl.install_app(cls.APP_FILE, onos_ip = cls.HEAD_NODE)
         time.sleep(2)
-        s_tags = map(lambda vcpe: int(vcpe['s_tag']), vcpes)
+        s_tags = map(lambda tenant: int(tenant['voltTenant']['s_tag']), volt_subscriber_info)
+        #only get unique vlan tags
+        s_tags = list(set(s_tags))
         devices = OnosCtrl.get_device_ids(controller = cls.HEAD_NODE)
-        device_config = {}
-        for device in devices:
-            device_config[device] = []
-            for s_tag in s_tags:
-                xconnect_config = {'vlan': s_tag, 'ports' : [ cls.FABRIC_PORT_HEAD_NODE, cls.FABRIC_PORT_COMPUTE_NODE ] }
-                device_config[device].append(xconnect_config)
+        if devices:
+            device_config = {}
+            for device in devices:
+                device_config[device] = []
+                for s_tag in s_tags:
+                    xconnect_config = {'vlan': s_tag, 'ports' : [ cls.FABRIC_PORT_HEAD_NODE, cls.FABRIC_PORT_COMPUTE_NODE ] }
+                    device_config[device].append(xconnect_config)
 
-        cfg = { 'apps' : { 'org.ciena.xconnect' : { 'xconnectTestConfig' : device_config } } }
-        OnosCtrl.config(cfg, controller = cls.HEAD_NODE)
+            cfg = { 'apps' : { 'org.ciena.xconnect' : { 'xconnectTestConfig' : device_config } } }
+            OnosCtrl.config(cfg, controller = cls.HEAD_NODE)
 
     @classmethod
     def setUpClass(cls):
@@ -212,13 +214,13 @@ class vsg_exchange(CordLogger):
         VSGAccess.setUp()
         cls.setUpCordApi()
         if cls.on_podd is True:
-            cls.openVCPEAccess(cls.vcpes_dhcp)
+            cls.openVCPEAccess(cls.volt_subscriber_info)
 
     @classmethod
     def tearDownClass(cls):
         VSGAccess.tearDown()
         if cls.on_podd is True:
-            cls.closeVCPEAccess(cls.vcpes_dhcp)
+            cls.closeVCPEAccess(cls.volt_subscriber_info)
 
     def cliEnter(self, controller = None):
         retries = 0
