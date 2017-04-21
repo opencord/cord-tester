@@ -2189,6 +2189,69 @@ class OnosCliDriver( CLI ):
             main.cleanup()
             main.exit()
 
+    def command( self, cmd=None, jsonFormat=True, timeout=5 ):
+        """
+        To issue user  specified command
+        """
+        try:
+            if cmd is None:
+                return
+            cmdStr = cmd
+            if jsonFormat:
+                cmdStr += " -j "
+            handle = self.sendline( cmdStr, timeout=timeout )
+            assert "Command not found:" not in handle, handle
+            if re.search( "Error:", handle ):
+                main.log.error( str( handle ) )
+            return handle
+        except AssertionError:
+            main.log.exception( "" )
+            return None
+        except TypeError:
+            main.log.exception( self.name + ": Object not as expected" )
+            return None
+        except pexpect.TIMEOUT:
+            main.log.error( self.name + ": ONOS timeout" )
+            return None
+        except pexpect.EOF:
+            main.log.error( self.name + ": EOF exception found" )
+            main.log.error( self.name + ":    " + self.handle.before )
+            main.cleanup()
+            main.exit()
+        except Exception:
+            main.log.exception( self.name + ": Uncaught exception!" )
+            main.cleanup()
+            main.exit()
+
+    def masters( self, jsonFormat=True ):
+        """
+        Lists all devices and their corresponding master controller ip
+        Optional argument:
+            * jsonFormat - boolean indicating if you want output in json
+        """
+        try:
+            cmdStr = "masters"
+            if jsonFormat:
+                cmdStr += " -j"
+            handle = self.sendline( cmdStr )
+            assert "Command not found:" not in handle, handle
+            return handle
+        except AssertionError:
+            main.log.exception( "" )
+            return None
+        except TypeError:
+            main.log.exception( self.name + ": Object not as expected" )
+            return None
+        except pexpect.EOF:
+            main.log.error( self.name + ": EOF exception found" )
+            main.log.error( self.name + ":    " + self.handle.before )
+            main.cleanup()
+            main.exit()
+        except Exception:
+            main.log.exception( self.name + ": Uncaught exception!" )
+            main.cleanup()
+            main.exit()
+
     def flows( self, state="", jsonFormat=True, timeout=60 ):
         """
         Optional:
