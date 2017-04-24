@@ -79,7 +79,7 @@ class OnboardingServiceUtils(object):
         unreachable = filter(lambda st: st == False, exampleservice_status)
         return len(unreachable) == 0
 
-class ExampleSevicesWrapper(object):
+class ExampleSeviceWrapper(object):
 
     def __init__(self, exampleservice):
         self.exampleservice = exampleservice

@@ -26,7 +26,6 @@ from nose.tools import assert_equal
 from CordTestUtils import get_mac, log_test
 from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
-from credentials import *
 from OnboardingServiceUtils import OnboardingServiceUtils
 from SSHTestAgent import SSHTestAgent
 import requests
@@ -34,6 +33,16 @@ import time
 import json
 
 class onboarding_exchange():
+    ONOS_INSTANCES = 3
+    V_INF1 = 'veth0'
+    device_id = 'of:' + get_mac()
+    TEST_IP = '8.8.8.8'
+    HOST = "10.1.0.1"
+    USER = "vagrant"
+    PASS = "vagrant"
+    head_node = os.getenv('HEAD_NODE', 'prod')
+    HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
+    test_path = os.path.dirname(os.path.realpath(__file__))
 
     @classmethod
     def setUpClass(cls):
@@ -79,13 +88,37 @@ class onboarding_exchange():
         status = OnboardingServiceUtils.health_check()
         assert_equal(status, True)
 
-    def test_exampleservice_onboarding(self):
-        pass
+    def test_exampleservice_for_login(self):
+        if self.on_podd is False:
+            return
+        exampleservices = OnboardingServiceUtils.get_exampleservices()
+        exampleservice_access_status = map(lambda exampleservice: exampleservice.check_access(), exampleservices)
+        status = filter(lambda st: st == False, exampleservice_access_status)
+        assert_equal(len(status), 0)
 
-    def test_exampleservice_connectivity(self):
-        pass
+    def test_exampleservice_for_default_route_through_testclient(self):
+       if self.on_podd is False:
+           return
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "sudo lxc exec testclient -- route | grep default"
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+
+    def test_exampleservice_for_service_access_through_testclient(self):
+        if self.on_podd is False:
+            return
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal( status, True)
 
     def test_exampleservice_for_apache_service(self):
+        pass
+
+    def test_exampleservice_for_tenant_message(self):
+        pass
+
+    def test_exampleservice_for_service_message(self):
         pass
 
     def test_exampleservice_using__curl(self):
