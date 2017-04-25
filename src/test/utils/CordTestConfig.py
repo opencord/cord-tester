@@ -5,7 +5,8 @@ import os
 from nose.tools import assert_not_equal
 from nose.plugins import Plugin
 from CordTestUtils import log_test as log
-
+from CordTestUtils import running_on_pod
+from SSHTestAgent import SSHTestAgent
 log.setLevel('INFO')
 
 class CordTestConfigRestore(Plugin):
@@ -67,3 +68,23 @@ def setup_module(module):
             json_data = json.load(f)
             for k, v in json_data.iteritems():
                 setattr(class_test, k, v)
+
+def running_on_ciab():
+    if running_on_pod() is False:
+        return False
+    head_node = os.getenv('HEAD_NODE', 'prod')
+    HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
+    agent = SSHTestAgent(host = HEAD_NODE, user = 'ubuntu', password = 'ubuntu')
+    #see if user ubuntu works
+    st, output = agent.run_cmd('sudo virsh list')
+    if st is False and output is not None:
+        #we are on real pod
+        return False
+
+    #try vagrant
+    agent = SSHTestAgent(host = HEAD_NODE, user = 'vagrant', password = 'vagrant')
+    st, output = agent.run_cmd('sudo virsh list')
+    if st is True and output is not None:
+        return True
+
+    return False

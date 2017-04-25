@@ -61,6 +61,6 @@ def get_controller():
     controllers = get_controllers()
     return controllers[0]
 
-def running_on_podd():
+def running_on_pod():
     """If we are running on Ciab or inside a physical podd, key file would be set"""
     return True if os.environ.get('SSH_KEY_FILE', None) else False

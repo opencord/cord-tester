@@ -26,7 +26,7 @@ from SSHTestAgent import SSHTestAgent
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, running_on_ciab
 from OnosCtrl import OnosCtrl
 
 log.setLevel('INFO')
@@ -198,7 +198,8 @@ class vsg_exchange(CordLogger):
         cls.controllers = get_controllers()
         cls.controller = cls.controllers[0]
         cls.cli = None
-        cls.on_podd = running_on_podd()
+        cls.on_pod = running_on_pod()
+        cls.on_ciab = running_on_ciab()
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.vcpes = cls.olt.get_vcpes()
         cls.vcpes_dhcp = cls.olt.get_vcpes_by_type('dhcp')
@@ -211,7 +212,7 @@ class vsg_exchange(CordLogger):
         vcpe_container_reserved = None
         if cls.vcpes_reserved:
             vcpe_dhcp_reserved = cls.dhcp_vcpes_reserved[0]
-            if cls.on_podd is False:
+            if cls.on_pod is False:
                 vcpe_dhcp_reserved = cls.untagged_dhcp_vcpes_reserved[0]
             vcpe_container_reserved = cls.container_vcpes_reserved[0]
 
@@ -228,19 +229,19 @@ class vsg_exchange(CordLogger):
         if cls.vcpes_dhcp:
             vcpe_container = cls.container_vcpes[0]
             vcpe_dhcp = cls.dhcp_vcpes[0]
-            if cls.on_podd is False:
+            if cls.on_pod is False:
                 vcpe_dhcp = cls.untagged_dhcp_vcpes[0]
         cls.vcpe_container = vcpe_container_reserved or vcpe_container
         cls.vcpe_dhcp = vcpe_dhcp_reserved or vcpe_dhcp
         VSGAccess.setUp()
         cls.setUpCordApi()
-        if cls.on_podd is True:
+        if cls.on_pod is True:
             cls.openVCPEAccess(cls.volt_subscriber_info)
 
     @classmethod
     def tearDownClass(cls):
         VSGAccess.tearDown()
-        if cls.on_podd is True:
+        if cls.on_pod is True:
             cls.closeVCPEAccess(cls.volt_subscriber_info)
 
     def cliEnter(self, controller = None):
@@ -398,7 +399,7 @@ class vsg_exchange(CordLogger):
         4. Verifying Ping success
         """
         status = True
-        if self.on_podd is True:
+        if self.on_pod is True:
             status = VSGAccess.health_check()
         assert_equal(status, True)
 
@@ -410,7 +411,7 @@ class vsg_exchange(CordLogger):
         3. Ping to the vSG
         4. Verifying Ping success
         """
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         if not vsg_name:
             vcpe = self.vcpe_container
@@ -437,7 +438,7 @@ class vsg_exchange(CordLogger):
         """
         df = defer.Deferred()
         def vsg_for_vcpe_df(df):
-            if self.on_podd is True:
+            if self.on_pod is True:
                 vsgs = VSGAccess.get_vsgs()
                 compute_nodes = VSGAccess.get_compute_nodes()
                 time.sleep(14)
@@ -454,7 +455,7 @@ class vsg_exchange(CordLogger):
         2. Get all vSGs
         3. Verifying login to vSG is success
         """
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         vsgs = VSGAccess.get_vsgs()
         vsg_access_status = map(lambda vsg: vsg.check_access(), vsgs)
@@ -467,7 +468,7 @@ class vsg_exchange(CordLogger):
 	1. Login to head node
 	2. Verifying for default route in lxc test client
 	"""
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "sudo lxc exec testclient -- route | grep default"
@@ -481,7 +482,7 @@ class vsg_exchange(CordLogger):
         2. On head node, executing ping to 8.8.8.8 from lxc test client
 	3. Verifying for the ping success
         """
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
@@ -490,9 +491,15 @@ class vsg_exchange(CordLogger):
 
     def vsg_for_external_connectivity(self, subscriber_index, reserved = False):
         if reserved is True:
-            vcpe = self.dhcp_vcpes_reserved[subscriber_index]
+            if self.on_pod is True:
+                vcpe = self.dhcp_vcpes_reserved[subscriber_index]
+            else:
+                vcpe = self.untagged_dhcp_vcpes_reserved[subscriber_index]
         else:
-            vcpe = self.dhcp_vcpes[subscriber_index]
+            if self.on_pod is True:
+                vcpe = self.dhcp_vcpes[subscriber_index]
+            else:
+                vcpe = self.untagged_dhcp_vcpes[subscriber_index]
         mgmt = 'eth0'
         host = '8.8.8.8'
         self.success = False
@@ -513,7 +520,10 @@ class vsg_exchange(CordLogger):
         3. Ping to 8.8.8.8 and Verifying ping should success
 	4. Restoring management interface configuration in  cord-tester
         """
-        self.vsg_for_external_connectivity(0, reserved = True)
+        reserved = True
+        if self.on_pod:
+            reserved = self.on_ciab
+        self.vsg_for_external_connectivity(0, reserved = reserved)
 
     def test_vsg_for_external_connectivity_to_google(self):
         """
@@ -588,7 +598,7 @@ class vsg_exchange(CordLogger):
 	7. Ping to 8.8.8.8 and Verifying ping succeeds
 	8. Restoring management interface configuration in cord-tester
         """
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         host = '8.8.8.8'
         mgmt = 'eth0'
@@ -633,7 +643,7 @@ class vsg_exchange(CordLogger):
         7. Ping to 8.8.8.8 and Verifying ping should success
         8. Restoring management interface configuration in  cord-tester
         """
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         host = '8.8.8.8'
         mgmt = 'eth0'
@@ -683,7 +693,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -718,7 +728,7 @@ class vsg_exchange(CordLogger):
 		vcpe_intf = self.vcpe_dhcp
 	df = defer.Deferred()
 	def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -757,7 +767,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
 	def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
 	    host = '8.8.8.8'
@@ -798,7 +808,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
 	def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host1 = '8.8.8.8'
@@ -840,7 +850,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
 	def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host1 = '8.8.8.8'
@@ -892,7 +902,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
 	def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host1 = '8.8.8.8'
@@ -940,7 +950,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -982,7 +992,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1024,7 +1034,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             network = '204.79.197.192/28'
@@ -1066,7 +1076,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             network1 = '204.79.197.192/28'
@@ -1116,7 +1126,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1157,7 +1167,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1201,7 +1211,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1243,7 +1253,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1285,7 +1295,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1328,7 +1338,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1371,7 +1381,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1419,7 +1429,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1472,7 +1482,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1518,7 +1528,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1560,7 +1570,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1602,7 +1612,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1644,7 +1654,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1686,7 +1696,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
 	    host = '8.8.8.8'
@@ -1730,7 +1740,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = 'www.msn.com'
@@ -1773,7 +1783,7 @@ class vsg_exchange(CordLogger):
                 vcpe_intf = self.vcpe_dhcp
         df = defer.Deferred()
         def vcpe_firewall(df):
-            if self.on_podd is False:
+            if self.on_pod is False:
                 df.callback(0)
                 return
             host = '8.8.8.8'
@@ -1916,7 +1926,7 @@ class vsg_exchange(CordLogger):
         return df
 
     def vsg_xos_subscriber_create(self, index):
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         subscriber_info = self.subscriber_info[index]
         volt_subscriber_info = self.volt_subscriber_info[index]

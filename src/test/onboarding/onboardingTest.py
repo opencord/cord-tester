@@ -28,6 +28,7 @@ from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 from OnboardingServiceUtils import OnboardingServiceUtils
 from SSHTestAgent import SSHTestAgent
+from CordTestUtils import running_on_pod
 import requests
 import time
 import json
@@ -43,6 +44,7 @@ class onboarding_exchange():
     head_node = os.getenv('HEAD_NODE', 'prod')
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
+    on_pod = running_on_pod()
 
     @classmethod
     def setUpClass(cls):
@@ -89,7 +91,7 @@ class onboarding_exchange():
         assert_equal(status, True)
 
     def test_exampleservice_for_login(self):
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         exampleservices = OnboardingServiceUtils.get_exampleservices()
         exampleservice_access_status = map(lambda exampleservice: exampleservice.check_access(), exampleservices)
@@ -97,7 +99,7 @@ class onboarding_exchange():
         assert_equal(len(status), 0)
 
     def test_exampleservice_for_default_route_through_testclient(self):
-       if self.on_podd is False:
+       if self.on_pod is False:
            return
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "sudo lxc exec testclient -- route | grep default"
@@ -105,7 +107,7 @@ class onboarding_exchange():
         assert_equal(status, True)
 
     def test_exampleservice_for_service_access_through_testclient(self):
-        if self.on_podd is False:
+        if self.on_pod is False:
             return
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
