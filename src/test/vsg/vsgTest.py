@@ -1930,8 +1930,10 @@ class vsg_exchange(CordLogger):
             return
         subscriber_info = self.subscriber_info[index]
         volt_subscriber_info = self.volt_subscriber_info[index]
-        log.info('Creating tenant with s_tag: %s, c_tag: %s' %(volt_subscriber_info['voltTenant']['s_tag'],
-                                                               volt_subscriber_info['voltTenant']['c_tag']))
+        s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
+        c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
+        vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
+        log.info('Creating tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
         result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
         assert_equal(result, True)
         result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
@@ -1944,10 +1946,14 @@ class vsg_exchange(CordLogger):
         volt_tenant['subscriber'] = subId
         result = self.restApiXos.ApiPost('TENANT_VOLT', volt_tenant)
         assert_equal(result, True)
-        delay = 350
+        #if the vsg instance was already instantiated, then reduce delay
+        if c_tag % self.subscribers_per_s_tag == 0:
+            delay = 350
+        else:
+            delay = 75
         log.info('Delaying %d seconds for the VCPE to be provisioned' %(delay))
         time.sleep(delay)
-        log.info('Testing for external connectivity to VCPE %s' %(self.dhcp_vcpes[index]))
+        log.info('Testing for external connectivity to VCPE %s' %(vcpe))
         self.vsg_for_external_connectivity(index)
 
     def test_vsg_xos_subscriber(self):
