@@ -3,9 +3,33 @@
   "vlan" : 0,
   "port_map" : { "num_ports" : 11, "start_vlan" : 1000, "nr_switches": 1 },
   "vcpe" :
-      [
+  [
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 222, "c_tag" : 111
+          "port" : "fabric", "type" : "reserved", "s_tag" : 222, "c_tag" : 211
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 304
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 305
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 306
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 307
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 308
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 309
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 310
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 311
         }
       ]
 }

@@ -141,9 +141,9 @@ class vsg_exchange(CordLogger):
         data_path = os.path.join(cord_api_path, 'Tests', 'data')
         subscriber_cfg = os.path.join(data_path, 'Subscriber.json')
         volt_tenant_cfg = os.path.join(data_path, 'VoltTenant.json')
-
-        cls.subscriber_info = cls.getSubscriberConfig(cls.NUM_SUBSCRIBERS)
-        cls.volt_subscriber_info = cls.getVoltSubscriberConfig(cls.NUM_SUBSCRIBERS)
+        num_subscribers = max(cls.NUM_SUBSCRIBERS, 5)
+        cls.subscriber_info = cls.getSubscriberConfig(num_subscribers)
+        cls.volt_subscriber_info = cls.getVoltSubscriberConfig(num_subscribers)
 
         sys.path.append(utils_path)
         sys.path.append(framework_path)
@@ -162,7 +162,11 @@ class vsg_exchange(CordLogger):
 
     @classmethod
     def closeVCPEAccess(cls, volt_subscriber_info):
-        OnosCtrl.uninstall_app(cls.APP_NAME, onos_ip = cls.HEAD_NODE)
+        """
+        Disabled uninstall app for now to disable deletion of flows on leaf-switch
+        """
+        return
+        #OnosCtrl.uninstall_app(cls.APP_NAME, onos_ip = cls.HEAD_NODE)
 
     @classmethod
     def openVCPEAccess(cls, volt_subscriber_info):
@@ -194,23 +198,40 @@ class vsg_exchange(CordLogger):
         cls.controllers = get_controllers()
         cls.controller = cls.controllers[0]
         cls.cli = None
+        cls.on_podd = running_on_podd()
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.vcpes = cls.olt.get_vcpes()
         cls.vcpes_dhcp = cls.olt.get_vcpes_by_type('dhcp')
+        cls.vcpes_reserved = cls.olt.get_vcpes_by_type('reserved')
+        cls.dhcp_vcpes_reserved = [ 'vcpe{}.{}.{}'.format(i, cls.vcpes_reserved[i]['s_tag'], cls.vcpes_reserved[i]['c_tag'])
+                                    for i in xrange(len(cls.vcpes_reserved)) ]
+        cls.untagged_dhcp_vcpes_reserved = [ 'vcpe{}'.format(i) for i in xrange(len(cls.vcpes_reserved)) ]
+        cls.container_vcpes_reserved = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_reserved ]
+        vcpe_dhcp_reserved = None
+        vcpe_container_reserved = None
+        if cls.vcpes_reserved:
+            vcpe_dhcp_reserved = cls.dhcp_vcpes_reserved[0]
+            if cls.on_podd is False:
+                vcpe_dhcp_reserved = cls.untagged_dhcp_vcpes_reserved[0]
+            vcpe_container_reserved = cls.container_vcpes_reserved[0]
+
+        cls.vcpe_dhcp_reserved = vcpe_dhcp_reserved
+        cls.vcpe_container_reserved = vcpe_container_reserved
+        dhcp_vcpe_offset = len(cls.vcpes_reserved)
+        cls.dhcp_vcpes = [ 'vcpe{}.{}.{}'.format(i+dhcp_vcpe_offset), cls.vcpes[i]['s_tag'], cls.vcpes[i]['c_tag'])
+                           for i in xrange(len(cls.vcpes))  ]
+        cls.untagged_dhcp_vcpes = [ 'vcpe{}'.format(i+dhcp_vcpe_offset) for i in xrange(len(cls.vcpes)) ]
+        cls.container_vcpes = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes ]
         vcpe_dhcp = None
-        vcpe_dhcp_stag = None
         vcpe_container = None
-        cls.on_podd = running_on_podd()
         #cache the first dhcp vcpe in the class for quick testing
         if cls.vcpes_dhcp:
-            vcpe_container = 'vcpe-{}-{}'.format(cls.vcpes_dhcp[0]['s_tag'], cls.vcpes_dhcp[0]['c_tag'])
-            vcpe_dhcp = 'vcpe0.{}.{}'.format(cls.vcpes_dhcp[0]['s_tag'], cls.vcpes_dhcp[0]['c_tag'])
+            vcpe_container = cls.container_vcpes[0]
+            vcpe_dhcp = cls.dhcp_vcpes[0]
             if cls.on_podd is False:
-                vcpe_dhcp = 'vcpe0'
-            vcpe_dhcp_stag = 'vcpe0.{}'.format(cls.vcpes_dhcp[0]['s_tag'])
-        cls.vcpe_container = vcpe_container
-        cls.vcpe_dhcp = vcpe_dhcp
-        cls.vcpe_dhcp_stag = vcpe_dhcp_stag
+                vcpe_dhcp = cls.untagged_dhcp_vcpes[0]
+        cls.vcpe_container = vcpe_container_reserved or vcpe_container
+        cls.vcpe_dhcp = vcpe_dhcp_reserved or vcpe_dhcp
         VSGAccess.setUp()
         cls.setUpCordApi()
         if cls.on_podd is True:
@@ -296,78 +317,77 @@ class vsg_exchange(CordLogger):
 
     def get_vcpe_interface_dhcp_ip(self,vcpe=None):
         if not vcpe:
-                vcpe = self.vcpe_dhcp
+            vcpe = self.vcpe_dhcp
         st, _ = getstatusoutput('dhclient {}'.format(vcpe))
 	vcpe_ip = get_ip(vcpe)
 	return vcpe_ip
 
     def release_vcpe_interface_dhcp_ip(self,vcpe=None):
         if not vcpe:
-                vcpe = self.vcpe_dhcp
+            vcpe = self.vcpe_dhcp
         st, _ = getstatusoutput('dhclient {} -r'.format(vcpe))
         vcpe_ip = get_ip(vcpe)
         assert_equal(vcpe_ip, None)
 
     def add_static_route_via_vcpe_interface(self, routes, vcpe=None,dhcp_ip=True):
 	if not vcpe:
-		vcpe = self.vcpe_dhcp
+	    vcpe = self.vcpe_dhcp
 	if dhcp_ip:
-		os.system('dhclient '+vcpe)
+	    os.system('dhclient '+vcpe)
 	time.sleep(1)
 	for route in routes:
-		log.info('route is %s'%route)
-		cmd = 'ip route add ' + route + ' via 192.168.0.1 '+ 'dev ' + vcpe
-		cmds.append(cmd)
+	    log.info('route is %s'%route)
+	    cmd = 'ip route add ' + route + ' via 192.168.0.1 '+ 'dev ' + vcpe
+	    cmds.append(cmd)
 	for cmd in cmds:
-		os.system(cmd)
+	    os.system(cmd)
 	return True
 
     def del_static_route_via_vcpe_interface(self,routes,vcpe=None,dhcp_release=True):
         if not vcpe:
-                vcpe = self.vcpe_dhcp
+            vcpe = self.vcpe_dhcp
         cmds = []
         for route in routes:
-                cmd = 'ip route del ' + route + ' via 192.168.0.1 ' + 'dev ' + vcpe
-		os.system(cmd)
+            cmd = 'ip route del ' + route + ' via 192.168.0.1 ' + 'dev ' + vcpe
+	    os.system(cmd)
         if dhcp_release:
-		os.system('dhclient '+vcpe+' -r')
+            os.system('dhclient '+vcpe+' -r')
 	return True
 
     def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
 	vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
 	for vcpe in vcpe_intfs:
-		vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-		assert_not_equal(vcpe_ip,None)
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
         for vcpe in vcpe_intfs:
-                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
 
     def test_vsg_multiple_subscribers_for_same_vcpe_instance_ping_to_external_connectivity(self):
-	host = '8.8.8.8'
-        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+        host = '8.8.8.8'
+        vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
         for vcpe in vcpe_intfs:
-                vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-		assert_not_equal(vcpe_ip,None)
-		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
-                st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
-                assert_equal(st, 0)
-		self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
+            st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
+            assert_equal(st, 0)
+            self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
         for vcpe in vcpe_intfs:
-                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
 
     def test_vsg_vcpe_interface_gets_dhcp_ip_after_interface_toggle(self):
         vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
         for vcpe in vcpe_intfs:
-                vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-                assert_not_equal(vcpe_ip,None)
-		os.system('ifconfig {} down'.format(vcpe))
-		time.sleep(1)
-		os.system('ifconfig {} up'.format(vcpe))
-		time.sleep(1)
-		vcpe_ip2 = get_ip(vcpe)
-		assert_equal(vcpe_ip2,vcpe_ip)
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+            os.system('ifconfig {} down'.format(vcpe))
+            time.sleep(1)
+            os.system('ifconfig {} up'.format(vcpe))
+            time.sleep(1)
+            vcpe_ip2 = get_ip(vcpe)
+            assert_equal(vcpe_ip2,vcpe_ip)
         for vcpe in vcpe_intfs:
-                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
-
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
 
     def test_vsg_health(self):
         """
@@ -392,19 +412,19 @@ class vsg_exchange(CordLogger):
         """
         if self.on_podd is False:
             return
-	if not vsg_name:
-		vcpe = self.vcpe_container
-		vsg = VSGAccess.get_vcpe_vsg(vcpe)
-		status = vsg.get_health()
-		assert_equal(status, verify_status)
-	else:
-	     vsgs = VSGAccess.get_vsgs()
-             status = None
-             for vsg in vsgs:
-                 if vsg.name == vsg_name:
-                        status = vsg.get_health()
-                        log.info('vsg health check status is %s'%status)
-             assert_equal(status,verify_status)
+        if not vsg_name:
+            vcpe = self.vcpe_container
+            vsg = VSGAccess.get_vcpe_vsg(vcpe)
+            status = vsg.get_health()
+            assert_equal(status, verify_status)
+        else:
+            vsgs = VSGAccess.get_vsgs()
+            status = None
+            for vsg in vsgs:
+                if vsg.name == vsg_name:
+                    status = vsg.get_health()
+                    log.info('vsg health check status is %s'%status)
+                    assert_equal(status,verify_status)
 
     @deferred(TIMEOUT)
     def test_vsg_for_vcpe(self):
@@ -415,17 +435,17 @@ class vsg_exchange(CordLogger):
         3. Get all vSGs
         4. Verifying atleast one compute node and one vSG created
         """
-	df = defer.Deferred()
-	def vsg_for_vcpe_df(df):
+        df = defer.Deferred()
+        def vsg_for_vcpe_df(df):
             if self.on_podd is True:
                 vsgs = VSGAccess.get_vsgs()
                 compute_nodes = VSGAccess.get_compute_nodes()
                 time.sleep(14)
                 assert_not_equal(len(vsgs), 0)
                 assert_not_equal(len(compute_nodes), 0)
-	    df.callback(0)
-	reactor.callLater(0,vsg_for_vcpe_df,df)
-	return df
+            df.callback(0)
+        reactor.callLater(0,vsg_for_vcpe_df,df)
+        return df
 
     def test_vsg_for_login(self):
         """
@@ -468,15 +488,11 @@ class vsg_exchange(CordLogger):
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal( status, True)
 
-    def test_vsg_for_external_connectivity(self):
-        """
-        Algo:
-        1. Get dhcp IP to vcpe interface in cord-tester
-        2. Verifying vcpe interface gets dhcp IP
-        3. Ping to 8.8.8.8 and Verifying ping should success
-	4. Restoring management interface configuration in  cord-tester
-        """
-        vcpe = self.vcpe_dhcp
+    def vsg_for_external_connectivity(self, subscriber_index, reserved = False):
+        if reserved is True:
+            vcpe = self.dhcp_vcpes_reserved[subscriber_index]
+        else:
+            vcpe = self.dhcp_vcpes[subscriber_index]
         mgmt = 'eth0'
         host = '8.8.8.8'
         self.success = False
@@ -488,6 +504,16 @@ class vsg_exchange(CordLogger):
         st, _ = getstatusoutput('ping -c 3 8.8.8.8')
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_equal(st, 0)
+
+    def test_vsg_for_external_connectivity(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Ping to 8.8.8.8 and Verifying ping should success
+	4. Restoring management interface configuration in  cord-tester
+        """
+        self.vsg_for_external_connectivity(0, reserved = True)
 
     def test_vsg_for_external_connectivity_to_google(self):
         """
@@ -1889,11 +1915,13 @@ class vsg_exchange(CordLogger):
         reactor.callLater(0,vcpe_firewall,df)
         return df
 
-    def test_vsg_xos_subscriber(self):
+    def vsg_xos_subscriber_create(self, index):
         if self.on_podd is False:
             return
-        subscriber_info = self.subscriber_info[0]
-        volt_subscriber_info = self.volt_subscriber_info[0]
+        subscriber_info = self.subscriber_info[index]
+        volt_subscriber_info = self.volt_subscriber_info[index]
+        log.info('Creating tenant with s_tag: %s, c_tag: %s' %(volt_subscriber_info['voltTenant']['s_tag'],
+                                                               volt_subscriber_info['voltTenant']['c_tag']))
         result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
         assert_equal(result, True)
         result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
@@ -1906,6 +1934,26 @@ class vsg_exchange(CordLogger):
         volt_tenant['subscriber'] = subId
         result = self.restApiXos.ApiPost('TENANT_VOLT', volt_tenant)
         assert_equal(result, True)
+        delay = 350
+        log.info('Delaying %d seconds for the VCPE to be provisioned' %(delay))
+        time.sleep(delay)
+        log.info('Testing for external connectivity to VCPE %s' %(self.dhcp_vcpes[index]))
+        self.vsg_for_external_connectivity(index)
+
+    def test_vsg_xos_subscriber(self):
+        self.vsg_xos_subscriber_create(0)
+
+    def test_vsg_xos_subscriber_2(self):
+        self.vsg_xos_subscriber_create(1)
+
+    def test_vsg_xos_subscriber_3(self):
+        self.vsg_xos_subscriber_create(2)
+
+    def test_vsg_xos_subscriber_4(self):
+        self.vsg_xos_subscriber_create(3)
+
+    def test_vsg_xos_subscriber_5(self):
+        self.vsg_xos_subscriber_create(4)
 
     def test_vsg_for_dns_service(self):
 	"""
