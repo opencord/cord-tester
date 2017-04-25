@@ -1950,7 +1950,7 @@ class vsg_exchange(CordLogger):
         if c_tag % self.subscribers_per_s_tag == 0:
             delay = 350
         else:
-            delay = 75
+            delay = 90
         log.info('Delaying %d seconds for the VCPE to be provisioned' %(delay))
         time.sleep(delay)
         log.info('Testing for external connectivity to VCPE %s' %(vcpe))
