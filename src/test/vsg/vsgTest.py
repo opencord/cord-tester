@@ -218,10 +218,10 @@ class vsg_exchange(CordLogger):
         cls.vcpe_dhcp_reserved = vcpe_dhcp_reserved
         cls.vcpe_container_reserved = vcpe_container_reserved
         dhcp_vcpe_offset = len(cls.vcpes_reserved)
-        cls.dhcp_vcpes = [ 'vcpe{}.{}.{}'.format(i+dhcp_vcpe_offset), cls.vcpes[i]['s_tag'], cls.vcpes[i]['c_tag'])
-                           for i in xrange(len(cls.vcpes))  ]
-        cls.untagged_dhcp_vcpes = [ 'vcpe{}'.format(i+dhcp_vcpe_offset) for i in xrange(len(cls.vcpes)) ]
-        cls.container_vcpes = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes ]
+        cls.dhcp_vcpes = [ 'vcpe{}.{}.{}'.format(i+dhcp_vcpe_offset, cls.vcpes_dhcp[i]['s_tag'], cls.vcpes_dhcp[i]['c_tag'])
+                           for i in xrange(len(cls.vcpes_dhcp))  ]
+        cls.untagged_dhcp_vcpes = [ 'vcpe{}'.format(i+dhcp_vcpe_offset) for i in xrange(len(cls.vcpes_dhcp)) ]
+        cls.container_vcpes = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_dhcp ]
         vcpe_dhcp = None
         vcpe_container = None
         #cache the first dhcp vcpe in the class for quick testing
