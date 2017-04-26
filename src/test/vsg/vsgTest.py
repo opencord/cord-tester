@@ -161,6 +161,15 @@ class vsg_exchange(CordLogger):
         cls.restApiXos = restApiXos
 
     @classmethod
+    def getVoltId(cls, result, subId):
+        if type(result) is not type([]):
+            return None
+        for tenant in result:
+            if str(tenant['subscriber']) == str(subId):
+                return str(tenant['id'])
+        return None
+
+    @classmethod
     def closeVCPEAccess(cls, volt_subscriber_info):
         """
         Disabled uninstall app for now to disable deletion of flows on leaf-switch
@@ -1934,27 +1943,59 @@ class vsg_exchange(CordLogger):
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
         log.info('Creating tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
-        result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
-        assert_equal(result, True)
-        result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+        subId = ''
+        try:
+            result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
+            assert_equal(result, True)
+            result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+            assert_not_equal(result, None)
+            subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
+            assert_not_equal(subId, '0')
+            log.info('Subscriber ID for account num %d = %s' %(volt_subscriber_info['account_num'], subId))
+            volt_tenant = volt_subscriber_info['voltTenant']
+            #update the subscriber id in the tenant info before making the rest
+            volt_tenant['subscriber'] = subId
+            result = self.restApiXos.ApiPost('TENANT_VOLT', volt_tenant)
+            assert_equal(result, True)
+            #if the vsg instance was already instantiated, then reduce delay
+            if c_tag % self.subscribers_per_s_tag == 0:
+                delay = 350
+            else:
+                delay = 90
+            log.info('Delaying %d seconds for the VCPE to be provisioned' %(delay))
+            time.sleep(delay)
+            log.info('Testing for external connectivity to VCPE %s' %(vcpe))
+            self.vsg_for_external_connectivity(index)
+        finally:
+            self.vsg_xos_subscriber_delete(index, subId = subId)
+
+    def vsg_xos_subscriber_delete(self, index, subId = ''):
+        if self.on_pod is False:
+            return
+        subscriber_info = self.subscriber_info[index]
+        volt_subscriber_info = self.volt_subscriber_info[index]
+        s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
+        c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
+        vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
+        log.info('Deleting tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
+        if not subId:
+            #get the subscriber id first
+            result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+            assert_not_equal(result, None)
+            subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
+            assert_not_equal(subId, '0')
+        log.info('Deleting subscriber ID %s for account num %d' %(subId, volt_subscriber_info['account_num']))
+        status = self.restApiXos.ApiDelete('TENANT_SUBSCRIBER', subId)
+        assert_equal(status, True)
+        #get the volt id for the subscriber
+        result = self.restApiXos.ApiGet('TENANT_VOLT')
         assert_not_equal(result, None)
-        subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
-        assert_not_equal(subId, '0')
-        log.info('Subscriber ID for account num %d = %s' %(volt_subscriber_info['account_num'], subId))
-        volt_tenant = volt_subscriber_info['voltTenant']
-        #update the subscriber id in the tenant info before making the rest
-        volt_tenant['subscriber'] = subId
-        result = self.restApiXos.ApiPost('TENANT_VOLT', volt_tenant)
-        assert_equal(result, True)
-        #if the vsg instance was already instantiated, then reduce delay
-        if c_tag % self.subscribers_per_s_tag == 0:
-            delay = 350
-        else:
-            delay = 90
-        log.info('Delaying %d seconds for the VCPE to be provisioned' %(delay))
-        time.sleep(delay)
-        log.info('Testing for external connectivity to VCPE %s' %(vcpe))
-        self.vsg_for_external_connectivity(index)
+        voltId = self.getVoltId(result, subId)
+        assert_not_equal(voltId, None)
+        #Delete the tenant
+        log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
+        status = self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
+        assert_equal(status, True)
 
     def test_vsg_xos_subscriber(self):
         self.vsg_xos_subscriber_create(0)
