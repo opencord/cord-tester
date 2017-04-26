@@ -1994,8 +1994,7 @@ class vsg_exchange(CordLogger):
         assert_equal(status, True)
         #Delete the tenant
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
-        status = self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
-        assert_equal(status, True)
+        self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
 
     def test_vsg_xos_subscriber(self):
         self.vsg_xos_subscriber_create(0)
