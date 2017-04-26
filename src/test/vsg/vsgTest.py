@@ -1984,14 +1984,14 @@ class vsg_exchange(CordLogger):
             assert_not_equal(result, None)
             subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
             assert_not_equal(subId, '0')
-        log.info('Deleting subscriber ID %s for account num %d' %(subId, volt_subscriber_info['account_num']))
-        status = self.restApiXos.ApiDelete('TENANT_SUBSCRIBER', subId)
-        assert_equal(status, True)
         #get the volt id for the subscriber
         result = self.restApiXos.ApiGet('TENANT_VOLT')
         assert_not_equal(result, None)
         voltId = self.getVoltId(result, subId)
         assert_not_equal(voltId, None)
+        log.info('Deleting subscriber ID %s for account num %d' %(subId, volt_subscriber_info['account_num']))
+        status = self.restApiXos.ApiDelete('TENANT_SUBSCRIBER', subId)
+        assert_equal(status, True)
         #Delete the tenant
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
         status = self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
