@@ -171,11 +171,7 @@ class vsg_exchange(CordLogger):
 
     @classmethod
     def closeVCPEAccess(cls, volt_subscriber_info):
-        """
-        Disabled uninstall app for now to disable deletion of flows on leaf-switch
-        """
-        return
-        #OnosCtrl.uninstall_app(cls.APP_NAME, onos_ip = cls.HEAD_NODE)
+        OnosCtrl.uninstall_app(cls.APP_NAME, onos_ip = cls.HEAD_NODE)
 
     @classmethod
     def openVCPEAccess(cls, volt_subscriber_info):
@@ -1967,7 +1963,7 @@ class vsg_exchange(CordLogger):
             log.info('Testing for external connectivity to VCPE %s' %(vcpe))
             self.vsg_for_external_connectivity(index)
         finally:
-            self.vsg_xos_subscriber_delete(index, subId = subId)
+            return subId
 
     def vsg_xos_subscriber_delete(self, index, subId = ''):
         if self.on_pod is False:
@@ -1997,19 +1993,29 @@ class vsg_exchange(CordLogger):
         self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
 
     def test_vsg_xos_subscriber(self):
-        self.vsg_xos_subscriber_create(0)
+        subId = self.vsg_xos_subscriber_create(0)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(0, subId)
 
     def test_vsg_xos_subscriber_2(self):
-        self.vsg_xos_subscriber_create(1)
+        subId = self.vsg_xos_subscriber_create(1)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(1, subId)
 
     def test_vsg_xos_subscriber_3(self):
-        self.vsg_xos_subscriber_create(2)
+        subId = self.vsg_xos_subscriber_create(2)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(2, subId)
 
     def test_vsg_xos_subscriber_4(self):
-        self.vsg_xos_subscriber_create(3)
+        subId = self.vsg_xos_subscriber_create(3)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(3, subId)
 
     def test_vsg_xos_subscriber_5(self):
-        self.vsg_xos_subscriber_create(4)
+        subId = self.vsg_xos_subscriber_create(4)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(4, subId)
 
     def test_vsg_for_dns_service(self):
 	"""
