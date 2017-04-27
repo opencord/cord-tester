@@ -1992,27 +1992,49 @@ class vsg_exchange(CordLogger):
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
         self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
 
-    def test_vsg_xos_subscriber(self):
+    def vsg_xos_subscriber_id(self, index):
+        volt_subscriber_info = self.volt_subscriber_info[index]
+        result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+        assert_not_equal(result, None)
+        subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
+        return subId
+
+    def test_vsg_xos_subscriber_create_all(self):
+        for index in xrange(len(self.subscriber_info)):
+            #check if the index exists
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId and subId != '0':
+                self.vsg_xos_subscriber_delete(index, subId = subId)
+            subId = self.vsg_xos_subscriber_create(index)
+            log.info('Created Subscriber %s' %(subId))
+
+    def test_vsg_xos_subscriber_delete_all(self):
+        for index in xrange(len(self.subscriber_info)):
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId and subId != '0':
+                self.vsg_xos_subscriber_delete(index, subId = subId)
+
+    def test_vsg_xos_subscriber_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(0)
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(0, subId)
 
-    def test_vsg_xos_subscriber_2(self):
+    def test_vsg_xos_subscriber_2_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(1)
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(1, subId)
 
-    def test_vsg_xos_subscriber_3(self):
+    def test_vsg_xos_subscriber_3_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(2)
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(2, subId)
 
-    def test_vsg_xos_subscriber_4(self):
+    def test_vsg_xos_subscriber_4_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(3)
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(3, subId)
 
-    def test_vsg_xos_subscriber_5(self):
+    def test_vsg_xos_subscriber_5_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(4)
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(4, subId)
