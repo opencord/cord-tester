@@ -360,41 +360,6 @@ class vsg_exchange(CordLogger):
             os.system('dhclient '+vcpe+' -r')
 	return True
 
-    def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
-	vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
-	for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
-
-    def test_vsg_multiple_subscribers_for_same_vcpe_instance_ping_to_external_connectivity(self):
-        host = '8.8.8.8'
-        vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
-            st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
-            assert_equal(st, 0)
-            self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
-
-    def test_vsg_vcpe_interface_gets_dhcp_ip_after_interface_toggle(self):
-        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-            os.system('ifconfig {} down'.format(vcpe))
-            time.sleep(1)
-            os.system('ifconfig {} up'.format(vcpe))
-            time.sleep(1)
-            vcpe_ip2 = get_ip(vcpe)
-            assert_equal(vcpe_ip2,vcpe_ip)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
-
     def test_vsg_health(self):
         """
         Algo:
@@ -1724,7 +1689,6 @@ class vsg_exchange(CordLogger):
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-
     #this test case needs modification.default route should be vcpe interface to run this test case
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_dns_traffic(self,vcpe_name=None,vcpe_intf=None):
@@ -2038,6 +2002,41 @@ class vsg_exchange(CordLogger):
         subId = self.vsg_xos_subscriber_create(4)
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(4, subId)
+
+    def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
+        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+	for vcpe in vcpe_intfs:
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+        for vcpe in vcpe_intfs:
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
+    def test_vsg_multiple_subscribers_for_same_vcpe_instance_ping_to_external_connectivity(self):
+        host = '8.8.8.8'
+        vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
+            st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
+            assert_equal(st, 0)
+            self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
+        for vcpe in vcpe_intfs:
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
+    def test_vsg_vcpe_interface_gets_dhcp_ip_after_interface_toggle(self):
+        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+            os.system('ifconfig {} down'.format(vcpe))
+            time.sleep(1)
+            os.system('ifconfig {} up'.format(vcpe))
+            time.sleep(1)
+            vcpe_ip2 = get_ip(vcpe)
+            assert_equal(vcpe_ip2,vcpe_ip)
+        for vcpe in vcpe_intfs:
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
 
     def test_vsg_for_dns_service(self):
 	"""

@@ -99,7 +99,7 @@ class onboarding_exchange():
         assert_equal(len(status), 0)
 
     def test_exampleservice_for_default_route_through_testclient(self):
-       if self.on_pod is False:
+        if self.on_pod is False:
            return
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
         cmd = "sudo lxc exec testclient -- route | grep default"
@@ -123,5 +123,5 @@ class onboarding_exchange():
     def test_exampleservice_for_service_message(self):
         pass
 
-    def test_exampleservice_using__curl(self):
+    def test_exampleservice_using_curl(self):
         pass
