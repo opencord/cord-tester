@@ -79,6 +79,41 @@ class OnboardingServiceUtils(object):
         unreachable = filter(lambda st: st == False, exampleservice_status)
         return len(unreachable) == 0
 
+    def make_veth_pairs(self):
+
+        def check_iface(iface):
+            return os.system('ip link show {}'.format(iface)) == 0
+
+        def make_veth(iface):
+            os.system('ip link add type veth')
+            os.system('ip link set {} up'.format(iface))
+            peer = iface[:len('veth')] + str(int(iface[len('veth'):]) + 1)
+            os.system('ip link set {} up'.format(peer))
+            assert has_iface(iface)
+
+        for iface_number in (0, 2):
+            iface = 'veth{}'.format(iface_number)
+            if not check_iface(iface):
+                make_veth(iface)
+                yield asleep(2)
+
+    def source_env(self):
+        a_dir = os.path.abspath(os.path.dirname(__file__))
+        res = os.system('cd {}'.format(a_dir))
+        assert res == 0
+
+        # set the env
+        command = ['bash', '-c', '. env.sh']
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+        if proc.wait() != 0:
+            err_msg = "Failed to source the environment'"
+            raise RuntimeError(err_msg)
+
+        env = os.environ.copy()
+        return env
+
 class ExampleSeviceWrapper(object):
 
     def __init__(self, exampleservice):
