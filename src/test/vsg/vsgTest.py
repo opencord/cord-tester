@@ -360,6 +360,29 @@ class vsg_exchange(CordLogger):
             os.system('dhclient '+vcpe+' -r')
 	return True
 
+    def vsg_for_external_connectivity(self, subscriber_index, reserved = False):
+        if reserved is True:
+            if self.on_pod is True:
+                vcpe = self.dhcp_vcpes_reserved[subscriber_index]
+            else:
+                vcpe = self.untagged_dhcp_vcpes_reserved[subscriber_index]
+        else:
+            if self.on_pod is True:
+                vcpe = self.dhcp_vcpes[subscriber_index]
+            else:
+                vcpe = self.untagged_dhcp_vcpes[subscriber_index]
+        mgmt = 'eth0'
+        host = '8.8.8.8'
+        self.success = False
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Sending icmp echo requests to external network 8.8.8.8')
+        st, _ = getstatusoutput('ping -c 3 8.8.8.8')
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(st, 0)
+
     def test_vsg_health(self):
         """
         Algo:
@@ -458,29 +481,6 @@ class vsg_exchange(CordLogger):
         cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal( status, True)
-
-    def vsg_for_external_connectivity(self, subscriber_index, reserved = False):
-        if reserved is True:
-            if self.on_pod is True:
-                vcpe = self.dhcp_vcpes_reserved[subscriber_index]
-            else:
-                vcpe = self.untagged_dhcp_vcpes_reserved[subscriber_index]
-        else:
-            if self.on_pod is True:
-                vcpe = self.dhcp_vcpes[subscriber_index]
-            else:
-                vcpe = self.untagged_dhcp_vcpes[subscriber_index]
-        mgmt = 'eth0'
-        host = '8.8.8.8'
-        self.success = False
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Sending icmp echo requests to external network 8.8.8.8')
-        st, _ = getstatusoutput('ping -c 3 8.8.8.8')
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(st, 0)
 
     def test_vsg_for_external_connectivity(self):
         """
@@ -645,6 +645,62 @@ class vsg_exchange(CordLogger):
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
         assert_equal(st, 0)
+
+    def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
+	"""
+	Algo:
+	1. Create a vcpe instance
+	2. Create multiple vcpe interfaces in cord-tester with same s-tag and c-tag to access vcpe instance
+	3. Verify all the interfaces gets dhcp IP in same subnet
+	"""
+        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+        for vcpe in vcpe_intfs:
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
+    def test_vsg_for_multiple_subscribers_with_same_vcpe_instance_and_validate_external_connectivity(self):
+        """
+        Algo:
+        1. Create a vcpe instance
+        2. Create multiple vcpe interfaces in cord-tester with same s-tag and c-tag to access vcpe instance
+        3. Verify all the interfaces gets dhcp IP in same subnet
+	4. From cord-tester ping to external  with vcpe interface option
+        """
+        host = '8.8.8.8'
+        vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
+            st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
+            assert_equal(st, 0)
+            self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
+        for vcpe in vcpe_intfs:
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+
+    def test_vsg_vcpe_interface_and_validate_dhcp_ip_after_interface_toggle(self):
+        """
+        Algo:
+        1. Create a vcpe instance
+        2. Create a vcpe interface in cord-tester
+        3. Verify the interface gets dhcp IP
+	4. Toggle the interface
+	5. Verify the interface gets dhcp IP
+        """
+        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+        for vcpe in vcpe_intfs:
+            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            assert_not_equal(vcpe_ip,None)
+            os.system('ifconfig {} down'.format(vcpe))
+            time.sleep(1)
+            os.system('ifconfig {} up'.format(vcpe))
+            time.sleep(1)
+            vcpe_ip2 = get_ip(vcpe)
+            assert_equal(vcpe_ip2,vcpe_ip)
+        for vcpe in vcpe_intfs:
+            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
 
     @deferred(TIMEOUT)
     def test_vsg_for_external_connectivity_with_vcpe_container_paused(self,vcpe_name=None,vcpe_intf=None):
@@ -2003,40 +2059,142 @@ class vsg_exchange(CordLogger):
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(4, subId)
 
-    def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
-        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
-	for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
-
-    def test_vsg_multiple_subscribers_for_same_vcpe_instance_ping_to_external_connectivity(self):
+    def test_vsg_with_xos_subscriber_creating_firewall(self,index=4):
+        log.info('cls.dhcp_vcpes is %s'%self.dhcp_vcpes)
         host = '8.8.8.8'
-        vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
-            st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
-            assert_equal(st, 0)
-            self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+        self.vsg_xos_subscriber_delete(4, 3)
+        subId = self.vsg_xos_subscriber_create(index)
+        if subId and subId != '0':
+            subscriber_info = self.subscriber_info[index]
+            volt_subscriber_info = self.volt_subscriber_info[index]
+            s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
+            c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
+            vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
+            vcpe_intf = self.dhcp_vcpes[index] #'vcpe{}.{}.{}'.format(s_tag, c_tag)
+            vsg = VSGAccess.get_vcpe_vsg(vcpe)
+            try:
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+                st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, True)
+                st,_ = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host))
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+            finally:
+                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host))
+                self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                vsg.run_cmd('sudo docker restart {}'.format(vcpe))
+            self.vsg_xos_subscriber_delete(4, subId)
+        self.vsg_xos_subscriber_delete(4, subId)
 
-    def test_vsg_vcpe_interface_gets_dhcp_ip_after_interface_toggle(self):
-        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-            os.system('ifconfig {} down'.format(vcpe))
-            time.sleep(1)
-            os.system('ifconfig {} up'.format(vcpe))
-            time.sleep(1)
-            vcpe_ip2 = get_ip(vcpe)
-            assert_equal(vcpe_ip2,vcpe_ip)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+    def test_onboarding_example_service(self):
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+ 	#Wait for ExampleService VM to come up
+	cmd = "nova list --all-tenants|grep 'exampleservice.*ACTIVE'"
+	status, output = ssh_agent.run_cmd(cmd)
+	assert_equal(status, True)
+	#Get ID of VM
+	cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	#Get mgmt IP of VM
+	cmd = 'nova interface-list {} |grep -o -m 1 172\.27\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, mgmt_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	#Get public IP of VM
+	cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	#Get name of compute node
+	cmd = "nova service-list|grep nova-compute|cut -d '|' -f 3"
+        status, compute_node = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	#Wait for Apache to come up inside VM
+	cmd = "ssh -o ProxyCommand='ssh -W %h:%p -l ubuntu {}' ubuntu@{} 'ls /var/run/apache2/apache2.pid'".fromat(compute_node,mgmt_ip)
+	#Make sure testclient has default route to vSG
+        cmd = "lxc exec testclient -- route | grep default | grep eth0.222.111"
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	cmd = 'lxc exec testclient -- apt-get install -y curl'
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	#Test connectivity to ExampleService from test client
+	cmd = 'lxc exec testclient -- curl -s http://{}'.format(public_ip)
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+
+    def test_vsg_onboarding_example_service(self):
+        if not vcpe_intf:
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        #Get public IP of VM
+        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        try:
+            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+            #curl request from test container
+            cmd = 'curl -s http://{}'.format(public_ip)
+            st,_ = getstatusoutput(cmd)
+            assert_equal(st, True)
+        finally:
+            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+
+    def test_subscriber_validating_example_service_after_subscriber_interface_toggle(self,vcpe_intf=None):
+	if not vcpe_intf:
+		vcpe_intf = self.dhcp_vcpes_reserved[0]
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        #Get public IP of VM
+        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	try:
+    	    self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+            #curl request from test container
+            cmd = 'curl -s http://{}'.format(public_ip)
+            st,_ = getstatusoutput(cmd)
+            assert_equal(st, True)
+	    st,_ = getstatusoutput('ifconfig {} down'.format(vcpe_intf))
+	    assert_equal(st, True)
+            st,_ = getstatusoutput(cmd)
+            assert_equal(st, True)
+	finally:
+	    self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+
+    def test_subscriber_example_service_after_service_restart(self, vcpe_intf=None):
+        if not vcpe_intf:
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        #Get public IP of VM
+        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        try:
+            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+            #curl request from test container
+            curl_cmd = 'curl -s http://{}'.format(public_ip)
+            st,_ = getstatusoutput(curl_cmd)
+            assert_equal(st, True)
+	    #restarting example service VM
+	    cmd = 'nova reset-state {}'.format(nova_id)
+	    status, _ = ssh_agent.run_cmd(cmd)
+            assert_equal(status, True)
+	    time.sleep(10)
+            st,_ = getstatusoutput(curl_cmd)
+            assert_equal(st, True)
+        finally:
+            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
 
     def test_vsg_for_dns_service(self):
 	"""
@@ -2051,7 +2209,7 @@ class vsg_exchange(CordLogger):
 	8. Verify that dns resolve should fail and hence ping
         """
 
-    def test_vsg_for_10_subscribers_for_same_service(self):
+    def test_vsg_with_10_subscribers_for_same_service(self):
 	"""
 	Algo:
 	1.Create a vSG VM in compute node
@@ -2061,29 +2219,7 @@ class vsg_exchange(CordLogger):
 	5.Verify that ping success for all 10 subscribers
 	"""
 
-    def test_vsg_for_10_subscribers_for_same_service_ping_invalid_ip(self):
-        """
-        Algo:
-        1.Create a vSG VM in compute Node
-	2.Create 10 vCPE containers for 10 subscribers, in vSG VM
-	3.Ensure vSG VM and vCPE container created properly
-        4.From each of the subscriber, with same s-tag and different c-tag, send a ping to invalid IP
-        5.Verify that ping fails for all 10 subscribers
-        """
-
-    def test_vsg_for_10_subscribers_for_same_service_ping_valid_and_invalid_ip(self):
-        """
-        Algo:
-        1.Create a vSG VM in VM
-	2.Create 10 vCPE containers for 10 subscribers, in vSG VM
-	3.Ensure vSG VM and vCPE container created properly
-        4.From first 5 subscribers, with same s-tag and different c-tag, send a ping to valid IP
-        5.Verify that ping success for all 5 subscribers
-        6.From next 5 subscribers, with same s-tag and different c-tag, send a ping to invalid IP
-        7.Verify that ping fails for all 5 subscribers
-        """
-
-    def test_vsg_for_100_subscribers_for_same_service(self):
+    def test_vsg_with_subscribers_for_same_service(self):
 	"""
 	Algo:
 	1.Create a vSG VM in compute node
@@ -2092,28 +2228,6 @@ class vsg_exchange(CordLogger):
 	4.From each of the subscriber, with same s-tag and different c-tag, send a ping to valid external public IP
 	5.Verify that ping success for all 100 subscribers
 	"""
-
-    def test_vsg_for_100_subscribers_for_same_service_ping_invalid_ip(self):
-        """
-        Algo:
-        1.Create a vSG VM in compute Node
-	2.Create 10 vCPE containers for 100 subscribers, in vSG VM
-	3.Ensure vSG VM and vCPE container created properly
-        4.From each of the subscriber, with same s-tag and different c-tag, send a ping to invalid IP
-        5.Verify that ping fails for all 100 subscribers
-        """
-
-    def test_vsg_for_100_subscribers_for_same_service_ping_valid_and_invalid_ip(self):
-        """
-        Algo:
-        1.Create a vSG VM in VM
-	2.Create 10 vCPE containers for 100 subscribers, in vSG VM
-	3.Ensure vSG VM and vCPE container created properly
-        4.From first 5 subscribers, with same s-tag and different c-tag, send a ping to valid IP
-        5.Verify that ping success for all 5 subscribers
-        6.From next 5 subscribers, with same s-tag and different c-tag, send a ping to invalid IP
-        7.Verify that ping fails for all 5 subscribers
-        """
 
     def test_vsg_for_packet_received_with_invalid_ip_fields(self):
 	"""
@@ -2228,7 +2342,7 @@ class vsg_exchange(CordLogger):
 	10.Verify that now, ping fails
         """
 
-    def test_vsg_for_restart_vcpe_instance(self):
+    def test_vsg_for_restarting_vcpe_instance(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2243,7 +2357,7 @@ class vsg_exchange(CordLogger):
         10.Verify that now,ping gets success and flows added in OvS
         """
 
-    def test_vsg_for_restart_vsg_vm(self):
+    def test_vsg_for_restarting_vsg_vm(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2259,7 +2373,7 @@ class vsg_exchange(CordLogger):
         11.Verify that now,ping gets success and flows added in OvS
         """
 
-    def test_vsg_for_pause_vcpe_instance(self):
+    def test_vsg_for_pause_of_vcpe_instance(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2278,7 +2392,7 @@ class vsg_exchange(CordLogger):
 	14.Verify ping success flows in OvS
         """
 
-    def test_vsg_for_extract_all_compute_stats_from_all_vcpe_containers(self):
+    def test_vsg_for_extracting_all_compute_stats_from_all_vcpe_containers(self):
 	"""
 	Algo:
 	1.Create a vSG VM in compute node
@@ -2289,7 +2403,7 @@ class vsg_exchange(CordLogger):
 	5.Verify the stats # verification method need to add
 	"""
 
-    def test_vsg_for_extract_dns_stats_from_all_vcpe_containers(self):
+    def test_vsg_for_extracting_dns_stats_from_all_vcpe_containers(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2304,7 +2418,7 @@ class vsg_exchange(CordLogger):
 	10.Verify dns stats for queries sent, queries received for dns host resolve success and failed scenarios
         """
 
-    def test_vsg_for_subscriber_access_two_vsg_services(self):
+    def test_subscriber_access_for_two_vsg_services(self):
 	"""
 	# Intention is to verify if subscriber can reach internet via two vSG VMs
 	Algo:
@@ -2319,7 +2433,7 @@ class vsg_exchange(CordLogger):
 	9.Verify ping success flows in OvS
 	"""
 
-    def test_vsg_for_subscriber_access_service2_if_service1_goes_down(self):
+    def test_subscriber_access_if_vsg1_goes_down(self):
 	"""
 	# Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
         Algo:
@@ -2336,7 +2450,7 @@ class vsg_exchange(CordLogger):
         9.Verify ping success and flows added in OvS
         """
 
-    def test_vsg_for_subscriber_access_service2_if_service1_goes_restart(self):
+    def test_subscriber_access_if_vsg2_goes_down(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
         Algo:
@@ -2353,7 +2467,7 @@ class vsg_exchange(CordLogger):
         11.Verify ping success and flows added in OvS
         """
 
-    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_goes_down(self):
+    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_going_down(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
         Algo:
@@ -2387,7 +2501,7 @@ class vsg_exchange(CordLogger):
         11..Verify ping success and flows added in OvS
         """
 
-    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_pause(self):
+    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_paused(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 paused
         Algo:
@@ -2491,7 +2605,7 @@ class vsg_exchange(CordLogger):
 	8.Now remove All the added devices in XOS
 	9.Verify all the devices removed
         """
-    def test_vsg_for_modify_subscriber_devices_in_vcpe(self):
+    def test_vsg_modifying_subscriber_devices_in_vcpe(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2506,7 +2620,7 @@ class vsg_exchange(CordLogger):
 	10.Now add few additional devices in XOS  under the same subscriber admin group
 	11.Verify newly added devices successfully added
         """
-    def test_vsg_for_vcpe_login_fails_with_incorrect_subscriber_credentials(self):
+    def test_vsg_for_vcpe_login_failing_with_incorrect_subscriber_credentials(self):
 	"""
 	Algo:
         1.Create a vSG VM in compute node
@@ -2521,7 +2635,7 @@ class vsg_exchange(CordLogger):
 	10.Logout and login again with incorrect credentials ( either user name or password )
 	11.Verify login attempt to vCPE fails wtih incorrect credentials
 	"""
-    def test_vsg_for_subscriber_configuration_in_vcpe_retain_after_vcpe_restart(self):
+    def test_vsg_for_subscriber_configuration_in_vcpe_after_vcpe_restart(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2534,7 +2648,7 @@ class vsg_exchange(CordLogger):
         8.Restart vCPE ( locate backup config path while restart )
         9.Verify subscriber details in vCPE after restart should be same as before the restart
         """
-    def test_vsg_for_create_multiple_vcpe_instances_and_configure_subscriber_in_each_instance(self):
+    def test_vsg_creating_multiple_vcpe_instances_and_configuring_subscriber_in_each_instance(self):
         """
         Algo:
         1.Create a vSG VM in compute node
@@ -2549,7 +2663,7 @@ class vsg_exchange(CordLogger):
 	10.Now login vCPE-1 with subscriber-1 and vCPE-2 with  subscriber-2 credentials
 	11.Verify that both the subscribers able to login to their respective vCPE containers
 	"""
-    def test_vsg_for_same_subscriber_can_be_configured_for_multiple_services(self):
+    def test_vsg_for_same_subscriber_configuring_multiple_services(self):
         """
         Algo:
         1.Create 2 vSG VMs in compute node
@@ -2562,44 +2676,6 @@ class vsg_exchange(CordLogger):
         8.Now login vCPE-2 with the same subscriber credentials
         9.Verify login success
         """
-
-    #Test Example Service
-    def test_vsg_for_subcriber_avail_example_service_running_in_apache_server(self):
-	"""
-	Algo:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in each vSG VM
-        3.Ensure VM and container created properly
-        4.Configure a subscriber in XOS for the vCPE instance and assign a service id
-	5.On-board an example service into cord pod
-	6.Create a VM in compute node and run the example service ( Apache server )
-	7.Configure the example service with service specific and subscriber specific messages
-	8.Verify example service on-boarded successfully
-	9.Verify example service running in VM
-	10.Run a curl command from subscriber to reach example service
-	11.Verify subscriber can successfully reach example service via vSG
-	12.Verify that service specific and subscriber specific messages
-	"""
-    def test_vsg_for_subcriber_avail_example_service_running_in_apache_server_after_service_restart(self):
-        """
-        Algo:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in each vSG VM
-        3.Ensure VM and container created properly
-        4.Configure a subscriber in XOS for the vCPE instance and assign a service id
-        5.On-board an example service into cord pod
-        6.Create a VM in compute node and run the example service ( Apache server )
-        7.Configure the example service with service specific and subscriber specific messages
-        8.Verify example service on-boarded successfully
-        9.Verify example service running in VM
-        10.Run a curl command from subscriber to reach example service
-        11.Verify subscriber can successfully reach example service via vSG
-        12.Verify that service specific and subscriber specific messages
-	13.Restart example service running in VM
-	14.Repeat step 10
-	15.Verify the same results as mentioned in steps 11, 12
-        """
-
     #vCPE Firewall Functionality
     def test_vsg_firewall_for_creating_acl_rule_based_on_source_ip(self):
         """
@@ -2674,3 +2750,4 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_iptables_with_neutron(self):
         pass
+
