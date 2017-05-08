@@ -2089,6 +2089,17 @@ class vsg_exchange(CordLogger):
             self.vsg_xos_subscriber_delete(4, subId)
         self.vsg_xos_subscriber_delete(4, subId)
 
+    def get_example_service_vm_public_ip(self,vm='mysite_exampleservice'):
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "nova list --all-tenants|grep {}|cut -d '|' -f 2".format(vm)
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        #Get public IP of VM
+        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+	return public_ip
+
     def test_onboarding_example_service(self):
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
  	#Wait for ExampleService VM to come up
@@ -2195,6 +2206,57 @@ class vsg_exchange(CordLogger):
             assert_equal(st, True)
         finally:
             self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+
+    def test_vsg_for_subcriber_with_example_service_running_apache_server_after_service_stop(self, vcpe_intf=None):
+        if not vcpe_intf:
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        #Get public IP of VM
+        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        try:
+            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+            #curl request from test container
+            curl_cmd = 'curl -s http://{}'.format(public_ip)
+            st,_ = getstatusoutput(curl_cmd)
+            assert_equal(st, True)
+            #restarting example service VM
+            cmd = 'nova stop {}'.format(nova_id)
+            status, _ = ssh_agent.run_cmd(cmd)
+            assert_equal(status, True)
+            time.sleep(1)
+            st,_ = getstatusoutput(curl_cmd)
+            assert_equal(st, False)
+            cmd = 'nova start {}'.format(nova_id)
+            status, _ = ssh_agent.run_cmd(cmd)
+            assert_equal(status, True)
+            time.sleep(1)
+            st,_ = getstatusoutput(curl_cmd)
+            assert_equal(st, True)
+        finally:
+            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+
+    def test_vsg_for_multiple_subcribers_with_same_example_service_running_apache_server(self):
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
+        status, nova_id = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        #Get public IP of VM
+        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
+        status, public_ip = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        for vcpe in self.dhcp_vcpes:
+            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe)
+            #curl request from test container
+            curl_cmd = 'curl -s http://{}'.format(public_ip)
+            st,_ = getstatusoutput(curl_cmd)
+            assert_equal(st, True)
+  	    self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe)
+	    time.sleep(1)
 
     def test_vsg_for_dns_service(self):
 	"""
