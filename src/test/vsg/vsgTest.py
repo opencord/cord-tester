@@ -16,6 +16,7 @@ import time
 import os
 import sys
 import json
+import requests
 from nose.tools import *
 from twisted.internet import defer
 from nose.twistedtools import reactor, deferred
@@ -514,6 +515,95 @@ class vsg_exchange(CordLogger):
         st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_equal(st, 0)
+
+    #Test cases to check path mtu across cord framework wih some selected websites to check response.
+    def test_vsg_to_retrieve_content_from_google_to_validate_path_mtu(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Retrieve contents from www.google.com and Verify response status is 200 ok.
+        4. This validates path mtu for end to end traffic with request to retrieve web contents in cord framework.
+           (Based on website response, size differs, needs check on MTU)
+        4. Restoring management interface configuration in  cord-tester
+        """
+        host = 'www.google.com'
+        vcpe = self.vcpe_dhcp
+        mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Initiating get requests to %s' %host)
+        r = requests.get('http://<%s>'%host)
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(r.status_code, 200)
+
+    def test_vsg_to_retrieve_content_from_rediff_to_validate_path_mtu(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Retrieve contents from www.rediff.com and Verify response status is 200 ok.
+        4. This validates path mtu for end to end traffic with request to retrieve web contents in cord framework.
+           (Based on website response, size differs, needs check on MTU)
+        4. Restoring management interface configuration in  cord-tester
+        """
+        host = 'www.rediff.com'
+        vcpe = self.vcpe_dhcp
+        mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Initiating get requests to %s' %host)
+        r = requests.get('http://<%s>'%host)
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(r.status_code, 200)
+
+    def test_vsg_to_retrieve_content_from_yahoo_to_validate_path_mtu(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Retrieve contents from www.yahoo.com and Verify response status is 200 ok.
+        4. This validates path mtu for end to end traffic with request to retrieve web contents in cord framework.
+           (Based on website response, size differs, needs check on MTU)
+        4. Restoring management interface configuration in  cord-tester
+        """
+        host = 'www.yahoo.com'
+        vcpe = self.vcpe_dhcp
+        mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Initiating get requests to %s' %host)
+        r = requests.get('http://<%s>'%host)
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(r.status_code, 200)
+
+    def test_vsg_to_retrieve_content_from_facebook_to_validate_path_mtu(self):
+        """
+        Algo:
+        1. Get dhcp IP to vcpe interface in cord-tester
+        2. Verifying vcpe interface gets dhcp IP
+        3. Retrieve contents from www.facebook.com and Verify response status is 200 ok.
+        4. This validates path mtu for end to end traffic with request to retrieve web contents in cord framework.
+           (Based on website response, size differs, needs check on MTU)
+        4. Restoring management interface configuration in  cord-tester
+        """
+        host = 'www.facebook.com'
+        vcpe = self.vcpe_dhcp
+        mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Initiating get requests to %s' %host)
+        r = requests.get('http://<%s>'%host)
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(r.status_code, 200)
 
     def test_vsg_for_external_connectivity_to_invalid_host(self):
         """
