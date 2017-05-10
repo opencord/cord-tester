@@ -386,7 +386,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_health(self):
         """
-        Algo:
+        Test Method:
         1. Login to compute node VM
         2. Get all vSGs
         3. Ping to all vSGs
@@ -399,7 +399,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_health_check(self, vsg_name='mysite_vsg-1', verify_status=True):
         """
-        Algo:
+        Test Method:
 	1. If vsg name not specified, Get vsg corresponding to vcpe
         1. Login to compute mode VM
         3. Ping to the vSG
@@ -424,7 +424,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_for_vcpe(self):
         """
-        Algo:
+        Test Method:
 	1. Get list of all compute nodes created using Openstack
         2. Login to compute mode VM
         3. Get all vSGs
@@ -444,7 +444,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_login(self):
         """
-        Algo:
+        Test Method:
         1. Login to compute node VM
         2. Get all vSGs
         3. Verifying login to vSG is success
@@ -458,7 +458,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_default_route_through_testclient(self):
 	"""
-	Algo:
+	Test Method:
 	1. Login to head node
 	2. Verifying for default route in lxc test client
 	"""
@@ -471,7 +471,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_through_testclient(self):
         """
-        Algo:
+        Test Method:
         1. Login to head node
         2. On head node, executing ping to 8.8.8.8 from lxc test client
 	3. Verifying for the ping success
@@ -485,7 +485,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Ping to 8.8.8.8 and Verifying ping should success
@@ -498,7 +498,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_to_google(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Ping to www.google.com and Verifying ping should success
@@ -531,7 +531,7 @@ class vsg_exchange(CordLogger):
     #Test cases to check path mtu across cord framework wih some selected websites to check response.
     def test_vsg_to_retrieve_content_from_google_to_validate_path_mtu(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Retrieve contents from www.google.com and Verify response status is 200 ok.
@@ -544,7 +544,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_to_retrieve_content_from_rediff_to_validate_path_mtu(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Retrieve contents from www.rediff.com and Verify response status is 200 ok.
@@ -557,7 +557,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_to_retrieve_content_from_yahoo_to_validate_path_mtu(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Retrieve contents from www.yahoo.com and Verify response status is 200 ok.
@@ -570,7 +570,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_to_retrieve_content_from_facebook_to_validate_path_mtu(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Retrieve contents from www.facebook.com and Verify response status is 200 ok.
@@ -583,7 +583,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_to_invalid_host(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Ping to www.goglee.com and Verifying ping should not success
@@ -603,7 +603,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_with_ttl_1(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Ping to 8.8.8.8 with ttl set to 1
@@ -624,7 +624,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_with_wan_interface_toggle_in_vcpe(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Ping to 8.8.8.8 and Verifying ping succeeds
@@ -669,7 +669,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe(self):
         """
-        Algo:
+        Test Method:
         1. Get dhcp IP to vcpe interface in cord-tester
         2. Verifying vcpe interface gets dhcp IP
         3. Ping to 8.8.8.8 and Verifying ping should success
@@ -714,7 +714,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
 	"""
-	Algo:
+	Test Method:
 	1. Create a vcpe instance
 	2. Create multiple vcpe interfaces in cord-tester with same s-tag and c-tag to access vcpe instance
 	3. Verify all the interfaces gets dhcp IP in same subnet
@@ -728,7 +728,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_multiple_subscribers_with_same_vcpe_instance_and_validate_external_connectivity(self):
         """
-        Algo:
+        Test Method:
         1. Create a vcpe instance
         2. Create multiple vcpe interfaces in cord-tester with same s-tag and c-tag to access vcpe instance
         3. Verify all the interfaces gets dhcp IP in same subnet
@@ -748,7 +748,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_vcpe_interface_and_validate_dhcp_ip_after_interface_toggle(self):
         """
-        Algo:
+        Test Method:
         1. Create a vcpe instance
         2. Create a vcpe interface in cord-tester
         3. Verify the interface gets dhcp IP
@@ -771,7 +771,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_for_external_connectivity_after_restarting_vcpe_instance(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Get dhcp ip to vcpe interface
         3. Add static route to destination route in test container
@@ -806,7 +806,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_for_external_connectivity_after_restarting_vsg_vm(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Get dhcp ip to vcpe interface
         3. Add static route to destination route in test container
@@ -841,7 +841,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_for_external_connectivity_with_vcpe_container_paused(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
 	2. Get dhcp ip to vcpe interface
 	3. Add static route to destination route in test container
@@ -877,7 +877,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_with_deny_destination_ip(self, vcpe_name=None, vcpe_intf=None):
 	"""
-	Algo:
+	Test Method:
 	1. Get vSG corresponding to vcpe
 	2. Login to compute node
 	3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -913,7 +913,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_with_rule_add_and_delete_dest_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -955,7 +955,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_verifying_reachability_for_non_blocked_dest_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -996,7 +996,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_appending_rules_with_deny_dest_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP1
@@ -1045,7 +1045,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_removing_one_rule_denying_dest_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP1
@@ -1096,7 +1096,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_changing_rule_id_deny_dest_ip(self,vcpe_name=None,vcpe_intf=None):
 	"""
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -1138,7 +1138,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_changing_deny_rule_to_accept_dest_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -1181,7 +1181,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT) #Fail
     def test_vsg_firewall_denying_destination_network(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP subnet
@@ -1223,7 +1223,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_denying_destination_network_subnet_modification(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP subnet
@@ -1275,7 +1275,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_with_deny_source_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a source IP
@@ -1313,7 +1313,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_rule_with_add_and_delete_deny_source_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a source IP
@@ -1357,7 +1357,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_rule_with_deny_icmp_protocol_echo_requests_type(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny icmp echo-requests type protocol packets
@@ -1399,7 +1399,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_rule_with_deny_icmp_protocol_echo_reply_type(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny icmp echo-reply type protocol packets
@@ -1441,7 +1441,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_requests_type(self, vcpe_name=None, vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny icmp echo-requests type protocol packets
@@ -1484,7 +1484,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_changing_deny_rule_to_accept_rule_with_icmp_protocol_echo_reply_type(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny icmp echo-reply type protocol packets
@@ -1527,7 +1527,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_for_deny_icmp_protocol(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny icmp protocol packets
@@ -1569,7 +1569,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_rule_deny_icmp_protocol_and_destination_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -1624,7 +1624,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT) #Fail
     def test_vsg_firewall_flushing_all_configured_rules(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny a destination IP
@@ -1674,7 +1674,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_ipv4_traffic(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all ipv4 Traffic
@@ -1716,7 +1716,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_replacing_deny_rule_to_accept_rule_ipv4_traffic(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all ipv4 Traffic
@@ -1758,7 +1758,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_traffic_coming_on_lan_interface_in_vcpe(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all the  traffic coming on lan interface inside vcpe container
@@ -1800,7 +1800,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_traffic_going_out_of_wan_interface_in_vcpe(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all the  traffic going out of wan interface inside vcpe container
@@ -1842,7 +1842,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_traffic_from_lan_to_wan_in_vcpe(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all the  traffic from lan to wan interface in vcpe
@@ -1885,7 +1885,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_dns_traffic(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all dns Traffic
@@ -1928,7 +1928,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_firewall_deny_all_ipv4_traffic_vcpe_container_restart(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all dns Traffic
@@ -1971,7 +1971,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_dnat_modifying_destination_ip(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all dns Traffic
@@ -2008,7 +2008,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_dnat_modifying_destination_ip_and_delete(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all dns Traffic
@@ -2048,7 +2048,7 @@ class vsg_exchange(CordLogger):
     @deferred(TIMEOUT)
     def test_vsg_dnat_change_modifying_destination_ip_address(self,vcpe_name=None,vcpe_intf=None):
         """
-        Algo:
+        Test Method:
         1. Get vSG corresponding to vcpe
         2. Login to compute node
         3. Execute iptable command on vcpe from compute node to deny all dns Traffic
@@ -2262,7 +2262,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_packet_received_with_invalid_ip_fields(self):
 	"""
-	Algo:
+	Test Method:
 	1.Create a vSG VM in compute node
 	2.Create a vCPE container in vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2273,7 +2273,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_packet_received_with_invalid_mac_fields(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure vSG VM and vCPE container created properly
@@ -2284,7 +2284,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_vlan_id_mismatch_in_stag(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute Node
 	2.Create a vCPE container in vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2296,7 +2296,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_vlan_id_mismatch_in_ctag(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
 	2.Create a vCPE container in vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2308,7 +2308,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_matching_and_mismatching_vlan_id_in_stag(self):
         """
-        Algo:
+        Test Method:
         1.Create two vSG VMs in compute node
 	2.Create a vCPE container in each vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2319,7 +2319,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_matching_and_mismatching_vlan_id_in_ctag(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
 	2.Create two vCPE containers in vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2330,7 +2330,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_out_of_range_vlanid_in_ctag(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
 	2.Create a vCPE container in vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2340,7 +2340,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_out_of_range_vlanid_in_stag(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
 	2.Create a vCPE container in vSG VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2350,7 +2350,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_extracting_all_compute_stats_from_all_vcpe_containers(self):
 	"""
-	Algo:
+	Test Method:
 	1.Create a vSG VM in compute node
 	2.Create 10 vCPE containers in VM
 	3.Ensure vSG VM and vCPE containers created properly
@@ -2361,7 +2361,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_extracting_dns_stats_from_all_vcpe_containers(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create 10 vCPE containers in VM
         3.Ensure vSG VM and vCPE containers created properly
@@ -2377,7 +2377,7 @@ class vsg_exchange(CordLogger):
     def test_subscriber_access_if_vsg1_goes_down(self):
 	"""
 	# Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
-        Algo:
+        Test Method:
         1.Create two vSG VMs for two services in compute node
         2.Create one vCPE container in each VM for one subscriber
         3.Ensure VMs and containers created properly
@@ -2394,7 +2394,7 @@ class vsg_exchange(CordLogger):
     def test_subscriber_access_if_vsg2_goes_down(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
-        Algo:
+        Test Method:
         1.Create two vSG VMs for two services in compute node
         2.Create one vCPE container in each VM for one subscriber
         3.Ensure VMs and containers created properly
@@ -2411,7 +2411,7 @@ class vsg_exchange(CordLogger):
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_going_down(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create two vCPE containers corresponds to two subscribers in vSG VM
         3.Ensure VM and containers created properly
@@ -2428,7 +2428,7 @@ class vsg_exchange(CordLogger):
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_restart(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create two vCPE containers corresponds to two subscribers in vSG VM
         3.Ensure VM and containers created properly
@@ -2445,7 +2445,7 @@ class vsg_exchange(CordLogger):
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_paused(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 paused
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create two vCPE containers corresponds to two subscribers in vSG VM
         3.Ensure VM and containers created properly
@@ -2461,7 +2461,7 @@ class vsg_exchange(CordLogger):
     def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_removed(self):
         """
         # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 removed
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create two vCPE containers corresponds to two subscribers in vSG VM
         3.Ensure VM and containers created properly
@@ -2477,7 +2477,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_vcpe_instance_removed_and_added_again(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2495,7 +2495,7 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_vsg_vm_removed_and_added_again(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2514,7 +2514,7 @@ class vsg_exchange(CordLogger):
     #Test vSG - Subscriber Configuration
     def test_vsg_for_configuring_new_subscriber_in_vcpe(self):
 	"""
-	Algo:
+	Test Method:
 	1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2524,7 +2524,7 @@ class vsg_exchange(CordLogger):
 	"""
     def test_vsg_for_adding_subscriber_devices_in_vcpe(self):
 	"""
-	Algo:
+	Test Method:
 	1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2535,7 +2535,7 @@ class vsg_exchange(CordLogger):
 	"""
     def test_vsg_for_removing_subscriber_devices_in_vcpe(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2548,7 +2548,7 @@ class vsg_exchange(CordLogger):
         """
     def test_vsg_modifying_subscriber_devices_in_vcpe(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2563,7 +2563,7 @@ class vsg_exchange(CordLogger):
         """
     def test_vsg_for_vcpe_login_failing_with_incorrect_subscriber_credentials(self):
 	"""
-	Algo:
+	Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2578,7 +2578,7 @@ class vsg_exchange(CordLogger):
 	"""
     def test_vsg_for_subscriber_configuration_in_vcpe_after_vcpe_restart(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create a vCPE container in vSG VM
         3.Ensure VM and containers created properly
@@ -2591,7 +2591,7 @@ class vsg_exchange(CordLogger):
         """
     def test_vsg_creating_multiple_vcpe_instances_and_configuring_subscriber_in_each_instance(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create 2 vCPE containers in vSG VM
         3.Ensure VM and containers created properly
@@ -2606,7 +2606,7 @@ class vsg_exchange(CordLogger):
 	"""
     def test_vsg_for_same_subscriber_configuring_multiple_services(self):
         """
-        Algo:
+        Test Method:
         1.Create 2 vSG VMs in compute node
         2.Create a vCPE container in each vSG VM
         3.Ensure VMs and containers created properly
@@ -2620,7 +2620,7 @@ class vsg_exchange(CordLogger):
     #vCPE Firewall Functionality
     def test_vsg_firewall_for_creating_acl_rule_based_on_source_ip(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create vCPE container in the VM
         3.Ensure vSG VM and vCPE container created properly
@@ -2631,7 +2631,7 @@ class vsg_exchange(CordLogger):
         """
     def test_vsg_firewall_for_creating_acl_rule_based_on_destination_ip(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create vCPE container in the VM
         3.Ensure vSG VM and vCPE container created properly
@@ -2642,7 +2642,7 @@ class vsg_exchange(CordLogger):
         """
     def test_vsg_firewall_for_acl_deny_rule_based_on_source_ip_traffic(self):
 	"""
-	Algo:
+	Test Method:
 	1.Create a vSG VM in compute node
 	2.Create vCPE container in the VM
 	3.Ensure vSG VM and vCPE container created properly
@@ -2654,7 +2654,7 @@ class vsg_exchange(CordLogger):
 	"""
     def test_vsg_firewall_for_acl_deny_rule_based_on_destination_ip_traffic(self):
         """
-        Algo:
+        Test Method:
         1.Create a vSG VM in compute node
         2.Create vCPE container in the VM
         3.Ensure vSG VM and vCPE container created properly

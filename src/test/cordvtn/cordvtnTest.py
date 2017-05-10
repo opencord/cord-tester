@@ -705,7 +705,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
-        Algo:
+        Test Method:
         0. Create vtn_test_1_net.
         1. Do GET Rest API and validate creation of network.
         2. Validate network on neutron openstack.
@@ -717,7 +717,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_network_creation_and_validation_on_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -740,7 +740,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_neutron_network_deletion_recreation_and_validation_on_head_node_with_neutron_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -758,7 +758,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_neutron_network_deletion_recreation_and_validation_on_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -838,7 +838,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_management_network_creation_and_post_network_type_management_local_to_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         2. Run sync command for cordvtn
@@ -879,7 +879,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_management_network_creation_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -909,7 +909,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_public_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork who ip is under management network
         2. Run sync command for cordvtn
@@ -927,7 +927,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_public_network_creation_and_validation_on_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whoes ip is under management network
         2. Run sync command for cordvtn
@@ -961,7 +961,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_public_network_creation_and_post_network_type_as_public_to_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         2. Run sync command for cordvtn
@@ -1003,7 +1003,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_public_network_creation_with_launching_nova_instance_and_validation_on_head_node_with_nova_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under public network
         3. Do GET Rest API and validate creation of network
@@ -1032,7 +1032,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_private_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork who ip is under private network
         2. Run sync command for cordvtn
@@ -1050,7 +1050,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_private_network_creation_and_validation_on_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whoes ip is under management network
         2. Run sync command for cordvtn
@@ -1085,7 +1085,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_private_network_creation_and_post_network_type_as_private_to_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         2. Run sync command for cordvtn
@@ -1127,7 +1127,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_private_network_creation_launching_nova_instance_and_validating_on_head_node_with_nova_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under private network
         3. Do GET Rest API and validate creation of network
@@ -1156,7 +1156,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_management_network_instance_and_validate_connectivity_from_host_machine_or_compute_node(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1197,7 +1197,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_for_management_network_instance_and_validate_connectivity_to_external_network(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1237,7 +1237,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_management_network_creating_two_instances_and_validate_connectivity_between_two(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1287,7 +1287,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_management_network_instances_and_validate_connectivity_between_two_networks_via_management_network(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1330,7 +1330,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_public_network_instance_and_validate_connectivity_from_host_machine_or_compute_node(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under public network
         3. Do GET Rest API and validate creation of network
@@ -1370,7 +1370,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_public_network_instance_and_validate_connectivity_to_external_network(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under public network
         3. Do GET Rest API and validate creation of network
@@ -1410,7 +1410,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_public_network_with_two_instances_and_validate_connectivity_between_two(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under public network
         3. Do GET Rest API and validate creation of network
@@ -1460,7 +1460,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_public_network_instances_and_check_connectvity_between_two_networks_via_public_network(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under public network
         3. Do GET Rest API and validate creation of network
@@ -1503,7 +1503,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_private_network_instance_and_validate_connectivity_from_host_machine_or_compute_node(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under private network
         3. Do GET Rest API and validate creation of network
@@ -1543,7 +1543,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_private_network_instance_and_validate_connectivity_to_external_network(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under private network
         3. Do GET Rest API and validate creation of network
@@ -1583,7 +1583,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_private_network_with_two_instances_and_check_connectvity_between_two_instances(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under private network
         3. Do GET Rest API and validate creation of network
@@ -1633,7 +1633,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_private_network_instances_and_validate_connectivity_between_two_networks_via_private_network(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under private network
         3. Do GET Rest API and validate creation of network
@@ -1676,7 +1676,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_management_and_public_network_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1741,7 +1741,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_management_and_public_network_instance_with_and_without_pause_and_validate_connectivity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1831,7 +1831,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_management_and_public_network_instance_doing_suspend_and_resume_validating_connectivity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -1921,7 +1921,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_public_network_instance_with_stopping_and_starting_instances_and_checking_connectvity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2011,7 +2011,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_private_network_instance_and_validate_connectivity_from_host_machine_or_compute_node_and_validate_connectivity_to_internet(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2075,7 +2075,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_private_network_with_two_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_check_connectivity_to_other_instance(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2141,7 +2141,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_private_network_with_two_instances_with_and_without_pause_validating_connectivity_from_host_machine_or_compute_node_and_validating_connectivity_to_other_instance(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2233,7 +2233,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_private_network_with_two_instances_and_doing_suspend_and_resume_validating_connectivity_from_host_machine_or_compute_node_and_validating_connectivity_to_other_instance(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2325,7 +2325,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_private_network_with_two_instances_applying_stop_and_start_validating_connectivity_from_host_machine_or_compute_node_and_validating_connectivity_to_other_instance(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2407,7 +2407,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_mgmt_and_two_private_network_with_each_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_check_connectivity_to_other_instance(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2474,7 +2474,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_service_dependency_without_xos_creating_mgmt_and_two_private_network_with_each_instances_and_validate_connectivity_from_host_machine_or_compute_node_and_check_connectivity_to_other_instance(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2545,7 +2545,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_management_network_instance_and_validate_connectivity_from_host_machine_or_compute_node_after_br_int_bridge_is_down(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2600,7 +2600,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_management_network_instance_and_validate_connectivity_from_host_machine_or_compute_node_toggling_br_int_bridge(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2659,7 +2659,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_management_network_instance_and_validate_connectivity_from_host_machine_or_compute_node_checking_onos_flows(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2735,7 +2735,7 @@ class cordvtn_exchange(CordLogger):
         ##### We can't test port-create scenarios on CiaB setup.  #### To-DO
     def test_cordvtn_creating_vtn_with_vlan_port_connectivity_and_validate_connectivity_from_host_machine_or_compute_node(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Create subnetwork whose ip is under management network
         3. Do GET Rest API and validate creation of network
@@ -2782,7 +2782,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_neutron_network_creation_and_validation_on_head_node_with_neutron_service(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -2801,7 +2801,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_network_creation_and_validation_on_onos(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -2824,7 +2824,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_network_deletion_and_validation_on_neutron_openstack(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -2843,7 +2843,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_network_sync(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -2868,7 +2868,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_neutron_port_sync(self):
         """
-        Algo:
+        Test Method:
         0. Create Test-Net,
         1. Load cordvtn config, vtn-cfg-1.json to cord-onos
         2. Run sync command for cordvtn
@@ -2893,7 +2893,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network(self):
 	"""
-	Algo:
+	Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -2906,7 +2906,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_local_management_network(self):
 	"""
-	Algo:
+	Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -2919,7 +2919,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_vlan_connectivity_network(self):
 	"""
-	Algo:
+	Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -2932,7 +2932,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network(self):
 	"""
-	Algo:
+	Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -2945,7 +2945,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_image(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -2963,7 +2963,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_public_network_and_boot_image(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -2981,7 +2981,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -2998,7 +2998,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_image(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3015,7 +3015,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_image(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3032,7 +3032,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -3050,7 +3050,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_public_network_and_boot_2_images_in_same_service(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3068,7 +3068,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_local_management_network_and_boot_2_images_in_same_service(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3086,7 +3086,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_2_images_in_same_service(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3104,7 +3104,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_2_images_in_same_service(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3122,7 +3122,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -3142,7 +3142,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_public_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3163,7 +3163,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3184,7 +3184,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3204,7 +3204,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3224,7 +3224,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -3243,7 +3243,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3262,7 +3262,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3281,7 +3281,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3300,7 +3300,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3319,7 +3319,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -3338,7 +3338,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3357,7 +3357,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3376,7 +3376,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3395,7 +3395,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_floating_IP_with_vlan_connectivity_network_and_boot_image_connectivity_negative_scenario(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3415,7 +3415,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_private_network_and_boot_image_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -3437,7 +3437,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_public_network_and_boot_image_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3459,7 +3459,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3482,7 +3482,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_floating_private_network_and_boot_image_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -3504,7 +3504,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_floating_public_network_and_boot_image_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3526,7 +3526,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3548,7 +3548,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_public_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -3569,7 +3569,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_local_management_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3590,7 +3590,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3611,7 +3611,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3632,7 +3632,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_local_management_other_public_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -3653,7 +3653,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3674,7 +3674,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_and_a_private_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3695,7 +3695,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_vlan_connectivity_other_local_management_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a vlan port-create.
@@ -3716,7 +3716,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_other_local_management_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3737,7 +3737,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_one_virtual_floating_IP_with_vlan_connectivity_other_virtual_vlan_network_and_boot_2_images_in_same_service_connectivity_negative_scenario(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with a floating ip and vlan port-create.
@@ -3757,7 +3757,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_public_network_and_boot_2_images_with_invalid_public_field_of_onos_network_cfg_json_in_same_service(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push network_cfg.json config file to onos with an invalid public gateway ip in network_cfg.json file.
@@ -3780,7 +3780,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_with_invalid_localManagementIp_field_of_onos_network_cfg_json(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push network_cfg.json config file to onos with an invalid localManagement ip in network_cfg.json file.
@@ -3800,7 +3800,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_image_with_invalid_OVSDB_port_field_of_onos_network_cfg_json(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push network_cfg.json config file to onos with an invalid ovsdb port in network_cfg.json file.
@@ -3818,7 +3818,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_image_with_invalid_OpenStack_details_in_onos_network_cfg_json(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push network_cfg.json config file to onos with an invalid openstack in network_cfg.json file.
@@ -3836,7 +3836,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_image_with_invalid_compute_node_details_in_onos_network_cfg_json(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push network_cfg.json config file to onos with an invalid compute node details in network_cfg.json file.
@@ -3855,7 +3855,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_in_different_services_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with an IP as private network.
@@ -3876,7 +3876,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_public_networks_and_boot_images_in_different_service_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with an IP as public network.
@@ -3897,7 +3897,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_local_management_networks_and_boot_images_in_different_service_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with an IP as local management network.
@@ -3918,7 +3918,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_vlan_connectivity_networks_and_boot_images_in_different_service_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with a vlan port-create.
@@ -3938,7 +3938,7 @@ class cordvtn_exchange(CordLogger):
 	pass
     def test_cordvtn_creating_two_virtual_floating_IP_with_vlan_connectivity_networks_and_boot_images_in_different_service_connectivity(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create two networks with name - NetA and NetB with a floating ip and vlan port-create.
@@ -3959,7 +3959,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_out_xos_direct_access(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push service dependency data.json file to onos to subscriber of other service.
@@ -3982,7 +3982,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_out_xos_indirect_access(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push service dependency data.json file to onos to subscriber of other service.
@@ -4005,7 +4005,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_remove_services_dependency_with_out_xos_direct_access(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push service dependency data.json file to onos to subscriber of other service.
@@ -4031,7 +4031,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_remove_services_dependency_with_out_xos_indirect_access(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push service dependency data.json file to onos to subscriber of other service.
@@ -4057,7 +4057,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_xos_direct_access(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Validate that XOS is up and running.
@@ -4079,7 +4079,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_two_virtual_private_networks_and_boot_images_for_services_dependency_with_xos_indirect_access(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Validate that XOS is up and running.
@@ -4101,7 +4101,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_access_agent_serviceType_and_vtn_location_field_network_cfg_connectivity_to_access_device(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must be access-agent container.
@@ -4120,7 +4120,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_access_agent_serviceType_and_vtn_location_field_in_network_cfg_connectivity_to_head_node(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must be access-agent container.
@@ -4139,7 +4139,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_access_agent_serviceType_and_invalid_vtn_location_field_network_cfg_connectivity_to_access_device(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must not be access-agent container.
@@ -4158,7 +4158,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_with_access_agent_serviceType_and_invalid_vtn_location_field_in_network_cfg_connectivity_to_head_node(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) Push access-agent additional network_cfg to ONOS and specify vtn-location field info must not be access-agent container.
@@ -4177,7 +4177,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_restarting_VMs(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -4198,7 +4198,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_restarting_cord_onos(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -4219,7 +4219,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_delete_any_VM_recreating_it(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -4240,7 +4240,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_private_network_and_boot_2_images_in_same_service_connectivity_after_delete_and_add_br_int_bridge(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as private network.
@@ -4263,7 +4263,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_restarting_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -4285,7 +4285,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -4307,7 +4307,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -4329,7 +4329,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_public_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as public network.
@@ -4352,7 +4352,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_restarting_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4373,7 +4373,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4394,7 +4394,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4415,7 +4415,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_local_management_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4437,7 +4437,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_restarting_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4461,7 +4461,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4485,7 +4485,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4509,7 +4509,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_local_management_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4534,7 +4534,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_restarting_VM(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4557,7 +4557,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_restarting_cord_onos(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4579,7 +4579,7 @@ class cordvtn_exchange(CordLogger):
 
     def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_delete_and_recreate_VM(self):
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
@@ -4602,7 +4602,7 @@ class cordvtn_exchange(CordLogger):
     def test_cordvtn_creating_virtual_vlan_interface_floating_local_management_network_and_boot_image_connectivity_after_delete_and_add_br_int_bridge(self):
 
         """
-	 Algo:
+	 Test Method:
 	    1) Validate that required openstack service is up and running.
 	    2) Validate that compute node is being created and get compute node name by using "sudo cord prov list".
 	    3) From CORD-Test container, use python-neutron client and create network with name - NetA with an IP as local management  network.
