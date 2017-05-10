@@ -516,6 +516,18 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_equal(st, 0)
 
+    def retrieve_content_from_host_to_validate_path_mtu(self, host):
+        vcpe = self.vcpe_dhcp
+        mgmt = 'eth0'
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Initiating get requests to %s' %host)
+        r = requests.get('http://{}'.format(host))
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        return r.status_code
+
     #Test cases to check path mtu across cord framework wih some selected websites to check response.
     def test_vsg_to_retrieve_content_from_google_to_validate_path_mtu(self):
         """
@@ -527,17 +539,8 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        host = 'www.google.com'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Initiating get requests to %s' %host)
-        r = requests.get('http://<%s>'%host)
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(r.status_code, 200)
+        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.google.com')
+        assert_equal(status_code, 200)
 
     def test_vsg_to_retrieve_content_from_rediff_to_validate_path_mtu(self):
         """
@@ -549,17 +552,8 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        host = 'www.rediff.com'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Initiating get requests to %s' %host)
-        r = requests.get('http://<%s>'%host)
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(r.status_code, 200)
+        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.rediff.com')
+        assert_equal(status_code, 200)
 
     def test_vsg_to_retrieve_content_from_yahoo_to_validate_path_mtu(self):
         """
@@ -571,17 +565,8 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        host = 'www.yahoo.com'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Initiating get requests to %s' %host)
-        r = requests.get('http://<%s>'%host)
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(r.status_code, 200)
+        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.yahoo.com')
+        assert_equal(status_code, 200)
 
     def test_vsg_to_retrieve_content_from_facebook_to_validate_path_mtu(self):
         """
@@ -593,17 +578,8 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        host = 'www.facebook.com'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Initiating get requests to %s' %host)
-        r = requests.get('http://<%s>'%host)
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(r.status_code, 200)
+        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.facebook.com')
+        assert_equal(status_code, 200)
 
     def test_vsg_for_external_connectivity_to_invalid_host(self):
         """
@@ -2902,4 +2878,3 @@ class vsg_exchange(CordLogger):
 
     def test_vsg_for_iptables_with_neutron(self):
         pass
-
