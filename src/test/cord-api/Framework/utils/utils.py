@@ -7,6 +7,7 @@ import robot
 import os.path
 from os.path import expanduser
 import uuid
+import random
 
 class utils(object):
 
@@ -218,6 +219,15 @@ class utils(object):
 
     def generate_uuid(self):
         return uuid.uuid4()
+
+    def generate_random_number_from_blacklist(self, blacklist, min=100, max=500, typeTag=False):
+        num = None
+        while num in blacklist or num is None:
+            num = random.randrange(int(min), int(max))
+        if typeTag:
+            return num
+        else:
+            return str(num)
 
 '''
 #Test
