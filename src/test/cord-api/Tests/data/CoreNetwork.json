@@ -1,0 +1,16 @@
+{
+    "NetworkInfo": [
+        {
+            "backend_status": "0 - Provisioning in progress",
+            "name": "test-network",
+            "template_id": 1,
+            "owner_id": 1,
+            "guaranteed_bandwidth": 0,
+            "permit_all_slices": true,
+            "autoconnect": false,
+            "subnet": "2.2.2.0/24",
+            "start_ip": "2.2.2.2",
+            "end_ip": "2.2.2.254"
+        }
+    ]
+}

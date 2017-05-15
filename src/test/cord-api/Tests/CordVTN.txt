@@ -10,122 +10,266 @@ Library           XML
 Library           RequestsLibrary
 Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
+Library           ../Framework/utils/openstackUtils.py
 Variables         ../Properties/RestApiProperties.py
 Resource           ../Framework/utils/utils.robot
 
 *** Variables ***
-${VM_USER}            admin
-${VM_PASS}            admin
-${SSH_KEY}            id_rsa.pub
-${ONOS_CORDVTN_API}   http://onos-cord:8182/onos/cordvtn
+${VM_USER}                         admin
+${VM_PASS}                         admin
+${SSH_KEY}                         id_rsa.pub
+${ONOS_CORDVTN_API}                http://onos-cord:8182/onos/cordvtn
+${CORE_SERVICE_PATHFILE}           ${CURDIR}/data/Service.json
+${CORE_NETWORK_PATHFILE}           ${CURDIR}/data/CoreNetwork.json
+${CORE_SLICE_PATHFILE}             ${CURDIR}/data/CoreSlice.json
+${CORE_NETWORK_SLICE_PATHFILE}     ${CURDIR}/data/CoreNetworkSlice.json
+${CORE_INSTANCE_PATHFILE}          ${CURDIR}/data/CoreInstance.json
+${CORD_SUBSCRIBER_PATHFILE}        ${CURDIR}/data/CordSubscriber.json
+${VOLT_TENANT_PATHFILE}            ${CURDIR}/data/CordVoltTenant.json
 
 *** Test Cases ***
-Get Compute Node Hostname + IP
-    [Documentation]    Logs into ciab server and executes a 'cord prov list' on the headnode to get the compute node
-    [Tags]    computenode
-    ${compute_node_hostname}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $2}'
-    ${compute_node_ip}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $4}'
-    Set Suite Variable    ${compute_node_hostname}
-    set suite variable    ${compute_node_ip}
-
-Get ONOSCORD Container ID
-    [Documentation]    Logs into ciab server and extracts the onoscord container id on the headnode
-    [Tags]    onoscord
-    ${onoscord_id}=    Get Docker Container ID    ${SERVER_IP}    onoscord    ${VM_USER}    ${VM_PASS}
-
 Validate Default OVS Flow Count
     [Documentation]    Logs into the compute-node where OVS is running and validates the default flow count
     [Tags]    ovsflows
-    ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | wc -l
-    ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
-    Should Be Equal As Integers    ${ovs_flow_count}    42
-
-Validate Default Flow Count in ONOS
-    [Documentation]    Validates the number of flows pushed down by onos (should match number flow count in ovs)
-    [Tags]    onosflows    notready
-    Log    Validating ONOS Flow Count
+    Wait Until Keyword Succeeds    30s    5s    Validate Flow Count    42
 
 Validate Current VTN Service Networks and Ports
-    [Documentation]    Makes rest calls to both XOS and ONOSCORD to validate the default VTN Service Networks + Ports
-    [Tags]    vtnservice
+    [Documentation]    Makes rest calls to XOS to validate the default VTN Service Networks + Ports (public,management,exampleservice_network,mysite_vsg-access)
+    [Tags]    vtn
     Validate Default CIAB Service Networks and Ports via XOS
-    ${serviceNetworks}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -X GET -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/serviceNetworks; echo
-    Validate Default CIAB Service Networks via ONOSCORD    ${serviceNetworks}
-    ${servicePorts}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -X GET -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/servicePorts; echo
-    Validate Default CIAB Service Ports via ONOSCORD    ${servicePorts}
+
+Validate Default Subscriber
+    [Documentation]    Validates the default subscriber set up in CIAB (My House)
+    [Tags]    vsg
+    ${resp}=    CORD GET    ${SERVER_IP}    ${VOLT_SUBSCRIBER}/1
+    Should Be Equal As Strings    ${resp.status_code}    200
+    Log    ${resp.content}
+    ${name}=    Get Json Value    ${resp.content}    /name
+    ${service_specific_id}=    Get Json Value    ${resp.content}    /service_specific_id
+    ${uplink_speed}=    Get Json Value    ${resp.content}    /uplink_speed
+    Should Be Equal As Strings    ${name}    "My House"
+    Should Be Equal As Strings    ${service_specific_id}    "123"
+    Should Be Equal As Strings    ${uplink_speed}    1000000000
+
+Create New Test Service
+    [Documentation]    Creates a generic service that will be used for the new VTN Network
+    [Tags]    vtn
+    ${updatedcservList}=    utils.setFieldValueInDict    ${cservlist[0]}    name    CordVTN-Test-Service
+    ${updatedcservList}=    utils.setFieldValueInDict    ${updatedcservList}    description    Test Service for CordVTN Test Suite
+    ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SERVICES}    ${updatedcservList}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${name}=    Get Json Value    ${resp.content}    /name
+    ${generic_service_id}=    Get Json Value    ${resp.content}    /id
+    ${description}=    Get Json Value    ${resp.content}    /description
+    ${kind}=    Get Json Value    ${resp.content}    /kind
+    Should Be Equal As Strings    ${name}    "CordVTN-Test-Service"
+    Should Be Equal As Strings    ${description}    "Test Service for CordVTN Test Suite"
+    Should Be Equal As Strings    ${kind}    "generic"
+    Set Suite Variable    ${generic_service_id}
 
 Create New VTN Service Network
-    [Documentation]    Makes a POST Request from the head-node to the ONOS Cord-VTN App to create a new service network
-    [Tags]    vtnservice
-    ${network_uuid}=    Generate UUID
-    Set Suite Variable    ${network_uuid}
-    ${networkCreation}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -s -o /dev/null -w "\%{http_code}" -X POST -u karaf:karaf -H "Content-Type: application/json" -d '{"ServiceNetwork": {"id": "${network_uuid}", "type": "PRIVATE", "name": "APITEST", "segment_id": 2221, "subnet": "2.2.2.0/24", "service_ip": "2.2.2.1", "providers": [{"id": "${public_network_id}", "bidirectional": true}]}}' http://onos-cord:8182/onos/cordvtn/serviceNetworks; echo
-    Should Be Equal As Integers    ${networkCreation}    201
-    ${new_network}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -X GET -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/serviceNetworks/${network_uuid}; echo
-    Log    ${new_network}
-    ${name}=    Get Json Value    ${new_network}    /ServiceNetwork/name
-    ${type}=    Get Json Value    ${new_network}    /ServiceNetwork/type
-    ${segment_id}=    Get Json Value    ${new_network}    /ServiceNetwork/segment_id
-    ${subnet}=    Get Json Value    ${new_network}    /ServiceNetwork/subnet
-    ${service_ip}=    Get Json Value    ${new_network}    /ServiceNetwork/service_ip
-    Should Be Equal As Strings    ${name}    "APITEST"
-    Should Be Equal As Strings    ${type}    "PRIVATE"
-    Should Be Equal As Strings    ${segment_id}    2221
+    [Documentation]    Makes a POST Request to XOS to create a new core network
+    [Tags]    vtn
+    ${updatedCnList}=    utils.setFieldValueInDict    ${cnlist[0]}    template_id    ${vsg_network_template_id}
+    ${updatedCnList}=    utils.setFieldValueInDict    ${updatedCnList}    owner_id    ${vsg_slice_id}
+    Log    ${updatedCnList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORKS}    ${cnlist[0]}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${name}=    Get Json Value    ${resp.content}    /name
+    ${network_id}=    Get Json Value    ${resp.content}    /id
+    ${subnet}=    Get Json Value    ${resp.content}    /subnet
+    ${start_ip}=    Get Json Value    ${resp.content}    /start_ip
+    ${end_ip}=    Get Json Value    ${resp.content}    /end_ip
+    Should Be Equal As Strings    ${name}    "test-network"
     Should Be Equal As Strings    ${subnet}    "2.2.2.0/24"
-    Should Be Equal As Strings    ${service_ip}    "2.2.2.1"
+    Should Be Equal As Strings    ${start_ip}    "2.2.2.2"
+    Should Be Equal As Strings    ${end_ip}    "2.2.2.254"
+    Set Suite Variable    ${network_id}
 
-Create New VTN Service Port
-    [Documentation]    Makes a POST Request from the head-node to the ONOS Cord-VTN App to create a new service port for the newly created network
-    [Tags]    vtnservice
-    ${port_uuid}=    Generate UUID
-    Set Suite Variable    ${port_uuid}
-    ${networkCreation}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -s -o /dev/null -w "\%{http_code}" -X POST -u karaf:karaf -H "Content-Type: application/json" -d '{"ServicePort": {"id": "${port_uuid}", "network_id": "${network_uuid}", "name": "APITESTPORT", "mac_address": "FA:16:3E:A8:A1:AA", "ip_address": "2.2.2.1", "floating_address_pairs":[{"ip_address":"3.3.3.1","mac_address":"02:42:0A:06:01:11"}]}}' http://onos-cord:8182/onos/cordvtn/servicePorts; echo
-    Should Be Equal As Integers    ${networkCreation}    201
-    ${new_port}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -X GET -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/servicePorts/${port_uuid}; echo
-    Log    ${new_port}
-    ${name}=    Get Json Value    ${new_port}    /ServicePort/name
-    ${netId}=    Get Json Value    ${new_port}    /ServicePort/network_id
-    ${mac_address}=    Get Json Value    ${new_port}    /ServicePort/mac_address
-    ${ip_address}=    Get Json Value    ${new_port}    /ServicePort/ip_address
-    ${floating_pairs}=    Get Json Value    ${new_port}    /ServicePort/floating_address_pairs
-    Should Be Equal As Strings    ${name}    "APITESTPORT"
-    Should Be Equal As Strings    ${netId}    "${network_uuid}"
-    Should Be Equal As Strings    ${mac_address}    "FA:16:3E:A8:A1:AA"
-    Should Be Equal As Strings    ${ip_address}    "2.2.2.1"
+Create New Slice with New Test Service
+    [Documentation]    Makes a POST Request to XOS to create a new slice and adds new generic test service to that slice
+    [Tags]    vtn
+    ${updatedCsList}=    utils.setFieldValueInDict    ${cslist[0]}    service_id    ${generic_service_id}
+    Log    ${updatedCsList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SLICES}    ${updatedCsList}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${name}=    Get Json Value    ${resp.content}    /name
+    ${new_slice_id}=    Get Json Value    ${resp.content}    /id
+    ${max_instances}=    Get Json Value    ${resp.content}    /max_instances
+    ${ser_id}=    Get Json Value    ${resp.content}    /service_id
+    ${default_isolation}=    Get Json Value    ${resp.content}    /default_isolation
+    Should Be Equal As Strings    ${name}    "mysite_testservice"
+    Should Be Equal As Strings    ${max_instances}    10
+    Should Be Equal As Strings    ${ser_id}    ${generic_service_id}
+    Should Be Equal As Strings    ${default_isolation}    "vm"
+    Set Suite Variable    ${new_slice_id}
+
+Add Networks to New Test Network Slice
+    [Documentation]    Creates a new network slice for the new slice and adds mgmt and new network to it
+    [Tags]    vsg
+    ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${network_id}
+    ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
+    Log    ${updatedCsList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORK_SLICES}    ${updatedCsList}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${s_id}=    Get Json Value    ${resp.content}    /slice_id
+    ${n_id}=    Get Json Value    ${resp.content}    /network_id
+    Should Be Equal As Strings    ${s_id}    ${new_slice_id}
+    Should Be Equal As Strings    ${n_id}    ${network_id}
+    ##Add mgmt network to this network slice
+    ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${mgmt_network_id}
+    ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
+    Log    ${updatedCsList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORK_SLICES}    ${updatedCsList}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${s_id}=    Get Json Value    ${resp.content}    /slice_id
+    ${n_id}=    Get Json Value    ${resp.content}    /network_id
+    Should Be Equal As Strings    ${s_id}    ${new_slice_id}
+    Should Be Equal As Strings    ${n_id}    ${mgmt_network_id}
+
+Create New Test Instance
+    [Documentation]    Creates a new instance for the test service
+    [Tags]    vsg
+    ${updatedCiList}=    utils.setFieldValueInDict    ${cilist[0]}    slice_id    ${new_slice_id}
+    ${updatedCiList}=    utils.setFieldValueInDict    ${updatedCiList}    image_id    ${image_id}
+    Log    ${updatedCiList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${updatedCiList}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${new_instance_id}=    Get Json Value    ${resp.content}    /id
+    ${slice_id}=    Get Json Value    ${resp.content}    /slice_id
+    ${i_id}=    Get Json Value    ${resp.content}    /image_id
+    ${node_id}=    Get Json Value    ${resp.content}    /node_id
+    ${name}=    Get Json Value    ${resp.content}    /name
+    ${instance_name}=    Get Json Value    ${resp.content}    /instance_name
+    Should Be Equal As Strings    ${slice_id}    ${new_slice_id}
+    Should Be Equal As Strings    ${i_id}    ${image_id}
+    Should Be Equal As Strings    ${node_id}    1
+    Should Be Equal As Strings    ${name}    "mysite_testservice"
+    Should Be Equal As Strings    ${instance_name}    "mysite_testservice-1"
+    Set Suite Variable    ${new_instance_id}
+
+Validate New OVS Flow Count
+    [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
+    [Tags]    ovsflows
+    Wait Until Keyword Succeeds    300s    5s    Validate Flow Count    49
+
+Validate Creation of Openstack Resources
+    [Documentation]    Retrieves openstack compute node state and validates the new network and instance has been created properly
+    [Tags]    openstack
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Network    test-network    2.2.2.0/24
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    mysite_testservice-1*    test-network
 
 Validate New Flows Pushed to OVS
-    [Documentation]    Logs into the compute-node where OVS is running and validates the default flow count
+    [Documentation]    Logs into the compute-node where OVS is running and validates the new flows added
     [Tags]    vtnservice
     ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
-    Should Be Equal As Integers    ${ovs_flow_count}    3
+    Should Be Equal As Integers    ${ovs_flow_count}    2
     ${flows_added}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int
     ${flows_added}=    Get Lines Containing String    ${flows_added}    cookie=
     Log    ${flows_added}
     ## Match src/dst (bi-directional) rules on new flows added
-    Should Contain    ${flows_added}    nw_src=2.2.2.0/24,nw_dst=10.6.1.192/26
-    Should Contain    ${flows_added}    nw_src=10.6.1.192/26,nw_dst=2.2.2.0/24
-    Should Contain    ${flows_added}    nw_src=2.2.2.0/24,nw_dst=10.6.1.193
+    Should Contain    ${flows_added}    nw_src=2.2.2.0/24,nw_dst=2.2.2.0/24
 
-Delete VTN Service Port
-    [Documentation]    Makes a DELETE Request from the head-node to the ONOS Cord-VTN App to delete the new service port
-    [Tags]    vtnservice
-    ${networkDeletion}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -s -o /dev/null -w "\%{http_code}" -X DELETE -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/servicePorts/${port_uuid}; echo
-    Should Be Equal As Integers    ${networkDeletion}    204
-    ${get_port}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -s -o /dev/null -w "\%{http_code}" -X GET -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/servicePorts/${port_uuid}; echo
-    Should Be Equal As Integers    ${get_port}    404
+Create New Cord Subscriber
+    [Documentation]    Creates a new cord root subscriber
+    [Tags]    vsg
+    ${blacklist_sr_ids}=    Get Subscriber Root IDs in Use
+    ${ss_id}=    Generate Random Number from Blacklist    ${blacklist_sr_ids}
+    Set Suite Variable    ${ss_id}
+    ${updatedcsList}=    utils.setFieldValueInDict    ${csubList[0]}    service_specific_id    ${ss_id}
+    Log    ${updatedcsList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${VOLT_SUBSCRIBER}    ${updatedcsList}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${subscriber_root_id}=    Get Json Value    ${resp.content}    /id
+    ${kind}=    Get Json Value    ${resp.content}    /kind
+    ${enable_uverse}=    Get Json Value    ${resp.content}    /enable_uverse
+    ${uplink_speed}=    Get Json Value    ${resp.content}    /uplink_speed
+    ${downlink_speed}=    Get Json Value    ${resp.content}    /downlink_speed
+    ${status}=    Get Json Value    ${resp.content}    /status
+    ${is_demo_user}=    Get Json Value    ${resp.content}    /is_demo_user
+    ${service_specific_id}=    Get Json Value    ${resp.content}    /service_specific_id
+    Should Be Equal As Strings    ${kind}    "CordSubscriberRoot"
+    Should Be Equal As Strings    ${enable_uverse}    true
+    Should Be Equal As Strings    ${uplink_speed}    1000000011
+    Should Be Equal As Strings    ${downlink_speed}    1000000011
+    Should Be Equal As Strings    ${status}    "enabled"
+    Should Be Equal As Strings    ${is_demo_user}    false
+    Should Be Equal As Strings    ${service_specific_id}    "${ss_id}"
+    Set Suite Variable    ${service_specific_id}
+    Set Suite Variable    ${subscriber_root_id}
 
-Delete VTN Service Network
-    [Documentation]    Makes a DELETE Request from the head-node to the ONOS Cord-VTN App to delete the created service network
-    [Tags]    vtnservice
-    ${networkDeletion}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -s -o /dev/null -w "\%{http_code}" -X DELETE -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/serviceNetworks/${network_uuid}; echo
-    Should Be Equal As Integers    ${networkDeletion}    204
-    ${get_network}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    curl -s -o /dev/null -w "\%{http_code}" -X GET -u karaf:karaf -H "Content-Type: application/json" http://onos-cord:8182/onos/cordvtn/serviceNetworks/${network_uuid}; echo
-    Should Be Equal As Integers    ${get_network}    404
+Create New Volt Tenant for New Cord Subscriber
+    [Documentation]    Creates a new volt tenant for the newly created cord root subscriber
+    [Tags]    vsg
+    ${blacklist_tags}=    Get Tags in Use
+    Log    ${blacklist_tags}
+    ${s_tag}=    Generate Random Number from Blacklist    ${blacklist_tags}    1    4096    True
+    Append To List    ${blacklist_tags}    ${s_tag}
+    ${c_tag}=    Generate Random Number from Blacklist    ${blacklist_tags}    1    4096    True
+    Append To List    ${blacklist_tags}    ${c_tag}
+    Log    ${blacklist_tags}
+    ${updatedvtList}=    utils.setFieldValueInDict    ${vtList[0]}    provider_service_id    ${volt_service_id}
+    ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    subscriber_root_id    ${subscriber_root_id}
+    ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    s_tag    ${s_tag}
+    ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    c_tag    ${c_tag}
+    Log    ${updatedvtList}
+    ${resp}=    Cord POST    ${SERVER_IP}    ${VOLT_TENANT}    ${vtList[0]}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${volt_tenant_id}=    Get Json Value    ${resp.content}    /id
+    ${stag}=    Get Json Value    ${resp.content}    /s_tag
+    ${ctag}=    Get Json Value    ${resp.content}    /c_tag
+    ${kind}=    Get Json Value    ${resp.content}    /kind
+    ${prov_service_id}=    Get Json Value    ${resp.content}    /provider_service_id
+    Should Be Equal As Strings    ${stag}    ${s_tag}
+    Should Be Equal As Strings    ${ctag}    ${c_tag}
+    Should Be Equal As Strings    ${kind}    "vOLT"
+    Should Be Equal As Strings    ${prov_service_id}    ${volt_service_id}
+    Set Suite Variable    ${volt_tenant_id}
+
+Validate Creation of New Subscriber Instance
+    [Documentation]    Validates instance (vm) for new subscriber is created in the vsg slice
+    [Tags]    openstack
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    mysite_vsg-*    mysite_vsg-access
+
+Delete Volt Tenant
+    [Documentation]    Deletes new volt tenant
+    [Tags]    delete
+    ${resp}=    Cord DELETE    ${SERVER_IP}    ${VOLT_TENANT}    ${volt_tenant_id}
+    Should Be Equal As Strings    ${resp.status_code}    200
+
+Delete Cord Subscriber
+    [Documentation]    Deletes new cord subscriber
+    [Tags]    deletes
+    ${resp}=    Cord DELETE    ${SERVER_IP}    ${VOLT_SUBSCRIBER}    ${subscriber_root_id}
+    Should Be Equal As Strings    ${resp.status_code}    200
+
+Delete Test Instance
+    [Documentation]    Deletes the test instance created previously
+    [Tags]    delete
+    ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${new_instance_id}
+    Should Be Equal As Strings    ${resp.status_code}    200
+
+Delete Test Slice
+    [Documentation]    Deletes the test slice created previously
+    [Tags]    delete
+    ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_SLICES}    ${new_slice_id}
+    Should Be Equal As Strings    ${resp.status_code}    200
+
+Delete VTN Test Network
+    [Documentation]    Deletes the test network created previously
+    [Tags]    delete
+    ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_NETWORKS}    ${network_id}
+    Should Be Equal As Strings    ${resp.status_code}    200
+
+Validate New OVS Flow Count
+    [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
+    [Tags]    ovsflows
+    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    42
 
 Validate New Flows Removed From OVS
     [Documentation]    Validates that the flow rules added by ONOS from the network creation has been removed
-    [Tags]    vtnservice
+    [Tags]    ovsflows
     ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    0
@@ -133,62 +277,96 @@ Validate New Flows Removed From OVS
     ${flows_added}=    Get Lines Containing String    ${flows_added}    cookie=
     Log    ${flows_added}
     ## Validate flow rules arent in the flows table
-    Should Not Contain    ${flows_added}    nw_src=2.2.2.0/24,nw_dst=10.6.1.192/26
-    Should Not Contain    ${flows_added}    nw_src=10.6.1.192/26,nw_dst=2.2.2.0/24
-    Should Not Contain    ${flows_added}    nw_src=2.2.2.0/24,nw_dst=10.6.1.193
+    Should Not Contain    ${flows_added}    nw_src=2.2.2.0/24,nw_dst=2.2.2.0/24
 
 *** Keywords ***
 Suite Setup
     ${auth} =    Create List    ${USER}    ${PASSWD}
-    Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}
+    ${HEADERS}    Create Dictionary    Content-Type=application/json
+    Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
+    Read InputFile
+    ${vsg_service_id}=    Get ID    ${CH_CORE_SERVICES}    name    vsg
+    Set Suite Variable    ${vsg_service_id}
+    ${vsg_network_template_id}=    Get ID    ${CH_CORE_NETWORK_TEMPLATES}    name    vsg
+    Set Suite Variable    ${vsg_network_template_id}
+    ${mgmt_network_id}=    Get ID    ${CH_CORE_NETWORKS}    name    management
+    Set Suite Variable    ${mgmt_network_id}
+    ${vsg_slice_id}=    Get ID    ${CH_CORE_SLICES}    name    mysite_vsg
+    Set Suite Variable    ${vsg_slice_id}
+    ${volt_service_id}=    Get ID    ${CH_CORE_SERVICES}    name    volt
+    Set Suite Variable    ${volt_service_id}
+    ${image_id}=    Get ID    ${CH_CORE_IMAGES}    name    trusty-server-multi-nic
+    Set Suite Variable    ${image_id}
+    ##Get compute node information
+    ${compute_node_hostname}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $2}'
+    ${compute_node_ip}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $4}'
+    Set Suite Variable    ${compute_node_hostname}
+    set suite variable    ${compute_node_ip}
 
 Suite Teardown
     Delete All Sessions
     Close All Connections
 
+Read InputFile
+    ${coreServiceList} =    utils.jsonToList    ${CORE_SERVICE_PATHFILE}    ServiceInfo
+    Set Suite Variable    ${cservlist}    ${coreServiceList}
+    ${coreNetworkList} =    utils.jsonToList    ${CORE_NETWORK_PATHFILE}    NetworkInfo
+    Set Suite Variable    ${cnlist}    ${coreNetworkList}
+    ${coreSliceList} =    utils.jsonToList    ${CORE_SLICE_PATHFILE}    SliceInfo
+    Set Suite Variable    ${cslist}    ${coreSliceList}
+    ${coreNetworkSliceList} =    utils.jsonToList    ${CORE_NETWORK_SLICE_PATHFILE}    NetworkSliceInfo
+    Set Suite Variable    ${cnslist}    ${coreNetworkSliceList}
+    ${coreInstanceList} =    utils.jsonToList    ${CORE_INSTANCE_PATHFILE}    InstanceInfo
+    Set Suite Variable    ${cilist}    ${coreInstanceList}
+    ${cordSubscriberList} =    utils.jsonToList    ${CORD_SUBSCRIBER_PATHFILE}    CordSubscriberInfo
+    Set Suite Variable    ${csubList}    ${cordSubscriberList}
+    ${voltTenantList} =    utils.jsonToList    ${VOLT_TENANT_PATHFILE}    VoltTenantInfo
+    Set Suite Variable    ${vtList}    ${voltTenantList}
+
 CORD Get
-    [Documentation]    Make a rest call to the CORD controller
+    [Documentation]    Make a GET call to the CORD controller
     [Arguments]    ${session}    ${service}
     ${resp}=    Get Request    ${session}    ${service}
     Log    ${resp.content}
     [Return]    ${resp}
 
+CORD Post
+    [Documentation]    Make a POST call to the CORD controller
+    [Arguments]    ${session}    ${service}    ${data}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Post Request    ${session}    uri=${service}    data=${data}
+    Log    ${resp.content}
+    [Return]    ${resp}
+
+CORD Delete
+    [Documentation]    Make a DELETE call to the CORD controller
+    [Arguments]    ${session}    ${service}    ${id}
+    ${resp}=    Delete Request    ${session}    uri=${service}/${id}
+    Log    ${resp.content}
+    [Return]    ${resp}
+
 Validate Default CIAB Service Networks and Ports via XOS
     [Documentation]    Using XOS API, this validates the default VTN Service Networks + Ports for a CIAB Environment
-    @{expected_types}=    Create List    PUBLIC    PRIVATE    MANAGEMENT_LOCAL    VSG
-    @{expected_owner_slices}=    Create List    mysite_public    mysite_exampleservice    mysite_management    mysite_vsg
     @{expected_network_names}=    Create List    public    management    exampleservice_network    mysite_vsg-access
-    @{types}=    Create List
-    @{ownerSlices}=    Create List
+    @{names}=    Create List
     @{network_names}=    Create List
-    ${resp}=    CORD GET    ${SERVER_IP}    /api/service/vtn/serviceNetworks/
+    ${resp}=    CORD GET    ${SERVER_IP}   ${CH_CORE_NETWORKS}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    ${length}=    Get Length    ${jsondata['serviceNetworks']}
+    Log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
     Should Be Equal As Integers    ${length}    4
     : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${item}=    Get From List    ${jsondata['serviceNetworks']}    ${INDEX}
-    \    ${type}=    Get From Dictionary    ${item}    type
-    \    ${ownerSliceName}=    Get From Dictionary    ${item}    ownerSliceName
-    \    Append To List    ${types}    ${type}
-    \    Append To List    ${ownerSlices}    ${ownerSliceName}
-    : FOR    ${value}    IN    @{expected_types}
-    \    List Should Contain Value    ${types}    ${value}
-    : FOR    ${value}    IN    @{expected_owner_slices}
-    \    List Should Contain Value    ${ownerSlices}    ${value}
-    ${resp}=    CORD GET    ${SERVER_IP}    /api/service/vtn/servicePorts/
+    \    ${item}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${name}=    Get From Dictionary    ${item}    name
+    \    Append To List    ${names}    ${name}
+    : FOR    ${value}    IN    @{expected_network_names}
+    \    List Should Contain Value    ${names}    ${value}
+    ${resp}=    CORD GET    ${SERVER_IP}    ${CH_CORE_PORTS}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    ${length}=    Get Length    ${jsondata['servicePorts']}
+    ${length}=    Get Length    ${jsondata['items']}
     Should Be Equal As Integers    ${length}    5
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${item}=    Get From List    ${jsondata['servicePorts']}    ${INDEX}
-    \    ${network_name}=    Get From Dictionary    ${item}    network_name
-    \    Append To List    ${network_names}    ${network_name}
-    : FOR    ${value}    IN    @{expected_network_names}
-    \    List Should Contain Value    ${network_names}    ${value}
-    ${management_len}=    Count Values in List    ${network_names}    management
-    Should Be Equal As Integers    ${management_len}    2
 
 Validate Default CIAB Service Networks via ONOSCORD
     [Documentation]    Validates the default VTN Service Network via ONOSCORD for a CIAB Environment
@@ -232,3 +410,77 @@ Validate Default CIAB Service Ports via ONOSCORD
     \    List Should Contain Value    ${network_ids}    ${value}
     ${management_len}=    Count Values in List    ${net_ids}    ${management_network_id}
     Should Be Equal As Integers    ${management_len}    2
+
+Get ID
+    [Documentation]    Retreives the id of any specific component
+    [Arguments]    ${endpoint}    ${item}    ${match}
+    ${resp}=    CORD GET    ${SERVER_IP}   ${endpoint}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${jsondata}=    To Json    ${resp.content}
+    Log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
+    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${name}=    Get From Dictionary    ${value}    ${item}
+    \    ${id}=    Get From Dictionary    ${value}    id
+    \    Run Keyword If    '${name}' == '${match}'    Exit For Loop
+    [Return]    ${id}
+
+Validate Flow Count
+    [Documentation]    Gets the count of the flows pushed to an ovs switch and validates that against expected count
+    [Arguments]    ${count}
+    ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | wc -l
+    ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
+    Should Be Equal As Integers    ${ovs_flow_count}    ${count}
+
+Get Subscriber Root IDs in Use
+    [Documentation]    Retrieves information for current subscribers and "blacklists" their subscriber root ids
+    @{sr_id_blacklist}=    Create List
+    ${resp}=    CORD GET    ${SERVER_IP}    ${VOLT_SUBSCRIBER}
+    ${jsondata}=    To Json    ${resp.content}
+    ${length}=    Get Length    ${jsondata['items']}
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
+    \    ${item}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${id}=    Get From Dictionary    ${item}    service_specific_id
+    \    Append To List    ${sr_id_blacklist}    ${id}
+   [Return]    @{sr_id_blacklist}
+
+Get Tags in Use
+    [Documentation]    Retrieves information for current active volt tenants and "blacklists" their s/c tags
+    @{tag_blacklist}=    Create List
+    ${resp}=    CORD GET    ${SERVER_IP}    ${VOLT_TENANT}
+    ${jsondata}=    To Json    ${resp.content}
+    ${length}=    Get Length    ${jsondata['items']}
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
+    \    ${item}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${s_tag}=    Get From Dictionary    ${item}    s_tag
+    \    ${c_tag}=    Get From Dictionary    ${item}    c_tag
+    \    Append To List    ${tag_blacklist}    ${s_tag}
+    \    Append To List    ${tag_blacklist}    ${c_tag}
+   [Return]    @{tag_blacklist}
+
+Get Openstack Info
+    [Documentation]    Executes a command in the prod vm in a CIAB environment where openstack is running
+    [Arguments]    ${cmd}
+    ${output}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    source admin-openrc.sh; ${cmd}    strip_line=False
+    Log    ${output}
+    [Return]    ${output}
+
+Validate Openstack Network
+    [Documentation]    Validates that a particular network/subnet exists
+    [Arguments]    ${network_name}    ${subnet}
+    ${netlist}=    Get Openstack Info    neutron net-list
+    Log    ${netlist}
+    ${NET_DICT}=    openstackUtils.Get Neutron Lists    ${netlist}
+    Log    ${NET_DICT}
+    ${test-net}=    Get From Dictionary    ${NET_DICT}    ${network_name}
+    Should Contain    ${test-net}    ${subnet}
+
+Validate Openstack Nova Instance
+    [Documentation]    Validates that a particular nova instance/tenant exists
+    [Arguments]    ${instance_name}    ${network}    ${destroyed}=False
+    ${novalist}=    Get Openstack Info    nova list --all-tenants
+    Log    ${novalist}
+    ${NOVA_DICT}=    openstackUtils.Get Nova Lists    ${novalist}    ${instance_name}
+    Log    ${NOVA_DICT}
+    Should Contain    ${NOVA_DICT}    ${network}

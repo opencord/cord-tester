@@ -1,0 +1,14 @@
+{
+    "VoltTenantInfo": [
+        {
+            "backend_status": "0 - Provisioning in progress",
+            "kind": "vOLT",
+            "subscriber_root_id": 1,
+            "connect_method": "na",
+            "provider_service_id": 1,
+            "creator_id": 1,
+            "s_tag": 1,
+            "c_tag": 1
+        }
+    ]
+}
