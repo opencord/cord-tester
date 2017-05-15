@@ -1,0 +1,14 @@
+{
+    "NetworkSliceInfo": [
+        {
+            "backend_status": "0 - Provisioning in progress",
+            "network_id": 1,
+            "slice_id": 1
+        },
+        {
+            "backend_status": "0 - Provisioning in progress",
+            "network_id": 2,
+            "slice_id": 2
+        }
+    ]
+}

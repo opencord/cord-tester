@@ -7,6 +7,7 @@ import robot
 import os.path
 from os.path import expanduser
 import uuid
+import fileinput
 
 class utils(object):
 
@@ -127,11 +128,17 @@ class utils(object):
     def getDictFromListOfDict(self, getJsonDataList, searchKey, searchKeyValue):
         return_dict = {}
         result = ''
+        print 'TESTING'
+        print type(getJsonDataList)
         for data in getJsonDataList:
+            print "DATA"
+            print data.keys()
             return_dict = {}
             found = False
             input_keys = data.keys()
             for key in input_keys:
+                print 'TESTINGGGGGG'
+                print key
                 if key == searchKey and str(data[key]) == str(searchKeyValue):
                    found = True
                    return_dict = data
