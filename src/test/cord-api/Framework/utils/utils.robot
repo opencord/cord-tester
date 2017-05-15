@@ -25,7 +25,7 @@ Run Command On Remote System
     [Return]    ${output}
 
 Execute Command on CIAB Server in Specific VM
-    [Arguments]    ${system}    ${vm}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True
+    [Arguments]    ${system}    ${vm}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True    ${strip_line}=True
     [Documentation]    SSHs into ${HOST} where CIAB is running and executes a command in the Prod Vagrant VM where all the containers are running
     ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=${prompt}    timeout=300s
     Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}    ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/${SSH_KEY}    any
@@ -34,7 +34,8 @@ Execute Command on CIAB Server in Specific VM
     SSHLibrary.Write    ${cmd}
     ${output}=    SSHLibrary.Read Until Prompt
     SSHLibrary.Close Connection
-    ${output}=    Get Line    ${output}    0
+    ${output_1}=    Run Keyword If    '${strip_line}' == 'True'    Get Line    ${output}    0
+    ${output}=    Set Variable If    '${strip_line}' == 'True'    ${output_1}    ${output}
     [Return]    ${output}
 
 Execute Command on Compute Node in CIAB
