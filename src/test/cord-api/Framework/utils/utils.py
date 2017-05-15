@@ -216,7 +216,6 @@ class utils(object):
 
     def generate_uuid(self):
         return uuid.uuid4()
-
 '''
 #Test
 dict_list = {
