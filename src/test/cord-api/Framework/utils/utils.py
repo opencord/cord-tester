@@ -7,6 +7,8 @@ import robot
 import os.path
 from os.path import expanduser
 import uuid
+import random
+import re
 
 class utils(object):
 
@@ -128,12 +130,10 @@ class utils(object):
         return_dict = {}
         result = ''
         for data in getJsonDataList:
-            print "data..",data
             return_dict = {}
             found = False
             input_keys = data.keys()
             for key in input_keys:
-                print "key in input_keys...",key
                 if key == searchKey and str(data[key]) == str(searchKeyValue):
                    found = True
                    return_dict = data
@@ -219,254 +219,31 @@ class utils(object):
     def generate_uuid(self):
         return uuid.uuid4()
 
+    def generate_random_number_from_blacklist(self, blacklist, min=100, max=500, typeTag=False):
+        num = None
+        while num in blacklist or num is None:
+            num = random.randrange(int(min), int(max))
+        if typeTag:
+            return num
+        else:
+            return str(num)
+
 '''
 #Test
 dict_list = {
-[
-    {
-        "humanReadableName": "mysite_vsg-1",
-        "validators": {
-            "policed": [],
-            "creator": [],
-            "ip": [],
-            "image": [
-                "notBlank"
-            ],
-            "backend_register": [
-                "notBlank"
-            ],
-            "flavor": [
-                "notBlank"
-            ],
-            "backend_status": [
-                "notBlank"
-            ],
-            "id": [],
-            "instance_name": [],
-            "slice": [
-                "notBlank"
-            ],
-            "backend_need_delete": [],
-            "enacted": [],
-            "no_sync": [],
-            "node": [
-                "notBlank"
-            ],
-            "userData": [],
-            "updated": [
-                "notBlank"
-            ],
-            "parent": [],
-            "deleted": [],
-            "lazy_blocked": [],
-            "deployment": [
-                "notBlank"
-            ],
-            "backend_need_reap": [],
-            "instance_uuid": [],
-            "numberCores": [
-                "notBlank"
-            ],
-            "name": [
-                "notBlank"
-            ],
-            "created": [],
-            "write_protect": [],
-            "isolation": [
-                "notBlank"
-            ],
-            "no_policy": [],
-            "instance_id": [],
-            "volumes": []
+ "humanReadableName": "cordSubscriber-17",
+        "id": 17,
+        "features": {
+            "uplink_speed": 1000000000,
+            "downlink_speed": 1000000000,
+            "status": "enabled"
         },
-        "id": 1,
-        "created": "2017-03-13T22:23:48.805109Z",
-        "updated": "2017-03-13T22:38:06.084074Z",
-        "enacted": "2017-03-13T22:38:43.894253Z",
-        "policed": "2017-03-13T22:38:08.086489Z",
-        "backend_register": "{\"next_run\": 0, \"last_success\": 1489444729.019414, \"exponent\": 0}",
-        "backend_status": "1 - OK",
-        "instance_id": "instance-00000001",
-        "instance_uuid": "a46d716f-e82c-4088-a042-72c3a97ed3ff",
-        "name": "mysite_vsg",
-        "instance_name": "mysite_vsg-1",
-        "ip": "10.1.0.17",
-        "image": "http://ms1333.utah.cloudlab.us:8080/api/core/images/1/",
-        "creator": "http://ms1333.utah.cloudlab.us:8080/api/core/users/1/",
-        "slice": "http://ms1333.utah.cloudlab.us:8080/api/core/slices/2/",
-        "deployment": "http://ms1333.utah.cloudlab.us:8080/api/core/deployments/1/",
-        "node": "http://ms1333.utah.cloudlab.us:8080/api/core/nodes/1/",
-        "numberCores": 0,
-        "flavor": "http://ms1333.utah.cloudlab.us:8080/api/core/flavors/1/",
-        "isolation": "vm",
-        "volumes": "/etc/dnsmasq.d,/etc/ufw",
-        "networks": [
-            "http://ms1333.utah.cloudlab.us:8080/api/core/networks/1/",
-            "http://ms1333.utah.cloudlab.us:8080/api/core/networks/2/"
-        ]
-    },
-    {
-        "humanReadableName": "mysite_exampleservice-2",
-        "validators": {
-            "policed": [],
-            "creator": [],
-            "ip": [],
-            "image": [
-                "notBlank"
-            ],
-            "backend_register": [
-                "notBlank"
-            ],
-            "flavor": [
-                "notBlank"
-            ],
-            "backend_status": [
-                "notBlank"
-            ],
-            "id": [],
-            "instance_name": [],
-            "slice": [
-                "notBlank"
-            ],
-            "backend_need_delete": [],
-            "enacted": [],
-            "no_sync": [],
-            "node": [
-                "notBlank"
-            ],
-            "userData": [],
-            "updated": [
-                "notBlank"
-            ],
-            "parent": [],
-            "deleted": [],
-            "lazy_blocked": [],
-            "deployment": [
-                "notBlank"
-            ],
-            "backend_need_reap": [],
-            "instance_uuid": [],
-            "numberCores": [
-                "notBlank"
-            ],
-            "name": [
-                "notBlank"
-            ],
-            "created": [],
-            "write_protect": [],
-            "isolation": [
-                "notBlank"
-            ],
-            "no_policy": [],
-            "instance_id": [],
-            "volumes": []
+        "identity": {
+            "account_num": "20",
+            "name": "My House"
         },
-        "id": 2,
-        "created": "2017-03-13T22:38:03.872267Z",
-        "updated": "2017-03-13T22:38:06.047153Z",
-        "enacted": "2017-03-13T22:39:07.002800Z",
-        "policed": "2017-03-13T22:38:07.895147Z",
-        "backend_register": "{\"next_run\": 0, \"last_success\": 1489444774.726988, \"exponent\": 0}",
-        "backend_status": "1 - OK",
-        "instance_id": "instance-00000002",
-        "instance_uuid": "cb219739-0d11-48a2-9f19-1e2aba1f004e",
-        "name": "mysite_exampleservice",
-        "instance_name": "mysite_exampleservice-2",
-        "ip": "10.1.0.17",
-        "image": "http://ms1333.utah.cloudlab.us:8080/api/core/images/3/",
-        "creator": "http://ms1333.utah.cloudlab.us:8080/api/core/users/1/",
-        "slice": "http://ms1333.utah.cloudlab.us:8080/api/core/slices/4/",
-        "deployment": "http://ms1333.utah.cloudlab.us:8080/api/core/deployments/1/",
-        "node": "http://ms1333.utah.cloudlab.us:8080/api/core/nodes/1/",
-        "numberCores": 0,
-        "flavor": "http://ms1333.utah.cloudlab.us:8080/api/core/flavors/1/",
-        "isolation": "vm",
-        "networks": [
-            "http://ms1333.utah.cloudlab.us:8080/api/core/networks/3/",
-            "http://ms1333.utah.cloudlab.us:8080/api/core/networks/1/",
-            "http://ms1333.utah.cloudlab.us:8080/api/core/networks/4/"
-        ]
-    },
-    {
-        "humanReadableName": "mysite_vsg-3",
-        "validators": {
-            "policed": [],
-            "creator": [],
-            "ip": [],
-            "image": [
-                "notBlank"
-            ],
-            "backend_register": [
-                "notBlank"
-            ],
-            "flavor": [
-                "notBlank"
-            ],
-            "backend_status": [
-                "notBlank"
-            ],
-            "id": [],
-            "instance_name": [],
-            "slice": [
-                "notBlank"
-            ],
-            "backend_need_delete": [],
-            "enacted": [],
-            "no_sync": [],
-            "node": [
-                "notBlank"
-            ],
-            "userData": [],
-            "updated": [
-                "notBlank"
-            ],
-            "parent": [],
-            "deleted": [],
-            "lazy_blocked": [],
-            "deployment": [
-                "notBlank"
-            ],
-            "backend_need_reap": [],
-            "instance_uuid": [],
-            "numberCores": [
-                "notBlank"
-            ],
-            "name": [
-                "notBlank"
-            ],
-            "created": [],
-            "write_protect": [],
-            "isolation": [
-                "notBlank"
-            ],
-            "no_policy": [],
-            "instance_id": [],
-            "volumes": []
-        },
-        "id": 3,
-        "created": "2017-03-17T23:15:13.556863Z",
-        "updated": "2017-03-17T23:15:13.555271Z",
-        "enacted": "2017-03-17T23:15:24.376854Z",
-        "policed": "2017-03-17T23:15:14.991037Z",
-        "backend_register": "{\"next_run\": 0, \"last_success\": 1489792538.996003, \"exponent\": 0}",
-        "backend_status": "1 - OK",
-        "instance_id": "instance-00000003",
-        "instance_uuid": "ec5ece6d-bebe-4165-98c5-3a026a41c63c",
-        "name": "mysite_vsg",
-        "instance_name": "mysite_vsg-3",
-        "ip": "10.1.0.17",
-        "image": "http://ms1333.utah.cloudlab.us:8080/api/core/images/1/",
-        "creator": "http://ms1333.utah.cloudlab.us:8080/api/core/users/1/",
-        "slice": "http://ms1333.utah.cloudlab.us:8080/api/core/slices/2/",
-        "deployment": "http://ms1333.utah.cloudlab.us:8080/api/core/deployments/1/",
-        "node": "http://ms1333.utah.cloudlab.us:8080/api/core/nodes/1/",
-        "numberCores": 0,
-        "flavor": "http://ms1333.utah.cloudlab.us:8080/api/core/flavors/1/",
-        "isolation": "vm",
-        "volumes": "/etc/dnsmasq.d,/etc/ufw"
+        "related": {}
     }
-   ]
-  }
 input_dict = {
  "s_tag" : "111",
  "c_tag" : "222",
@@ -477,10 +254,10 @@ test = utils()
 #data=test.jsonToList("Subscribers.json","SubscriberInfo")
 #print  test.jsonToList("Subscribers.json","SubscriberInfo")
 #print "index 1...",test.listToDict(data,1)
-result = test.getDictFromListOfDict(dict_list,"instance_name","mysite_vsg-3")
+#result = test.getDictFromListOfDict(dict_list,"email",21)
 #result = test.getFieldValueFromDict(dict_list,"id")
 #result = test.getDictFromListOfDict(dict_list,"account_num",21)
 #result = test.setFieldValueInDict(input_dict,"subscriber",new_value)
-#result = test.getAllFieldValues(list1,"instance_name")
+result = test.getAllFieldValues(list1,"instance_name")
 print "finalllllll result....", result
 '''

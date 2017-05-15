@@ -1,0 +1,19 @@
+{
+        "InstanceInfo": [
+                {
+                        "backend_status": "1 - OK",
+                        "name": "mysite_testservice",
+                        "instance_name": "mysite_testservice-1",
+                        "ip": "10.1.0.17",
+                        "numberCores": 0,
+                        "isolation": "vm",
+                        "volumes": "/etc/dnsmasq.d,/etc/ufw",
+                        "image_id": 3,
+                        "creator_id": 1,
+                        "deployment_id": 1,
+                        "slice_id": 1,
+                        "node_id": 1,
+                        "flavor_id": 1
+                }
+        ]
+}
