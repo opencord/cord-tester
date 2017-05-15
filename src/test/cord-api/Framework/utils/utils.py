@@ -215,8 +215,7 @@ class utils(object):
         return fieldValue
 
     def generate_uuid(self):
-        return uuid.uuid4()
-
+	return uuid.uuid4()
 '''
 #Test
 dict_list = {
