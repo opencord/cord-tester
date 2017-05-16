@@ -102,7 +102,7 @@ class netCondition_exchange(CordLogger):
     PORT_RX_DEFAULT = 1
     max_packets = 100
     app_igmp = 'org.opencord.igmp'
-    olt_conf_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json')
+    olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json'))
     ROVER_TEST_TIMEOUT = 10 #3600*86
     ROVER_TIMEOUT = (ROVER_TEST_TIMEOUT - 100)
     ROVER_JOIN_TIMEOUT = 60

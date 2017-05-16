@@ -32,6 +32,7 @@ class TestManifest(object):
             self.async_mode = args.async_mode
             self.shared_volume = args.shared_volume
             self.olt = args.olt
+            self.olt_config = args.olt_config
             self.start_switch = args.start_switch
             self.image_prefix = args.prefix
             self.onos_image = args.onos
@@ -66,6 +67,7 @@ class TestManifest(object):
             self.shared_volume = data.get('shared_volume', True)
             self.async_mode = True if self.onos_instances > 1 else False
             self.olt = data.get('olt', True)
+            self.olt_config = data.get('olt_config', 'olt_config.json')
             self.start_switch = data.get('start_switch', self.olt)
             self.image_prefix = data.get('image_prefix', '')
             self.onos_image = data.get('onos_image', 'onosproject/onos:latest')

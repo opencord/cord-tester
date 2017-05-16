@@ -204,7 +204,7 @@ class subscriber_exchange(CordLogger):
       table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
       app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
-      olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+      olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
       cpqd_path = os.path.join(test_path, '..', 'setup')
       ovs_path = cpqd_path
       test_services = ('IGMP', 'TRAFFIC')

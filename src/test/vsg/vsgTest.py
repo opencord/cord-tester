@@ -43,7 +43,7 @@ class vsg_exchange(CordLogger):
     head_node = os.getenv('HEAD_NODE', 'prod')
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
-    olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+    olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
     restApiXos =  None
     subscriber_account_num = 200
     subscriber_s_tag = 304

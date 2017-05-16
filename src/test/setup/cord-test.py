@@ -80,9 +80,14 @@ class CordTester(Container):
             self.create = False
             self.rm = False
         self.olt = False
-        if env is not None and env.has_key('OLT_CONFIG'):
-            self.olt = True
-        olt_conf_file = os.path.join(self.tester_base, 'olt_config.json')
+        olt_config_file = 'olt_config.json'
+        if env is not None:
+            if env.has_key('OLT_CONFIG'):
+                self.olt = True
+            if env.has_key('OLT_CONFIG_FILE'):
+                olt_config_file = os.path.basename(env['OLT_CONFIG_FILE'])
+
+        olt_conf_file = os.path.join(self.tester_base, olt_config_file)
         olt_config = OltConfig(olt_conf_file)
         self.port_map, _ = olt_config.olt_port_map()
         self.vcpes = olt_config.get_vcpes()
@@ -201,8 +206,8 @@ class CordTester(Container):
             if os.access('/sys/class/net/{}'.format(port), os.F_OK):
                 guest_port = 'vcpe{}'.format(port_num)
                 port_num += 1
-                print('Provisioning port %s for %s with s_tag: %d, c_tag: %d\n'
-                      %(guest_port, self.name, s_tag, c_tag))
+                print('Provisioning guest port %s for %s with host port: %s, s_tag: %d, c_tag: %d\n'
+                      %(guest_port, self.name, port, s_tag, c_tag))
                 cmd = 'pipework {} -i {} -l {} {} 0.0.0.0/24'.format(port, guest_port, guest_port, self.name)
                 res = os.system(cmd)
                 if res == 0:
@@ -285,8 +290,9 @@ class CordTester(Container):
         return intf_type
 
     @classmethod
-    def cleanup_intfs(cls):
-        olt_conf_file = os.path.join(cls.tester_base, 'olt_config.json')
+    def cleanup_intfs(cls, olt_conf_file):
+        if not os.access(olt_conf_file, os.F_OK):
+            olt_conf_file = os.path.join(cls.tester_base, os.path.basename(olt_conf_file))
         olt_config = OltConfig(olt_conf_file)
         port_map, _ = olt_config.olt_port_map()
         vcpes = olt_config.get_vcpes()
@@ -440,6 +446,7 @@ nose_image_default= '{}:candidate'.format(CordTester.IMAGE)
 test_type_default='dhcp'
 onos_app_version = '2.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(__file__))
+olt_config_default = os.path.join(cord_tester_base, 'olt_config.json')
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')
 cord_test_server_address = '{}:{}'.format(CORD_TEST_HOST, CORD_TEST_PORT)
 identity_file_default = '/etc/maas/ansible/id_rsa'
@@ -537,6 +544,17 @@ def runTest(args):
     onos_cord_loc = test_manifest.onos_cord
     service_profile = test_manifest.service_profile
     synchronizer = test_manifest.synchronizer
+    olt_config_file = test_manifest.olt_config
+    if not os.access(olt_config_file, os.F_OK):
+        olt_config_file = os.path.join(CordTester.tester_base, 'olt_config.json')
+    else:
+        dest = os.path.join(CordTester.tester_base,
+                            os.path.basename(olt_config_file))
+        if os.path.abspath(olt_config_file) != dest:
+            try:
+                shutil.copy(olt_config_file, dest)
+            except: pass
+
     onos_cord = None
     Onos.update_data_dir(test_manifest.karaf_version)
 
@@ -677,13 +695,15 @@ def runTest(args):
     if ssh_key_file:
         test_cnt_env['SSH_KEY_FILE'] = ssh_key_file
 
+    olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, os.path.basename(olt_config_file))
+    test_cnt_env['OLT_CONFIG_FILE'] = olt_conf_test_loc
     if test_manifest.olt:
-        olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
         test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
 
     if use_manifest:
         test_cnt_env['MANIFEST'] = os.path.join(CordTester.sandbox_setup,
                                                 os.path.basename(args.manifest))
+
 
     if iterations is not None:
         test_cnt_env['ITERATIONS'] = iterations
@@ -805,6 +825,16 @@ def setupCordTester(args):
     onos_cord = None
     onos_cord_loc = test_manifest.onos_cord
     Onos.update_data_dir(test_manifest.karaf_version)
+    olt_config_file = test_manifest.olt_config
+    if not os.access(olt_config_file, os.F_OK):
+        olt_config_file = os.path.join(CordTester.tester_base, 'olt_config.json')
+    else:
+        dest = os.path.join(CordTester.tester_base,
+                            os.path.basename(olt_config_file))
+        if os.path.abspath(olt_config_file) != dest:
+            try:
+                shutil.copy(olt_config_file, dest)
+            except: pass
 
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
@@ -942,8 +972,9 @@ def setupCordTester(args):
 
         if ssh_key_file:
             test_cnt_env['SSH_KEY_FILE'] = ssh_key_file
+        olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, os.path.basename(olt_config_file))
+        test_cnt_env['OLT_CONFIG_FILE'] = olt_conf_test_loc
         if test_manifest.olt:
-            olt_conf_test_loc = os.path.join(CordTester.sandbox_setup, 'olt_config.json')
             test_cnt_env['OLT_CONFIG'] = olt_conf_test_loc
         if test_manifest.iterations is not None:
             test_cnt_env['ITERATIONS'] = iterations
@@ -984,6 +1015,7 @@ def cleanupTests(args):
         manifest = TestManifest(manifest = args.manifest)
         args.prefix = manifest.image_prefix
         args.olt = manifest.olt
+        args.olt_config = manifest.olt_config
         args.onos = manifest.onos_image
         args.server = manifest.server
         args.onos_ip = manifest.onos_ip
@@ -1009,7 +1041,7 @@ def cleanupTests(args):
     Container.cleanup(test_container)
     if args.olt:
         print('Cleaning up test container OLT configuration')
-        CordTester.cleanup_intfs()
+        CordTester.cleanup_intfs(args.olt_config)
 
     onos_list = [ c['Names'][0][1:] for c in Container.dckr.containers() if c['Image'] == image_name ]
     if len(onos_list) > 1:
@@ -1208,6 +1240,7 @@ if __name__ == '__main__':
     parser_run.add_argument('-q', '--quagga',action='store_true',help='Provision quagga container for vrouter')
     parser_run.add_argument('-a', '--app', default=onos_app_file, type=str, help='Cord ONOS app filename')
     parser_run.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
+    parser_run.add_argument('-olt-config', '--olt-config', default=olt_config_default, type=str, help='Provide OLT configuration')
     parser_run.add_argument('-e', '--test-controller', default='', type=str, help='External test controller ip for Onos and/or radius server. '
                         'Eg: 10.0.0.2/10.0.0.3 to specify ONOS and Radius ip to connect')
     parser_run.add_argument('-r', '--server', default=cord_test_server_address, type=str,
@@ -1263,6 +1296,7 @@ if __name__ == '__main__':
                         '    --update=all to rebuild all cord tester images.')
     parser_setup.add_argument('-d', '--dont-provision', action='store_true', help='Dont start test container.')
     parser_setup.add_argument('-l', '--olt', action='store_true', help='Use OLT config')
+    parser_setup.add_argument('-olt-config', '--olt-config', default=olt_config_default, type=str, help='Provide OLT configuration')
     parser_setup.add_argument('-log', '--log-level', default=onos_log_level, type=str,
                               choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                               help='Specify the log level for the test cases')
@@ -1321,6 +1355,7 @@ if __name__ == '__main__':
     parser_cleanup = subparser.add_parser('cleanup', help='Cleanup test containers')
     parser_cleanup.add_argument('-p', '--prefix', default='', type=str, help='Provide container image prefix')
     parser_cleanup.add_argument('-l', '--olt', action = 'store_true', help = 'Cleanup OLT config')
+    parser_cleanup.add_argument('-olt-config', '--olt-config', default=olt_config_default, type=str, help='Provide OLT configuration')
     parser_cleanup.add_argument('-o', '--onos', default=onos_image_default, type=str,
                                 help='ONOS container image to cleanup')
     parser_cleanup.add_argument('-x', '--xos', action='store_true',

@@ -1,0 +1,35 @@
+{ "olt" : false,
+  "uplink" : 2,
+  "vlan" : 0,
+  "port_map" : { "ports": [ "veth0", "veth2", "veth4", "veth6", "veth8", "veth10", "veth12", "veth14", "veth16", "veth18", "veth20", "veth22" ], "start_vlan" : 0, "host": "enp1s0f1" },
+  "vcpe" :
+  [
+        {
+          "port" : "fabric", "type" : "reserved", "s_tag" : 222, "c_tag" : 111
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 304
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 305
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 306
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 307
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 308
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 309
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 310
+        },
+        {
+          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 311
+        }
+      ]
+}

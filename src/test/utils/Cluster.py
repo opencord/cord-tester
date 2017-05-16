@@ -59,7 +59,7 @@ class cluster_igmp(object):
     PORT_RX_DEFAULT = 1
     max_packets = 100
     app = 'org.opencord.igmp'
-    olt_conf_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json')
+    olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json'))
     ROVER_TEST_TIMEOUT = 300 #3600*86
     ROVER_TIMEOUT = (ROVER_TEST_TIMEOUT - 100)
     ROVER_JOIN_TIMEOUT = 60
@@ -444,7 +444,7 @@ class cluster_proxyarp():
     MAX_PORTS = 100
     hosts_list = [ ('192.168.10.1', '00:00:00:00:00:01'), ('192.168.11.1', '00:00:00:00:02:01'), ]
 
-    olt_conf_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json')
+    olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json'))
 
     @classmethod
     def setUpClass(cls):
@@ -1174,7 +1174,7 @@ class cluster_dhcprelay(object):
     host_ip_map = {}
     test_path = os.path.dirname(os.path.realpath(__file__))
     dhcp_data_dir = os.path.join(test_path, '..', 'setup')
-    olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+    olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
     default_options = [ ('subnet-mask', '255.255.255.0'),
                      ('broadcast-address', '192.168.1.255'),
@@ -1618,7 +1618,7 @@ class cluster_subscriber(object):
       table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
       app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
-      olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+      olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
       cpqd_path = os.path.join(test_path, '..', 'setup')
       ovs_path = cpqd_path
       test_services = ('IGMP', 'TRAFFIC')

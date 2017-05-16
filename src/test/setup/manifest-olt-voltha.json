@@ -1,0 +1,12 @@
+{
+    "onos_instances": 1,
+    "olt": true,
+    "olt_config" : "olt_config_voltha.json",
+    "start_switch": false,
+    "onos" : "10.70.46.93",
+    "radius" : "172.23.0.3",
+    "onos_image": "onosproject/onos:latest",
+    "log_level" : "INFO",
+    "jvm_heap_size" : "1G",
+    "karaf_version" : "3.0.5"
+}

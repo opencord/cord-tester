@@ -39,7 +39,7 @@ class dhcprelay_exchange(CordLogger):
     host_ip_map = {}
     test_path = os.path.dirname(os.path.realpath(__file__))
     dhcp_data_dir = os.path.join(test_path, '..', 'setup')
-    olt_conf_file = os.path.join(test_path, '..', 'setup/olt_config.json')
+    olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
     default_options = [ ('subnet-mask', '255.255.255.0'),
                      ('broadcast-address', '192.168.1.255'),
