@@ -5,31 +5,31 @@
   "vcpe" :
   [
         {
-          "port" : "fabric", "type" : "reserved", "s_tag" : 222, "c_tag" : 111
+          "port" : "enp1s0f1", "type" : "reserved", "s_tag" : 222, "c_tag" : 111
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 304
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 304
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 305
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 305
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 306
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 306
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 307
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 307
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 308
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 308
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 309
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 309
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 310
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 310
         },
         {
-          "port" : "fabric", "type" : "dhcp", "s_tag" : 304, "c_tag" : 311
+          "port" : "enp1s0f1", "type" : "dhcp", "s_tag" : 304, "c_tag" : 311
         }
       ]
 }
