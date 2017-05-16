@@ -2221,7 +2221,185 @@ class vsg_exchange(CordLogger):
         if subId2 and subId2 != '0':
             self.vsg_xos_subscriber_delete(6, subId2)
 
-    def test_vsg_external_connectivity_from_two_subscribers_if_one_vsg_goes_down(self):
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_goes_down(self):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Kill first vcpe instance
+        4.Verify external network cant be reachable form first vcpe interface
+        """
+	host = '8.8.8.8'
+        subId1 = self.vsg_xos_subscriber_create(0)
+        subId2 = self.vsg_xos_subscriber_create(1)
+	vcpe_intf1 = self.dhcp_vcpes[0]
+	vcpe_intf2 = self.dhcp_vcpes[1]
+	vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
+	vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
+	vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+	vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+        st,output = vsg2.run_cmd('sudo docker kill {}'.format(vcpe_name2))
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, True)
+	self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+	self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        if subId1 and subId1 != '0':
+            self.vsg_xos_subscriber_delete(0, subId1)
+        if subId2 and subId2 != '0':
+            self.vsg_xos_subscriber_delete(1, subId2)
+
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_is_removed_and_added_again(self):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Remove first vcpe instance
+        4.Verify external network cant be reachable form first vcpe interface
+	5.Add back the removed vcpe instance
+	6.Verify external connectivity through vcpe instances from cord-tester
+        """
+        host = '8.8.8.8'
+        subId1 = self.vsg_xos_subscriber_create(0)
+        subId2 = self.vsg_xos_subscriber_create(1)
+        vcpe_intf1 = self.dhcp_vcpes[0]
+        vcpe_intf2 = self.dhcp_vcpes[1]
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
+        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+        st,output = vsg2.run_cmd('sudo docker kill {}'.format(vcpe_name2))
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, True)
+        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+	subId2 = self.vsg_xos_subscriber_create(1)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        if subId1 and subId1 != '0':
+            self.vsg_xos_subscriber_delete(0, subId1)
+        if subId2 and subId2 != '0':
+            self.vsg_xos_subscriber_delete(1, subId2)
+
+
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_restarts(self):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Restart first vcpe instance
+        4.Verify external network cant be reachable form first vcpe interface
+        """
+        host = '8.8.8.8'
+        subId1 = self.vsg_xos_subscriber_create(0)
+        subId2 = self.vsg_xos_subscriber_create(1)
+        vcpe_intf1 = self.dhcp_vcpes[0]
+        vcpe_intf2 = self.dhcp_vcpes[1]
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
+        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+        st,output = vsg2.run_cmd('sudo docker restart {}'.format(vcpe_name1))
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, True)
+        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        if subId1 and subId1 != '0':
+            self.vsg_xos_subscriber_delete(0, subId1)
+        if subId2 and subId2 != '0':
+            self.vsg_xos_subscriber_delete(1, subId2)
+
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_pause(self):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Pause running first vcpe instance
+        4.Verify external network cant be reachable form first vcpe interface
+        """
+        host = '8.8.8.8'
+        subId1 = self.vsg_xos_subscriber_create(0)
+        subId2 = self.vsg_xos_subscriber_create(1)
+        vcpe_intf1 = self.dhcp_vcpes[0]
+        vcpe_intf2 = self.dhcp_vcpes[1]
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
+        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+        st,output = vsg2.run_cmd('sudo docker pause {}'.format(vcpe_name1))
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, True)
+        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        if subId1 and subId1 != '0':
+            self.vsg_xos_subscriber_delete(0, subId1)
+        if subId2 and subId2 != '0':
+            self.vsg_xos_subscriber_delete(1, subId2)
+
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_restarts_and_stops(self):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Stop running first vcpe instance
+        4.Verify external network cant be reachable form first vcpe interface
+        """
+        host = '8.8.8.8'
+        subId1 = self.vsg_xos_subscriber_create(0)
+        subId2 = self.vsg_xos_subscriber_create(1)
+        vcpe_intf1 = self.dhcp_vcpes[0]
+        vcpe_intf2 = self.dhcp_vcpes[1]
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
+        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
+        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
+        st,output = vsg2.run_cmd('sudo docker stop {}'.format(vcpe_name1))
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, True)
+        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        assert_equal(st, False)
+        if subId1 and subId1 != '0':
+            self.vsg_xos_subscriber_delete(0, subId1)
+        if subId2 and subId2 != '0':
+            self.vsg_xos_subscriber_delete(1, subId2)
+
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vsg_goes_down(self):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Bring down first vSG vm
+        4.Verify external network cant be reachable form first vcpe interface
+        """
+        subId1 = self.vsg_xos_subscriber_create(4)
+        subId2 = self.vsg_xos_subscriber_create(6)
+        if subId1 and subId1 != '0':
+            self.vsg_xos_subscriber_delete(4, subId1)
+        if subId2 and subId2 != '0':
+            self.vsg_xos_subscriber_delete(6, subId2)
+
+    def test_vsg_xos_subscriber_external_connectivity_if_two_vsgs_goes_down(self):
+	"""
+	Test Method:
+	1.Create two vcpe instances in two different vsg vms using XOS
+	2.Verify external connectivity through vcpe instances from cord-tester
+	3.Bring down first vSG vm
+	4.Verify external network cant be reachable form first vcpe interface
+	5.Bring down second vSG vm also
+	6.Verify external network cant be reachable form first vcpe interface also
+	"""
         subId1 = self.vsg_xos_subscriber_create(4)
         subId2 = self.vsg_xos_subscriber_create(6)
         if subId1 and subId1 != '0':
