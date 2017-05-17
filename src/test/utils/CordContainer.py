@@ -320,9 +320,14 @@ class OnosCord(Container):
     tester_apps = ('http://mavenrepo:8080/repository/org/opencord/aaa/1.2-SNAPSHOT/aaa-1.2-SNAPSHOT.oar',
                    'http://mavenrepo:8080/repository/org/opencord/igmp/1.2-SNAPSHOT/igmp-1.2-SNAPSHOT.oar',)
 
+    old_service_profile = '/opt/cord/orchestration/service-profile/cord-pod'
+
     def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 5):
         if not os.access(conf, os.F_OK):
             raise Exception('ONOS cord configuration location %s is invalid' %conf)
+        self.old_cord = False
+        if os.access(self.old_service_profile, os.F_OK):
+            self.old_cord = True
         self.onos_ip = onos_ip
         self.onos_cord_dir = conf
         self.boot_delay = boot_delay
@@ -393,7 +398,28 @@ class OnosCord(Container):
         if cli:
             cli.disconnect()
 
+    def synchronize_fabric(self, cfg = None):
+        if self.old_cord is True:
+            cmds = [ 'cd {} && make {}'.format(self.old_service_profile, self.synchronizer),
+                     'sleep 30'
+                     ]
+            for cmd in cmds:
+                try:
+                    os.system(cmd)
+                except:
+                    pass
+
     def synchronize_vtn(self, cfg = None):
+        if self.old_cord is True:
+            cmds = [ 'cd {} && make {}'.format(self.old_service_profile, self.synchronizer),
+                     'sleep 30'
+                     ]
+            for cmd in cmds:
+                try:
+                    os.system(cmd)
+                except:
+                    pass
+            return
         if cfg is None:
             return
         if not cfg.has_key('apps'):
