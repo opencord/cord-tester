@@ -90,11 +90,23 @@ class restApi(object):
         data = json.dumps(jsonData)
         print "url, data..", url, data
         resp = requests.post(url, data=data, headers=self.jsonHeader, auth=(self.user, self.password))
-        passed = self.checkResult(resp, requests.codes.created)
+        print "requests.codes.....",requests.codes.created
+        passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
         return passed
 
     def ApiGet(self, key, urlSuffix=""):
         url = self.getURL(key) + str(urlSuffix)
+        print "get url...",url
+        resp = requests.get(url, auth=(self.user, self.password))
+        passed = self.checkResult(resp, requests.codes.ok)
+        if not passed:
+            return None
+        else:
+            return resp.json()
+
+    def ApiChameleonGet(self, key, urlSuffix=""):
+        url = self.getURL(key) + "/" + str(urlSuffix)
+        print "get url...",url
         resp = requests.get(url, auth=(self.user, self.password))
         passed = self.checkResult(resp, requests.codes.ok)
         if not passed:
@@ -110,11 +122,29 @@ class restApi(object):
         passed = self.checkResult(resp, requests.codes.ok)
         return passed
 
+    def ApiChameleonPut(self, key, jsonData, urlSuffix=""):
+        print "urlSuffix....",type(urlSuffix)
+        url = self.getURL(key) + "/" + str(urlSuffix)
+        print "url", url
+        data = json.dumps(jsonData)
+        resp = requests.put(url, data=data, headers=self.jsonHeader, auth=(self.user, self.password))
+        passed = self.checkResult(resp, requests.codes.ok)
+        return passed
+
     def ApiDelete(self, key, urlSuffix=""):
         url = self.getURL(key) + str(urlSuffix)
         print "url",url
         resp = requests.delete(url, auth=(self.user, self.password))
-        passed = self.checkResult(resp, requests.codes.no_content)
+        #passed = self.checkResult(resp, requests.codes.no_content)
+        passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
+        return passed
+
+    def ApiChameleonDelete(self, key, urlSuffix=""):
+        url = self.getURL(key) + "/" + str(urlSuffix)
+        print "url",url
+        resp = requests.delete(url, auth=(self.user, self.password))
+        #passed = self.checkResult(resp, requests.codes.no_content)
+        passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
         return passed
 
 #test
@@ -142,30 +172,40 @@ test = restApi()
 #jsonGetData = test.ApiGet(key)
 #jsonResponse = test.ApiPost(key,{"identity":{"name":"My House 22"}})
 #jsonResponse = test.ApiPost(key,{"firstname":"Test002","lastname":"User002","email":"test002@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"})
-#jsonResponse = test.ApiDelete(key,15)
+key = "VOLT_TENANT"
+key = "VOLT_SUBSCRIBER"
+#jsonResponse = test.ApiDelete(key,204)
 #jsonResponse = test.ApiPut(key,{"firstname":"Test002","lastname":"User002","email":"test002update@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"},14)
 #jsonResponse = test.ApiPost(key2,{"username":"test002update@onlab.us","password":"TestUser002"})
 #jsonResponse = test.ApiPost(key2,{"username":"padmin@vicci.org","password":"letmein"})
 #jsonResponse = test.ApiPut(key,{"username":"testuser","password":"TestUser001"},"9")
-#key = "UTILS_SYNCHRONIZER"
-key = "CORE_SANITY_INSTANCES"
-key1 = "CORE_SANITY_SLICES"
-key2 = "CORE_SLICES"
+#key = "CORE_INSTANCES"
+#key1 = "CORE_SANITY_SLICES"
+#key2 = "CORE_SLICES"
 #input_dict = { "s_tag" : "111", "c_tag" : "222", "subscriber" : 23}
 input_dict = {
-           "name": "test-instance",
-           "image": 1,
-           "slice": 1,
-           "deployment": 1,
-           "node": 1
-           }
-input_dict1 = { "name" : "mysite_Test1", "site" : 1 , "creator" : 1}
-jsonResponse = test.ApiPost(key1,input_dict1)
-#jsonGetData = test.ApiGet(key)
-print "========="
+         "s_tag" : 117,
+         "c_tag" : 227
+        }
+
+#input_dict1 = { "name" : "mysite_Test1", "site" : 1 , "creator" : 1}
+input_dict2 = {
+ 
+            "cdn_enable": "true",
+            "uplink_speed": 1000000000,
+            "downlink_speed": 1000000000,
+            "enable_uverse": "true",
+            "status": "enabled",
+            "service_specific_id": "100",
+            "name": "My House"
+    }
+#jsonResponse = test.ApiPost(key,input_dict)
+#jsonResponse = test.ApiChameleonPut(key,input_dict,12)
+#jsonGetData = test.ApiGet(key,"/12")
+#print "========="
 #print jsonGetData
 #jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"30")
-#jsonO = test.ApiDelete(key2,"1")
+jsonO = test.ApiDelete(key,"/7")
 #jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
 #jsonResponse = test.ApiPost(key,{"name":"test-2"})
 #jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")

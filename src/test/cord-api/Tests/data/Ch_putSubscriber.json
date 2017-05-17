@@ -1,0 +1,23 @@
+{
+    "SubscriberInfo" : [
+    {
+            "cdn_enable": true,
+            "downlink_speed": 2000000000,
+            "service_specific_id": "304",
+            "name": "My House-Edited"
+    },
+    {
+            "uplink_speed": 100000000,
+            "enable_uverse": true,
+            "status": "disabled",
+            "service_specific_id": "305",
+            "name": "My House-305-Edited"
+    },
+    {
+            "cdn_enable": false,
+            "uplink_speed": 600000000,
+            "service_specific_id": "306",
+            "name": "My House-306-Edited"
+    }
+  ]
+}
