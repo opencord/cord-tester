@@ -252,7 +252,7 @@ class Channels(IgmpChannel):
         if cb is None:
             cb = self.recv_cb
         return sniff(prn = cb, count=count, timeout = timeout,
-                     lfilter = lambda p: IP in p and p[IP].dst in groups, iface = self.iface)
+                     lfilter = lambda p: IP in p and p[IP].dst in groups, iface = bytes(self.iface[:15]))
 
     def stop(self):
         if self.streams:
