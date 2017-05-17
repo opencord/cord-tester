@@ -135,8 +135,7 @@ class restApi(object):
         url = self.getURL(key) + str(urlSuffix)
         print "url",url
         resp = requests.delete(url, auth=(self.user, self.password))
-        #passed = self.checkResult(resp, requests.codes.no_content)
-        passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
+        passed = self.checkResult(resp, requests.codes.no_content)
         return passed
 
     def ApiChameleonDelete(self, key, urlSuffix=""):
