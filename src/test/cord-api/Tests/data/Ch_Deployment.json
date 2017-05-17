@@ -1,0 +1,11 @@
+{
+    "DeploymentInfo":
+    [
+        {
+            "name": "test-deployment-1"
+        },
+        {
+            "name": "test-deployment-2"
+        }
+    ]
+}

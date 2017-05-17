@@ -1,0 +1,13 @@
+{
+    "NodeInfo":
+    [
+        {
+            "name": "test-node-1",
+            "site_deployment_id": 1
+        },
+        {
+            "name": "test-node-2",
+            "site_deployment_id": 1
+        }
+    ]
+}

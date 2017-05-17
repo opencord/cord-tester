@@ -1,0 +1,81 @@
+*** Settings ***
+Documentation     Test suite for Node API verification
+Suite Setup       Read InputFile
+Test Template     Verify Node API functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+Variables         ../Properties/RestApiProperties.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Ch_Node.json
+${IP}             ${SERVER_IP}
+${PORT}           ${SERVER_PORT}
+
+*** Test Cases ***    TYPE        LISTINDEX
+Test Post Node-1      CREATE      0
+
+Test Get Node-1       RETRIEVE    0
+
+Test Delete Node-1    DELETE      0
+
+Test Post Node-2      CREATE      1
+
+Test Get Node-2       RETRIEVE    1
+
+Test Delete Node-2    DELETE      1
+
+*** Keywords ***
+Read InputFile
+    ${nodeList}=    utils.jsonToList    ${PATHFILE}    NodeInfo
+    Set Suite Variable    ${nlist}    ${nodeList}
+    ${siteDeployment}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}
+    ...    /api/core/sitedeployments/1/
+    Set Suite Variable    ${siteDeployment}    ${siteDeployment}
+
+Verify Node API functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post Node API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Node API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Node API    ${listIndex}
+
+Test Post Node API
+    [Arguments]    ${listIndex}
+    ${nodeList}=    Get Variable Value    ${nlist}
+    ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    CH_CORE_NODES    ${nodeDict}
+    Should Be True    ${api_result}
+
+Test Get Node API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CH_CORE_NODES
+    ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    Log    ${json_result_list}
+    ${nodeList}=    Get Variable Value    ${nlist}
+    ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
+    ${name}=    utils.getFieldValueFromDict    ${nodeDict}    name
+    Log    ${name}
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    name    ${name}
+    ${test_result}=    utils.compare_dict    ${nodeDict}    ${getJsonDict}
+    Should Be True    ${test_result}
+
+Test Delete Node API
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    CH_CORE_NODES
+    ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    ${nodeList}=    Get Variable Value    ${nlist}
+    ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
+    ${name}=    utils.getFieldValueFromDict    ${nodeDict}    name
+    Log    ${name}
+    ${nodeDict}=    utils.getDictFromListofDict    ${json_result_list}    name    ${name}
+    Log    ${nodeDict}
+    ${nodeId}=    utils.getFieldValueFromDict    ${nodeDict}    id
+    Log    ${nodeId}
+    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_NODES    ${nodeId}
+    Should Be True    ${test_result}

@@ -1,0 +1,12 @@
+{
+     "flavorsInfo": [
+            {
+            "flavor": "mq.test",
+            "name": "mq.test"
+            },
+            {
+            "flavor": "mq.test2",
+            "name": "mq.test2"
+             }
+    ]
+}

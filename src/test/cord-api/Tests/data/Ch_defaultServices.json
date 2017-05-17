@@ -1,0 +1,13 @@
+{
+    "ServiceInfo":
+    [
+        {"name": "ONOS_CORD"},
+        {"name": "vtn"},
+        {"name": "fabric"},
+        {"name": "ONOS_Fabric"},
+        {"name": "vrouter"},
+        {"name": "vsg"},
+        {"name": "volt"},
+        {"name": "vtr"}
+    ]
+}

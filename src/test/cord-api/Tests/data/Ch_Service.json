@@ -1,0 +1,13 @@
+{
+    "ServiceInfo":
+    [
+        {
+            "name": "test-service-1",
+            "description": "Test service No.1"
+        },
+        {
+            "name": "test-service-2",
+            "description": "Test service No.2"
+        }
+    ]
+}

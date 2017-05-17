@@ -1,0 +1,28 @@
+{
+    "voltSubscriberInfo" : [
+    {
+      "voltTenant" : 
+       {
+         "s_tag" : 118,
+         "c_tag" : 228
+       },
+       "service_specific_id" : "204"
+    },
+    {
+     "voltTenant" : 
+      {
+        "s_tag" : "112",
+        "c_tag" : "331"
+      },
+      "service_specific_id" : "305"
+    },
+    {
+     "voltTenant" :
+      {
+        "s_tag" : "112",
+        "c_tag" : "442"
+      },
+      "service_specific_id" : "306"
+    }
+ ]
+} 

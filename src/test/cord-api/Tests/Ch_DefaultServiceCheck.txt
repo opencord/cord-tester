@@ -1,0 +1,37 @@
+*** Settings ***
+Documentation     Test suite for checking default services
+Suite Setup       Read InputFile
+Test Template     Verify Service Sanity
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Ch_defaultServices.json
+
+*** Test Cases ***    TYPE
+Test Service Sanity
+                      SANITY
+
+*** Keywords ***
+Read InputFile
+    ${serviceList}=    utils.jsonToList    ${PATHFILE}    ServiceInfo
+    Set Suite Variable    ${slist}    ${serviceList}
+
+Verify Service Sanity
+    [Arguments]    ${type}
+    Run Keyword If    "${type}" == "SANITY"    Test Service Sanity
+
+Test Service Sanity
+    ${json_result}=    restApi.ApiGet    CH_CORE_SERVICES
+    ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    Log    ${json_result_list}
+    ${serviceList}=    Get Variable Value    ${slist}
+    ${test_result}=    utils.compare_list_of_dicts    ${serviceList}    ${json_result_list}
+    Should Be True    ${test_result}
