@@ -382,11 +382,12 @@ yg==
       def ovs_cleanup(cls):
             ##For every test case, delete all the OVS groups
             cmd = 'ovs-ofctl del-groups br-int -OOpenFlow11 >/dev/null 2>&1'
-            cord_test_shell(cmd)
-            ##Since olt config is used for this test, we just fire a careless local cmd as well
             try:
+                  cord_test_shell(cmd)
+                  ##Since olt config is used for this test, we just fire a careless local cmd as well
                   os.system(cmd)
-            except: pass
+            finally:
+                  return
 
       def onos_aaa_load(self):
             if self.aaa_loaded:
