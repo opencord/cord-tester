@@ -2,6 +2,7 @@ import os
 import shutil
 import re
 from novaclient import client as nova_client
+import novaclient.v1_1.client as novaclient
 from SSHTestAgent import SSHTestAgent
 from CordTestUtils import *
 from CordTestUtils import log_test as log
@@ -113,6 +114,48 @@ class OnboardingServiceUtils(object):
 
         env = os.environ.copy()
         return env
+
+    @classmethod
+    def discover_exampleservice_vm_instance_on_cord(cls, tenant_name):
+        name=None
+        status=None
+        try:
+            credentials = cls.get_nova_credentials_v2()
+            nvclient = nova_client.Client('2', **credentials)
+            instance_list=nvclient.servers.list()
+            if instance_list > 0:
+
+               for inst in instance_list:
+
+                   instance_id = inst.id
+                   name=inst.name
+                   inst_find=nvclient.servers.find(id=instance_id)
+                   print('   - Instance %s Discovered' % inst.name)
+                   print('   - Instance ID %s Discovered' % instance_id)
+                   print('   - Instance %s Status' % inst.status)
+                   status=inst.status
+        except Exception:
+            print('   - Instance Not Found')
+            status = False
+
+        instance_data = {'instance_name': name,
+                                'status': status }
+        return instance_data
+
+
+    @classmethod
+    def terminate_exampleservice_instance_vm_on_cord(cls, tenant_name, vm_name, network_id):
+        credentials = cls.get_nova_credentials_v2()
+        nvclient = nova_client.Client('2', **credentials)
+        nvclient.quotas.delete(tenant_name)
+        try:
+            instance = nvclient.servers.find(name=vm_name)
+            nvclient.servers.delete(instance.id)
+            print "  * Instance terminated on cord: " + str(network_id)
+        except Exception:
+            print "  * Instance Not Found on cord: " + str(network_id)
+            pass
+        return True
 
 class ExampleSeviceWrapper(object):
 
