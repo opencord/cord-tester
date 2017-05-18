@@ -47,7 +47,7 @@ class IgmpChannel:
         self.ssm_list += ssm_list
         self.src_list = src_list
         self.delay = delay
-        self.onos_ctrl = OnosCtrl('org.onosproject.igmp',controller=self.controller)
+        self.onos_ctrl = OnosCtrl('org.opencord.igmp',controller=self.controller)
         self.onos_ctrl.activate()
 
     def igmp_load_ssm_config(self, ssm_list = []):
@@ -90,8 +90,8 @@ class IgmpChannel:
         time.sleep(2)
 
     def ssm_table_load(self, groups):
-          ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
-          ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
+          ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
+          ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
           for g in groups:
                 for s in self.src_list:
                       d = {}

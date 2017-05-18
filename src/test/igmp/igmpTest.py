@@ -111,8 +111,8 @@ class igmp_exchange(CordLogger):
         time.sleep(2)
 
     def onos_ssm_table_load(self, groups, src_list = ['1.2.3.4'],flag = False):
-          ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
-          ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
+          ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
+          ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
 	  if flag: #to maintain seperate group-source pair.
 	      for i in range(len(groups)):
 		  d = {}
@@ -2154,8 +2154,8 @@ class igmp_exchange(CordLogger):
     def test_igmp_registering_invalid_group(self):
         groups = ['218.18.19.29']
         source = [self.randomsourceip()]
-	ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
-	ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
+	ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
+	ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
 	for g in groups:
             for s in source:
                 d = {}
@@ -2172,8 +2172,8 @@ class igmp_exchange(CordLogger):
     def test_igmp_registering_invalid_source(self):
         groups = [self.random_mcast_ip()]
         sources = ['224.10.28.34','193.73.219.257']
-        ssm_dict = {'apps' : { 'org.onosproject.igmp' : { 'ssmTranslate' : [] } } }
-        ssm_xlate_list = ssm_dict['apps']['org.onosproject.igmp']['ssmTranslate']
+        ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
+        ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
         for g in groups:
             for s in sources:
                 d = {}

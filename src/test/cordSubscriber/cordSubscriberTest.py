@@ -17,6 +17,7 @@ import unittest
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
+from scapy.all import IP
 import time, monotonic
 import os, sys
 import tempfile
