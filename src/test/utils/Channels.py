@@ -191,7 +191,7 @@ class Channels(IgmpChannel):
             self.last_chan = None
         return True
 
-    def join_next(self, chan = None):
+    def join_next(self, chan = None, leave_flag = True):
         if chan is None:
             chan = self.last_chan
             if chan is None:
@@ -206,7 +206,8 @@ class Channels(IgmpChannel):
             join = 0
 
         if leave >= 0 and leave != join:
-            self.leave(leave)
+            if leave_flag is True:
+                self.leave(leave)
 
         return self.join(join)
 
