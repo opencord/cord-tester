@@ -101,13 +101,13 @@ class Subscriber(Channels):
             self.channel_join_update(chan, join_time)
             return chan
 
-      def channel_join_next(self, delay = 2):
+      def channel_join_next(self, delay = 2, leave_flag = True):
             '''Joins the next channel leaving the last channel'''
             if self.last_chan:
                   if self.join_map.has_key(self.last_chan):
                         del self.join_map[self.last_chan]
             self.delay = delay
-            chan, join_time = self.join_next()
+            chan, join_time = self.join_next(leave_flag = leave_flag)
             self.channel_join_update(chan, join_time)
             return chan
 
@@ -211,6 +211,7 @@ class subscriber_exchange(CordLogger):
       test_services = ('IGMP', 'TRAFFIC')
       num_joins = 0
       num_subscribers = 0
+      leave_flag = True
       num_channels = 0
       recv_timeout = False
       onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
@@ -550,7 +551,7 @@ yg==
             if subscriber.has_service('IGMP'):
                   for i in xrange(subscriber.num):
                         if i:
-                              chan = subscriber.channel_join_next(delay=0)
+                              chan = subscriber.channel_join_next(delay=0, leave_flag = self.leave_flag)
                         else:
                               chan = subscriber.channel_join(i, delay=0)
                         log_test.info('Joined next channel %d for subscriber %s' %(chan, subscriber.name))
@@ -1182,6 +1183,20 @@ yg==
                                                            self.igmp_next_verify, self.traffic_verify),
                                                     port_list = self.generate_port_list(self.num_subscribers,
                                                                                         self.num_channels))
+          assert_equal(test_status, True)
+
+      def test_cord_subscriber_join_next_without_leave(self):
+          """Test subscriber join next for channel surfing"""
+          self.num_subscribers = self.num_ports * len(self.switches)
+          self.num_channels = 5
+          self.leave_flag = False
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify,
+                                                           self.igmp_next_verify, self.traffic_verify),
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
+          self.leave_flag = True
           assert_equal(test_status, True)
 
       #@deferred(SUBSCRIBER_TIMEOUT)
