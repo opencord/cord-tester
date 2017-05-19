@@ -2161,6 +2161,8 @@ class vsg_exchange(CordLogger):
         return subId
 
     def test_vsg_xos_subscriber_create_reserved(self):
+        if self.on_pod is False:
+            return
         tags_reserved = [ (int(vcpe['s_tag']), int(vcpe['c_tag'])) for vcpe in self.vcpes_reserved ]
         volt_tenants = self.restApiXos.ApiGet('TENANT_VOLT')
         subscribers = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
