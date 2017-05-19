@@ -1,8 +1,14 @@
 #!/usr/bin/env python
-SERVER_IP = '10.128.15.11'
+
+SERVER_IP = '127.0.0.1'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
-PASSWD = 'SV3577fIRsdSMUgxpemM'
+PASSWD = 'TestPassword'
+# Test #
+#SERVER_IP = '127.0.0.1'
+#SERVER_PORT = '8080'
+#USER = 'xosadmin@opencord.org'
+#PASSWD = 'TestPassword'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
 VOLT_TENANT = '/xosapi/v1/volt/volttenants'
 TENANT_SUBSCRIBER = '/api/tenant/cord/subscriber/'
