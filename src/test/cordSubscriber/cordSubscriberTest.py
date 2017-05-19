@@ -562,6 +562,23 @@ yg==
                   self.test_status = True
                   return self.test_status
 
+      def igmp_leave_verify(self, subscriber):
+            if subscriber.has_service('IGMP'):
+                  for chan in xrange(subscriber.num):
+                        subscriber.channel_leave(chan)
+                        time.sleep(2)
+                        log_test.info('Left channel %d for subscriber %s' %(chan, subscriber.name))
+                        #self.recv_timeout = True
+                        #subscriber.recv_timeout = True
+                        #subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count=1)
+                        #self.recv_timeout = False
+                        #subscriber.recv_timeout = False
+                        #log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
+                        #time.sleep(1)
+
+                  self.test_status = True
+                  return self.test_status
+
       def generate_port_list(self, subscribers, channels):
             return self.port_list[:subscribers]
 
@@ -1197,6 +1214,18 @@ yg==
                                                     port_list = self.generate_port_list(self.num_subscribers,
                                                                                         self.num_channels))
           self.leave_flag = True
+          assert_equal(test_status, True)
+
+      def test_cord_subscriber_leave(self):
+          """Test subscriber leaves for all the join nexts before"""
+          self.num_subscribers = self.num_ports * len(self.switches)
+          self.num_channels = 5
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify,
+                                                           self.igmp_leave_verify, self.traffic_verify),
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
           assert_equal(test_status, True)
 
       #@deferred(SUBSCRIBER_TIMEOUT)
