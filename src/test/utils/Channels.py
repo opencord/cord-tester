@@ -177,12 +177,12 @@ class Channels(IgmpChannel):
         self.last_chan = chan
         return chan, join_start
 
-    def leave(self, chan):
+    def leave(self, chan, force = False):
         if chan is None:
             chan = self.last_chan
         if chan is None or chan >= self.num:
             return False
-        if self.get_state(chan) != self.Joined:
+        if force is False and self.get_state(chan) != self.Joined:
             return False
         groups = [self.channels[chan]]
         self.igmp_leave(groups)

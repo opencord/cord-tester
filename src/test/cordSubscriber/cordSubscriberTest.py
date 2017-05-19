@@ -121,10 +121,10 @@ class Subscriber(Channels):
             self.channel_join_update(chan, join_time)
             return chan
 
-      def channel_leave(self, chan = 0):
+      def channel_leave(self, chan = 0, force = False):
             if self.join_map.has_key(chan):
                   del self.join_map[chan]
-            self.leave(chan)
+            self.leave(chan, force = force)
 
       def channel_update(self, chan, stats_type, packets, t=0):
             if type(chan) == type(0):
@@ -565,7 +565,7 @@ yg==
       def igmp_leave_verify(self, subscriber):
             if subscriber.has_service('IGMP'):
                   for chan in xrange(subscriber.num):
-                        subscriber.channel_leave(chan)
+                        subscriber.channel_leave(chan, force = True)
                         time.sleep(2)
                         log_test.info('Left channel %d for subscriber %s' %(chan, subscriber.name))
                         #self.recv_timeout = True
