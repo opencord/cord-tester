@@ -321,6 +321,7 @@ class OnosCord(Container):
                    'http://mavenrepo:8080/repository/org/opencord/igmp/1.2-SNAPSHOT/igmp-1.2-SNAPSHOT.oar',)
 
     old_service_profile = '/opt/cord/orchestration/service-profile/cord-pod'
+    cord_profile = '/opt/cord_profile'
 
     def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 5):
         if not os.access(conf, os.F_OK):
@@ -482,12 +483,24 @@ class OnosCord(Container):
             getattr(self, 'synchronize_{}'.format(self.synchronizer))(cfg = cfg)
 
         #now restart the xos synchronizer container
-        cmd = 'cd /opt/cord_profile/onboarding-docker-compose && \
-        docker-compose -p {} restart xos_synchronizer_{}'.format(self.service_profile, self.synchronizer)
-        try:
-            print(cmd)
-            os.system(cmd)
-        except: pass
+        cmd = None
+        if os.access('{}/onboarding-docker-compose/docker-compose.yml'.format(self.cord_profile), os.F_OK):
+            cmd = 'cd {}/onboarding-docker-compose && \
+            docker-compose -p {} restart xos_synchronizer_{}'.format(self.cord_profile,
+                                                                     self.service_profile,
+                                                                     self.synchronizer)
+        else:
+            if os.access('{}/docker-compose.yml'.format(self.cord_profile), os.F_OK):
+                cmd = 'cd {} && \
+                docker-compose -p {} restart {}-synchronizer'.format(self.cord_profile,
+                                                                     self.service_profile,
+                                                                     self.synchronizer)
+        if cmd is not None:
+            try:
+                print(cmd)
+                os.system(cmd)
+            except:
+                pass
 
     def start(self, restart = False, network_cfg = None):
         if network_cfg is not None:
