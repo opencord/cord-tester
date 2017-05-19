@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 SERVER_IP = '10.128.15.11'
-SERVER_PORT = '9101'
+SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
 PASSWD = 'SV3577fIRsdSMUgxpemM'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
