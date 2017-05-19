@@ -2086,11 +2086,13 @@ class vsg_exchange(CordLogger):
         reactor.callLater(0,vcpe_firewall,df)
         return df
 
-    def vsg_xos_subscriber_create(self, index):
+    def vsg_xos_subscriber_create(self, index, subscriber_info = None, volt_subscriber_info = None):
         if self.on_pod is False:
-            return
-        subscriber_info = self.subscriber_info[index]
-        volt_subscriber_info = self.volt_subscriber_info[index]
+            return ''
+        if subscriber_info is None:
+            subscriber_info = self.subscriber_info[index]
+        if volt_subscriber_info is None:
+            volt_subscriber_info = self.volt_subscriber_info[index]
         s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
@@ -2103,7 +2105,7 @@ class vsg_exchange(CordLogger):
             assert_not_equal(result, None)
             subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
             assert_not_equal(subId, '0')
-            log.info('Subscriber ID for account num %d = %s' %(volt_subscriber_info['account_num'], subId))
+            log.info('Subscriber ID for account num %s = %s' %(str(volt_subscriber_info['account_num']), subId))
             volt_tenant = volt_subscriber_info['voltTenant']
             #update the subscriber id in the tenant info before making the rest
             volt_tenant['subscriber'] = subId
@@ -2121,11 +2123,13 @@ class vsg_exchange(CordLogger):
         finally:
             return subId
 
-    def vsg_xos_subscriber_delete(self, index, subId = ''):
+    def vsg_xos_subscriber_delete(self, index, subId = '', voltId = '', subscriber_info = None, volt_subscriber_info = None):
         if self.on_pod is False:
             return
-        subscriber_info = self.subscriber_info[index]
-        volt_subscriber_info = self.volt_subscriber_info[index]
+        if subscriber_info is None:
+            subscriber_info = self.subscriber_info[index]
+        if volt_subscriber_info is None:
+            volt_subscriber_info = self.volt_subscriber_info[index]
         s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
@@ -2136,12 +2140,13 @@ class vsg_exchange(CordLogger):
             assert_not_equal(result, None)
             subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
             assert_not_equal(subId, '0')
-        #get the volt id for the subscriber
-        result = self.restApiXos.ApiGet('TENANT_VOLT')
-        assert_not_equal(result, None)
-        voltId = self.getVoltId(result, subId)
-        assert_not_equal(voltId, None)
-        log.info('Deleting subscriber ID %s for account num %d' %(subId, volt_subscriber_info['account_num']))
+        if not voltId:
+            #get the volt id for the subscriber
+            result = self.restApiXos.ApiGet('TENANT_VOLT')
+            assert_not_equal(result, None)
+            voltId = self.getVoltId(result, subId)
+            assert_not_equal(voltId, None)
+        log.info('Deleting subscriber ID %s for account num %s' %(subId, str(volt_subscriber_info['account_num'])))
         status = self.restApiXos.ApiDelete('TENANT_SUBSCRIBER', subId)
         assert_equal(status, True)
         #Delete the tenant
@@ -2154,6 +2159,39 @@ class vsg_exchange(CordLogger):
         assert_not_equal(result, None)
         subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
         return subId
+
+    def test_vsg_xos_subscriber_create_reserved(self):
+        tags_reserved = [ (int(vcpe['s_tag']), int(vcpe['c_tag'])) for vcpe in self.vcpes_reserved ]
+        volt_tenants = self.restApiXos.ApiGet('TENANT_VOLT')
+        subscribers = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+        reserved_tenants = filter(lambda tenant: (int(tenant['s_tag']), int(tenant['c_tag'])) in tags_reserved, volt_tenants)
+        reserved_config = []
+        for tenant in reserved_tenants:
+            for subscriber in subscribers:
+                if int(subscriber['id']) == int(tenant['subscriber']):
+                    volt_subscriber_info = {}
+                    volt_subscriber_info['voltTenant'] = dict(s_tag = tenant['s_tag'],
+                                                              c_tag = tenant['c_tag'],
+                                                              subscriber = tenant['subscriber'])
+                    volt_subscriber_info['volt_id'] = tenant['id']
+                    volt_subscriber_info['account_num'] = subscriber['identity']['account_num']
+                    reserved_config.append( (subscriber, volt_subscriber_info) )
+                    break
+            else:
+                log.info('Subscriber not found for tenant %s, s_tag: %s, c_tag: %s' %(str(tenant['subscriber']),
+                                                                                      str(tenant['s_tag']),
+                                                                                      str(tenant['c_tag'])))
+
+        for subscriber_info, volt_subscriber_info in reserved_config:
+            self.vsg_xos_subscriber_delete(0,
+                                           subId = str(subscriber_info['id']),
+                                           voltId = str(volt_subscriber_info['volt_id']),
+                                           subscriber_info = subscriber_info,
+                                           volt_subscriber_info = volt_subscriber_info)
+            subId = self.vsg_xos_subscriber_create(0,
+                                                   subscriber_info = subscriber_info,
+                                                   volt_subscriber_info = volt_subscriber_info)
+            log.info('Created reserved subscriber %s' %(subId))
 
     def test_vsg_xos_subscriber_create_all(self):
         for index in xrange(len(self.subscriber_info)):
