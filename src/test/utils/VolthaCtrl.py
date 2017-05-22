@@ -44,3 +44,41 @@ class VolthaCtrl(object):
             return False
 
         return True
+
+    def get_olt_operational_status(self, olt_type, olt_mac):
+        url = '{}/local/devices'.format(self.rest_url)
+        device_config = { 'type' : olt_type, 'mac_address' : olt_mac }
+        log.info('Provisioned %s with mac %s' %(olt_type, olt_mac))
+        resp = requests.post(url, data = json.dumps(device_config))
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        device_id = resp.json()['id']
+        log.info('Checking operational status for device %s' %(device_id))
+        resp = requests.get('{}/{}'.format(url, device_id))
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        device_info = resp.json()
+        if device_info['oper_status'] != 'ACTIVE' or \
+           device_info['admin_state'] != 'ENABLED' or \
+           device_info['connect_status'] != 'REACHABLE':
+            return False
+        return True
+
+    def get_onu_operational_status(self, onu_type, onu_mac):
+        url = '{}/local/devices'.format(self.rest_url)
+        device_config = { 'type' : onu_type, 'mac_address' : onu_mac }
+        log.info('Provisioned %s with mac %s' %(onu_type, onu_mac))
+        resp = requests.post(url, data = json.dumps(device_config))
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        device_id = resp.json()['id']
+        log.info('Checking operational status for device %s' %(device_id))
+        resp = requests.get('{}/{}'.format(url, device_id))
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        device_info = resp.json()
+        if device_info['oper_status'] != 'ACTIVE' or \
+           device_info['admin_state'] != 'ENABLED' or \
+           device_info['connect_status'] != 'REACHABLE':
+            return False
+        return True
