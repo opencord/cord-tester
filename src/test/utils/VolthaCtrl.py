@@ -44,3 +44,27 @@ class VolthaCtrl(object):
             return False
 
         return True
+
+    def get_operational_status(self, device_id):
+        url = '{}/local/devices'.format(self.rest_url)
+        log.info('Checking operational status for device %s' %(device_id))
+        resp = requests.get('{}/{}'.format(url, device_id))
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        device_info = resp.json()
+        if device_info['oper_status'] != 'ACTIVE' or \
+           device_info['admin_state'] != 'ENABLED' or \
+           device_info['connect_status'] != 'REACHABLE':
+           return False
+        return True
+
+    def check_preprovision_status(self, device_id):
+        url = '{}/local/devices'.format(self.rest_url)
+        log.info('Check if device %s is in Preprovisioning state'%(device_id))
+        resp = requests.get('{}/{}'.format(url, device_id))
+        if resp.ok is not True or resp.status_code != 200:
+           return False
+        device_info = resp.json()
+        if device_info['admin_status'] == 'PREPROVISIONED':
+           return True
+        return False
