@@ -187,6 +187,16 @@ class ExampleSeviceWrapper(object):
                 return ips[0]
         return None
 
+    def get_public_ip(self):
+        if 'public' in self.exampleservice.networks:
+            ips = self.exampleservice.networks['public']
+            if len(ips) > 0:
+                return ips[0]
+        return None
+
+    def get_name(self):
+        return  self.exampleservice.name
+
     '''
     @method: run_cmd_compute
     @Description:
@@ -257,5 +267,26 @@ class ExampleSeviceWrapper(object):
         if st == True:
             log.info('OK')
         return st
+
+    def pause(self):
+	return self.exampleservice.pause()
+
+    def unpause(self):
+        return self.exampleservice.unpause()
+
+    def stop(self):
+        return self.exampleservice.stop()
+
+    def start(self):
+        return self.exampleservice.start()
+
+    def suspend(self):
+        return self.exampleservice.suspend()
+
+    def resume(self):
+        return self.exampleservice.resume()
+
+    def reboot(self):
+        return self.exampleservice.reboot()
 
 

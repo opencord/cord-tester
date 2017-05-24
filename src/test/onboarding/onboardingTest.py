@@ -24,16 +24,21 @@ from neutronclient.v2_0 import client as neutron_client
 import neutronclient.v2_0.client as neutronclient
 from nose.tools import assert_equal
 from CordTestUtils import get_mac, log_test
+from onosclidriver import OnosCliDriver
 from OnosCtrl import OnosCtrl
 from OnosFlowCtrl import OnosFlowCtrl
 from OnboardingServiceUtils import OnboardingServiceUtils
 from SSHTestAgent import SSHTestAgent
-from CordTestUtils import running_on_pod
+from CordTestUtils import running_on_pod, getstatusoutput
 from CordLogger import CordLogger
 from CordTestUtils import log_test as log
 import requests
 import time
 import json
+from VSGAccess import VSGAccess
+from CordTestConfig import setup_module, running_on_ciab
+from vsgTest import *
+log.setLevel('INFO')
 
 class onboarding_exchange(CordLogger):
     ONOS_INSTANCES = 3
@@ -47,6 +52,9 @@ class onboarding_exchange(CordLogger):
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
     on_pod = running_on_pod()
+    vcpe_dhcp = 'vcpe0.222.111'
+    vsg_exchange = vsg_exchange()
+    vm_name = 'mysite_exampleservice'
 
     @classmethod
     def setUpClass(cls):
@@ -56,7 +64,7 @@ class onboarding_exchange(CordLogger):
     def tearDownClass(cls):
         OnboardingServiceUtils.tearDown()
 
-    def cliEnter(self, controller = None):
+    def cliEnter(self,  controller = None):
         retries = 0
         while retries < 30:
             self.cli = OnosCliDriver(controller = controller, connect = True)
@@ -69,7 +77,7 @@ class onboarding_exchange(CordLogger):
     def cliExit(self):
         self.cli.disconnect()
 
-    def onos_shutdown(self, controller = None):
+    def onos_shutdown(self,  controller = None):
         status = True
         self.cliEnter(controller = controller)
         try:
@@ -80,6 +88,15 @@ class onboarding_exchange(CordLogger):
 
         self.cliExit()
         return status
+
+    def get_exampleservice_vm_public_ip(self, vm_name = 'mysite_exampleservice'):
+	if not vm_name:
+		vm_name = self.vm_name
+	exampleservices = OnboardingServiceUtils.get_exampleservices()
+	for service in exampleservices:
+		if vm_name in service.name:
+			return service.get_public_ip()
+	return None
 
     def test_exampleservice_health(self):
         """
@@ -96,10 +113,9 @@ class onboarding_exchange(CordLogger):
         if self.on_pod is False:
             return
         exampleservices = OnboardingServiceUtils.get_exampleservices()
-	log.info('list of all exampleservices are %s'%exampleservices)
-        """exampleservice_access_status = map(lambda exampleservice: exampleservice.check_access(), exampleservices)
+	exampleservice_access_status = map(lambda exampleservice: exampleservice.check_access(), exampleservices)
         status = filter(lambda st: st == False, exampleservice_access_status)
-        assert_equal(len(status), 0)"""
+        assert_equal(len(status), 0)
 
     def test_exampleservice_for_default_route_through_testclient(self):
         if self.on_pod is False:
@@ -113,160 +129,227 @@ class onboarding_exchange(CordLogger):
         if self.on_pod is False:
             return
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
+        cmd = "sudo lxc exec testclient -- ping -c 3 8.8.8.8"
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal( status, True)
 
-    def get_exampleservice_vm_public_ip(self,vm='mysite_exampleservice'):
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "nova list --all-tenants|grep {}|cut -d '|' -f 2".format(vm)
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get public IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        return public_ip
+    def test_exampleservice_for_service_reachability_from_cord_tester(self, vcpe_intf=None):
+        if self.on_pod is False:
+            return
+	if not vcpe_intf:
+		vcpe_intf = self.dhcp_vcpes_reserved[0]
+	vm_public_ip = self.get_exampleservice_vm_public_ip()
+	self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+	st, _ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+        assert_equal(st, False)
+	self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
 
     def test_exampleservice_operational_status_from_testclient(self):
+	vm_public_ip = self.get_exampleservice_vm_public_ip()
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        #Wait for ExampleService VM to come up
-        cmd = "nova list --all-tenants|grep 'exampleservice.*ACTIVE'"
-        status, output = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get ID of VM
-        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get mgmt IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 172\.27\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, mgmt_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get public IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get name of compute node
-        cmd = "nova service-list|grep nova-compute|cut -d '|' -f 3"
-        status, compute_node = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Wait for Apache to come up inside VM
-        cmd = "ssh -o ProxyCommand='ssh -W %h:%p -l ubuntu {}' ubuntu@{} 'ls /var/run/apache2/apache2.pid'".fromat(compute_node,mgmt_ip)
-        #Make sure testclient has default route to vSG
-        cmd = "lxc exec testclient -- route | grep default | grep eth0.222.111"
-        status, output = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        cmd = 'lxc exec testclient -- apt-get install -y curl'
-        status, output = ssh_agent.run_cmd(cmd)
+        cmd = 'sudo lxc exec testclient -- apt-get install -y curl'
+        status, _  = ssh_agent.run_cmd(cmd)
         assert_equal(status, True)
         #Test connectivity to ExampleService from test client
-        cmd = 'lxc exec testclient -- curl -s http://{}'.format(public_ip)
+        cmd = 'sudo lxc exec testclient -- curl -s http://{}'.format(vm_public_ip)
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal(status, True)
 
-    def test_subscribers_operational_status_for_exampleservice_from_cord_tester(self):
+    def test_exampleservice_operational_access_from_cord_tester(self, vcpe_intf=None):
+        if self.on_pod is False:
+            return
         if not vcpe_intf:
-                vcpe_intf = self.dhcp_vcpes_reserved[0]
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get public IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        try:
-            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-            #curl request from test container
-            cmd = 'curl -s http://{}'.format(public_ip)
-            st,_ = getstatusoutput(cmd)
-            assert_equal(st, True)
-        finally:
-            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+                vcpe_intf = self.vcpe_dhcp
+	vm_public_ip = self.get_exampleservice_vm_public_ip()
+        self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+        st, _ = getstatusoutput('curl -s http://{}'.format(vm_public_ip))
+        assert_equal(st, False)
 
-    def test_subscriber_access_status_for_exampleservice_after_subscriber_interface_toggle(self,vcpe_intf=None):
-        if not vcpe_intf:
-                vcpe_intf = self.dhcp_vcpes_reserved[0]
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        #Get public IP of VM
-        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        try:
-            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-            #curl request from test container
-            cmd = 'curl -s http://{}'.format(public_ip)
-            st,_ = getstatusoutput(cmd)
-            assert_equal(st, True)
-            st,_ = getstatusoutput('ifconfig {} down'.format(vcpe_intf))
-            assert_equal(st, True)
-            st,_ = getstatusoutput(cmd)
-            assert_equal(st, True)
-        finally:
-            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-
-    def test_subscriber_access_status_for_exampleservice_after_service_restart(self, vcpe_intf=None):
-        if not vcpe_intf:
-                vcpe_intf = self.dhcp_vcpes_reserved[0]
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get public IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        try:
-            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-            #curl request from test container
-            curl_cmd = 'curl -s http://{}'.format(public_ip)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
-            #restarting example service VM
-            cmd = 'nova reset-state {}'.format(nova_id)
-            status, _ = ssh_agent.run_cmd(cmd)
-            assert_equal(status, True)
-            time.sleep(10)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
-        finally:
-            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-
-    def test_subcriber_access_status_for_exampleservice_after_service_stop(self, vcpe_intf=None):
-        if not vcpe_intf:
-                vcpe_intf = self.dhcp_vcpes_reserved[0]
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get public IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        try:
-            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-            #curl request from test container
-            curl_cmd = 'curl -s http://{}'.format(public_ip)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
-            #restarting example service VM
-            cmd = 'nova stop {}'.format(nova_id)
-            status, _ = ssh_agent.run_cmd(cmd)
-            assert_equal(status, True)
-            time.sleep(1)
-            st,_ = getstatusoutput(curl_cmd)
+    def test_exampleservice_for_service_message(self, service_message='"'+'hello'+'"'):
+	vm_public_ip = self.get_exampleservice_vm_public_ip()
+	vcpe_intf = self.vcpe_dhcp
+	try:
+	    self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+            st,out = getstatusoutput('curl -s http://{}'.format(vm_public_ip))
             assert_equal(st, False)
-            cmd = 'nova start {}'.format(nova_id)
-            status, _ = ssh_agent.run_cmd(cmd)
-            assert_equal(status, True)
-            time.sleep(1)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
+            output = out.split('\n')
+	    srvs_msg = ''
+            for line in output:
+                line = line.split(':')
+                if line[0].strip() == 'Service Message':
+                    srvs_msg = line[1].strip()
+	    assert_equal(service_message, srvs_msg)
         finally:
-            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+            self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+
+    def test_exampleservice_for_tenant_message(self, tenant_message='"'+'world'+'"'):
+	vcpe_intf = self.vcpe_dhcp
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+        try:
+            self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+            st,out = getstatusoutput('curl -s http://10.6.1.194')
+            assert_equal(st, False)
+            output = out.split('\n')
+            tnt_msg = ''
+            for line in output:
+                line = line.split(':')
+                if line[0].strip() == 'Tenant Message':
+                    tnt_msg = line[1].strip()
+            assert_equal(tenant_message, tnt_msg)
+        finally:
+            self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+
+    def test_exampleservice_access_after_subscriber_interface_toggle(self, vcpe_intf=None):
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+        try:
+            self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+            #curl request from test container
+            cmd = 'curl -s http://{}'.format(vm_public_ip)
+            st,_ = getstatusoutput(cmd)
+            assert_equal(st, False)
+            st,_ = getstatusoutput('ifconfig {} down'.format(vcpe_intf))
+	    time.sleep(1)
+            assert_equal(st, False)
+            st,_ = getstatusoutput(cmd)
+            assert_equal(st, False)
+            st,_ = getstatusoutput('ifconfig {} up'.format(vcpe_intf))
+            time.sleep(1)
+	    self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+	    st,_ = getstatusoutput(cmd)
+            assert_equal(st, False)
+        finally:
+            self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+
+    def test_exampleservice_access_after_service_paused(self, vcpe_intf=None,vm_name=None):
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+	if not vm_name:
+		vm_name = self.vm_name
+	vm_public_ip = self.get_exampleservice_vm_public_ip()
+        self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+        assert_equal(st, False)
+        exampleservices = OnboardingServiceUtils.get_exampleservices()
+	status = False
+        for service in exampleservices:
+                if self.vm_name in service.name:
+                        log.info('pausing mysite-example-server')
+			service.pause()
+			time.sleep(1)
+        		st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+        		assert_equal(st, True)
+			service.unpause()
+			self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+			status = True
+	assert_equal(status, True)
+
+    def test_exampleservice_access_after_service_is_suspended(self, vcpe_intf=None,vm_name=None):
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        if not vm_name:
+                vm_name = self.vm_name
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+        self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+        assert_equal(st, False)
+        exampleservices = OnboardingServiceUtils.get_exampleservices()
+        status = False
+        for service in exampleservices:
+                if self.vm_name in service.name:
+                        log.info('suspending mysite-example-server')
+                        service.suspend()
+                        time.sleep(5)
+                        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+                        assert_equal(st, True)
+                        service.resume()
+                        self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                        status = True
+        assert_equal(status, True)
+
+    def test_exampleservice_access_after_service_restart(self, vcpe_intf=None,vm_name=None):
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        if not vm_name:
+                vm_name = self.vm_name
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+        self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+        assert_equal(st, False)
+        exampleservices = OnboardingServiceUtils.get_exampleservices()
+        status = False
+        for service in exampleservices:
+                if self.vm_name in service.name:
+                        log.info('restarting mysite-example-server')
+                        service.reboot()
+                        time.sleep(30)
+			self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+                        assert_equal(st, False)
+                        self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                        status = True
+        assert_equal(status, True)
+
+    def test_exampleservice_access_after_service_stop(self, vcpe_intf=None,vm_name=None):
+        if not vcpe_intf:
+                vcpe_intf = self.vcpe_dhcp
+        if not vm_name:
+                vm_name = self.vm_name
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+        self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+        assert_equal(st, False)
+        exampleservices = OnboardingServiceUtils.get_exampleservices()
+        status = False
+        for service in exampleservices:
+                if self.vm_name in service.name:
+                        log.info('restarting mysite-example-server')
+                        service.stop()
+                        time.sleep(1)
+                        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+                        assert_equal(st, True)
+			service.start()
+                        self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                        status = True
+        assert_equal(status, True)
+
+    def test_exampleservice_for_service_message_after_service_stop_and_start(self, service_message='"'+'hello'+'"'):
+        vm_public_ip = self.get_exampleservice_vm_public_ip()
+        vcpe_intf = self.vcpe_dhcp
+        try:
+            self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+            st,out = getstatusoutput('curl -s http://{}'.format(vm_public_ip))
+            assert_equal(st, False)
+	    exampleservices = OnboardingServiceUtils.get_exampleservices()
+	    status = False
+            for service in exampleservices:
+                if self.vm_name in service.name:
+                        log.info('stopping mysite-example-server')
+                        service.stop()
+                        time.sleep(5)
+                        st,_ = getstatusoutput('ping -c 1 {}'.format(vm_public_ip))
+                        assert_equal(st, True)
+                        service.start()
+			self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+			time.sleep(50)
+                        st,out = getstatusoutput('curl -s http://{}'.format(vm_public_ip))
+                        assert_equal(st, False)
+                        output = out.split('\n')
+                        srvs_msg = ''
+                        for line in output:
+                            line = line.split(':')
+                            if line[0].strip() == 'Service Message':
+                                srvs_msg = line[1].strip()
+				break
+                        assert_equal(service_message, srvs_msg)
+		        self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                        status = True
+			break
+	    assert_equal(status,True)
+        finally:
+            self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
 
     def test_multiple_subcriber_access_for_same_exampleservice(self):
         ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
@@ -286,7 +369,7 @@ class onboarding_exchange(CordLogger):
             self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe)
             time.sleep(1)
 
-    def test_exampleservice_after_vcpe_instance_restart(self,vcpe_intf=None,vcpe_name=None):
+    def test_exampleservice_after_vcpe_instance_restart(self, vcpe_intf=None,vcpe_name=None):
         if not vcpe_intf:
                 vcpe_intf = self.dhcp_vcpes_reserved[0]
         if not vcpe_name:
