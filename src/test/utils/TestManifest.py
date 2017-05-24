@@ -50,6 +50,8 @@ class TestManifest(object):
             self.server = args.server
             self.jvm_heap_size = args.jvm_heap_size if args.jvm_heap_size else None
             self.karaf_version = args.karaf
+            self.voltha_loc = args.voltha_loc
+            self.voltha_intf = args.voltha_intf
         else:
             with open(self.manifest, 'r') as fd:
                 data = json.load(fd)
@@ -76,3 +78,5 @@ class TestManifest(object):
             self.iterations = data.get('iterations', None)
             self.jvm_heap_size = data.get('jvm_heap_size', None)
             self.karaf_version = data.get('karaf_version', '3.0.8')
+            self.voltha_loc = data.get('voltha_loc', '')
+            self.voltha_intf = data.get('voltha_intf', 'eth0')

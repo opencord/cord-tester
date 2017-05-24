@@ -249,7 +249,7 @@ class voltha_exchange(unittest.TestCase):
         6  Verify that subscriber should not get ip from dhcp server, ping to gateway.
         """
 
-def test_subscriber_with_voltha_for_dhcp_starvation_positive_scenario(self):
+    def test_subscriber_with_voltha_for_dhcp_starvation_positive_scenario(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -856,4 +856,3 @@ def test_subscriber_with_voltha_for_dhcp_starvation_positive_scenario(self):
         6. Pause the olt device which is detected in voltha.
         7. Verify that subscriber should not get ip from external dhcp server. and other subscriber ping to gateway should failed.
         """
-

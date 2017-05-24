@@ -30,6 +30,7 @@ from threadPool import ThreadPool
 from CordContainer import *
 from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_test_server_shutdown,CORD_TEST_HOST,CORD_TEST_PORT
 from TestManifest import TestManifest
+from VolthaCtrl import VolthaService
 from docker import Client
 from docker.utils import kwargs_from_env
 from Xos import XosServiceProfile
@@ -545,6 +546,8 @@ def runTest(args):
     service_profile = test_manifest.service_profile
     synchronizer = test_manifest.synchronizer
     olt_config_file = test_manifest.olt_config
+    voltha_loc = test_manifest.voltha_loc
+    voltha_intf = test_manifest.voltha_intf
     if not os.access(olt_config_file, os.F_OK):
         olt_config_file = os.path.join(CordTester.tester_base, 'olt_config.json')
     else:
@@ -661,6 +664,11 @@ def runTest(args):
                 OnosCtrl.install_app(args.app, onos_ip = ip)
         except: pass
 
+    if voltha_loc:
+        #start voltha
+        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf)
+        voltha.start()
+
     if radius_ip is None:
         ##Start Radius container
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
@@ -689,7 +697,8 @@ def runTest(args):
                      'LOG_LEVEL': test_manifest.log_level,
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key,
-                     'KARAF_VERSION' : test_manifest.karaf_version
+                     'KARAF_VERSION' : test_manifest.karaf_version,
+                     'VOLTHA_ENABLED' : True if voltha_loc else False
                    }
 
     if ssh_key_file:
@@ -822,6 +831,8 @@ def setupCordTester(args):
     iterations = test_manifest.iterations
     service_profile = test_manifest.service_profile
     synchronizer = test_manifest.synchronizer
+    voltha_loc = test_manifest.voltha_loc
+    voltha_intf = test_manifest.voltha_intf
     onos_cord = None
     onos_cord_loc = test_manifest.onos_cord
     Onos.update_data_dir(test_manifest.karaf_version)
@@ -929,6 +940,11 @@ def setupCordTester(args):
             OnosCtrl.install_app(args.app, onos_ip = ip)
     except: pass
 
+    if voltha_loc:
+        #start voltha
+        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf)
+        voltha.start()
+
     ##Start Radius container if not started
     if radius_ip is None:
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
@@ -967,7 +983,8 @@ def setupCordTester(args):
                          'LOG_LEVEL': test_manifest.log_level,
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                          'MAAS_API_KEY': maas_api_key,
-                         'KARAF_VERSION' : test_manifest.karaf_version
+                         'KARAF_VERSION' : test_manifest.karaf_version,
+                         'VOLTHA_ENABLED' : True if voltha_loc else False
                        }
 
         if ssh_key_file:
@@ -1023,6 +1040,7 @@ def cleanupTests(args):
         args.onos_cord = manifest.onos_cord
         args.service_profile = manifest.service_profile
         args.synchronizer = manifest.synchronizer
+        args.voltha_loc = manifest.voltha_loc
     else:
         args.onos_ip = None
         args.radius_ip = None
@@ -1057,6 +1075,10 @@ def cleanupTests(args):
     quagga_container = '{}{}:candidate'.format(prefix, Quagga.IMAGE)
     Container.cleanup(radius_container)
     Container.cleanup(quagga_container)
+    if args.voltha_loc:
+        voltha = VolthaService(args.voltha_loc, args.onos_ip)
+        voltha.stop()
+
     if args.onos_cord:
         #try restoring the onos cord instance
         try:
@@ -1280,6 +1302,11 @@ if __name__ == '__main__':
                             help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
                             'Eg: vtn,fabric,cord')
     parser_run.add_argument('-karaf', '--karaf', default='3.0.8', type=str, help='Karaf version for ONOS')
+    parser_run.add_argument('-voltha-loc', '--voltha-loc', default='', type=str,
+                            help='Specify the voltha location in order to start voltha')
+    parser_run.add_argument('-voltha-intf', '--voltha-intf', default='eth0', type=str,
+                            help='Specify the voltha interface for voltha to listen')
+
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1323,6 +1350,10 @@ if __name__ == '__main__':
     parser_setup.add_argument('-jvm-heap-size', '--jvm-heap-size', default='', type=str, help='ONOS JVM heap size')
     parser_setup.add_argument('-network', '--network', default='', type=str, help='Docker network to attach')
     parser_setup.add_argument('-karaf', '--karaf', default='3.0.8', type=str, help='Karaf version for ONOS')
+    parser_setup.add_argument('-voltha-loc', '--voltha-loc', default='', type=str,
+                              help='Specify the voltha location in order to start voltha')
+    parser_setup.add_argument('-voltha-intf', '--voltha-intf', default='eth0', type=str,
+                              help='Specify the voltha interface for voltha to listen')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
@@ -1374,6 +1405,8 @@ if __name__ == '__main__':
                                 help='Specify the synchronizer to use for ONOS cord instance when running on podd.'
                                 'Eg: vtn,fabric,cord')
     parser_cleanup.add_argument('-m', '--manifest', default='', type=str, help='Provide test manifest')
+    parser_cleanup.add_argument('-voltha-loc', '--voltha-loc', default='', type=str,
+                                help='Specify the voltha location')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     c = Client(**(kwargs_from_env()))
