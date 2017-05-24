@@ -12,7 +12,7 @@ log_test.addHandler(test_consolehandler)
 
 # we use subprocess as commands.getstatusoutput would be deprecated
 def getstatusoutput(cmd):
-    command = [ '/bin/sh', '-c', cmd ]
+    command = [ '/bin/bash', '-c', cmd ]
     p = subprocess.Popen(command, stdout = subprocess.PIPE)
     out, _ = p.communicate()
     return p.returncode, out.strip()

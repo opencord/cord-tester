@@ -45,9 +45,12 @@ class VolthaService(object):
         --fluentd={}:24224 --grpc-endpoint=localhost:50555 \
         >/tmp/chameleon.log 2>&1 &'".format(self.voltha_loc,
                                             self.service_map['fluentd']['ip'])
-        ret = os.system(chameleon_start_cmd)
-        if ret != 0:
-            raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
+        if not self.service_running('python chameleon/main.py'):
+            ret = os.system(chameleon_start_cmd)
+            if ret != 0:
+                raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
+        else:
+            print('Chameleon voltha sevice is already running. Skipped start')
 
         #now start voltha and ofagent
         voltha_start_cmd = "cd {} && sh -c '. ./env.sh && \
@@ -57,10 +60,12 @@ class VolthaService(object):
                                          self.service_map['kafka']['ip'],
                                          self.interface,
                                          self.service_map['fluentd']['ip'])
-        ret = os.system(voltha_start_cmd)
-        if ret != 0:
-            raise Exception('Failed to start VOLTHA. Return code %d' %ret)
-
+        if not self.service_running('python voltha/main.py'):
+            ret = os.system(voltha_start_cmd)
+            if ret != 0:
+                raise Exception('Failed to start VOLTHA. Return code %d' %ret)
+        else:
+            print('VOLTHA core is already running. Skipped start')
 
         ofagent_start_cmd = "cd {} && sh -c '. ./env.sh && \
         nohup python ofagent/main.py -v --consul=localhost:8500 \
@@ -68,9 +73,16 @@ class VolthaService(object):
         >/tmp/ofagent.log 2>&1 &'".format(self.voltha_loc,
                                           self.service_map['fluentd']['ip'],
                                           self.controller)
-        ret = os.system(ofagent_start_cmd)
-        if ret != 0:
-            raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)
+        if not self.service_running('python ofagent/main.py'):
+            ret = os.system(ofagent_start_cmd)
+            if ret != 0:
+                raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)
+        else:
+            print('VOLTHA ofagent is already running. Skipped start')
+
+    def service_running(self, pattern):
+        st, _ = getstatusoutput('pgrep -f "{}"'.format(pattern))
+        return True if st == 0 else False
 
     def kill_service(self, pattern):
         st, output = getstatusoutput('pgrep -f "{}"'.format(pattern))
