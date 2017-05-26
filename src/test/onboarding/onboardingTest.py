@@ -59,6 +59,7 @@ class onboarding_exchange(CordLogger):
     @classmethod
     def setUpClass(cls):
         OnboardingServiceUtils.setUp()
+	cls.vsg_exchange.setUpClass()
 
     @classmethod
     def tearDownClass(cls):
@@ -334,7 +335,7 @@ class onboarding_exchange(CordLogger):
                         service.start()
 			self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
 			time.sleep(50)
-                        st,out = getstatusoutput('curl -s http://{}'.format(vm_public_ip))
+                        st,out = getstatusoutput('curl -s http://{} --max-time 10'.format(vm_public_ip))
                         assert_equal(st, False)
                         output = out.split('\n')
                         srvs_msg = ''
@@ -351,48 +352,165 @@ class onboarding_exchange(CordLogger):
         finally:
             self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
 
-    def test_multiple_subcriber_access_for_same_exampleservice(self):
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "nova list --all-tenants|grep mysite_exampleservice|cut -d '|' -f 2"
-        status, nova_id = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        #Get public IP of VM
-        cmd = 'nova interface-list {} |grep -o -m 1 10\.6\.[[:digit:]]*\.[[:digit:]]*'.format(nova_id)
-        status, public_ip = ssh_agent.run_cmd(cmd)
-        assert_equal(status, True)
-        for vcpe in self.dhcp_vcpes:
-            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe)
-            #curl request from test container
-            curl_cmd = 'curl -s http://{}'.format(public_ip)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
-            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe)
-            time.sleep(1)
+    @deferred(150)
+    def test_exampleservice_for_tenant_message_after_service_restart(self,service_message='"'+'world'+'"'):
+	df = defer.Deferred()
+	def test_xos_subscriber(df):
+	    vm_public_ip = self.get_exampleservice_vm_public_ip()
+            vcpe_intf = self.vcpe_dhcp
+            try:
+                self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                st,out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
+		if out:
+			st = True
+                assert_equal(st, True)
+                exampleservices = OnboardingServiceUtils.get_exampleservices()
+                status = False
+                for service in exampleservices:
+                    if self.vm_name in service.name:
+                        log.info('restarting mysite-example-server')
+                        service.reboot()
+                        time.sleep(20)
+			self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+			time = 0
+			while(time  <= 100):
+			    time.sleep(10)
+                            st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
+			    if out:
+				st = True
+				break
+			    time += 10
+                        assert_equal(st,True)
+                        output = out.split('\n')
+                        tnnt_msg = ''
+                        for line in output:
+                            line = line.split(':')
+                            if line[0].strip() == 'Tenant Message':
+                                tnnt_msg = line[1].strip()
+                                break
+                        assert_equal(tenant_message, tnnt_msg)
+                        self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                        status = True
+                        break
+                assert_equal(status,True)
+            except Exception as error:
+            	self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+		log.info('Got Unexpected error %s'%error)
+		raise
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_exampleservice_after_vcpe_instance_restart(self, vcpe_intf=None,vcpe_name=None):
-        if not vcpe_intf:
-                vcpe_intf = self.dhcp_vcpes_reserved[0]
-        if not vcpe_name:
-                vcpe_name = self.container_vcpes_reserved[0]
-        public_ip = self.get_exampleservice_vm_public_ip()
-        vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
-        try:
-            self.add_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
-            #curl request from test container
-            curl_cmd = 'curl -s http://{}'.format(public_ip)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
-            #restarting example service VM
-            cmd = 'sudo docker restart {}'.format(vcpe_name)
-            status, _ = vsg.run_cmd(cmd)
-            assert_equal(status, True)
-            time.sleep(10)
-            st,_ = getstatusoutput(curl_cmd)
-            assert_equal(st, True)
-        finally:
-            self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+    @deferred(30)
+    def test_multiple_subcribers_access_for_same_exampleservice(self,index=0):
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            vm_public_ip = self.get_exampleservice_vm_public_ip()
+            vcpe_intf1 = self.vcpe_dhcp
+	    vcpe_intf2 = 'vcpe1.304.304'
+            subId = self.vsg_exchange.vsg_xos_subscriber_id(index)
+            if subId == '0':
+                subId = self.vsg_exchange.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
+	    try:
+	        for vcpe in [vcpe_intf1,vcpe_intf2]:
+       	            self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe)
+		    time.sleep(1)
+                    #curl request from test container
+	            st, out = getstatusoutput('route -n')
+	            log.info('route -n out is %s'%out)
+                    curl_cmd = 'curl -s http://{} --max-time 5'.format(vm_public_ip)
+                    st,out = getstatusoutput(curl_cmd)
+		    if out:
+			st = True
+                    assert_equal(st, True)
+	            log.info('examle service access success for subscriber %s'%vcpe)
+                    self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe)
+                    time.sleep(1)
+	    except Exception as error:
+		log.info('Got unexpected error %s'%error)
+		self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf1)
+		self.vsg_exchange.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf2)
+		raise
+	    df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_exampleservice_after_firewall_rule_added_to_drop_service_running_server_ip_in_vcpe(self):
+    @deferred(50)
+    def test_exampleservice_access_after_vcpe_instance_restart(self,vcpe_intf=None,vcpe_name=None):
+        df = defer.Deferred()
+        def test_xos_subscriber(df,vcpe_intf=vcpe_intf,vcpe_name=vcpe_name):
+            if not vcpe_intf:
+                vcpe_intf = self.vsg_exchange.dhcp_vcpes_reserved[0]
+            if not vcpe_name:
+                vcpe_name = self.vsg_exchange.container_vcpes_reserved[0]
+            vm_public_ip = self.get_exampleservice_vm_public_ip()
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                #curl request from test container
+                curl_cmd = 'curl -s http://{} --max-time 5'.format(vm_public_ip)
+                st, out = getstatusoutput(curl_cmd)
+		if out:
+			st = True
+                assert_equal(st, True)
+                #restarting example service VM
+                cmd = 'sudo docker restart {}'.format(vcpe_name)
+                status, _ = vsg.run_cmd(cmd)
+                assert_equal(status, True)
+                time.sleep(10)
+		self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                st, out = getstatusoutput(curl_cmd)
+		if out:
+			st = True
+                assert_equal(st, True)
+            except Exception as error:
+		log.info('Got Unexpeted error %s'%error)
+                self.vsg_exchange.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+		raise
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
+
+    @deferred(30)
+    def test_exampleservice_access_after_firewall_rule_added_to_drop_service_running_server_in_vcpe_instance(self,vcpe_intf=None,vcpe_name=None):
+        df = defer.Deferred()
+        def test_xos_subscriber(df,vcpe_intf=vcpe_intf,vcpe_name=vcpe_name):
+            if not vcpe_intf:
+                vcpe_intf = self.vsg_exchange.dhcp_vcpes_reserved[0]
+            if not vcpe_name:
+                vcpe_name = self.vsg_exchange.container_vcpes_reserved[0]
+            vm_public_ip = self.get_exampleservice_vm_public_ip()
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.vsg_exchange.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                #curl request from test container
+                curl_cmd = 'curl -s http://{} --max-time 5'.format(vm_public_ip)
+                st, out = getstatusoutput(curl_cmd)
+                if out:
+                        st = True
+                assert_equal(st, True)
+                #restarting example service VM
+                cmd = 'sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe_name,vm_public_ip)
+                status, _ = vsg.run_cmd(cmd)
+                assert_equal(status, True)
+                time.sleep(1)
+                st, out = getstatusoutput(curl_cmd)
+                if out:
+                        st = True
+                assert_equal(st, True)
+		cmd = 'sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,vm_public_ip)
+            except Exception as error:
+                log.info('Got Unexpeted error %s'%error)
+		cmd = 'sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,vm_public_ip)
+		status, _ = vsg.run_cmd(cmd)
+                self.vsg_exchange.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+                raise
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
+
+    def test_exampleservice_after_firewall_rule_added_to_drop_service_running_server_in_vcpe(self):
         if not vcpe_intf:
                 vcpe_intf = self.dhcp_vcpes_reserved[0]
         if not vcpe_name:
