@@ -3,8 +3,9 @@ import json
 import time
 import os
 import signal
-from CordTestUtils import log_test as log, getstatusoutput
+from CordTestUtils import log_test as log, getstatusoutput, get_controller
 from CordContainer import Container
+from OnosCtrl import OnosCtrl
 
 class VolthaService(object):
     services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
@@ -49,6 +50,7 @@ class VolthaService(object):
             ret = os.system(chameleon_start_cmd)
             if ret != 0:
                 raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
+            time.sleep(5)
         else:
             print('Chameleon voltha sevice is already running. Skipped start')
 
@@ -64,6 +66,7 @@ class VolthaService(object):
             ret = os.system(voltha_start_cmd)
             if ret != 0:
                 raise Exception('Failed to start VOLTHA. Return code %d' %ret)
+            time.sleep(5)
         else:
             print('VOLTHA core is already running. Skipped start')
 
@@ -77,6 +80,7 @@ class VolthaService(object):
             ret = os.system(ofagent_start_cmd)
             if ret != 0:
                 raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)
+            time.sleep(3)
         else:
             print('VOLTHA ofagent is already running. Skipped start')
 
@@ -103,10 +107,68 @@ class VolthaService(object):
 
 class VolthaCtrl(object):
 
-    def __init__(self, host, rest_port = 8881):
+    UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
+
+    def __init__(self, host, rest_port = 8881, uplink_vlan_map = UPLINK_VLAN_MAP):
         self.host = host
         self.rest_port = rest_port
         self.rest_url = 'http://{}:{}/api/v1'.format(host, rest_port)
+        self.uplink_vlan_map = uplink_vlan_map
+        self.switches = []
+        self.switch_map = {}
+
+    def config(self, fake = False):
+        devices = OnosCtrl.get_devices()
+        if not devices:
+            return self.switch_map
+        voltha_devices = filter(lambda d: not d['mfr'].startswith('Nicira'), devices)
+        self.switches = voltha_devices
+        device_config = { 'devices' : { } }
+        device_id = None
+        for device in voltha_devices:
+            device_id = device['id']
+            ports = OnosCtrl.get_ports_device(device_id)
+            nni_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and p['annotations']['portName'].startswith('nni'), ports)
+            uni_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and p['annotations']['portName'].startswith('uni'), ports)
+            if device_id not in self.uplink_vlan_map:
+                log.info('Skipping voltha device %s as uplink vlan does not exist' %device_id)
+                continue
+            if not nni_ports:
+                log.info('Voltha device %s has no NNI ports' %device_id)
+                if fake is True:
+                    log.info('Faking NNI port 0')
+                    nni_ports = [ {'port': '0'} ]
+                else:
+                    log.info('Skip configuring device %s' %device_id)
+                    continue
+            if not uni_ports:
+                log.info('Voltha device %s has no UNI ports' %device_id)
+                if fake is True:
+                    log.info('Faking UNI port 252')
+                    uni_ports = [ {'port': '252'} ]
+                else:
+                    log.info('Skip configuring device %s' %device_id)
+                    continue
+            uplink_vlan = self.uplink_vlan_map[device_id]
+            onu_ports = map(lambda uni: uni['port'], uni_ports)
+            self.switch_map[device_id] = dict(uplink_vlan = uplink_vlan, ports = onu_ports)
+            device_config['devices'][device_id] = {}
+            device_config['devices'][device_id]['basic'] = dict(driver='pmc-olt')
+            device_config['devices'][device_id]['accessDevice'] = dict(uplink=nni_ports[0]['port'],
+                                                                       vlan = uplink_vlan,
+                                                                       defaultVlan='0'
+                                                                       )
+        if device_id:
+            #toggle drivers/openflow base before reconfiguring the driver and olt config data
+            OnosCtrl('org.onosproject.drivers').deactivate()
+            OnosCtrl('org.onosproject.openflow-base').deactivate()
+            OnosCtrl.config(device_config)
+            time.sleep(2)
+            OnosCtrl('org.onosproject.drivers').activate()
+            OnosCtrl('org.onosproject.openflow-base').activate()
+            time.sleep(5)
+
+        return self.switch_map
 
     def get_devices(self):
         url = '{}/local/devices'.format(self.rest_url)

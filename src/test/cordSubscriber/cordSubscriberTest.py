@@ -27,6 +27,7 @@ import json
 import requests
 from Stats import Stats
 from OnosCtrl import OnosCtrl
+from VolthaCtrl import VolthaCtrl
 from DHCP import DHCPTest
 from EapTLS import TLSAuthTest
 from Channels import Channels, IgmpChannel
@@ -35,8 +36,9 @@ from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
 from CordTestServer import cord_test_onos_restart, cord_test_shell
-from CordTestUtils import log_test
+from CordTestUtils import log_test, get_controller
 from CordLogger import CordLogger
+from CordTestConfig import setup_module
 
 log_test.setLevel('INFO')
 
@@ -50,6 +52,7 @@ class Subscriber(Channels):
       STATS_JOIN = 2
       STATS_LEAVE = 3
       SUBSCRIBER_SERVICES = 'DHCP IGMP TLS'
+
       def __init__(self, name = 'sub', service = SUBSCRIBER_SERVICES, port_map = None,
                    num = 1, channel_start = 0,
                    tx_port = PORT_TX_DEFAULT, rx_port = PORT_RX_DEFAULT,
@@ -204,6 +207,7 @@ class subscriber_exchange(CordLogger):
       test_path = os.path.dirname(os.path.realpath(__file__))
       table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
       app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
+      olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
       olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
       cpqd_path = os.path.join(test_path, '..', 'setup')
@@ -215,7 +219,6 @@ class subscriber_exchange(CordLogger):
       num_channels = 0
       recv_timeout = False
       onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
-
       INTF_TX_DEFAULT = 'veth2'
       INTF_RX_DEFAULT = 'veth0'
       SUBSCRIBER_TIMEOUT = 300
@@ -262,6 +265,15 @@ T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
 yg==
 -----END CERTIFICATE-----'''
 
+      VOLTHA_HOST = None
+      VOLTHA_REST_PORT = 8881
+      VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
+      VOLTHA_IGMP_ITERATIONS = 100
+      VOLTHA_CONFIG_FAKE = True
+      VOLTHA_OLT_TYPE = 'simulated_olt'
+      VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
+      VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
+
       @classmethod
       def load_device_id(cls):
             '''Configure the device id'''
@@ -291,7 +303,8 @@ yg==
           cls.start_onos(network_cfg = network_cfg)
           cls.install_app_table()
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
-          OnosCtrl.cord_olt_config(cls.olt)
+          if cls.VOLTHA_ENABLED is False:
+                OnosCtrl.cord_olt_config(cls.olt)
           cls.port_map, cls.port_list = cls.olt.olt_port_map()
           cls.switches = cls.port_map['switches']
           cls.num_ports = cls.port_map['num_ports']
@@ -342,6 +355,9 @@ yg==
       def start_onos(cls, network_cfg = None):
             if cls.onos_restartable is False:
                   log_test.info('ONOS restart is disabled. Skipping ONOS restart')
+                  return
+            if cls.VOLTHA_ENABLED is True:
+                  log_test.info('ONOS restart skipped as VOLTHA is running')
                   return
             if network_cfg is None:
                   network_cfg = cls.device_dict
@@ -562,6 +578,23 @@ yg==
                   self.test_status = True
                   return self.test_status
 
+      def voltha_igmp_next_verify(self, subscriber):
+            if subscriber.has_service('IGMP'):
+                  for c in xrange(self.VOLTHA_IGMP_ITERATIONS):
+                        for i in xrange(subscriber.num):
+                              if i:
+                                    chan = subscriber.channel_join_next(delay=0, leave_flag = self.leave_flag)
+                                    time.sleep(0.2)
+                              else:
+                                    chan = subscriber.channel_join(i, delay=0)
+                                    time.sleep(0.2)
+                                    subscriber.channel_leave(chan)
+                              log_test.info('Joined next channel %d for subscriber %s' %(chan, subscriber.name))
+                              #subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count=1)
+                              #log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
+                  self.test_status = True
+                  return self.test_status
+
       def igmp_leave_verify(self, subscriber):
             if subscriber.has_service('IGMP'):
                   for chan in xrange(subscriber.num):
@@ -582,9 +615,10 @@ yg==
       def generate_port_list(self, subscribers, channels):
             return self.port_list[:subscribers]
 
-      def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0, port_list = []):
+      def subscriber_load(self, create = True, num = 10, num_channels = 1, channel_start = 0, port_list = [], services = None):
             '''Load the subscriber from the database'''
-            self.subscriber_db = SubscriberDB(create = create, services = self.test_services)
+            test_services = services if services else self.test_services
+            self.subscriber_db = SubscriberDB(create = create, services = test_services)
             if create is True:
                   self.subscriber_db.generate(num)
             self.subscriber_info = self.subscriber_db.read(num)
@@ -612,13 +646,15 @@ yg==
             igmpChannel.igmp_load_ssm_config(ssm_list)
 
       def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1,
-                                  channel_start = 0, cbs = None, port_list = [], negative_subscriber_auth = None):
+                                  channel_start = 0, cbs = None, port_list = [],
+                                  services = None, negative_subscriber_auth = None):
           self.test_status = False
           self.ovs_cleanup()
           subscribers_count = num_subscribers
           sub_loop_count =  num_subscribers
           self.subscriber_load(create = True, num = num_subscribers,
-                               num_channels = num_channels, channel_start = channel_start, port_list = port_list)
+                               num_channels = num_channels, channel_start = channel_start, port_list = port_list,
+                               services = services)
           self.onos_aaa_load()
           self.thread_pool = ThreadPool(min(100, subscribers_count), queue_size=1, wait_timeout=1)
 
@@ -2540,4 +2576,59 @@ yg==
                                                     cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
                                                     port_list = self.generate_port_list(num_subscribers, num_channels),
                                                     negative_subscriber_auth = 'all')
+          assert_equal(test_status, True)
+
+
+
+      def remove_olt(self):
+          return
+          OnosCtrl.uninstall_app(self.olt_app_file)
+
+      def config_olt(self, switch_map):
+          controller = get_controller()
+          OnosCtrl.install_app(self.olt_app_file)
+          time.sleep(5)
+          auth = ('karaf', 'karaf')
+          #configure subscriber for every port on all the voltha devices
+          for device, device_map in switch_map.iteritems():
+              uni_ports = device_map['ports']
+              uplink_vlan = device_map['uplink_vlan']
+              for port in uni_ports:
+                  vlan = port
+                  rest_url = 'http://{}:8181/onos/olt/oltapp/{}/{}/{}'.format(controller,
+                                                                              device,
+                                                                              port,
+                                                                              vlan)
+                  resp = requests.post(rest_url, auth = auth)
+                  assert_equal(resp.ok, True)
+
+      def test_cord_subscriber_voltha(self):
+          """Test subscriber join next for channel surfing"""
+          if self.VOLTHA_HOST is None:
+                log_test.info('Skipping test as no voltha host')
+                return
+          voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+          log_test.info('Enabling OLT instance for %s with mac %s' %(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC))
+          status = voltha.enable_device(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC)
+          assert_equal(status, True)
+          time.sleep(10)
+          switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+          if not switch_map:
+                log_test.info('No voltha devices found')
+                return
+          log_test.info('Adding subscribers through OLT app')
+          self.config_olt(switch_map)
+          time.sleep(5)
+          self.num_subscribers = 1
+          self.num_channels = 1
+          services = ('TLS', 'IGMP')
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify,
+                                                           self.voltha_igmp_next_verify, self.traffic_verify),
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels),
+                                                    services = services)
           assert_equal(test_status, True)

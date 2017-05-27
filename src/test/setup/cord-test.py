@@ -698,7 +698,7 @@ def runTest(args):
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key,
                      'KARAF_VERSION' : test_manifest.karaf_version,
-                     'VOLTHA_ENABLED' : True if voltha_loc else False
+                     'VOLTHA_ENABLED' : 1 if voltha_loc else 0
                    }
 
     if ssh_key_file:
@@ -984,7 +984,7 @@ def setupCordTester(args):
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                          'MAAS_API_KEY': maas_api_key,
                          'KARAF_VERSION' : test_manifest.karaf_version,
-                         'VOLTHA_ENABLED' : True if voltha_loc else False
+                         'VOLTHA_ENABLED' : 1 if voltha_loc else 0
                        }
 
         if ssh_key_file:
