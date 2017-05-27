@@ -2581,7 +2581,6 @@ yg==
 
 
       def remove_olt(self):
-          return
           OnosCtrl.uninstall_app(self.olt_app_file)
 
       def config_olt(self, switch_map):
