@@ -6,7 +6,8 @@
             "slice_id": 1,
             "deployment_id": 1,
             "node_id": 1,
-            "creator_id" : 1
+            "creator_id" : 1,
+            "flavor_id": 1
             },
             {
             "name": "test-instance",
@@ -14,7 +15,8 @@
             "slice_id": 1,
             "deployment_id": 1,
             "node_id": 1,
-            "creator_id" : 1
-             }
+            "creator_id" : 1,
+            "flavor_id": 1 
+            }
     ]
 }
