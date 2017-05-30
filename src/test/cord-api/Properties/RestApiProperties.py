@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-SERVER_IP = 'ms1005.utah.cloudlab.us'
+SERVER_IP = 'ms0808.utah.cloudlab.us'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
-PASSWD = 'EDibhiNTlMdnB7rbPBXa'
+PASSWD = 'y7vibol8lK67TLXLVWN2'
 # Test #
 #SERVER_IP = 'ms0837.utah.cloudlab.us'
 #SERVER_PORT = '8080'

@@ -48,10 +48,11 @@ Test Delete Subscriber and voltTenant
     Log    ${subscriberDict}
     ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
     Log    ${subscriberId}
-    ${subscriber_delete_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${subscriberId}
-    Should Be True    ${subscriber_delete_result}
     # Deletion of volt Tenants
     ${getVoltDict}=    utils.getDictFromListOfDict    ${getVoltTenant_result_list}    subscriber_root_id    ${subscriberId}
     ${voltID}=    utils.getFieldValueFromDict    ${getVoltDict}    id
     ${volt_delete_result}=    restApi.ApiChameleonDelete    VOLT_TENANT    ${voltID}
     Should Be True    ${volt_delete_result}
+    #Deletion of Subscribers
+    ${subscriber_delete_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${subscriberId}
+    Should Be True    ${subscriber_delete_result}
