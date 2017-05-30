@@ -240,7 +240,7 @@ Delete Volt Tenant
 
 Delete Cord Subscriber
     [Documentation]    Deletes new cord subscriber
-    [Tags]    deletes
+    [Tags]    delete
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${VOLT_SUBSCRIBER}    ${subscriber_root_id}
     Should Be Equal As Strings    ${resp.status_code}    200
 
@@ -262,7 +262,7 @@ Delete VTN Test Network
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_NETWORKS}    ${network_id}
     Should Be Equal As Strings    ${resp.status_code}    200
 
-Validate New OVS Flow Count
+Validate OVS Flow Count Back to Default
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
     [Tags]    ovsflows
     Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    42
