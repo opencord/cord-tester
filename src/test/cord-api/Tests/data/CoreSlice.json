@@ -2,7 +2,7 @@
     "SliceInfo": [
         {
             "backend_status": "0 - Provisioning in progress",
-            "name": "mysite_test-1",
+            "name": "mysite_testservice",
             "site_id": 1,
             "max_instances": 10,
             "service_id": 1,
