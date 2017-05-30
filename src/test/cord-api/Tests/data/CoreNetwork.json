@@ -5,7 +5,6 @@
             "name": "test-network",
             "template_id": 1,
             "owner_id": 1,
-            "guaranteed_bandwidth": 0,
             "permit_all_slices": true,
             "autoconnect": false,
             "subnet": "2.2.2.0/24",
