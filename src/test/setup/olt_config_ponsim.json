@@ -1,0 +1,35 @@
+{ "olt" : false,
+  "uplink" : 2,
+  "vlan" : 0,
+  "port_map" : { "ports": [ "veth0", "veth2", "veth4", "veth6", "veth8", "veth10", "veth12", "veth14", "veth16", "veth18", "veth20", "veth22" ], "start_vlan" : 0, "host": "ponmgmt" },
+  "vcpe" :
+  [
+        {
+          "port" : "enp0s9", "type" : "reserved", "s_tag" : 222, "c_tag" : 111
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 304
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 305
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 306
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 307
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 308
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 309
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 310
+        },
+        {
+          "port" : "enp0s9", "type" : "dhcp", "s_tag" : 304, "c_tag" : 311
+        }
+      ]
+}
