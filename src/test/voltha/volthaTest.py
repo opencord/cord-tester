@@ -23,6 +23,12 @@ class voltha_exchange(unittest.TestCase):
         status = self.voltha.enable_device(self.OLT_TYPE, self.OLT_MAC)
         assert_equal(status, True)
 
+    def test_ponsim_enable(self):
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_equal(status, True)
+
     def test_subscriber_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:

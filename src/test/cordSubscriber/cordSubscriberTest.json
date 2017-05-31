@@ -3,6 +3,6 @@
     "VOLTHA_REST_PORT" : 8881,
     "VOLTHA_IGMP_ITERATIONS" : 150,
     "VOLTHA_CONFIG_FAKE" : true,
-    "VOLTHA_OLT_TYPE" : "simulated_olt",
+    "VOLTHA_OLT_TYPE" : "ponsim_olt",
     "VOLTHA_OLT_MAC"  : "00:0c:e2:31:12:00"
 }

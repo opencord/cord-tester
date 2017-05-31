@@ -188,11 +188,20 @@ class VolthaCtrl(object):
             return None
         return resp.json()
 
-    def enable_device(self, olt_type, olt_mac):
+    def enable_device(self, olt_type, olt_mac = None, address = None):
         url = '{}/local/devices'.format(self.rest_url)
-        device_config = { 'type' : olt_type, 'mac_address' : olt_mac }
+        if olt_mac is None and address is None:
+            log.error('Either olt mac or address needs to be specified')
+            return False
+        if olt_mac is not None:
+            device_config = { 'type' : olt_type, 'mac_address' : olt_mac }
+        else:
+            device_config = { 'type' : olt_type, 'host_and_port' : address }
         #pre-provision
-        log.info('Pre-provisioning %s with mac %s' %(olt_type, olt_mac))
+        if olt_mac is not None:
+            log.info('Pre-provisioning %s with mac %s' %(olt_type, olt_mac))
+        else:
+            log.info('Pre-provisioning %s with address %s' %(olt_type, address))
         resp = requests.post(url, data = json.dumps(device_config))
         if resp.ok is not True or resp.status_code != 200:
             return False

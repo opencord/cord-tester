@@ -2609,8 +2609,14 @@ yg==
           voltha = VolthaCtrl(self.VOLTHA_HOST,
                               rest_port = self.VOLTHA_REST_PORT,
                               uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
-          log_test.info('Enabling OLT instance for %s with mac %s' %(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC))
-          status = voltha.enable_device(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC)
+          if self.VOLTHA_OLT_TYPE.startswith('ponsim'):
+                ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+                log_test.info('Enabling ponsim olt')
+                status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
+          else:
+                log_test.info('Enabling OLT instance for %s with mac %s' %(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC))
+                status = voltha.enable_device(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC)
+
           assert_equal(status, True)
           time.sleep(10)
           switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
