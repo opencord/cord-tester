@@ -84,6 +84,16 @@ class VolthaService(object):
         else:
             print('VOLTHA ofagent is already running. Skipped start')
 
+        ponsim_start_cmd = "cd {} && sh -c '. ./env.sh && \
+        nohup python ponsim/main.py -v >/tmp/ponsim.log 2>&1 &'".format(self.voltha_loc)
+        if not self.service_running('python ponsim/main.py'):
+            ret = os.system(ponsim_start_cmd)
+            if ret != 0:
+                raise Exception('PONSIM not started. Failed with return code %d' %ret)
+            time.sleep(3)
+        else:
+            print('PONSIM already running. Skipped start')
+
     def service_running(self, pattern):
         st, _ = getstatusoutput('pgrep -f "{}"'.format(pattern))
         return True if st == 0 else False
@@ -102,6 +112,7 @@ class VolthaService(object):
         self.kill_service('python voltha/main.py')
         self.kill_service('python ofagent/main.py')
         self.kill_service('python chameleon/main.py')
+        self.kill_service('python ponsim/main.py')
         service_stop_cmd = 'docker-compose -f {} down'.format(self.compose_file_loc)
         os.system(service_stop_cmd)
 
