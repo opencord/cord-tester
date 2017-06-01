@@ -52,6 +52,11 @@ Execute Command on Compute Node in CIAB
     SSHLibrary.Close Connection
     [Return]    ${output}
 
+Execute Command Locally
+    [Arguments]    ${cmd}
+    ${output}=    Run    ${cmd}
+    [Return]    ${output}
+
 Get Docker Container ID
     [Arguments]    ${system}    ${container_name}    ${user}=${USER}    ${password}=${PASSWD}
     [Documentation]    Retrieves the id of the requested docker container running inside given ${HOST}

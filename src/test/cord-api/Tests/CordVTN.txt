@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation     Test suite for Utility Synchronizer API
+Documentation     Test suite for VTN Functionality
 Suite Setup       Suite Setup
 Suite Teardown    Suite Teardown
 Variables         ../Framework/restApi.py
@@ -26,6 +26,7 @@ ${CORE_NETWORK_SLICE_PATHFILE}     ${CURDIR}/data/CoreNetworkSlice.json
 ${CORE_INSTANCE_PATHFILE}          ${CURDIR}/data/CoreInstance.json
 ${CORD_SUBSCRIBER_PATHFILE}        ${CURDIR}/data/CordSubscriber.json
 ${VOLT_TENANT_PATHFILE}            ${CURDIR}/data/CordVoltTenant.json
+${ciab_local}                      True
 
 *** Test Cases ***
 Validate Default OVS Flow Count
@@ -161,11 +162,11 @@ Validate Creation of Openstack Resources
 
 Validate New Flows Pushed to OVS
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flows added
-    [Tags]    vtnservice
-    ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l
+    [Tags]    ovsflows
+    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l"
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    2
-    ${flows_added}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int
+    ${flows_added}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int"
     ${flows_added}=    Get Lines Containing String    ${flows_added}    cookie=
     Log    ${flows_added}
     ## Match src/dst (bi-directional) rules on new flows added
@@ -259,21 +260,24 @@ Delete Test Slice
 Delete VTN Test Network
     [Documentation]    Deletes the test network created previously
     [Tags]    delete
+    ## Wait for test network to be destroyed via get neutron lists
+    ##TODO: Find someting to poll on rather than wait 5 mins
+    Sleep    300
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_NETWORKS}    ${network_id}
     Should Be Equal As Strings    ${resp.status_code}    200
 
 Validate OVS Flow Count Back to Default
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
     [Tags]    ovsflows
-    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    42
+    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    49
 
 Validate New Flows Removed From OVS
     [Documentation]    Validates that the flow rules added by ONOS from the network creation has been removed
     [Tags]    ovsflows
-    ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l
+    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l"
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    0
-    ${flows_added}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int
+    ${flows_added}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int"
     ${flows_added}=    Get Lines Containing String    ${flows_added}    cookie=
     Log    ${flows_added}
     ## Validate flow rules arent in the flows table
@@ -298,8 +302,8 @@ Suite Setup
     ${image_id}=    Get ID    ${CH_CORE_IMAGES}    name    trusty-server-multi-nic
     Set Suite Variable    ${image_id}
     ##Get compute node information
-    ${compute_node_hostname}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $2}'
-    ${compute_node_ip}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $4}'
+    ${compute_node_hostname}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $2}'    ELSE    Execute Command Locally    cord prov list | grep node | awk '{print $2}'
+    ${compute_node_ip}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $4}'    ELSE    Execute Command Locally    cord prov list | grep node | awk '{print $4}'
     Set Suite Variable    ${compute_node_hostname}
     set suite variable    ${compute_node_ip}
 
@@ -429,7 +433,7 @@ Get ID
 Validate Flow Count
     [Documentation]    Gets the count of the flows pushed to an ovs switch and validates that against expected count
     [Arguments]    ${count}
-    ${ovs_flow_count}=    Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | wc -l
+    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | wc -l"
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    ${count}
 
@@ -462,7 +466,7 @@ Get Tags in Use
 Get Openstack Info
     [Documentation]    Executes a command in the prod vm in a CIAB environment where openstack is running
     [Arguments]    ${cmd}
-    ${output}=    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    source admin-openrc.sh; ${cmd}    strip_line=False
+    ${output}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    source /home/vagrant/admin-openrc.sh; ${cmd}    strip_line=False    ELSE    Execute Command Locally    . /home/vagrant/admin-openrc.sh; ${cmd}
     Log    ${output}
     [Return]    ${output}
 
