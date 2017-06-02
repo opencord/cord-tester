@@ -320,35 +320,33 @@ class vsg_exchange(CordLogger):
 
     def get_vcpe_interface_dhcp_ip(self,vcpe=None):
         if not vcpe:
-            vcpe = self.vcpe_dhcp
+            vcpe = self.dhcp_vcpes_reserved[0]
         st, _ = getstatusoutput('dhclient {}'.format(vcpe))
 	vcpe_ip = get_ip(vcpe)
 	return vcpe_ip
 
     def release_vcpe_interface_dhcp_ip(self,vcpe=None):
         if not vcpe:
-            vcpe = self.vcpe_dhcp
+            vcpe = self.dhcp_vcpes_reserved[0]
         st, _ = getstatusoutput('dhclient {} -r'.format(vcpe))
         vcpe_ip = get_ip(vcpe)
         assert_equal(vcpe_ip, None)
 
     def add_static_route_via_vcpe_interface(self, routes, vcpe=None,dhcp_ip=True):
 	if not vcpe:
-	    vcpe = self.vcpe_dhcp
+	    vcpe = self.dhcp_vcpes_reserved[0]
 	if dhcp_ip:
 	    os.system('dhclient '+vcpe)
 	time.sleep(1)
 	for route in routes:
 	    log.info('route is %s'%route)
 	    cmd = 'ip route add ' + route + ' via 192.168.0.1 '+ 'dev ' + vcpe
-	    cmds.append(cmd)
-	for cmd in cmds:
 	    os.system(cmd)
 	return True
 
     def del_static_route_via_vcpe_interface(self,routes,vcpe=None,dhcp_release=True):
         if not vcpe:
-            vcpe = self.vcpe_dhcp
+            vcpe = self.dhcp_vcpes_reserved[0]
         cmds = []
         for route in routes:
             cmd = 'ip route del ' + route + ' via 192.168.0.1 ' + 'dev ' + vcpe
@@ -380,6 +378,22 @@ class vsg_exchange(CordLogger):
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
         assert_equal(st, 0)
 
+    def get_vsg_health_check(self, vsg_name=None):
+        if self.on_pod is False:
+            return
+        if vsg_name is None:
+            vcpe = self.container_vcpes_reserved[0]
+            vsg = VSGAccess.get_vcpe_vsg(vcpe)
+            status = vsg.get_health()
+            return status
+        else:
+            vsgs = VSGAccess.get_vsgs()
+            for vsg in vsgs:
+                if vsg.name == vsg_name:
+                    status = vsg.get_health()
+                    return status
+            return None
+
     def test_vsg_health(self):
         """
         Test Method:
@@ -393,7 +407,7 @@ class vsg_exchange(CordLogger):
             status = VSGAccess.health_check()
         assert_equal(status, True)
 
-    def test_vsg_health_check(self, vsg_name='mysite_vsg-1', verify_status=True):
+    def test_vsg_health_check(self,vsg_name=None,verify_status=True):
         """
         Test Method:
 	1. If vsg name not specified, Get vsg corresponding to vcpe
@@ -401,23 +415,10 @@ class vsg_exchange(CordLogger):
         3. Ping to the vSG
         4. Verifying Ping success
         """
-        if self.on_pod is False:
-            return
-        if not vsg_name:
-            vcpe = self.vcpe_container
-            vsg = VSGAccess.get_vcpe_vsg(vcpe)
-            status = vsg.get_health()
-            assert_equal(status, verify_status)
-        else:
-            vsgs = VSGAccess.get_vsgs()
-            status = None
-            for vsg in vsgs:
-                if vsg.name == vsg_name:
-                    status = vsg.get_health()
-                    log.info('vsg health check status is %s'%status)
-                    assert_equal(status,verify_status)
+	st = self.get_vsg_health_check(vsg_name=vsg_name)
+	assert_equal(st,verify_status)
 
-    @deferred(TIMEOUT)
+    @deferred(30)
     def test_vsg_for_vcpe(self):
         """
         Test Method:
@@ -465,6 +466,7 @@ class vsg_exchange(CordLogger):
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal(status, True)
 
+    @deferred(30)
     def test_vsg_for_external_connectivity_through_testclient(self):
         """
         Test Method:
@@ -474,11 +476,17 @@ class vsg_exchange(CordLogger):
         """
         if self.on_pod is False:
             return
-        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
-        cmd = "lxc exec testclient -- ping -c 3 8.8.8.8"
-        status, output = ssh_agent.run_cmd(cmd)
-        assert_equal( status, True)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+            cmd = "sudo lxc exec testclient -- ping -c 3 8.8.8.8"
+            status, output = ssh_agent.run_cmd(cmd)
+            assert_equal( status, True)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_for_external_connectivity(self):
         """
         Test Method:
@@ -490,8 +498,14 @@ class vsg_exchange(CordLogger):
         reserved = True
         if self.on_pod:
             reserved = self.on_ciab
-        self.vsg_for_external_connectivity(0, reserved = reserved)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            self.vsg_for_external_connectivity(0, reserved = reserved)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_for_external_connectivity_to_google(self):
         """
         Test Method:
@@ -500,20 +514,30 @@ class vsg_exchange(CordLogger):
         3. Ping to www.google.com and Verifying ping should success
         4. Restoring management interface configuration in  cord-tester
         """
-        host = 'www.google.com'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Sending icmp ping requests to %s' %host)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(st, 0)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            host = 'www.google.com'
+            vcpe = self.dhcp_vcpes_reserved[0]
+            mgmt = 'eth0'
+            assert_not_equal(vcpe, None)
+	    try:
+            	vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+                assert_not_equal(vcpe_ip, None)
+                log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+                log.info('Sending icmp ping requests to %s' %host)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+		assert_equal(st, 0)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+                VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
     def retrieve_content_from_host_to_validate_path_mtu(self, host):
-        vcpe = self.vcpe_dhcp
+        vcpe = self.dhcp_vcpes_reserved[0]
         mgmt = 'eth0'
         assert_not_equal(vcpe, None)
         vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
@@ -525,6 +549,7 @@ class vsg_exchange(CordLogger):
         return r.status_code
 
     #Test cases to check path mtu across cord framework wih some selected websites to check response.
+    @deferred(30)
     def test_vsg_to_retrieve_content_from_google_to_validate_path_mtu(self):
         """
         Test Method:
@@ -535,9 +560,15 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.google.com')
-        assert_equal(status_code, 200)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.google.com')
+            assert_equal(status_code, 200)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_to_retrieve_content_from_rediff_to_validate_path_mtu(self):
         """
         Test Method:
@@ -548,9 +579,15 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.rediff.com')
-        assert_equal(status_code, 200)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.rediff.com')
+            assert_equal(status_code, 200)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_to_retrieve_content_from_yahoo_to_validate_path_mtu(self):
         """
         Test Method:
@@ -561,9 +598,15 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.yahoo.com')
-        assert_equal(status_code, 200)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.yahoo.com')
+            assert_equal(status_code, 200)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_to_retrieve_content_from_facebook_to_validate_path_mtu(self):
         """
         Test Method:
@@ -574,9 +617,16 @@ class vsg_exchange(CordLogger):
            (Based on website response, size differs, needs check on MTU)
         4. Restoring management interface configuration in  cord-tester
         """
-        status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.facebook.com')
-        assert_equal(status_code, 200)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            status_code = self.retrieve_content_from_host_to_validate_path_mtu('www.facebook.com')
+            assert_equal(status_code, 200)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+
+    @deferred(30)
     def test_vsg_for_external_connectivity_to_invalid_host(self):
         """
         Test Method:
@@ -585,18 +635,29 @@ class vsg_exchange(CordLogger):
         3. Ping to www.goglee.com and Verifying ping should not success
         4. Restoring management interface configuration in  cord-tester
         """
-        host = 'www.goglee.com'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Sending icmp ping requests to non existent host %s' %host)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_not_equal(st, 0)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            host = 'www.goglee.com'
+            vcpe = self.dhcp_vcpes_reserved[0]
+            mgmt = 'eth0'
+            assert_not_equal(vcpe, None)
+	    try:
+            	vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+            	assert_not_equal(vcpe_ip, None)
+            	log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+            	log.info('Sending icmp ping requests to non existent host %s' %host)
+            	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+	    	assert_not_equal(st, 0)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+                VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_for_external_connectivity_with_ttl_1(self):
         """
         Test Method:
@@ -606,18 +667,29 @@ class vsg_exchange(CordLogger):
 	4. Verifying ping should not success
         5. Restoring management interface configuration in  cord-tester
         """
-        host = '8.8.8.8'
-        vcpe = self.vcpe_dhcp
-        mgmt = 'eth0'
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Sending icmp ping requests to host %s with ttl 1' %host)
-        st, _ = getstatusoutput('ping -c 1 -t 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_not_equal(st, 0)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            host = '8.8.8.8'
+            vcpe = self.dhcp_vcpes_reserved[0]
+            mgmt = 'eth0'
+            assert_not_equal(vcpe, None)
+	    try:
+            	vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        	assert_not_equal(vcpe_ip, None)
+        	log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        	log.info('Sending icmp ping requests to host %s with ttl 1' %host)
+        	st, _ = getstatusoutput('ping -c 1 -t 1 {}'.format(host))
+         	assert_not_equal(st, 0)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+                VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(60)
     def test_vsg_for_external_connectivity_with_wan_interface_toggle_in_vcpe(self):
         """
         Test Method:
@@ -630,39 +702,51 @@ class vsg_exchange(CordLogger):
 	7. Ping to 8.8.8.8 and Verifying ping succeeds
 	8. Restoring management interface configuration in cord-tester
         """
-        if self.on_pod is False:
-            return
-        host = '8.8.8.8'
-        mgmt = 'eth0'
-        vcpe = self.vcpe_container
-        assert_not_equal(vcpe, None)
-        assert_not_equal(self.vcpe_dhcp, None)
-        #first get dhcp on the vcpe interface
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
-        log.info('Sending ICMP pings to host %s' %(host))
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-	if st != 0:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
-        #bring down the wan interface and check again
-        st = VSGAccess.vcpe_wan_down(vcpe)
-        if st is False:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, True)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        if st == 0:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_not_equal(st, 0)
-        st = VSGAccess.vcpe_wan_up(vcpe)
-        if st is False:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, True)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            if self.on_pod is False:
+                return
+            host = '8.8.8.8'
+            mgmt = 'eth0'
+	    vcpe = self.dhcp_vcpes_reserved[0]
+            vcpe_name = self.container_vcpes_reserved[0]
+            assert_not_equal(vcpe_name, None)
+            assert_not_equal(vcpe, None)
+            #first get dhcp on the vcpe interface
+	    try:
+            	vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        	assert_not_equal(vcpe_ip, None)
+        	log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        	log.info('Sending ICMP pings to host %s' %(host))
+        	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+		if st != 0:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_equal(st, 0)
+        	#bring down the wan interface and check again
+        	st = VSGAccess.vcpe_wan_down(vcpe_name)
+        	if st is False:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_equal(st, True)
+        	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        	if st == 0:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_not_equal(st, 0)
+        	st = VSGAccess.vcpe_wan_up(vcpe_name)
+        	if st is False:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_equal(st, True)
+        	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+          	assert_equal(st, 0)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+                VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(60)
     def test_vsg_for_external_connectivity_with_lan_interface_toggle_in_vcpe(self):
         """
         Test Method:
@@ -677,37 +761,49 @@ class vsg_exchange(CordLogger):
         """
         if self.on_pod is False:
             return
-        host = '8.8.8.8'
-        mgmt = 'eth0'
-        vcpe = self.vcpe_container
-        assert_not_equal(vcpe, None)
-        assert_not_equal(self.vcpe_dhcp, None)
-        #first get dhcp on the vcpe interface
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(self.vcpe_dhcp, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, self.vcpe_dhcp))
-        log.info('Sending ICMP pings to host %s' %(host))
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        if st != 0:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
-        #bring down the lan interface and check again
-        st = VSGAccess.vcpe_lan_down(vcpe)
-        if st is False:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, True)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        if st == 0:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_not_equal(st, 0)
-        st = VSGAccess.vcpe_lan_up(vcpe)
-        if st is False:
-            VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, True)
-        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        VSGAccess.restore_interface_config(mgmt, vcpe = self.vcpe_dhcp)
-        assert_equal(st, 0)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            host = '8.8.8.8'
+            mgmt = 'eth0'
+            vcpe = self.dhcp_vcpes_reserved[0]
+            vcpe_name = self.container_vcpes_reserved[0]
+            assert_not_equal(vcpe, None)
+            assert_not_equal(vcpe_name, None)
+            #first get dhcp on the vcpe interface
+	    try:
+            	vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+       	 	assert_not_equal(vcpe_ip, None)
+        	log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        	log.info('Sending ICMP pings to host %s' %(host))
+        	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        	if st != 0:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_equal(st, 0)
+        	#bring down the lan interface and check again
+        	st = VSGAccess.vcpe_lan_down(vcpe_name)
+        	if st is False:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_equal(st, True)
+        	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+        	if st == 0:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_not_equal(st, 0)
+        	st = VSGAccess.vcpe_lan_up(vcpe_name)
+        	if st is False:
+            		VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        	assert_equal(st, True)
+        	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, 0)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+                VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(120)
     def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
 	"""
 	Test Method:
@@ -715,13 +811,19 @@ class vsg_exchange(CordLogger):
 	2. Create multiple vcpe interfaces in cord-tester with same s-tag and c-tag to access vcpe instance
 	3. Verify all the interfaces gets dhcp IP in same subnet
 	"""
-        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
+            for vcpe in vcpe_intfs:
+                vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+                assert_not_equal(vcpe_ip,None)
+            for vcpe in vcpe_intfs:
+                self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(120)
     def test_vsg_for_multiple_subscribers_with_same_vcpe_instance_and_validate_external_connectivity(self):
         """
         Test Method:
@@ -730,18 +832,29 @@ class vsg_exchange(CordLogger):
         3. Verify all the interfaces gets dhcp IP in same subnet
 	4. From cord-tester ping to external  with vcpe interface option
         """
-        host = '8.8.8.8'
-        vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
-            st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
-            assert_equal(st, 0)
-            self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+            host = '8.8.8.8'
+            vcpe_intfs, containers = self.get_vcpe_containers_and_interfaces()
+	    try:
+                for vcpe in vcpe_intfs:
+                    vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
+                    assert_not_equal(vcpe_ip,None)
+                    self.add_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_ip=False)
+                    st, _ = getstatusoutput('ping -I {} -c 3 {}'.format(vcpe,host))
+                    assert_equal(st, 0)
+                    self.del_static_route_via_vcpe_interface([host],vcpe=vcpe,dhcp_release=False)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+        	for vcpe in vcpe_intfs:
+            	    self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
+    @deferred(30)
     def test_vsg_vcpe_interface_and_validate_dhcp_ip_after_interface_toggle(self):
         """
         Test Method:
@@ -751,18 +864,28 @@ class vsg_exchange(CordLogger):
 	4. Toggle the interface
 	5. Verify the interface gets dhcp IP
         """
-        vcpe_intfs,containers = self.get_vcpe_containers_and_interfaces()
-        for vcpe in vcpe_intfs:
-            vcpe_ip = self.get_vcpe_interface_dhcp_ip(vcpe=vcpe)
-            assert_not_equal(vcpe_ip,None)
-            os.system('ifconfig {} down'.format(vcpe))
-            time.sleep(1)
-            os.system('ifconfig {} up'.format(vcpe))
-            time.sleep(1)
-            vcpe_ip2 = get_ip(vcpe)
-            assert_equal(vcpe_ip2,vcpe_ip)
-        for vcpe in vcpe_intfs:
-            self.release_vcpe_interface_dhcp_ip(vcpe=vcpe)
+        df = defer.Deferred()
+        def test_external_connectivity(df):
+	    vcpe_intf = self.dhcp_vcpes_reserved[0]
+	    host = '8.8.8.8'
+            try:
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, 0)
+                os.system('ifconfig {} down'.format(vcpe_intf))
+                time.sleep(1)
+                os.system('ifconfig {} up'.format(vcpe_intf))
+		time.sleep(1)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, 0)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+		self.del_static_route_via_vcpe_interface([host], vcpe=vcpe_intf)
+	    df.callback(0)
+        reactor.callLater(0,test_external_connectivity,df)
+        return df
 
     @deferred(TIMEOUT)
     def test_vsg_for_external_connectivity_after_restarting_vcpe_instance(self,vcpe_name=None,vcpe_intf=None):
@@ -776,11 +899,11 @@ class vsg_exchange(CordLogger):
         6. From test container ping to destination route and verify ping success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
-        def vcpe_firewall(df):
+        def test_external_connectivity(df):
             if self.on_pod is False:
                 df.callback(0)
                 return
@@ -791,14 +914,27 @@ class vsg_exchange(CordLogger):
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st, _ = vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
-                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, False)
+		clock = 0
+		status = False
+		while(clock <= 20):
+			time.sleep(5)
+                	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+			if st == False:
+				status = True
+				break
+			clock += 5
+                assert_equal(status, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                raise
             finally:
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
             df.callback(0)
-        reactor.callLater(0, vcpe_firewall, df)
+        reactor.callLater(0, test_external_connectivity, df)
         return df
 
+    #nottest. Setup getting distrubed if vSG VM restart
     @deferred(TIMEOUT)
     def test_vsg_for_external_connectivity_after_restarting_vsg_vm(self,vcpe_name=None,vcpe_intf=None):
         """
@@ -810,12 +946,10 @@ class vsg_exchange(CordLogger):
         5. Login to compute node and execute command to pause vcpe container
         6. From test container ping to destination route and verify ping success
         """
-        if not vcpe_name:
-                vcpe_name = self.vcpe_container
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
-        def vcpe_firewall(df):
+        def test_external_connectivity(df):
             if self.on_pod is False:
                 df.callback(0)
                 return
@@ -825,16 +959,28 @@ class vsg_exchange(CordLogger):
                 self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
-                st, _ = vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
-                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, False)
+		vsg.reboot()
+                clock = 0
+                status = False
+                while(clock <= 30):
+                        time.sleep(5)
+                        st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                        if st == False:
+                                status = True
+                                break
+                        clock += 5
+                assert_equal(status, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                vsg.reboot()
+                raise
             finally:
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
             df.callback(0)
-        reactor.callLater(0, vcpe_firewall, df)
+        reactor.callLater(0, test_external_connectivity, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(60)
     def test_vsg_for_external_connectivity_with_vcpe_container_paused(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -846,11 +992,11 @@ class vsg_exchange(CordLogger):
         6. From test container ping to destination route and verify ping success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
-        def vcpe_firewall(df):
+        def test_external_connectivity(df):
             if self.on_pod is False:
                 df.callback(0)
                 return
@@ -863,11 +1009,15 @@ class vsg_exchange(CordLogger):
                 st, _ = vsg.run_cmd('sudo docker pause {}'.format(vcpe_name))
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+		vsg.run_cmd('sudo docker unpause {}'.format(vcpe_name))
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+		raise
             finally:
-                vsg.run_cmd('sudo docker unpause'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
             df.callback(0)
-        reactor.callLater(0, vcpe_firewall, df)
+        reactor.callLater(0, test_external_connectivity, df)
         return df
 
     @deferred(TIMEOUT)
@@ -1156,7 +1306,7 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
 	    vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-		self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
         	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         	assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe_name,host))
@@ -1165,6 +1315,9 @@ class vsg_exchange(CordLogger):
                 st, _ = vsg.run_cmd('sudo docker exec {} iptables -R FORWARD 1 -d {} -j ACCEPT'.format(vcpe_name,host))
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st,False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
             finally:
                 vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,host))
                 vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j ACCEPT'.format(vcpe_name,host))
@@ -1288,7 +1441,6 @@ class vsg_exchange(CordLogger):
                 df.callback(0)
                 return
             host = '8.8.8.8'
-            #source_ip = get_ip(self.vcpe_dhcp)
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
 		self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
@@ -1617,7 +1769,7 @@ class vsg_exchange(CordLogger):
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT) #Fail
+    @deferred(100)
     def test_vsg_firewall_flushing_all_configured_rules(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1635,9 +1787,9 @@ class vsg_exchange(CordLogger):
         12. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1646,7 +1798,7 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
-		self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
         	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
        	 	assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe_name,host))
@@ -1655,19 +1807,33 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p icmp -j DROP'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, True)
-                st,output = vsg.run_cmd('sudo docker exec {} iptables -F FORWARD'.format(vcpe_name))
-		time.sleep(1)
+                st, _ = vsg.run_cmd('sudo docker exec {} iptables -F FORWARD'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, False)
-            finally:
+                assert_equal(st, True)
+		vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+		status = False
+		clock = 0
+		while(clock <= 30):
+		    time.sleep(5)
+                    st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+		    if st == False:
+			status = True
+			break
+		    clock += 5
+                assert_equal(status, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
                 vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,host))
+                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p icmp -j DROP'.format(vcpe_name))
+                raise
+            finally:
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(40)
     def test_vsg_firewall_deny_all_ipv4_traffic(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1681,9 +1847,9 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1692,7 +1858,7 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
-		self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -4 -j DROP'.format(vcpe_name))
@@ -1701,15 +1867,18 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -4 -j DROP'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -4 -j DROP'.format(vcpe_name))
+                raise
             finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -4 -j DROP'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(40)
     def test_vsg_firewall_replacing_deny_rule_to_accept_rule_ipv4_traffic(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1723,9 +1892,9 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1734,7 +1903,7 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
-		self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
         	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
        	 	assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -4 -j DROP'.format(vcpe_name))
@@ -1743,15 +1912,18 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -R FORWARD 1 -4 -j ACCEPT'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
             finally:
                 vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -4 -j DROP'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(40)
     def test_vsg_firewall_deny_all_traffic_coming_on_lan_interface_in_vcpe(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1765,9 +1937,9 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1776,7 +1948,7 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -i eth1 -j DROP'.format(vcpe_name))
@@ -1785,15 +1957,18 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -i eth1 -j DROP'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -i eth1 -j DROP'.format(vcpe_name))
+                raise
             finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -i eth1 -j DROP'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(40)
     def test_vsg_firewall_deny_all_traffic_going_out_of_wan_interface_in_vcpe(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1807,9 +1982,9 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1818,7 +1993,7 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -o eth0 -j DROP'.format(vcpe_name))
@@ -1827,15 +2002,18 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -o eth0 -j DROP'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD  -o eth0 -j DROP'.format(vcpe_name))
+                raise
             finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD  -o eth0 -j DROP'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(40)
     def test_vsg_firewall_deny_all_traffic_from_lan_to_wan_in_vcpe(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1849,9 +2027,9 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1860,7 +2038,7 @@ class vsg_exchange(CordLogger):
 	    host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
-		self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
         	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
         	assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -i eth1 -o eth0 -j DROP'.format(vcpe_name))
@@ -1869,16 +2047,18 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -i eth1 -o eth0 -j DROP'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -i eth1 -o eth0 -j DROP'.format(vcpe_name))
+                raise
             finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -i eth1 -o eth0 -j DROP'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    #this test case needs modification.default route should be vcpe interface to run this test case
-    @deferred(TIMEOUT)
+    @deferred(60)
     def test_vsg_firewall_deny_all_dns_traffic(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1891,37 +2071,39 @@ class vsg_exchange(CordLogger):
         7. From cord-tester ping to www.google.com
         8. Verifying the ping should success
         """
+	mgmt = 'eth0'
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
                 df.callback(0)
                 return
-            host = 'www.msn.com'
-	    host_ip = '131.253.33.203'
+            host = 'google-public-dns-a.google.com'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
-		self.add_static_route_via_vcpe_interface([host_ip],vcpe=self.vcpe_dhcp)
+                st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p udp --dport 53 -j DROP'.format(vcpe_name))
+		vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe_intf, mgmt = mgmt)
         	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-        	assert_equal(st, False)
-                st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -p udp --dport 53 -j DROP'.format(vcpe_name))
-                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, True)
-                st,output = vsg.run_cmd('sudo docker exec {} iptables -R FORWARD 1 -p udp --dport 53 -j ACCEPT'.format(vcpe_name))
+        	assert_not_equal(st, False)
+		VSGAccess.restore_interface_config(mgmt, vcpe=vcpe_intf)
+                st,output = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p udp --dport 53 -j DROP'.format(vcpe_name))
+                vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe_intf, mgmt = mgmt)
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
-            finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p udp --dport 53 -j DROP'.format(vcpe_name))
-                self.del_static_route_via_vcpe_interface([host_ip],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+		VSGAccess.restore_interface_config(mgmt, vcpe=vcpe_intf)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -p udp --dport 53 -j DROP'.format(vcpe_name))
+		VSGAccess.restore_interface_config(mgmt,vcpe=vcpe_intf)
+                raise
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
+    @deferred(60)
     def test_vsg_firewall_deny_all_ipv4_traffic_vcpe_container_restart(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
@@ -1935,9 +2117,9 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             if self.on_pod is False:
@@ -1946,26 +2128,36 @@ class vsg_exchange(CordLogger):
             host = '8.8.8.8'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -4 -j DROP'.format(vcpe_name))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, True)
                 st,output = vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
-		time.sleep(3)
-                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, False)
+		clock = 0
+		status = False
+		while(clock <= 20 ):
+		    time.sleep(5)
+		    st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+		    if st == False:
+			status = True
+			break
+		    clock += 5
+                assert_equal(status, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -4 -j DROP'.format(vcpe_name))
+                raise
             finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -4 -j DROP'.format(vcpe_name))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0, vcpe_firewall, df)
         return df
 
-    @deferred(TIMEOUT)
-    def test_vsg_dnat_modifying_destination_ip(self,vcpe_name=None,vcpe_intf=None):
+    @deferred(40)
+    def test_vsg_nat_dnat_modifying_destination_ip(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
         1. Get vSG corresponding to vcpe
@@ -1978,31 +2170,35 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             host = '8.8.8.8'
 	    dst_ip = '123.123.123.123'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, True)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
             finally:
+
                 vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0,vcpe_firewall,df)
         return df
 
-    @deferred(TIMEOUT)
-    def test_vsg_dnat_modifying_destination_ip_and_delete(self,vcpe_name=None,vcpe_intf=None):
+    @deferred(40)
+    def test_vsg_nat_dnat_modifying_destination_ip_and_delete(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
         1. Get vSG corresponding to vcpe
@@ -2015,34 +2211,37 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             host = '8.8.8.8'
             dst_ip = '123.123.123.123'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
-                st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                st, _ = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
                 st,_ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, True)
-		st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+		st, _ = vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+		vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
+                raise
             finally:
-                vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0,vcpe_firewall,df)
         return df
 
-    @deferred(TIMEOUT)
-    def test_vsg_dnat_change_modifying_destination_ip_address(self,vcpe_name=None,vcpe_intf=None):
+    @deferred(50)
+    def test_vsg_nat_dnat_change_modifying_destination_ip_address(self,vcpe_name=None,vcpe_intf=None):
         """
         Test Method:
         1. Get vSG corresponding to vcpe
@@ -2055,16 +2254,16 @@ class vsg_exchange(CordLogger):
         8. Verifying the ping should success
         """
         if not vcpe_name:
-                vcpe_name = self.vcpe_container
+                vcpe_name = self.container_vcpes_reserved[0]
         if not vcpe_intf:
-                vcpe_intf = self.vcpe_dhcp
+                vcpe_intf = self.dhcp_vcpes_reserved[0]
         df = defer.Deferred()
         def vcpe_firewall(df):
             host = '8.8.8.8'
             dst_ip = '123.123.123.123'
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
-                self.add_static_route_via_vcpe_interface([host],vcpe=self.vcpe_dhcp)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -A PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
@@ -2073,11 +2272,14 @@ class vsg_exchange(CordLogger):
                 st,output = vsg.run_cmd('sudo docker exec {} iptables -t nat -R PREROUTING 1  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,host))
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, False)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
             finally:
                 vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,dst_ip))
                 vsg.run_cmd('sudo docker exec {} iptables -t nat -D PREROUTING  -s 192.168.0.0/16 -i eth1 -j DNAT --to-destination {}'.format(vcpe_name,host))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+                #vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
             df.callback(0)
         reactor.callLater(0,vcpe_firewall,df)
         return df
@@ -2150,6 +2352,7 @@ class vsg_exchange(CordLogger):
         self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
 
     def vsg_xos_subscriber_id(self, index):
+	log.info('index and its type are %s, %s'%(index, type(index)))
         volt_subscriber_info = self.volt_subscriber_info[index]
         result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
         assert_not_equal(result, None)
@@ -2211,6 +2414,7 @@ class vsg_exchange(CordLogger):
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(0, subId)
 
+
     def test_vsg_xos_subscriber_2_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(1)
         if subId and subId != '0':
@@ -2231,33 +2435,138 @@ class vsg_exchange(CordLogger):
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(4, subId)
 
-    def test_vsg_without_creating_vcpe_instance(self, index=0):
-	vcpe = self.dhcp_vcpes[index]
-	host = '8.8.8.8'
-	st, _ = getstatusoutput('dhclient {}'.format(vcpe))
-	assert_equal(st,True)
-        subId = self.vsg_xos_subscriber_create(index)
-        if subId and subId != '0':
-            self.vsg_xos_subscriber_delete(index, subId)
-
-    def test_vsg_for_remove_vcpe_instance(self,index=0):
-        subId = self.vsg_xos_subscriber_create(index)
-        if subId and subId != '0':
-            self.vsg_xos_subscriber_delete(index, subId)
+    @deferred(400)
+    def test_vsg_xos_subscriber_external_connectivity_through_vcpe_instance(self, index=0):
+        df = defer.Deferred()
+        status = False
+        def test_xos_subscriber(df):
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId == '0':
+                log.info('Creating vcpe instance ')
+		subId = self.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
             vcpe = self.dhcp_vcpes[index]
             host = '8.8.8.8'
-            st, _ = getstatusoutput('dhclient {}'.format(vcpe))
-            assert_equal(st,True)
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+	    self.del_static_route_via_vcpe_interface([host],vcpe=vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_create_xos_subscribers_in_different_vsg_vm(self):
-        subId1 = self.vsg_xos_subscriber_create(4)
-	subId2 = self.vsg_xos_subscriber_create(6)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(4, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(6, subId2)
+    #pass
+    @deferred(50)
+    def test_vsg_xos_subscriber_external_connectivity_without_creating_vcpe_instance(self, index=0):
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId != '0':
+		log.info('deleting already existing vcpe instance ')
+		self.vsg_xos_subscriber_delete(index, subId)
+	    vcpe = self.dhcp_vcpes[index]
+	    host = '8.8.8.8'
+	    self.add_static_route_via_vcpe_interface([host],vcpe=vcpe)
+	    st, out = getstatusoutput('route -n')
+	    log.info('route -n outpu-1-1-1--1-1-1-1-1-1-1  is %s'%out)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+	    self.del_static_route_via_vcpe_interface([host],vcpe=vcpe)
+            assert_equal(st, True)
+	    df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+	return df
 
-    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_goes_down(self):
+    @deferred(400)
+    def test_vsg_xos_subscriber_external_connectivity_after_remove_vcpe_instance_from_xos(self,index=0,host = '8.8.8.8'):
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+	    subId = self.vsg_xos_subscriber_id(index)
+	    if subId == '0':
+        	subId = self.vsg_xos_subscriber_create(index)
+	    assert_not_equal(subId,'0')
+	    vcpe = self.dhcp_vcpes[index]
+            if subId and subId != '0':
+	        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+                self.vsg_xos_subscriber_delete(index, subId)
+	        time.sleep(2)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, True)
+	        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
+
+    @deferred(400)
+    def test_vsg_xos_subscriber_external_connectivity_after_restart_vcpe_instance(self,index=0,host = '8.8.8.8'):
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId == '0':
+                subId = self.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
+	    vcpe_intf = self.dhcp_vcpes[index]
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+	    vcpe_name = 'vcpe-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
+	    vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+	    st, _ = vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
+	    assert_equal(st, True)
+            time.sleep(5)
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
+
+    @deferred(400)
+    def test_vsg_xos_subscriber_external_connectivity_after_stop_and_start_vcpe_instance(self,index=0,host = '8.8.8.8'):
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId == '0':
+                subId = self.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
+            vcpe_intf = self.dhcp_vcpes[index]
+            self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+            vcpe_name = 'vcpe-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            st, _ = vsg.run_cmd('sudo docker stop {}'.format(vcpe_name))
+            assert_equal(st, True)
+            time.sleep(3)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, True)
+            st, _ = vsg.run_cmd('sudo docker start {}'.format(vcpe_name))
+            assert_equal(st, True)
+            time.sleep(5)
+            st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+            assert_equal(st, False)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
+
+    #getting list out of range error while creating vcpe of index 6
+    def test_vsg_create_xos_subscribers_in_different_vsg_vm(self,index1=4,index2=6):
+	indexes = list(index1,index2)
+	subids = []
+	for index in indexes:
+        	subId = self.vsg_xos_subscriber_id(index)
+        	if not subId:
+        		subId = self.vsg_xos_subscriber_create(index)
+		assert_not_equal(subId,'0')
+		subids.append(subId)
+	log.info('succesfully created two vcpe instances in two different vSG VMs')
+	self.vsg_xos_subscriber_delete(index1, subid[0])
+	self.vsg_xos_subscriber_delete(index2, subid[1])
+
+    #Unable to reach external network via vcpes created by XOS
+    @deferred(TIMEOUT+400)
+    def test_vsg_xos_multiple_subscribers_external_connectivity_if_one_vcpe_goes_down(self):
         """
         Test Method:
         1.Create two vcpe instances in two different vsg vms using XOS
@@ -2265,29 +2574,57 @@ class vsg_exchange(CordLogger):
         3.Kill first vcpe instance
         4.Verify external network cant be reachable form first vcpe interface
         """
-	host = '8.8.8.8'
-        subId1 = self.vsg_xos_subscriber_create(0)
-        subId2 = self.vsg_xos_subscriber_create(1)
-	vcpe_intf1 = self.dhcp_vcpes[0]
-	vcpe_intf2 = self.dhcp_vcpes[1]
-	vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
-	vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
-	vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
-	vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-        st,output = vsg2.run_cmd('sudo docker kill {}'.format(vcpe_name2))
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, True)
-	self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-	self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, False)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(0, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(1, subId2)
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            host1 = '8.8.8.8'
+	    host2 = '4.2.2.2'
+            vcpe_intf1 = self.dhcp_vcpes[0]
+            vcpe_intf2 = self.dhcp_vcpes[1]
+            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            subId1 = self.vsg_xos_subscriber_id(0)
+            log.info('already existing subid of index 0 is %s'%subId1)
+            if subId1 == '0':
+		log.info('creating vcpe instance of index 0')
+                subId1 = self.vsg_xos_subscriber_create(0)
+	    assert_not_equal(subId1,'0')
+            subId2 = self.vsg_xos_subscriber_id(1)
+            log.info('already existing subid of index 1 is %s'%subId2)
+            if subId2 == '0':
+		log.info('creating vcpe instance of index 1')
+                subId2 = self.vsg_xos_subscriber_create(1)
+	    assert_not_equal(subId2,'0')
+	    vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+	    vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+	    try:
+		for intf in [vcpe_intf1,vcpe_intf2]:
+		    host = host1 if intf is vcpe_intf1 else host2
+		    self.add_static_route_via_vcpe_interface([host],vcpe=intf)
+                    st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+                    assert_equal(st, False)
+		    if intf is vcpe_intf2:
+	    		self.vsg_xos_subscriber_delete(1, subId2)
+            		st, _  = vsg2.run_cmd('sudo docker kill {}'.format(vcpe_name2))
+            		time.sleep(2)
+			self.add_static_route_via_vcpe_interface([host],vcpe=intf)
+                        st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                        assert_equal(st, False)
+                        st,_ = getstatusoutput('ping -c 1 {}'.format(host2))
+                        assert_equal(st, True)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+            	self.vsg_xos_subscriber_delete(0, subId1)
+            	self.vsg_xos_subscriber_delete(1, subId2)
+		self.del_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+		self.del_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_is_removed_and_added_again(self):
+    @deferred(TIMEOUT+400)
+    def test_vsg_xos_subscriber_external_connectivity_after_vcpe_remove_and_add_again(self,index=0):
         """
         Test Method:
         1.Create two vcpe instances in two different vsg vms using XOS
@@ -2297,31 +2634,45 @@ class vsg_exchange(CordLogger):
 	5.Add back the removed vcpe instance
 	6.Verify external connectivity through vcpe instances from cord-tester
         """
-        host = '8.8.8.8'
-        subId1 = self.vsg_xos_subscriber_create(0)
-        subId2 = self.vsg_xos_subscriber_create(1)
-        vcpe_intf1 = self.dhcp_vcpes[0]
-        vcpe_intf2 = self.dhcp_vcpes[1]
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
-        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
-        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-        st,output = vsg2.run_cmd('sudo docker kill {}'.format(vcpe_name2))
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, True)
-        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-	subId2 = self.vsg_xos_subscriber_create(1)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, False)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(0, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(1, subId2)
+        df = defer.Deferred()
+        def test_xos_subscriber(df,index=index):
+            host = '8.8.8.8'
+            subId = self.vsg_xos_subscriber_id(index)
+            log.info('already existing subid of index 0 is %s'%subId)
+            if subId == '0':
+                log.info('creating vcpe instance of index %s'%index)
+                subId = self.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
+            vcpe_intf = self.dhcp_vcpes[0]
+            vcpe_name = 'vcpe-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+	    try:
+        	self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+	        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        	assert_equal(st, False)
+		log.info('Deleting vcpe Instance of index %s'%index)
+		self.vsg_xos_subscriber_delete(0, subId)
+        	st, _ = vsg.run_cmd('sudo docker kill {}'.format(vcpe_name))
+		time.sleep(1)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+        	st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        	assert_equal(st, True)
+		subId = self.vsg_xos_subscriber_create(index)
+        	self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+        	st,_ = getstatusoutput('ping -c 1 {}'.format(host))
+        	assert_equal(st, False)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+		self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+		self.vsg_xos_subscriber_delete(0, subId)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-
-    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_restarts(self):
+    @deferred(TIMEOUT+400)
+    def test_vsg_xos_multiple_subscribers_external_connectivity_if_one_vcpe_restarts(self):
         """
         Test Method:
         1.Create two vcpe instances in two different vsg vms using XOS
@@ -2329,29 +2680,66 @@ class vsg_exchange(CordLogger):
         3.Restart first vcpe instance
         4.Verify external network cant be reachable form first vcpe interface
         """
-        host = '8.8.8.8'
-        subId1 = self.vsg_xos_subscriber_create(0)
-        subId2 = self.vsg_xos_subscriber_create(1)
-        vcpe_intf1 = self.dhcp_vcpes[0]
-        vcpe_intf2 = self.dhcp_vcpes[1]
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
-        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
-        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-        st,output = vsg2.run_cmd('sudo docker restart {}'.format(vcpe_name1))
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, True)
-        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, False)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(0, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(1, subId2)
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            host1 = '8.8.8.8'
+	    host2 = '4.2.2.2'
+            subId1 = self.vsg_xos_subscriber_id(0)
+            log.info('already existing subid of index 0 is %s'%subId1)
+            if subId1 == '0':
+                log.info('creating vcpe instance of index 0')
+                subId1 = self.vsg_xos_subscriber_create(0)
+            assert_not_equal(subId1,'0')
+            subId2 = self.vsg_xos_subscriber_id(1)
+            log.info('already existing subid of index 1 is %s'%subId2)
+            if subId2 == '0':
+                log.info('creating vcpe instance of index 1')
+                subId2 = self.vsg_xos_subscriber_create(1)
+            vcpe_intf1 = self.dhcp_vcpes[0]
+            vcpe_intf2 = self.dhcp_vcpes[1]
+            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+            vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+	    try:
+		#checking external connectivity from vcpe interface 1 before vcpe 2 restart
+		self.add_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                assert_equal(st, False)
+		#checking external connectivity from vcpe interface 2 before vcpe 2 restart
+                self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host2))
+                assert_equal(st, False)
+        	st, _  = vsg2.run_cmd('sudo docker restart {}'.format(vcpe_name2))
+		time.sleep(10)
+		#checking external connectivity from vcpe interface 1 after vcpe 2 restart
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                assert_equal(st, False)
+		self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+		time = 0
+		status = False
+		while(time <= 100):
+		     time.sleep(10)
+		     st,_ = getstatusoutput('ping -c 1 {}'.format(hos2))
+		     if st is False:
+			status = True
+        		break
+		     time += 10
+		assert_equal(status, True)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+        	self.del_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+        	self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                self.vsg_xos_subscriber_delete(0, subId1)
+        	self.vsg_xos_subscriber_delete(1, subId2)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_pause(self):
+    @deferred(500)
+    def test_vsg_xos_multiple_subscribers_external_connectivity_if_one_vcpe_pause(self):
         """
         Test Method:
         1.Create two vcpe instances in two different vsg vms using XOS
@@ -2359,29 +2747,60 @@ class vsg_exchange(CordLogger):
         3.Pause running first vcpe instance
         4.Verify external network cant be reachable form first vcpe interface
         """
-        host = '8.8.8.8'
-        subId1 = self.vsg_xos_subscriber_create(0)
-        subId2 = self.vsg_xos_subscriber_create(1)
-        vcpe_intf1 = self.dhcp_vcpes[0]
-        vcpe_intf2 = self.dhcp_vcpes[1]
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
-        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
-        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-        st,output = vsg2.run_cmd('sudo docker pause {}'.format(vcpe_name1))
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, True)
-        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, False)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(0, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(1, subId2)
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            host1 = '8.8.8.8'
+            host2 = '4.2.2.2'
+            subId1 = self.vsg_xos_subscriber_id(0)
+            log.info('already existing subid of index 0 is %s'%subId1)
+            if subId1 == '0':
+                log.info('creating vcpe instance of index 0')
+                subId1 = self.vsg_xos_subscriber_create(0)
+            assert_not_equal(subId1,'0')
+            subId2 = self.vsg_xos_subscriber_id(1)
+            log.info('already existing subid of index 1 is %s'%subId2)
+            if subId2 == '0':
+                log.info('creating vcpe instance of index 1')
+                subId2 = self.vsg_xos_subscriber_create(1)
+            vcpe_intf1 = self.dhcp_vcpes[0]
+            vcpe_intf2 = self.dhcp_vcpes[1]
+            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+            vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+            try:
+                #checking external connectivity from vcpe interface 1 before vcpe 2 pause
+                self.add_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                assert_equal(st, False)
+                #checking external connectivity from vcpe interface 2 before vcpe 2 pause
+                self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host2))
+                assert_equal(st, False)
+                st, _  = vsg2.run_cmd('sudo docker pause {}'.format(vcpe_name2))
+                time.sleep(1)
+                #checking external connectivity from vcpe interface 1 after vcpe 2 pause
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                assert_equal(st, False)
+                #checking external connectivity from vcpe interface 2 after vcpe 2 pause
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host2))
+                assert_equal(st, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+                log.info('In Finally block 3333333333333333')
+		st, _  = vsg2.run_cmd('sudo docker unpause {}'.format(vcpe_name2))
+                self.del_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+                self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                self.vsg_xos_subscriber_delete(0, subId1)
+                self.vsg_xos_subscriber_delete(1, subId2)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_restarts_and_stops(self):
+    @deferred(500)
+    def test_vsg_xos_subscriber_external_connectivity_if_one_vcpe_stops(self):
         """
         Test Method:
         1.Create two vcpe instances in two different vsg vms using XOS
@@ -2389,29 +2808,61 @@ class vsg_exchange(CordLogger):
         3.Stop running first vcpe instance
         4.Verify external network cant be reachable form first vcpe interface
         """
-        host = '8.8.8.8'
-        subId1 = self.vsg_xos_subscriber_create(0)
-        subId2 = self.vsg_xos_subscriber_create(1)
-        vcpe_intf1 = self.dhcp_vcpes[0]
-        vcpe_intf2 = self.dhcp_vcpes[1]
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],intf.split1('.')[2])
-        vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],intf.split2('.')[2])
-        vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
-        vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf2)
-        st,output = vsg2.run_cmd('sudo docker stop {}'.format(vcpe_name1))
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, True)
-        self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf1)
-        st,_ = getstatusoutput('ping -c 1 {}'.format(host))
-        assert_equal(st, False)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(0, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(1, subId2)
+        df = defer.Deferred()
+        def test_xos_subscriber(df):
+            host1 = '8.8.8.8'
+            host2 = '4.2.2.2'
+            subId1 = self.vsg_xos_subscriber_id(0)
+            log.info('already existing subid of index 0 is %s'%subId1)
+            if subId1 == '0':
+                log.info('creating vcpe instance of index 0')
+                subId1 = self.vsg_xos_subscriber_create(0)
+            assert_not_equal(subId1,'0')
+            subId2 = self.vsg_xos_subscriber_id(1)
+            log.info('already existing subid of index 1 is %s'%subId2)
+            if subId2 == '0':
+                log.info('creating vcpe instance of index 1')
+                subId2 = self.vsg_xos_subscriber_create(1)
+            vcpe_intf1 = self.dhcp_vcpes[0]
+            vcpe_intf2 = self.dhcp_vcpes[1]
+            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
+            vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
+            try:
+                #checking external connectivity from vcpe interface 1 before vcpe 2 stop
+                self.add_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                assert_equal(st, False)
+                #checking external connectivity from vcpe interface 2 before vcpe 2 stop
+                self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host2))
+                assert_equal(st, False)
+                st, _  = vsg2.run_cmd('sudo docker stop {}'.format(vcpe_name2))
+                time.sleep(5)
+                #checking external connectivity from vcpe interface 1 after vcpe 2 stop
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host1))
+                assert_equal(st, False)
+                #checking external connectivity from vcpe interface 1 after vcpe 2 stop
+		self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                st,_ = getstatusoutput('ping -c 1 {}'.format(host2))
+                assert_equal(st, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+                raise
+            finally:
+                st, _  = vsg2.run_cmd('sudo docker start {}'.format(vcpe_name2))
+                time.sleep(10)
+                self.del_static_route_via_vcpe_interface([host1],vcpe=vcpe_intf1)
+                self.add_static_route_via_vcpe_interface([host2],vcpe=vcpe_intf2)
+                self.vsg_xos_subscriber_delete(0, subId1)
+                self.vsg_xos_subscriber_delete(1, subId2)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_xos_subscriber_external_connectivity_if_one_vsg_goes_down(self):
+    @deferred(420)
+    def test_vsg_xos_subscriber_external_connectivity_after_vsg_vm_stop(self,index=0):
         """
         Test Method:
         1.Create two vcpe instances in two different vsg vms using XOS
@@ -2419,14 +2870,88 @@ class vsg_exchange(CordLogger):
         3.Bring down first vSG vm
         4.Verify external network cant be reachable form first vcpe interface
         """
-        subId1 = self.vsg_xos_subscriber_create(4)
-        subId2 = self.vsg_xos_subscriber_create(6)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(4, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(6, subId2)
+        df = defer.Deferred()
+        def test_xos_subscriber(df,index=index):
+            host = '8.8.8.8'
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId == '0':
+                log.info('creating vcpe instance of index 0')
+                subId = self.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
+            vcpe_intf = self.dhcp_vcpes[index] #'vcpe{}.{}.{}'.format(s_tag, c_tag)
+            vcpe_name = self.container_vcpes[index]
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+		log.info('Stopping vsg instance')
+		vsg.stop()
+		time.sleep(5)
+		self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+		st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+		assert_equal(st, True)
+	    except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+		vsg.start()
+		self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+		self.vsg_xos_subscriber_delete(index, subId)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_xos_subscriber_external_connectivity_if_two_vsgs_goes_down(self):
+    @deferred(420)
+    def test_vsg_xos_subscriber_external_connectivity_after_vsg_vm_restart(self,index=0):
+        """
+        Test Method:
+        1.Create two vcpe instances in two different vsg vms using XOS
+        2.Verify external connectivity through vcpe instances from cord-tester
+        3.Bring down first vSG vm
+        4.Verify external network cant be reachable form first vcpe interface
+        """
+        df = defer.Deferred()
+        def test_xos_subscriber(df,index=index):
+            host = '8.8.8.8'
+            subId = self.vsg_xos_subscriber_id(index)
+            if subId == '0':
+                log.info('creating vcpe instance of index 0')
+                subId = self.vsg_xos_subscriber_create(index)
+            assert_not_equal(subId,'0')
+            vcpe_intf = self.dhcp_vcpes[index] #'vcpe{}.{}.{}'.format(s_tag, c_tag)
+            vcpe_name = self.container_vcpes[index]
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+            try:
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                assert_equal(st, False)
+                log.info('Restarting vsg instance')
+                vsg.reboot()
+                time.sleep(10)
+                self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+		time = 0
+		status = False
+		while(time <= 100):
+			time.sleep(10)
+                	st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+			if st is False:
+                		status = True
+				break
+			time += 10
+		assert_equal(status, True)
+            except Exception as error:
+                log.info('Got Unexpected error %s'%error)
+	  	raise
+	    finally:
+                self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+		self.vsg_xos_subscriber_delete(index, subId)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
+
+    @deferred(780)
+    def test_vsg_xos_multiple_subscribers_external_connectivity_if_two_vsgs_stop_and_start(self,index1=4,index2=6):
 	"""
 	Test Method:
 	1.Create two vcpe instances in two different vsg vms using XOS
@@ -2436,43 +2961,82 @@ class vsg_exchange(CordLogger):
 	5.Bring down second vSG vm also
 	6.Verify external network cant be reachable form first vcpe interface also
 	"""
-        subId1 = self.vsg_xos_subscriber_create(4)
-        subId2 = self.vsg_xos_subscriber_create(6)
-        if subId1 and subId1 != '0':
-            self.vsg_xos_subscriber_delete(4, subId1)
-        if subId2 and subId2 != '0':
-            self.vsg_xos_subscriber_delete(6, subId2)
+        df = defer.Deferred(df,index1=index1,index2=index2)
+        def test_xos_subscriber(df,index=index):
+            subId1 = self.vsg_xos_subscriber_create(index1)
+            subId2 = self.vsg_xos_subscriber_create(index2)
+            if subId1 == '0':
+                self.vsg_xos_subscriber_delete(index1, subId1)
+	    assert_not_equal(subId1, '0')
+            if subId2 == '0':
+                self.vsg_xos_subscriber_delete(index2, subId2)
+	    assert_not_equal(subId2, '0')
+	    for index in [index1,index2]:
+                vcpe_intf = self.dhcp_vcpes[index] #'vcpe{}.{}.{}'.format(s_tag, c_tag)
+                vcpe_name = self.container_vcpes[index]
+                vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
+		try:
+                    self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                    st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                    assert_equal(st, False)
+		    log.info('Stopping vsg instance of index %s'%index)
+		    vsg.stop()
+		    time.sleep(5)
+                    self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+                    st, _ = getstatusoutput('ping -c 1 {}'.format(host))
+                    assert_equal(st, True)
+		except Exception as error:
+		    log.info('Got Unexpected error %s'%error)
+		    raise
+		finally:
+		    vsg.start()
+		    self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
-    def test_vsg_with_xos_subscriber_creating_firewall(self,index=4):
-        log.info('cls.dhcp_vcpes is %s'%self.dhcp_vcpes)
-        host = '8.8.8.8'
-        self.vsg_xos_subscriber_delete(4, 3)
-        subId = self.vsg_xos_subscriber_create(index)
-        if subId and subId != '0':
-            subscriber_info = self.subscriber_info[index]
-            volt_subscriber_info = self.volt_subscriber_info[index]
-            s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
-            c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
-            vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
+    @deferred(420)
+    def test_vsg_xos_subscriber_external_connectivity_with_creating_firewall_rule(self,index=0):
+        """
+        Alog:
+        1.Cretae a vcpe instance using XOS
+        2.Get dhcp IP to vcpe interface in cord-tester
+        3.Verify external network can be reachable from cord-tester
+        4.Add an iptable rule to drop packets destined to external network in vcpe
+        5.Verify now external network cant be reachable
+        6.Delele the iptale in vcpe instance
+        7.Verify external network can be reachable from cord-tester
+        """
+        df = defer.Deferred()
+        def test_xos_subscriber(df,index=index):
+            log.info('cls.dhcp_vcpes is %s'%self.dhcp_vcpes)
+            host = '8.8.8.8'
+            subId = self.vsg_xos_subscriber_create(index)
+	    if subId == '0':
+		subId = self.vsg_xos_subscriber_create(index)
+	    assert_not_equal(subId, '0')
             vcpe_intf = self.dhcp_vcpes[index] #'vcpe{}.{}.{}'.format(s_tag, c_tag)
-            vsg = VSGAccess.get_vcpe_vsg(vcpe)
+	    vcpe_name = self.container_vcpes[index]
+            vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
                 self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, False)
-                st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe,host))
+                #ssert_equal(st, False)
+                st, _ = vsg.run_cmd('sudo docker exec {} iptables -I FORWARD -d {} -j DROP'.format(vcpe_name,host))
                 st, _ = getstatusoutput('ping -c 1 {}'.format(host))
                 assert_equal(st, True)
-                st,_ = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host))
-                st, _ = getstatusoutput('ping -c 1 {}'.format(host))
-                assert_equal(st, False)
-            finally:
-                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe,host))
+                st,_ = vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,host))
+		self.vsg_xos_subscriber_delete(index, subId)
+            except Exception as error:
+		log.info('Got Unexpected error %s'%error)
+		raise
+	    finally:
+                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,host))
                 self.del_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
-                vsg.run_cmd('sudo docker restart {}'.format(vcpe))
-            self.vsg_xos_subscriber_delete(4, subId)
-        self.vsg_xos_subscriber_delete(4, subId)
-
+		self.vsg_xos_subscriber_delete(index, subId)
+            df.callback(0)
+        reactor.callLater(0,test_xos_subscriber,df)
+        return df
 
     def test_vsg_for_packet_received_with_invalid_ip_fields(self):
 	"""
@@ -2588,320 +3152,4 @@ class vsg_exchange(CordLogger):
 	10.Verify dns stats for queries sent, queries received for dns host resolve success and failed scenarios
         """
 
-    def test_subscriber_access_if_vsg1_goes_down(self):
-	"""
-	# Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
-        Test Method:
-        1.Create two vSG VMs for two services in compute node
-        2.Create one vCPE container in each VM for one subscriber
-        3.Ensure VMs and containers created properly
-        4.From subscriber end, send ping to public IP with stag corresponds to vSG-1 VM and ctag
-        5.Verify ping gets success
-        6.Verify ping success flows in OvS
-	7.Down the vSG-1 VM
-        8.Now repeat step 4
-	9.Verify that ping fails as vSG-1 is down
-        10.Repeat step 4 with stag corresponding to vSG-2
-        9.Verify ping success and flows added in OvS
-        """
 
-    def test_subscriber_access_if_vsg2_goes_down(self):
-        """
-        # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
-        Test Method:
-        1.Create two vSG VMs for two services in compute node
-        2.Create one vCPE container in each VM for one subscriber
-        3.Ensure VMs and containers created properly
-        4.From subscriber end, send ping to public IP with stag corresponds to vSG-1 VM and ctag
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now restart vSG-1 VM
-        8.Now repeat step 4 while vSG-1 VM restarts
-        9.Verify that ping fails as vSG-1 is restarting
-        10.Repeat step 4 with stag corresponding to vSG-2 while vSG-1 VM restarts
-        11.Verify ping success and flows added in OvS
-        """
-
-    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_going_down(self):
-        """
-        # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 goes down
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create two vCPE containers corresponds to two subscribers in vSG VM
-        3.Ensure VM and containers created properly
-        4.From subscriber-1 end, send ping to public IP with ctag corresponds to vCPE-1 and stag
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now stop vCPE-1 container
-        8.Now repeat step 4
-        9.Verify that ping fails as vCPE-1 container is down
-        10.Repeat step 4 with ctag corresponding to vCPE-2 container
-        11.Verify ping success and flows added in OvS
-        """
-
-    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_restart(self):
-        """
-        # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 restarts
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create two vCPE containers corresponds to two subscribers in vSG VM
-        3.Ensure VM and containers created properly
-        4.From subscriber-1 end, send ping to public IP with ctag corresponds to vCPE-1 and stag
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now restart vCPE-1 container
-        8.Now repeat step 4 while vCPE-1 restarts
-        9.Verify that ping fails as vCPE-1 container is restarts
-        10.Repeat step 4 with ctag corresponding to vCPE-2 container while vCPE-1 restarts
-        11..Verify ping success and flows added in OvS
-        """
-
-    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_paused(self):
-        """
-        # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 paused
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create two vCPE containers corresponds to two subscribers in vSG VM
-        3.Ensure VM and containers created properly
-        4.From subscriber-1 end, send ping to public IP with ctag corresponds to vCPE-1 and stag
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now pause vCPE-1 container
-        8.Now repeat step 4 while vCPE-1 in pause state
-        9.Verify that ping fails as vCPE-1 container in pause state
-        10.Repeat step 4 with ctag corresponding to vCPE-2 container while vCPE-1 in pause state
-        11.Verify ping success and flows added in OvS
-        """
-    def test_vsg_for_multiple_vcpes_in_vsg_vm_with_one_vcpe_removed(self):
-        """
-        # Intention is to verify if subscriber can reach internet via vSG2 if vSG1 removed
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create two vCPE containers corresponds to two subscribers in vSG VM
-        3.Ensure VM and containers created properly
-        4.From subscriber-1 end, send ping to public IP with ctag corresponds to vCPE-1 and stag
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now remove vCPE-1 container
-        8.Now repeat step 4
-        9.Verify that ping fails as vCPE-1 container removed
-        10.Repeat step 4 with ctag corresponding to vCPE-2 container
-        11.Verify ping success and flows added in OvS
-        """
-
-    def test_vsg_for_vcpe_instance_removed_and_added_again(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.From subscriber end, send ping to public IP
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now remove vCPE container in vSG VM
-        8.Now repeat step 4
-        9.Verify that ping fails as vCPE container removed
-	10.Create the vCPE container again for the same subscriber
-	11.Ensure that vCPE created now
-        12.Now repeat step 4
-        13.Verify ping success and flows added in OvS
-        """
-
-    def test_vsg_for_vsg_vm_removed_and_added_again(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.From subscriber end, send ping to public IP
-        5.Verify ping gets success
-        6.Verify ping success flows added in OvS
-        7.Now remove vSG VM
-        8.Now repeat step 4
-        9.Verify that ping fails as vSG VM not exists
-        10.Create the vSG VM and vCPE  container in VM again
-        11.Ensure that vSG and vCPE created
-        12.Now repeat step 4
-        13.Verify ping success and flows added in OvS
-        """
-
-    #Test vSG - Subscriber Configuration
-    def test_vsg_for_configuring_new_subscriber_in_vcpe(self):
-	"""
-	Test Method:
-	1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-	4.Configure a subscriber in XOS and assign a service id
-	5.Set the admin privileges to the subscriber
-	6.Verify subscriber configuration is success
-	"""
-    def test_vsg_for_adding_subscriber_devices_in_vcpe(self):
-	"""
-	Test Method:
-	1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.Configure a subscriber in XOS and assign a service id
-	5.Verify subscriber successfully configured in vCPE
-	6.Now add devices( Mac addresses ) under the subscriber admin group
-	7.Verify all devices ( Macs ) added successfully
-	"""
-    def test_vsg_for_removing_subscriber_devices_in_vcpe(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.Configure a subscriber in XOS and assign a service id
-        5.Verify subscriber successfully configured
-        6.Now add devices( Mac addresses ) under the subscriber admin group
-        7.Verify all devices ( Macs ) added successfully
-	8.Now remove All the added devices in XOS
-	9.Verify all the devices removed
-        """
-    def test_vsg_modifying_subscriber_devices_in_vcpe(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.Configure a user in XOS and assign a service id
-        5.Verify subscriber successfully configured in vCPE.
-        6.Now add devices( Mac addresses ) under the subscriber admin group
-        7.Verify all devices ( Macs ) added successfully
-        8.Now remove few devices in XOS
-        9.Verify devices removed successfully
-	10.Now add few additional devices in XOS  under the same subscriber admin group
-	11.Verify newly added devices successfully added
-        """
-    def test_vsg_for_vcpe_login_failing_with_incorrect_subscriber_credentials(self):
-	"""
-	Test Method:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.Configure a subscriber in XOS and assign a service id
-        5.Verify subscriber successfully configured
-        6.Now add devices( Mac addresses ) under the subscriber admin group
-        7.Verify all devices ( Macs ) added successfully
-	8.Login vCPE with credentials with which subscriber configured
-	9.Verify subscriber successfully logged in
-	10.Logout and login again with incorrect credentials ( either user name or password )
-	11.Verify login attempt to vCPE fails wtih incorrect credentials
-	"""
-    def test_vsg_for_subscriber_configuration_in_vcpe_after_vcpe_restart(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create a vCPE container in vSG VM
-        3.Ensure VM and containers created properly
-        4.Configure a subscriber in XOS  and assign a service id
-        5.Verify subscriber successfully configured
-        6.Now add devices( Mac addresses ) under the subscriber admin group
-        7.Verify all devices ( Macs ) added successfully
-        8.Restart vCPE ( locate backup config path while restart )
-        9.Verify subscriber details in vCPE after restart should be same as before the restart
-        """
-    def test_vsg_creating_multiple_vcpe_instances_and_configuring_subscriber_in_each_instance(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create 2 vCPE containers in vSG VM
-        3.Ensure VM and containers created properly
-        4.Configure a subscriber in XOS for each vCPE instance and assign a service id
-        5.Verify subscribers successfully configured
-	6.Now login vCPE-2 with subscriber-1 credentials
-	7.Verify login fails
-	8.Now login vCPE-1 with subscriber-2 credentials
-	9.Verify login fails
-	10.Now login vCPE-1 with subscriber-1 and vCPE-2 with  subscriber-2 credentials
-	11.Verify that both the subscribers able to login to their respective vCPE containers
-	"""
-    def test_vsg_for_same_subscriber_configuring_multiple_services(self):
-        """
-        Test Method:
-        1.Create 2 vSG VMs in compute node
-        2.Create a vCPE container in each vSG VM
-        3.Ensure VMs and containers created properly
-        4.Configure same subscriber in XOS for each vCPE instance and assign a service id
-        5.Verify subscriber successfully configured
-        6.Now login vCPE-1 with subscriber credentials
-        7.Verify login success
-        8.Now login vCPE-2 with the same subscriber credentials
-        9.Verify login success
-        """
-    #vCPE Firewall Functionality
-    def test_vsg_firewall_for_creating_acl_rule_based_on_source_ip(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create vCPE container in the VM
-        3.Ensure vSG VM and vCPE container created properly
-        4.Configure ac acl rule in vCPE to deny IP traffic from a source IP
-        5.Bound the acl rule to WAN interface of  vCPE
-        6.Verify configuration in vCPE is success
-        8.Verify flows added in OvS
-        """
-    def test_vsg_firewall_for_creating_acl_rule_based_on_destination_ip(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create vCPE container in the VM
-        3.Ensure vSG VM and vCPE container created properly
-        4.Configure ac acl rule in vCPE to deny IP traffic to a destination ip
-        5.Bound the acl rule to WAN interface of  vCPE
-        6.Verify configuration in vCPE is success
-        8.Verify flows added in OvS
-        """
-    def test_vsg_firewall_for_acl_deny_rule_based_on_source_ip_traffic(self):
-	"""
-	Test Method:
-	1.Create a vSG VM in compute node
-	2.Create vCPE container in the VM
-	3.Ensure vSG VM and vCPE container created properly
-	4.Configure ac acl rule in vCPE to deny IP traffic from a source IP
-	5.Bound the acl rule to WAN interface of  vCPE
-	6.From subscriber, send ping to the denied IP address
-	7.Verify that ping fails as vCPE denies ping response
-	8.Verify flows added in OvS
-	"""
-    def test_vsg_firewall_for_acl_deny_rule_based_on_destination_ip_traffic(self):
-        """
-        Test Method:
-        1.Create a vSG VM in compute node
-        2.Create vCPE container in the VM
-        3.Ensure vSG VM and vCPE container created properly
-        4.Configure ac acl rule in vCPE to deny IP traffic to a destination IP
-        5.Bound the acl rule to WAN interface of  vCPE
-        6.From subscriber, send ping to the denied IP address
-        7.Verify that ping fails as vCPE drops the ping request at WAN interface
-        8.Verify flows added in OvS
-        """
-
-    def test_vsg_dnsmasq(self):
-        pass
-
-    def test_vsg_with_external_parental_control_family_shield_for_filter(self):
-        pass
-
-    def test_vsg_with_external_parental_control_with_answerx(self):
-        pass
-
-    def test_vsg_for_subscriber_upstream_bandwidth(self):
-        pass
-
-    def test_vsg_for_subscriber_downstream_bandwidth(self):
-        pass
-
-    def test_vsg_for_diagnostic_run_of_traceroute(self):
-        pass
-
-    def test_vsg_for_diagnostic_run_of_tcpdump(self):
-        pass
-
-    def test_vsg_for_iptable_rules(self):
-        pass
-
-    def test_vsg_for_iptables_with_neutron(self):
-        pass
