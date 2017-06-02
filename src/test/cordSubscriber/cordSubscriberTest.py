@@ -39,6 +39,7 @@ from CordTestServer import cord_test_onos_restart, cord_test_shell
 from CordTestUtils import log_test, get_controller
 from CordLogger import CordLogger
 from CordTestConfig import setup_module
+from CordContainer import Onos
 
 log_test.setLevel('INFO')
 
@@ -275,6 +276,26 @@ yg==
       VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
 
       @classmethod
+      def update_apps_version(cls):
+            version = Onos.getVersion()
+            major = int(version.split('.')[0])
+            minor = int(version.split('.')[1])
+            cordigmp_app_version = '2.0-SNAPSHOT'
+            olt_app_version = '1.2-SNAPSHOT'
+            if major > 1:
+                  cordigmp_app_version = '3.0-SNAPSHOT'
+                  olt_app_version = '2.0-SNAPSHOT'
+            elif major == 1:
+                  if minor > 10:
+                        cordigmp_app_version = '3.0-SNAPSHOT'
+                        olt_app_version = '2.0-SNAPSHOT'
+                  elif minor <= 8:
+                        olt_app_version = '1.1-SNAPSHOT'
+            cls.app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-{}.oar'.format(cordigmp_app_version))
+            cls.table_app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-multitable-{}.oar'.format(cordigmp_app_version))
+            cls.olt_app_file = os.path.join(cls.test_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
+
+      @classmethod
       def load_device_id(cls):
             '''Configure the device id'''
             did = OnosCtrl.get_device_id()
@@ -293,6 +314,7 @@ yg==
       @classmethod
       def setUpClass(cls):
           '''Load the OLT config and activate relevant apps'''
+          cls.update_apps_version()
           dids = OnosCtrl.get_device_ids()
           device_map = {}
           for did in dids:

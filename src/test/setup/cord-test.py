@@ -445,7 +445,7 @@ CMD ["/bin/bash"]
 onos_image_default='onosproject/onos:latest'
 nose_image_default= '{}:candidate'.format(CordTester.IMAGE)
 test_type_default='dhcp'
-onos_app_version = '2.0-SNAPSHOT'
+onos_app_version = '3.0-SNAPSHOT'
 cord_tester_base = os.path.dirname(os.path.realpath(__file__))
 olt_config_default = os.path.join(cord_tester_base, 'olt_config.json')
 onos_app_file = os.path.abspath('{0}/../apps/ciena-cordigmp-'.format(cord_tester_base) + onos_app_version + '.oar')

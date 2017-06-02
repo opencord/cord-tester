@@ -581,10 +581,11 @@ class Onos(Container):
     JAVA_OPTS_DEFAULT = JAVA_OPTS_FORMAT.format(*SYSTEM_MEMORY) #-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
-    onos_cord_apps = ( ('cord-config', '1.2-SNAPSHOT'),
-                       ('aaa', '1.2-SNAPSHOT'),
-                       ('igmp', '1.2-SNAPSHOT'),
+    onos_cord_apps = ( ['cord-config', '1.2-SNAPSHOT'],
+                       ['aaa', '1.2-SNAPSHOT'],
+                       ['igmp', '1.2-SNAPSHOT'],
                        )
+    cord_apps_version_updated = False
     ports = [] #[ 8181, 8101, 9876, 6653, 6633, 2000, 2620, 5005 ]
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
     host_config_dir = os.path.join(setup_dir, 'onos-config')
@@ -916,7 +917,53 @@ class Onos(Container):
                 onos.install_cord_apps(onos.ipaddr)
 
     @classmethod
+    def cliEnter(cls, onos_ip = None):
+        retries = 0
+        while retries < 10:
+            cli = OnosCliDriver(controller = onos_ip, connect = True)
+            if cli.handle:
+                return cli
+            else:
+                retries += 1
+                time.sleep(3)
+
+        return None
+
+    @classmethod
+    def cliExit(cls, cli):
+        if cli:
+            cli.disconnect()
+
+    @classmethod
+    def getVersion(cls, onos_ip = None):
+        cli = cls.cliEnter(onos_ip = onos_ip)
+        try:
+            summary = json.loads(cli.summary(jsonFormat = True))
+        except:
+            cls.cliExit(cli)
+            return '1.8.0'
+        cls.cliExit(cli)
+        return summary['version']
+
+    @classmethod
+    def update_cord_apps_version(cls, onos_ip = None):
+        if cls.cord_apps_version_updated == True:
+            return
+        version = cls.getVersion(onos_ip = onos_ip)
+        major = int(version.split('.')[0])
+        minor = int(version.split('.')[1])
+        app_version = '1.2-SNAPSHOT'
+        if major > 1:
+            app_version = '2.0-SNAPSHOT'
+        elif major == 1 and minor > 10:
+            app_version = '2.0-SNAPSHOT'
+        for apps in cls.onos_cord_apps:
+            apps[1] = app_version
+        cls.cord_apps_version_updated = True
+
+    @classmethod
     def install_cord_apps(cls, onos_ip = None):
+        cls.update_cord_apps_version(onos_ip = onos_ip)
         for app, version in cls.onos_cord_apps:
             app_file = '{}/{}-{}.oar'.format(cls.cord_apps_dir, app, version)
             ok, code = OnosCtrl.install_app(app_file, onos_ip = onos_ip)

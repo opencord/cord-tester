@@ -29,7 +29,7 @@ from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
 from CordTestConfig import setup_module, running_on_ciab
 from OnosCtrl import OnosCtrl
-
+from CordContainer import Onos
 log.setLevel('INFO')
 
 class vsg_exchange(CordLogger):
@@ -182,6 +182,15 @@ class vsg_exchange(CordLogger):
         The access is opened for generated subscriber info which should not overlap.
         We target the fabric onos instance on head node.
         """
+        version = Onos.getVersion(onos_ip = cls.HEAD_NODE)
+        app_version = '1.0-SNAPSHOT'
+        major = int(version.split('.')[0])
+        minor = int(version.split('.')[1])
+        if major > 1:
+            app_version = '2.0-SNAPSHOT'
+        elif major == 1 and minor > 10:
+            app_version = '2.0-SNAPSHOT'
+        cls.APP_FILE = os.path.join(cls.test_path, '..', 'apps/xconnect-{}.oar'.format(app_version))
         OnosCtrl.install_app(cls.APP_FILE, onos_ip = cls.HEAD_NODE)
         time.sleep(2)
         s_tags = map(lambda tenant: int(tenant['voltTenant']['s_tag']), volt_subscriber_info)
@@ -250,29 +259,16 @@ class vsg_exchange(CordLogger):
         if cls.on_pod is True:
             cls.closeVCPEAccess(cls.volt_subscriber_info)
 
-    def cliEnter(self, controller = None):
-        retries = 0
-        while retries < 30:
-            self.cli = OnosCliDriver(controller = controller, connect = True)
-            if self.cli.handle:
-                break
-            else:
-                retries += 1
-                time.sleep(2)
-
-    def cliExit(self):
-        self.cli.disconnect()
-
     def onos_shutdown(self, controller = None):
         status = True
-        self.cliEnter(controller = controller)
+        cli = Onos.cliEnter(onos_ip = controller)
         try:
-            self.cli.shutdown(timeout = 10)
+            cli.shutdown(timeout = 10)
         except:
             log.info('Graceful shutdown of ONOS failed for controller: %s' %controller)
             status = False
 
-        self.cliExit()
+        Onos.cliExit(cli)
         return status
 
     def log_set(self, level = None, app = 'org.onosproject'):
