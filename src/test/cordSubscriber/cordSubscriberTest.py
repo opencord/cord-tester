@@ -35,7 +35,7 @@ from subscriberDb import SubscriberDB
 from threadPool import ThreadPool
 from portmaps import g_subscriber_port_map
 from OltConfig import *
-from CordTestServer import cord_test_onos_restart, cord_test_shell
+from CordTestServer import cord_test_onos_restart, cord_test_shell, cord_test_radius_restart
 from CordTestUtils import log_test, get_controller
 from CordLogger import CordLogger
 from CordTestConfig import setup_module
@@ -209,6 +209,7 @@ class subscriber_exchange(CordLogger):
       table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
       app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
       olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
+      olt_app_name = 'org.onosproject.olt'
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
       olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
       cpqd_path = os.path.join(test_path, '..', 'setup')
@@ -498,11 +499,17 @@ yg==
                   return self.test_status
 
       def tls_verify(self, subscriber):
+            def tls_fail_cb():
+                  log_test.info('TLS verification failed')
             if subscriber.has_service('TLS'):
+                  OnosCtrl('org.opencord.aaa').deactivate()
                   time.sleep(2)
-                  tls = TLSAuthTest(intf = subscriber.rx_intf)
+                  OnosCtrl('org.opencord.aaa').activate()
+                  time.sleep(5)
+                  tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = subscriber.rx_intf)
                   log_test.info('Running subscriber %s tls auth test' %subscriber.name)
                   tls.runTest()
+                  assert_equal(tls.failTest, False)
                   self.test_status = True
                   return self.test_status
             else:
@@ -2602,13 +2609,25 @@ yg==
 
 
 
-      def remove_olt(self):
-          OnosCtrl.uninstall_app(self.olt_app_file)
+      def remove_olt(self, switch_map):
+          controller = get_controller()
+          auth = ('karaf', 'karaf')
+          #remove subscriber for every port on all the voltha devices
+          for device, device_map in switch_map.iteritems():
+              uni_ports = device_map['ports']
+              uplink_vlan = device_map['uplink_vlan']
+              for port in uni_ports:
+                  rest_url = 'http://{}:8181/onos/olt/oltapp/{}/{}'.format(controller,
+                                                                           device,
+                                                                           port)
+                  resp = requests.delete(rest_url, auth = auth)
+                  if resp.status_code not in [204, 202, 200]:
+                        log_test.error('Error deleting subscriber for device %s on port %s' %(device, port))
+                  else:
+                        log_test.info('Deleted subscriber for device %s on port  %s' %(device, port))
 
       def config_olt(self, switch_map):
           controller = get_controller()
-          OnosCtrl.install_app(self.olt_app_file)
-          time.sleep(5)
           auth = ('karaf', 'karaf')
           #configure subscriber for every port on all the voltha devices
           for device, device_map in switch_map.iteritems():
@@ -2634,28 +2653,46 @@ yg==
           if self.VOLTHA_OLT_TYPE.startswith('ponsim'):
                 ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
                 log_test.info('Enabling ponsim olt')
-                status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
+                device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
           else:
                 log_test.info('Enabling OLT instance for %s with mac %s' %(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC))
-                status = voltha.enable_device(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC)
+                device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC)
 
+          assert_not_equal(device_id, None)
+          if status == False:
+                voltha.disable_device(device_id, delete = True)
           assert_equal(status, True)
           time.sleep(10)
-          switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
-          if not switch_map:
-                log_test.info('No voltha devices found')
-                return
-          log_test.info('Adding subscribers through OLT app')
-          self.config_olt(switch_map)
-          time.sleep(5)
-          self.num_subscribers = 1
-          self.num_channels = 1
-          services = ('TLS', 'IGMP')
-          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
-                                                    num_channels = self.num_channels,
-                                                    cbs = (self.tls_verify, self.dhcp_next_verify,
-                                                           self.voltha_igmp_next_verify, self.traffic_verify),
-                                                    port_list = self.generate_port_list(self.num_subscribers,
-                                                                                        self.num_channels),
-                                                    services = services)
-          assert_equal(test_status, True)
+          switch_map = None
+          olt_configured = False
+          try:
+                switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+                if not switch_map:
+                      log_test.info('No voltha devices found')
+                      return
+                log_test.info('Installing OLT app')
+                OnosCtrl.install_app(self.olt_app_file)
+                time.sleep(5)
+                log_test.info('Adding subscribers through OLT app')
+                self.config_olt(switch_map)
+                olt_configured = True
+                time.sleep(5)
+                self.num_subscribers = 1
+                self.num_channels = 1
+                services = ('TLS', 'IGMP')
+                test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                          num_channels = self.num_channels,
+                                                          cbs = (self.tls_verify, self.dhcp_next_verify,
+                                                                 self.voltha_igmp_next_verify, self.traffic_verify),
+                                                          port_list = self.generate_port_list(self.num_subscribers,
+                                                                                              self.num_channels),
+                                                          services = services)
+                assert_equal(test_status, True)
+          finally:
+                if switch_map is not None:
+                      if olt_configured is True:
+                            self.remove_olt(switch_map)
+                      voltha.disable_device(device_id, delete = True)
+                      time.sleep(10)
+                      log_test.info('Uninstalling OLT app')
+                      OnosCtrl.uninstall_app(self.olt_app_name)

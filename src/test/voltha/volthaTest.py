@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import time
 from nose.tools import *
 from CordTestConfig import setup_module
 from CordTestUtils import log_test
@@ -18,16 +19,26 @@ class voltha_exchange(unittest.TestCase):
     def setUpClass(cls):
         cls.voltha = VolthaCtrl(cls.VOLTHA_HOST, rest_port = cls.VOLTHA_REST_PORT)
 
-    def test_olt_enable(self):
+    def test_olt_enable_disable(self):
         log_test.info('Enabling OLT type %s, MAC %s' %(self.OLT_TYPE, self.OLT_MAC))
-        status = self.voltha.enable_device(self.OLT_TYPE, self.OLT_MAC)
-        assert_equal(status, True)
+        device_id, status = self.voltha.enable_device(self.OLT_TYPE, self.OLT_MAC)
+        assert_not_equal(device_id, None)
+        try:
+            assert_equal(status, True)
+            time.sleep(10)
+        finally:
+            self.voltha.disable_device(device_id, delete = True)
 
-    def test_ponsim_enable(self):
+    def test_ponsim_enable_disable(self):
         log_test.info('Enabling ponsim_olt')
         ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
-        status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
-        assert_equal(status, True)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        try:
+            assert_equal(status, True)
+            time.sleep(10)
+        finally:
+            self.voltha.disable_device(device_id, delete = True)
 
     def test_subscriber_with_voltha_for_eap_tls_authentication(self):
         """

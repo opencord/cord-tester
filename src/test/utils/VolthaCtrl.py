@@ -192,7 +192,7 @@ class VolthaCtrl(object):
         url = '{}/local/devices'.format(self.rest_url)
         if olt_mac is None and address is None:
             log.error('Either olt mac or address needs to be specified')
-            return False
+            return None, False
         if olt_mac is not None:
             device_config = { 'type' : olt_type, 'mac_address' : olt_mac }
         else:
@@ -204,25 +204,39 @@ class VolthaCtrl(object):
             log.info('Pre-provisioning %s with address %s' %(olt_type, address))
         resp = requests.post(url, data = json.dumps(device_config))
         if resp.ok is not True or resp.status_code != 200:
-            return False
+            return None, False
         device_id = resp.json()['id']
         log.info('Enabling device %s' %(device_id))
         enable_url = '{}/{}/enable'.format(url, device_id)
         resp = requests.post(enable_url)
         if resp.ok is not True or resp.status_code != 200:
-            return False
+            return None, False
         #get operational status
         time.sleep(5)
         log.info('Checking operational status for device %s' %(device_id))
         resp = requests.get('{}/{}'.format(url, device_id))
         if resp.ok is not True or resp.status_code != 200:
-            return False
+            return device_id, False
         device_info = resp.json()
         if device_info['oper_status'] != 'ACTIVE' or \
            device_info['admin_state'] != 'ENABLED' or \
            device_info['connect_status'] != 'REACHABLE':
-            return False
+            return device_id, False
 
+        return device_id, True
+
+    def disable_device(self, device_id, delete = True):
+        log.info('Disabling device %s' %(device_id))
+        disable_url = '{}/local/devices/{}/disable'.format(self.rest_url, device_id)
+        resp = requests.post(disable_url)
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        if delete is True:
+            log.info('Deleting device %s' %(device_id))
+            delete_url = '{}/local/devices/{}/delete'.format(self.rest_url, device_id)
+            resp = requests.delete(delete_url)
+            if resp.status_code not in [204, 202, 200]:
+                return False
         return True
 
     def get_operational_status(self, device_id):
