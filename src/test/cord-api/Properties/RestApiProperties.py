@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 
-SERVER_IP = 'ms0808.utah.cloudlab.us'
+SERVER_IP = 'localhost'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
 PASSWD = 'y7vibol8lK67TLXLVWN2'
-# Test #
-#SERVER_IP = 'ms0837.utah.cloudlab.us'
-#SERVER_PORT = '8080'
-#USER = 'xosadmin@opencord.org'
-#PASSWD = 'WlZ9wP0KW7Y034ozkK8s'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
 VOLT_TENANT = '/xosapi/v1/volt/volttenants'
 TENANT_SUBSCRIBER = '/api/tenant/cord/subscriber/'
