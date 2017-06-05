@@ -12,6 +12,7 @@ scapy-ssl_tls==1.2.2
 robotframework
 robotframework-requests
 robotframework-sshlibrary
+robotframework-httplibrary
 paramiko==1.10.1
 twisted
 pexpect
