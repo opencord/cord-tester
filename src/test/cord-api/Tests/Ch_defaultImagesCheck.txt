@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation     Test suite for checking default images for R-CORD
+Documentation     Test suite for checking default images
 Suite Setup       Read InputFile
 Test Template     Verify Image Check
 Library           Collections
@@ -13,16 +13,20 @@ Library           ../Framework/restApi.py
 *** Variables ***
 ${USER}           admin
 ${PASSWORD}       admin
+${PROFILE}        mock-rcord
+${PROFILE_FILE}   %{HOME}/cord/build/platform-install/profile_manifests/${PROFILE}.yml
 ${PATHFILE}       ${CURDIR}/data/defaultImages.json
 
 *** Test Cases ***    TYPE
-Test Default Images on R-CORD
+Test Default Images
                       IMAGE
 
 *** Keywords ***
 Read InputFile
-    ${imageList}=    utils.jsonToList    ${PATHFILE}    imagesInfo
-    Set Suite Variable    ${ilist}    ${imageList}
+    ${defaultImageList}=    utils.jsonToList    ${PATHFILE}    imagesInfo
+    ${status}    ${dynamicImageList}=    Run Keyword And Ignore Error    utils.get_dynamic_resources    ${PROFILE_FILE}    xos_images
+    ${imageList}=    Set Variable If    '${status}' == 'FAIL'    ${defaultImageList}    ${dynamicImageList}
+    Set Suite Variable    ${imageList}
 
 Verify Image Check
     [Arguments]    ${type}
@@ -32,6 +36,7 @@ Test Image Check
     ${json_result}=    restApi.ApiGet    CH_CORE_IMAGES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
-    ${imageList}=    Get Variable Value    ${ilist}
-    ${test_result}=    utils.compare_list_of_dicts    ${imageList}    ${json_result_list}
+    ${image_list}=    Get Variable Value    ${imageList}
+    ${test_result}=    utils.compare_list_of_dicts    ${image_list}    ${json_result_list}
     Should Be True    ${test_result}
+
