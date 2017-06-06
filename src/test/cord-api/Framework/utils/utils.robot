@@ -73,3 +73,12 @@ Get Docker Logs
     SSHLibrary.Close Connection
     Log    ${container_logs}
     [Return]    ${container_logs}
+
+Remove Value From List
+    [Arguments]    ${list}    ${val}
+    ${length}=    Get Length    ${list}
+    : FOR    ${INDEX}    IN RANGE    0    ${length}-1
+    \    Log    ${list[${INDEX}]}
+    \    ${value}=    Get Dictionary Values    ${list[${INDEX}]}
+    \    Log    ${value[0]}
+    \    Run Keyword If    '${value[0]}' == '${val}'    Remove From List    ${list}    ${INDEX}
