@@ -693,7 +693,8 @@ yg==
                 chan_leave = True
           cbs_negative = cbs
           for subscriber in self.subscriber_list:
-                subscriber.start()
+                if services and 'IGMP' in services:
+                   subscriber.start()
                 if negative_subscriber_auth is 'half' and sub_loop_count%2 is not 0:
                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify, self.traffic_verify)
                 elif negative_subscriber_auth is 'onethird' and sub_loop_count%3 is not 0:
@@ -705,7 +706,8 @@ yg==
                 self.thread_pool.addTask(pool_object.pool_cb)
           self.thread_pool.cleanUpThreads()
           for subscriber in self.subscriber_list:
-                subscriber.stop()
+                if services and 'IGMP' in services:
+                   subscriber.stop()
                 if chan_leave is True:
                       subscriber.channel_leave(0)
           subscribers_count = 0
@@ -2639,8 +2641,8 @@ yg==
                                                                               device,
                                                                               port,
                                                                               vlan)
-                  resp = requests.post(rest_url, auth = auth)
-                  assert_equal(resp.ok, True)
+                  requests.post(rest_url, auth = auth)
+                  #assert_equal(resp.ok, True)
 
       def test_cord_subscriber_voltha(self):
           """Test subscriber join next for channel surfing"""
