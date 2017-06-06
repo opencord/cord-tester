@@ -9,6 +9,7 @@ from os.path import expanduser
 import uuid
 import random
 import re
+import yaml
 
 class utils(object):
 
@@ -227,6 +228,20 @@ class utils(object):
             return num
         else:
             return str(num)
+
+    def get_dynamic_resources(self, inputfile, resource):
+        resourceNames = []
+        names = {}
+        dnames = []
+        with open(inputfile, 'r') as f:
+            contents = yaml.load(f)
+        resources = contents[resource]
+        for i in resources:
+            resourceNames.append(i["name"])
+        for i in resourceNames:
+            names['name']=i
+            dnames.append(names.copy())
+        return dnames
 
 '''
 #Test
