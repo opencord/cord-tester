@@ -617,7 +617,8 @@ yg==
                               else:
                                     chan = subscriber.channel_join(i, delay=0)
                                     time.sleep(0.2)
-                                    subscriber.channel_leave(chan)
+                                    if subscriber.num == 1:
+                                          subscriber.channel_leave(chan)
                               log_test.info('Joined next channel %d for subscriber %s' %(chan, subscriber.name))
                               #subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count=1)
                               #log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
@@ -2644,7 +2645,7 @@ yg==
                   requests.post(rest_url, auth = auth)
                   #assert_equal(resp.ok, True)
 
-      def test_cord_subscriber_voltha(self):
+      def cord_subscriber_voltha(self, services, cbs = None, num_subscribers = 1, num_channels = 1):
           """Test subscriber join next for channel surfing"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
@@ -2679,13 +2680,11 @@ yg==
                 self.config_olt(switch_map)
                 olt_configured = True
                 time.sleep(5)
-                self.num_subscribers = 1
-                self.num_channels = 1
-                services = ('TLS', 'IGMP')
+                self.num_subscribers = num_subscribers
+                self.num_channels = num_channels
                 test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
                                                           num_channels = self.num_channels,
-                                                          cbs = (self.tls_verify, self.dhcp_next_verify,
-                                                                 self.voltha_igmp_next_verify, self.traffic_verify),
+                                                          cbs = cbs,
                                                           port_list = self.generate_port_list(self.num_subscribers,
                                                                                               self.num_channels),
                                                           services = services)
@@ -2698,3 +2697,29 @@ yg==
                       time.sleep(10)
                       log_test.info('Uninstalling OLT app')
                       OnosCtrl.uninstall_app(self.olt_app_name)
+
+      def test_cord_subscriber_voltha_tls(self):
+          """Test subscriber join next for channel surfing"""
+          if self.VOLTHA_HOST is None:
+                log_test.info('Skipping test as no voltha host')
+                return
+          num_subscribers = 1
+          num_channels = 1
+          services = ('TLS',)
+          cbs = ( self.tls_verify, )
+          self.cord_subscriber_voltha(services, cbs = cbs,
+                                      num_subscribers = num_subscribers,
+                                      num_channels = num_channels)
+
+      def test_cord_subscriber_voltha_tls_igmp(self):
+          """Test subscriber join next for channel surfing"""
+          if self.VOLTHA_HOST is None:
+                log_test.info('Skipping test as no voltha host')
+                return
+          num_subscribers = 1
+          num_channels = 1
+          services = ('TLS','IGMP',)
+          cbs = ( self.tls_verify, self.voltha_igmp_next_verify,)
+          self.cord_subscriber_voltha(services, cbs = cbs,
+                                      num_subscribers = num_subscribers,
+                                      num_channels = num_channels)
