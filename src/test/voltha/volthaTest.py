@@ -20,7 +20,7 @@ from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
 from CordTestServer import cord_test_onos_restart, cord_test_shell, cord_test_radius_restart
-
+from CordContainer import Onos
 
 class voltha_exchange(unittest.TestCase):
 
@@ -33,9 +33,9 @@ class voltha_exchange(unittest.TestCase):
     olt_apps = () #'org.opencord.cordmcast')
     vtn_app = 'org.opencord.vtn'
     table_app = 'org.ciena.cordigmp'
-
     test_path = os.path.dirname(os.path.realpath(__file__))
     table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
+    app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
     olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
     #onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
@@ -90,18 +90,30 @@ T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
 yg==
 -----END CERTIFICATE-----'''
 
+      @classmethod
+      def update_apps_version(cls):
+            version = Onos.getVersion()
+            major = int(version.split('.')[0])
+            minor = int(version.split('.')[1])
+            cordigmp_app_version = '2.0-SNAPSHOT'
+            olt_app_version = '1.2-SNAPSHOT'
+            if major > 1:
+                  cordigmp_app_version = '3.0-SNAPSHOT'
+                  olt_app_version = '2.0-SNAPSHOT'
+            elif major == 1:
+                  if minor > 10:
+                        cordigmp_app_version = '3.0-SNAPSHOT'
+                        olt_app_version = '2.0-SNAPSHOT'
+                  elif minor <= 8:
+                        olt_app_version = '1.1-SNAPSHOT'
+            cls.app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-{}.oar'.format(cordigmp_app_version))
+            cls.table_app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-multitable-{}.oar'.format(cordigmp_app_version))
+            cls.olt_app_file = os.path.join(cls.test_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
+
     @classmethod
     def setUpClass(cls):
+        cls.update_apps_version()
         cls.voltha = VolthaCtrl(cls.VOLTHA_HOST, rest_port = cls.VOLTHA_REST_PORT)
-#        cls.update_apps_version()
-        dids = OnosCtrl.get_device_ids()
-        device_map = {}
-        for did in dids:
-            device_map[did] = { 'basic' : { 'driver' : 'pmc-olt' } }
-        network_cfg = {}
-        network_cfg = { 'devices' : device_map }
-        ## Restart ONOS with cpqd driver config for OVS
-        cls.start_onos(network_cfg = network_cfg)
         cls.install_app_table()
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, cls.port_list = cls.olt.olt_port_map()
@@ -110,6 +122,23 @@ yg==
         if cls.num_ports > 1:
               cls.num_ports -= 1 ##account for the tx port
         cls.activate_apps(cls.apps + cls.olt_apps)
+
+      @classmethod
+      def tearDownClass(cls):
+          '''Deactivate the olt apps and restart OVS back'''
+          apps = cls.olt_apps + ( cls.table_app,)
+          for app in apps:
+              onos_ctrl = OnosCtrl(app)
+              onos_ctrl.deactivate()
+          cls.install_app_igmp()
+
+      @classmethod
+      def install_app_igmp(cls):
+            ##Uninstall the table app on class exit
+            OnosCtrl.uninstall_app(cls.table_app)
+            time.sleep(2)
+            log_test.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
+            OnosCtrl.install_app(cls.app_file)
 
     def remove_olt(self, switch_map):
         controller = get_controller()
@@ -148,27 +177,6 @@ yg==
                 #assert_equal(resp.ok, True)
 
     @classmethod
-    def start_onos(cls, network_cfg = None):
-            if cls.onos_restartable is False:
-                  log_test.info('ONOS restart is disabled. Skipping ONOS restart')
-                  return
-            if cls.VOLTHA_ENABLED is True:
-                  log_test.info('ONOS restart skipped as VOLTHA is running')
-                  return
-            if network_cfg is None:
-                  network_cfg = cls.device_dict
-
-            if type(network_cfg) is tuple:
-                  res = []
-                  for v in network_cfg:
-                        res += v.items()
-                  config = dict(res)
-            else:
-                  config = network_cfg
-            log_test.info('Restarting ONOS with new network configuration')
-            return cord_test_onos_restart(config = config)
-
-    @classmethod
     def install_app_table(cls):
         ##Uninstall the existing app if any
         OnosCtrl.uninstall_app(cls.table_app)
@@ -176,8 +184,6 @@ yg==
         log_test.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
         OnosCtrl.install_app(cls.table_app_file)
         time.sleep(3)
-        #onos_ctrl = OnosCtrl(cls.vtn_app)
-        #onos_ctrl.deactivate()
 
     @classmethod
     def activate_apps(cls, apps):
@@ -191,7 +197,7 @@ yg==
         def tls_fail_cb():
              log_test.info('TLS verification failed')
         if cert_info is None:
-           tls = TLSAuthTest(intf = olt_uni_port)
+           tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port)
            log_test.info('Running subscriber %s tls auth test with valid TLS certificate' %olt_uni_port)
            tls.runTest()
            assert_equal(tls.failTest, False)
@@ -243,27 +249,36 @@ yg==
         ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
-        voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+        if status == False:
+            self.voltha.disable_device(device_id, delete = True)
+        assert_equal(status, True)
         time.sleep(10)
         switch_map = None
         olt_configured = False
-        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
-        log_test.info('Installing OLT app')
-        OnosCtrl.install_app(self.olt_app_file)
-        time.sleep(5)
-        log_test.info('Adding subscribers through OLT app')
-        self.config_olt(switch_map)
-        olt_configured = True
-        time.sleep(5)
-        auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
+        voltha = VolthaCtrl(self.VOLTHA_HOST,
+                            rest_port = self.VOLTHA_REST_PORT,
+                            uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
         try:
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            if not switch_map:
+                log_test.info('No voltha devices found')
+                return
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
             assert_equal(auth_status, True)
-            assert_equal(status, True)
-            time.sleep(10)
         finally:
-            self.voltha.disable_device(device_id, delete = True)
+            if switch_map is not None:
+                if olt_configured is True:
+                    self.remove_olt(switch_map)
+                self.voltha.disable_device(device_id, delete = True)
+                time.sleep(10)
+                OnosCtrl.uninstall_app(self.olt_app_name)
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_failure(self):
@@ -283,8 +298,8 @@ yg==
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -302,8 +317,10 @@ yg==
                 assert_equal(status, True)
                 time.sleep(10)
             finally:
+                self.remove_olt(switch_map)
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
+
         reactor.callLater(0, tls_flow_check_with_no_cert_scenario, df)
         return df
 
@@ -344,6 +361,7 @@ yg==
                 assert_equal(status, True)
                 time.sleep(10)
             finally:
+                self.remove_olt(switch_map)
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
         reactor.callLater(0, tls_flow_check_with_invalid_cert_scenario, df)
