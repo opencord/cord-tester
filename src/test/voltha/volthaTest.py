@@ -112,6 +112,22 @@ yg==
             cls.olt_app_file = os.path.join(cls.test_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
 
     @classmethod
+    def onos_load_config(cls, app, config):
+        status, code = OnosCtrl.config(config)
+        if status is False:
+            log_test.info('JSON config request for app %s returned status %d' %(app, code))
+            assert_equal(status, True)
+        time.sleep(2)
+
+    @classmethod
+    def onos_aaa_load(cls):
+        aaa_dict = {'apps' : { 'org.opencord.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
+                                                                'radiusIp': '172.17.0.2' } } } }
+        radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
+        aaa_dict['apps']['org.opencord.aaa']['AAA']['radiusIp'] = radius_ip
+        cls.onos_load_config('org.opencord.aaa', aaa_dict)
+
+    @classmethod
     def setUpClass(cls):
         cls.update_apps_version()
         cls.voltha = VolthaCtrl(cls.VOLTHA_HOST, rest_port = cls.VOLTHA_REST_PORT)
@@ -123,6 +139,7 @@ yg==
         if cls.num_ports > 1:
               cls.num_ports -= 1 ##account for the tx port
         cls.activate_apps(cls.apps + cls.olt_apps)
+        cls.onos_aaa_load()
 
     @classmethod
     def tearDownClass(cls):
@@ -161,8 +178,6 @@ yg==
 
     def config_olt(self, switch_map):
         controller = get_controller()
-        OnosCtrl.install_app(self.olt_app_file)
-        time.sleep(5)
         auth = ('karaf', 'karaf')
         #configure subscriber for every port on all the voltha devices
         for device, device_map in switch_map.iteritems():
