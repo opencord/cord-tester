@@ -11,16 +11,16 @@
     {
      "voltTenant" : 
       {
-        "s_tag" : "112",
-        "c_tag" : "331"
+        "s_tag" : 112,
+        "c_tag" : 331
       },
       "service_specific_id" : "305"
     },
     {
      "voltTenant" :
       {
-        "s_tag" : "112",
-        "c_tag" : "442"
+        "s_tag" : 112,
+        "c_tag" : 442
       },
       "service_specific_id" : "306"
     }
