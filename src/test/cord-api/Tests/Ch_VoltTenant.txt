@@ -64,6 +64,6 @@ Test Post volt Tenant API
     # Verifying Get after PUT operation
     #${getVolt_afterPut}=    restApi.ApiGet    VOLT_TENANT
     #${getVoltDict}=    utils.getDictFromListofDict    ${getVolt_afterPut}    id    ${voltID}
-    ${getVoltDict}=    utils.ApiChemeleonGet    VOLT_TENANT    ${voltID}
+    ${getVoltDict}=    restApi.ApiChameleonGet    VOLT_TENANT    ${voltID}
     ${result_afterPut}=    utils.compare_dict    ${putvoltTenantDict}    ${getVoltDict}
     Should Be True    ${result_afterPut}

@@ -1,0 +1,58 @@
+*** Settings ***
+Documentation     Test suite for Deletion of Subscribers and voltTenants - Chameleon APIs
+Suite Setup       Read InputFile
+Test Template     Verify Deletion of Subscriber and volt Tenant functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Ch_VoltTenant.json
+
+*** Test Cases ***    TYPE      LISTINDEX
+Test Delete Subscriber and volt_tenant-1
+                      DELETE    0
+
+Test Delete Subscriber and volt_tenant-2
+                      DELETE    1
+
+Test Delete Subscriber and volt_tenant-3
+                      DELETE    2
+
+*** Keywords ***
+Read InputFile
+    ${voltList} =    utils.jsonToList    ${PATHFILE}    voltSubscriberInfo
+    Set Suite Variable    ${vlist}    ${voltList}
+
+Verify Deletion of Subscriber and volt Tenant functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete Subscriber and voltTenant    ${listIndex}
+
+Test Delete Subscriber and voltTenant
+    [Arguments]    ${listIndex}
+    ${getSubscriber_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${getSubscriber_result_list}=    Get From Dictionary    ${getSubscriber_result}    items
+    ${getVoltTenant_result}=    restApi.ApiGet    VOLT_TENANT
+    ${getVoltTenant_result_list}=    Get From Dictionary    ${getVoltTenant_result}    items
+    ${voltList}=    Get Variable Value    ${vlist}
+    ${voltTenantDict}=    utils.listToDict    ${voltList}    ${listIndex}
+    ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
+    ${servicespecific_id}=    Get From Dictionary    ${voltTenantDict}    service_specific_id
+    ${subscriberDict}=    utils.getDictFromListofDict    ${getSubscriber_result_list}    service_specific_id    ${servicespecific_id}
+    Log    ${subscriberDict}
+    ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    Log    ${subscriberId}
+    # Deletion of volt Tenants
+    ${getVoltDict}=    utils.getDictFromListOfDict    ${getVoltTenant_result_list}    subscriber_root_id    ${subscriberId}
+    ${voltID}=    utils.getFieldValueFromDict    ${getVoltDict}    id
+    ${volt_delete_result}=    restApi.ApiChameleonDelete    VOLT_TENANT    ${voltID}
+    Should Be True    ${volt_delete_result}
+    #Deletion of Subscribers
+    ${subscriber_delete_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${subscriberId}
+    Should Be True    ${subscriber_delete_result}
