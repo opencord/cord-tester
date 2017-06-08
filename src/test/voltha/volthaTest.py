@@ -37,6 +37,7 @@ class voltha_exchange(unittest.TestCase):
     table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
     app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
     olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
+    olt_app_name = 'org.onosproject.olt'
     #onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
     onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
@@ -90,22 +91,22 @@ T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
 yg==
 -----END CERTIFICATE-----'''
 
-      @classmethod
-      def update_apps_version(cls):
-            version = Onos.getVersion()
-            major = int(version.split('.')[0])
-            minor = int(version.split('.')[1])
-            cordigmp_app_version = '2.0-SNAPSHOT'
-            olt_app_version = '1.2-SNAPSHOT'
-            if major > 1:
-                  cordigmp_app_version = '3.0-SNAPSHOT'
-                  olt_app_version = '2.0-SNAPSHOT'
-            elif major == 1:
-                  if minor > 10:
-                        cordigmp_app_version = '3.0-SNAPSHOT'
-                        olt_app_version = '2.0-SNAPSHOT'
-                  elif minor <= 8:
-                        olt_app_version = '1.1-SNAPSHOT'
+    @classmethod
+    def update_apps_version(cls):
+        version = Onos.getVersion()
+        major = int(version.split('.')[0])
+        minor = int(version.split('.')[1])
+        cordigmp_app_version = '2.0-SNAPSHOT'
+        olt_app_version = '1.2-SNAPSHOT'
+        if major > 1:
+            cordigmp_app_version = '3.0-SNAPSHOT'
+            olt_app_version = '2.0-SNAPSHOT'
+        elif major == 1:
+            if minor > 10:
+                cordigmp_app_version = '3.0-SNAPSHOT'
+                olt_app_version = '2.0-SNAPSHOT'
+            elif minor <= 8:
+                olt_app_version = '1.1-SNAPSHOT'
             cls.app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-{}.oar'.format(cordigmp_app_version))
             cls.table_app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-multitable-{}.oar'.format(cordigmp_app_version))
             cls.olt_app_file = os.path.join(cls.test_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
@@ -123,22 +124,22 @@ yg==
               cls.num_ports -= 1 ##account for the tx port
         cls.activate_apps(cls.apps + cls.olt_apps)
 
-      @classmethod
-      def tearDownClass(cls):
-          '''Deactivate the olt apps and restart OVS back'''
-          apps = cls.olt_apps + ( cls.table_app,)
-          for app in apps:
-              onos_ctrl = OnosCtrl(app)
-              onos_ctrl.deactivate()
-          cls.install_app_igmp()
+    @classmethod
+    def tearDownClass(cls):
+        '''Deactivate the olt apps and restart OVS back'''
+        apps = cls.olt_apps + ( cls.table_app,)
+        for app in apps:
+            onos_ctrl = OnosCtrl(app)
+            onos_ctrl.deactivate()
+        cls.install_app_igmp()
 
-      @classmethod
-      def install_app_igmp(cls):
-            ##Uninstall the table app on class exit
-            OnosCtrl.uninstall_app(cls.table_app)
-            time.sleep(2)
-            log_test.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
-            OnosCtrl.install_app(cls.app_file)
+    @classmethod
+    def install_app_igmp(cls):
+        ##Uninstall the table app on class exit
+        OnosCtrl.uninstall_app(cls.table_app)
+        time.sleep(2)
+        log_test.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
+        OnosCtrl.install_app(cls.app_file)
 
     def remove_olt(self, switch_map):
         controller = get_controller()
