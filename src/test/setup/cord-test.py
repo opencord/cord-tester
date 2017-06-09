@@ -469,6 +469,8 @@ def set_ssh_key_file(identity_file):
 
 def openstack_setup(test_cnt_env):
     admin_rc = os.path.join(os.getenv('HOME'), 'admin-openrc.sh')
+    if not os.access(admin_rc, os.F_OK):
+        admin_rc = os.path.join('/opt/cord_profile', 'admin-openrc.sh')
     if os.access(admin_rc, os.F_OK):
         dest = os.path.join(CordTester.tester_base, 'admin-openrc.sh')
         shutil.copy(admin_rc, dest)

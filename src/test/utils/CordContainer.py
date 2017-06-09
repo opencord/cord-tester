@@ -352,7 +352,7 @@ class OnosCord(Container):
         with open(self.docker_yaml, 'r') as f:
             yaml_config = yaml.load(f)
             image = yaml_config['services'].keys()[0]
-            cord_conf_dir_basename = os.path.basename(self.onos_cord_dir.replace('-', ''))
+            cord_conf_dir_basename = os.path.basename(self.onos_cord_dir.replace('-', '').replace('_', ''))
             xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
             if not yaml_config['services'][image].has_key('volumes'):
                 yaml_config['services'][image]['volumes'] = []
