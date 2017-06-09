@@ -27,16 +27,21 @@ ${CORE_INSTANCE_PATHFILE}          ${CURDIR}/data/CoreInstance.json
 ${CORD_SUBSCRIBER_PATHFILE}        ${CURDIR}/data/CordSubscriber.json
 ${VOLT_TENANT_PATHFILE}            ${CURDIR}/data/CordVoltTenant.json
 ${ciab_local}                      True
+${physical_pod}                    True
+${default_flow_count}              42
+${final_flow_count}                49
+${expected_num_networks}           4
+${expected_num_ports}              5
 
 *** Test Cases ***
 Validate Default OVS Flow Count
     [Documentation]    Logs into the compute-node where OVS is running and validates the default flow count
     [Tags]    ovsflows
-    Wait Until Keyword Succeeds    30s    5s    Validate Flow Count    42
+    Wait Until Keyword Succeeds    30s    5s    Validate Flow Count    ${default_flow_count}
 
 Validate Current VTN Service Networks and Ports
     [Documentation]    Makes rest calls to XOS to validate the default VTN Service Networks + Ports (public,management,exampleservice_network,mysite_vsg-access)
-    [Tags]    vtn
+    [Tags]    vtn    pod
     Validate Default CIAB Service Networks and Ports via XOS
 
 Validate Default Subscriber
@@ -54,7 +59,7 @@ Validate Default Subscriber
 
 Create New Test Service
     [Documentation]    Creates a generic service that will be used for the new VTN Network
-    [Tags]    vtn
+    [Tags]    vtn    pod
     ${updatedcservList}=    utils.setFieldValueInDict    ${cservlist[0]}    name    CordVTN-Test-Service
     ${updatedcservList}=    utils.setFieldValueInDict    ${updatedcservList}    description    Test Service for CordVTN Test Suite
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SERVICES}    ${updatedcservList}
@@ -70,7 +75,7 @@ Create New Test Service
 
 Create New VTN Service Network
     [Documentation]    Makes a POST Request to XOS to create a new core network
-    [Tags]    vtn
+    [Tags]    vtn    pod
     ${updatedCnList}=    utils.setFieldValueInDict    ${cnlist[0]}    template_id    ${vsg_network_template_id}
     ${updatedCnList}=    utils.setFieldValueInDict    ${updatedCnList}    owner_id    ${vsg_slice_id}
     Log    ${updatedCnList}
@@ -89,7 +94,7 @@ Create New VTN Service Network
 
 Create New Slice with New Test Service
     [Documentation]    Makes a POST Request to XOS to create a new slice and adds new generic test service to that slice
-    [Tags]    vtn
+    [Tags]    vtn    pod
     ${updatedCsList}=    utils.setFieldValueInDict    ${cslist[0]}    service_id    ${generic_service_id}
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SLICES}    ${updatedCsList}
@@ -107,7 +112,7 @@ Create New Slice with New Test Service
 
 Add Networks to New Test Network Slice
     [Documentation]    Creates a new network slice for the new slice and adds mgmt and new network to it
-    [Tags]    vsg
+    [Tags]    vsg    pod
     ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${network_id}
     ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
     Log    ${updatedCsList}
@@ -130,7 +135,7 @@ Add Networks to New Test Network Slice
 
 Create New Test Instance
     [Documentation]    Creates a new instance for the test service
-    [Tags]    vsg
+    [Tags]    vsg    pod
     ${updatedCiList}=    utils.setFieldValueInDict    ${cilist[0]}    slice_id    ${new_slice_id}
     ${updatedCiList}=    utils.setFieldValueInDict    ${updatedCiList}    image_id    ${image_id}
     Log    ${updatedCiList}
@@ -148,15 +153,16 @@ Create New Test Instance
     Should Be Equal As Strings    ${name}    "mysite_testservice"
     Should Be Equal As Strings    ${instance_name}    "mysite_testservice-1"
     Set Suite Variable    ${new_instance_id}
+    FATAL ERROR
 
 Validate New OVS Flow Count
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
     [Tags]    ovsflows
-    Wait Until Keyword Succeeds    300s    5s    Validate Flow Count    49
+    Wait Until Keyword Succeeds    300s    5s    Validate Flow Count    ${final_flow_count}
 
 Validate Creation of Openstack Resources
     [Documentation]    Retrieves openstack compute node state and validates the new network and instance has been created properly
-    [Tags]    openstack
+    [Tags]    openstack    pod
     Wait Until Keyword Succeeds    300s    5s    Validate Openstack Network    test-network    2.2.2.0/24
     Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    mysite_testservice-1*    test-network
 
@@ -247,29 +253,36 @@ Delete Cord Subscriber
 
 Delete Test Instance
     [Documentation]    Deletes the test instance created previously
-    [Tags]    delete
+    [Tags]    delete    pod
+    Sleep    300
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${new_instance_id}
     Should Be Equal As Strings    ${resp.status_code}    200
 
 Delete Test Slice
     [Documentation]    Deletes the test slice created previously
-    [Tags]    delete
+    [Tags]    delete    pod
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_SLICES}    ${new_slice_id}
     Should Be Equal As Strings    ${resp.status_code}    200
 
 Delete VTN Test Network
     [Documentation]    Deletes the test network created previously
-    [Tags]    delete
+    [Tags]    delete    pod
     ## Wait for test network to be destroyed via get neutron lists
     ##TODO: Find someting to poll on rather than wait 5 mins
-    Sleep    300
+    #Sleep    300
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_NETWORKS}    ${network_id}
+    Should Be Equal As Strings    ${resp.status_code}    200
+
+Delete Test Service
+    [Documentation]    Deletes the test service created
+    [Tags]    delete    pod
+    ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_SERVICES}    ${generic_service_id}
     Should Be Equal As Strings    ${resp.status_code}    200
 
 Validate OVS Flow Count Back to Default
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
     [Tags]    ovsflows
-    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    49
+    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    ${final_flow_count}
 
 Validate New Flows Removed From OVS
     [Documentation]    Validates that the flow rules added by ONOS from the network creation has been removed
@@ -352,6 +365,7 @@ CORD Delete
 Validate Default CIAB Service Networks and Ports via XOS
     [Documentation]    Using XOS API, this validates the default VTN Service Networks + Ports for a CIAB Environment
     @{expected_network_names}=    Create List    public    management    exampleservice_network    mysite_vsg-access
+    Run Keyword If    '${physical_pod}' == 'True'    Remove Values From List    ${expected_network_names}    exampleservice_network
     @{names}=    Create List
     @{network_names}=    Create List
     ${resp}=    CORD GET    ${SERVER_IP}   ${CH_CORE_NETWORKS}
@@ -359,7 +373,7 @@ Validate Default CIAB Service Networks and Ports via XOS
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
-    Should Be Equal As Integers    ${length}    4
+    Should Be Equal As Integers    ${length}    ${expected_num_networks}
     : FOR    ${INDEX}    IN RANGE    0    ${length}
     \    ${item}=    Get From List    ${jsondata['items']}    ${INDEX}
     \    ${name}=    Get From Dictionary    ${item}    name
@@ -370,7 +384,7 @@ Validate Default CIAB Service Networks and Ports via XOS
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
     ${length}=    Get Length    ${jsondata['items']}
-    Should Be Equal As Integers    ${length}    5
+    Should Be Equal As Integers    ${length}    ${expected_num_ports}
 
 Validate Default CIAB Service Networks via ONOSCORD
     [Documentation]    Validates the default VTN Service Network via ONOSCORD for a CIAB Environment
@@ -378,6 +392,8 @@ Validate Default CIAB Service Networks via ONOSCORD
     @{network_ids}=    Create List
     @{expected_types}=    Create List    PUBLIC    PRIVATE    MANAGEMENT_LOCAL    VSG
     @{expected_names}=    Create List    public    exampleservice_network    management    mysite_vsg-access
+    Run Keyword If    '${physical_pod}' == 'True'    Remove From List    ${expected_types}    VSG
+    Run Keyword If    '${physical_pod}' == 'True'    Remove From List    ${expected_names}    exampleservice_network
     @{types}=    Create List
     @{names}=    Create List
     ${jsondata}=    To Json    ${jsondata}
@@ -466,7 +482,7 @@ Get Tags in Use
 Get Openstack Info
     [Documentation]    Executes a command in the prod vm in a CIAB environment where openstack is running
     [Arguments]    ${cmd}
-    ${output}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    source /home/vagrant/admin-openrc.sh; ${cmd}    strip_line=False    ELSE    Execute Command Locally    . /home/vagrant/admin-openrc.sh; ${cmd}
+    ${output}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    source /home/vagrant/admin-openrc.sh; ${cmd}    strip_line=False    ELSE    Execute Command Locally    . %{HOME}/admin-openrc.sh; ${cmd}
     Log    ${output}
     [Return]    ${output}
 
