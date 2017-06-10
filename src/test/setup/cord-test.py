@@ -243,22 +243,45 @@ class CordTester(Container):
         res = 0
         switches = self.port_map['switches']
         start_vlan = self.port_map['start_vlan']
+        ponsim = self.port_map['ponsim']
         start_vlan += port_num
         uplink = self.port_map['uplink']
         wan = self.port_map['wan']
+        if ponsim is True:
+            if not wan:
+                wan = 'ponmgmt'
         vcpe_port_num = port_num
         port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
         print('Provisioning the ports for the test container\n')
         for host_intf, ports in port_list:
+            setup_ponsim = ponsim
+            host_index = 0
+            host_intf_base = 'pon1'
             #if the host interface/switch does not exist, just create a dummy ovs switch
             #needed if we are running with no-switch option
             if not os.access('/sys/class/net/{}'.format(host_intf), os.F_OK):
                 os.system('ovs-vsctl add-br {}'.format(host_intf))
             uplink = self.port_map[host_intf]['uplink']
+            if setup_ponsim is True:
+                if host_intf.find('_') < 0:
+                    print('Invalid host interface specified with ponsim. Disabling ponsim setup')
+                    setup_ponsim = False
+                else:
+                    try:
+                        host_index = int(host_intf.split('_')[-1])
+                        host_intf_base = host_intf.split('_')[0]
+                    except:
+                        print('Invalid host interface with ponsim. Disabling ponsim setup')
+                        setup_ponsim = False
             for port in ports:
                 guest_if = port
                 local_if = 'l{}'.format(port_num+1) #port #'{0}_{1}'.format(guest_if, port_num+1)
                 guest_ip = '{0}.{1}/24'.format(tester_intf_subnet, port_num+1)
+                if setup_ponsim is True:
+                    if port != self.port_map[uplink]:
+                        host_intf = '{}_{}'.format(host_intf_base, host_index)
+                        host_index += 1
+
                 ##Use pipeworks to configure container interfaces on host/bridge interfaces
                 pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
                                                                            local_if, self.name, guest_ip)
@@ -270,7 +293,7 @@ class CordTester(Container):
                     if start_vlan != 0:
                         pipework_cmd += ' @{}'.format(start_vlan)
                         start_vlan += 1
-                #print('Running PIPEWORK cmd: %s' %pipework_cmd)
+                print('Running PIPEWORK cmd: %s' %pipework_cmd)
                 res += os.system(pipework_cmd)
                 port_num += 1
 
@@ -668,7 +691,7 @@ def runTest(args):
 
     if voltha_loc:
         #start voltha
-        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf)
+        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf, olt_config = olt_config_file)
         voltha.start()
 
     if radius_ip is None:
@@ -944,7 +967,7 @@ def setupCordTester(args):
 
     if voltha_loc:
         #start voltha
-        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf)
+        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf, olt_config = olt_config_file)
         voltha.start()
 
     ##Start Radius container if not started
