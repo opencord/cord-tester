@@ -38,6 +38,7 @@ class OltConfig:
     def olt_port_map(self):
         if self.on_olt() and self.olt_conf.has_key('port_map'):
             port_map = {}
+            port_map['ponsim'] = self.olt_conf['port_map'].has_key('ponsim')
             if self.olt_conf['port_map'].has_key('switches'):
                 port_map['switches'] = self.olt_conf['port_map']['switches']
             else:

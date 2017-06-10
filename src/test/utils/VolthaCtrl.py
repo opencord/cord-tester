@@ -6,13 +6,14 @@ import signal
 from CordTestUtils import log_test as log, getstatusoutput, get_controller
 from CordContainer import Container
 from OnosCtrl import OnosCtrl
+from OltConfig import OltConfig
 
 class VolthaService(object):
     services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
     compose_file = 'docker-compose-system-test.yml'
     service_map = {}
 
-    def __init__(self, voltha_loc, controller, interface = 'eth0'):
+    def __init__(self, voltha_loc, controller, interface = 'eth0', olt_config = None):
         if not os.access(voltha_loc, os.F_OK):
             raise Exception('Voltha location %s not found' %voltha_loc)
         compose_file_loc = os.path.join(voltha_loc, 'compose', self.compose_file)
@@ -22,6 +23,12 @@ class VolthaService(object):
         self.controller = controller
         self.interface = interface
         self.compose_file_loc = compose_file_loc
+        num_onus = 1
+        if olt_config is not None:
+            port_map, _ = OltConfig(olt_config).olt_port_map()
+            if port_map['ponsim'] is True:
+                num_onus = max(1, len(port_map['ports']))
+        self.num_onus = num_onus
 
     def start(self):
         start_cmd = 'docker-compose -f {} up -d {} {} {} {} {}'.format(self.compose_file_loc,
@@ -85,7 +92,7 @@ class VolthaService(object):
             print('VOLTHA ofagent is already running. Skipped start')
 
         ponsim_start_cmd = "cd {} && sh -c '. ./env.sh && \
-        nohup python ponsim/main.py -v >/tmp/ponsim.log 2>&1 &'".format(self.voltha_loc)
+        nohup python ponsim/main.py -o {} -v >/tmp/ponsim.log 2>&1 &'".format(self.voltha_loc, self.num_onus)
         if not self.service_running('python ponsim/main.py'):
             ret = os.system(ponsim_start_cmd)
             if ret != 0:

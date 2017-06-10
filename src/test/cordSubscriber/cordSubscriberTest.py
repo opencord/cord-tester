@@ -2723,3 +2723,16 @@ yg==
           self.cord_subscriber_voltha(services, cbs = cbs,
                                       num_subscribers = num_subscribers,
                                       num_channels = num_channels)
+
+      def test_cord_subscriber_voltha_tls_igmp_3(self):
+          """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+          if self.VOLTHA_HOST is None:
+                log_test.info('Skipping test as no voltha host')
+                return
+          num_subscribers = 3
+          num_channels = 3
+          services = ('TLS','IGMP',)
+          cbs = ( self.tls_verify, self.voltha_igmp_next_verify,)
+          self.cord_subscriber_voltha(services, cbs = cbs,
+                                      num_subscribers = num_subscribers,
+                                      num_channels = num_channels)
