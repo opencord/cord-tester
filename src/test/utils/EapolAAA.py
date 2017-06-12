@@ -183,7 +183,7 @@ class EapolPacket(object):
         assert_equal(pkt_type, EAPOL_EAPPACKET)
         return p[4:]
 
-    def eapol_scapy_recv(self, cb = None, lfilter = None, count = 1, timeout = 5):
+    def eapol_scapy_recv(self, cb = None, lfilter = None, count = 1, timeout = 10):
         def eapol_default_cb(pkt): pass
         if cb is None:
             cb = eapol_default_cb

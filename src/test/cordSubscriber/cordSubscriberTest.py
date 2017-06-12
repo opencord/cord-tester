@@ -333,7 +333,7 @@ yg==
           cls.num_ports = cls.port_map['num_ports']
           if cls.num_ports > 1:
                 cls.num_ports -= 1 ##account for the tx port
-          cls.activate_apps(cls.apps + cls.olt_apps)
+          cls.activate_apps(cls.apps + cls.olt_apps, deactivate = True)
 
       @classmethod
       def tearDownClass(cls):
@@ -346,9 +346,12 @@ yg==
           cls.install_app_igmp()
 
       @classmethod
-      def activate_apps(cls, apps):
+      def activate_apps(cls, apps, deactivate = False):
             for app in apps:
                   onos_ctrl = OnosCtrl(app)
+                  if deactivate is True:
+                        onos_ctrl.deactivate()
+                        time.sleep(2)
                   status, _ = onos_ctrl.activate()
                   assert_equal(status, True)
                   time.sleep(2)
@@ -502,10 +505,10 @@ yg==
             def tls_fail_cb():
                   log_test.info('TLS verification failed')
             if subscriber.has_service('TLS'):
-                  OnosCtrl('org.opencord.aaa').deactivate()
-                  time.sleep(2)
-                  OnosCtrl('org.opencord.aaa').activate()
-                  time.sleep(5)
+                  #OnosCtrl('org.opencord.aaa').deactivate()
+                  #time.sleep(2)
+                  #OnosCtrl('org.opencord.aaa').activate()
+                  #time.sleep(5)
                   tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = subscriber.rx_intf)
                   log_test.info('Running subscriber %s tls auth test' %subscriber.name)
                   tls.runTest()
