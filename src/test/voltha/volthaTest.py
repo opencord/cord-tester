@@ -4,6 +4,9 @@ import unittest
 import time
 import json
 import requests
+import threading
+from random import randint
+from threading import Timer
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
@@ -45,7 +48,8 @@ class voltha_exchange(unittest.TestCase):
     INTF_TX_DEFAULT = 'veth2'
     INTF_RX_DEFAULT = 'veth0'
     TESTCASE_TIMEOUT = 300
-    VOLTHA_CONFIG_FAKE = True
+#    VOLTHA_CONFIG_FAKE = True
+    VOLTHA_CONFIG_FAKE = False
     VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
     VOLTHA_ONU_UNI_PORT = 'veth0'
 
@@ -192,6 +196,21 @@ yg==
                 resp = requests.post(rest_url, auth = auth)
                 #assert_equal(resp.ok, True)
 
+    def voltha_uni_port_toggle(self, uni_port = None):
+        ## Admin state of port is down and up
+        if not uni_port:
+           uni_port = self.INTF_RX_DEFAULT
+        cmd = 'ifconfig {} down'.format(uni_port)
+        os.system(cmd)
+        log_test.info('Admin state of uni_port is down')
+        time.sleep(30)
+        cmd = 'ifconfig {} up'.format(uni_port)
+        os.system(cmd)
+        log_test.info('Admin state of uni_port is up now')
+        time.sleep(30)
+        return
+
+
     @classmethod
     def install_app_table(cls):
         ##Uninstall the existing app if any
@@ -225,6 +244,12 @@ yg==
         if cert_info == "invalid_cert":
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port, client_cert = self.CLIENT_CERT_INVALID)
            log_test.info('Running subscriber %s tls auth test with invalid TLS certificate' %olt_uni_port)
+           tls.runTest()
+           assert_equal(tls.failTest, True)
+        if cert_info == "app_deactivate" or cert_info == "restart_radius" or cert_info == "disable_olt_device" or \
+           cert_info == "uni_port_admin_down" or cert_info == "restart_olt_device" or cert_info == "restart_olt_device":
+           tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port, client_cert = self.CLIENT_CERT_INVALID)
+           log_test.info('Running subscriber %s tls auth test with %s' %(olt_uni_port,cert_info))
            tls.runTest()
            assert_equal(tls.failTest, True)
         self.test_status = True
@@ -440,7 +465,7 @@ yg==
         5. Verify that subscriber authentication is unsuccessful..
         """
         df = defer.Deferred()
-        def tls_flow_check_with_deactivate_app_scenario(df):
+        def tls_flow_check_deactivating_app(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -465,6 +490,7 @@ yg==
             thread2 = threading.Thread(target = self.deactivate_apps, args = (aaa_app,))
             thread1.start()
             time.sleep(randint(1,2))
+            log_test.info('Restart aaa app in onos during tls auth flow check on voltha')
             thread2.start()
             time.sleep(10)
             thread1.join()
@@ -475,7 +501,7 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_with_deactivate_app_scenario, df)
+        reactor.callLater(0, tls_flow_check_deactivating_app, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
@@ -490,7 +516,7 @@ yg==
         5. Verify that subscriber authentication is unsuccessful..
         """
         df = defer.Deferred()
-        def tls_flow_check_with_restart_radius_scenario(df):
+        def tls_flow_check_restarting_radius(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -514,7 +540,8 @@ yg==
             thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT,"restart_radius"))
             thread2 = threading.Thread(target = cord_test_radius_restart)
             thread1.start()
-            time.sleep(randint(3,4))
+            time.sleep(randint(1,2))
+            log_test.info('Restart radius server during tls auth flow check on voltha')
             thread2.start()
             time.sleep(10)
             thread1.join()
@@ -525,9 +552,10 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_with_restart_radius_scenario, df)
+        reactor.callLater(0, tls_flow_check_restarting_radius, df)
         return df
 
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_with_disabled_olt(self):
         """
         Test Method:
@@ -542,7 +570,7 @@ yg==
         9. Verify that subscriber authentication is unsuccessful..
         """
         df = defer.Deferred()
-        def tls_flow_check_with_disable_olt_device_scenario(df):
+        def tls_flow_check_operating_olt_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -566,7 +594,8 @@ yg==
             thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "disable_olt_device",))
             thread2 = threading.Thread(target = self.voltha.disable_device, args = (device_id,))
             thread1.start()
-            time.sleep(randint(3,4))
+            time.sleep(randint(1,2))
+            log_test.info('Disable the ponsim olt device during tls auth flow check on voltha')
             thread2.start()
             time.sleep(10)
             thread1.join()
@@ -577,10 +606,11 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_with_disable_olt_device_scenario, df)
+        reactor.callLater(0, tls_flow_check_operating_olt_state, df)
         return df
 
-        def test_subscriber_with_voltha_for_eap_tls_authentication_disabling_uni_port_in_voltha(self):
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_eap_tls_authentication_disabling_uni_port(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -593,7 +623,47 @@ yg==
         8. Validate that eap tls packets are not being exchanged between subscriber, onos and freeradius.
         9. Verify that subscriber authentication is unsuccessful..
         """
+        df = defer.Deferred()
+        def tls_flow_check_operating_olt_state(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
 
+            thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "uni_port_admin_down",))
+            thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
+            thread1.start()
+            time.sleep(randint(1,2))
+            log_test.info('Admin state of uni port is down and up after delay of 30 sec during tls auth flow check on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+        #        assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_operating_olt_state, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_restarting_olt(self):
         """
         Test Method:
@@ -607,7 +677,47 @@ yg==
         8. Validate that eap tls packets are not being exchanged between subscriber, onos and freeradius.
         9. Verify that subscriber authentication is unsuccessful..
         """
+        df = defer.Deferred()
+        def tls_flow_check_operating_olt_state(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
 
+            thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "restart_olt_device",))
+            thread2 = threading.Thread(target = self.voltha.restart_device, args = (device_id,))
+            thread1.start()
+            time.sleep(randint(1,2))
+            log_test.info('Restart the ponsim olt device during tls auth flow check on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+        #        assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_operating_olt_state, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_restarting_onu(self):
         """
         Test Method:
@@ -621,6 +731,47 @@ yg==
         8. Validate that eap tls packets are not being exchanged between subscriber, onos and freeradius.
         9. Verify that subscriber authentication is unsuccessful..
         """
+        df = defer.Deferred()
+        def tls_flow_check_operating_olt_state(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            devices_list = self.voltha.get_devices()
+            onu_device_id = devices_list['items'][1]['id']
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            devices_list = self.voltha.get_devices()
+            thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "restart_onu_device",))
+            thread2 = threading.Thread(target = self.voltha.restart_device, args = (onu_device_id,))
+            thread1.start()
+            time.sleep(randint(1,2))
+            log_test.info('Restart the ponsim oon device during tls auth flow check on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+        #        assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_operating_olt_state, df)
+        return df
 
     def test_two_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
