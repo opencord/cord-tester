@@ -803,7 +803,7 @@ class vsg_exchange(CordLogger):
         return df
 
     @deferred(120)
-    def test_vsg_multiple_subscribers_for_same_vcpe_instace(self):
+    def test_vsg_multiple_subscribers_for_same_vcpe_instance(self):
 	"""
 	Test Method:
 	1. Create a vcpe instance
@@ -2964,7 +2964,7 @@ class vsg_exchange(CordLogger):
     def test_vsg_xos_subscriber_external_connectivity_after_vsg_vm_is_restarted(self, index=0):
         """
         Test Method:
-        1.Create two vcpe instances in two different vsg vms using XOS
+        1.Create subscriber
         2.Verify external connectivity through vcpe instances from cord-tester
         3.Bring down first vSG vm
         4.Verify external network cant be reachable form first vcpe interface
@@ -3009,7 +3009,7 @@ class vsg_exchange(CordLogger):
         return df
 
     @deferred(780)
-    def test_vsg_xos_multiple_subscribers_external_connectivity_if_two_vsgs_stop_and_start(self,index1=4,index2=6):
+    def test_vsg_xos_multiple_subscribers_external_connectivity_if_two_vsgs_stop_and_start(self, index1=4, index2=6):
 	"""
 	Test Method:
 	1.Create two vcpe instances in two different vsg vms using XOS
@@ -3062,7 +3062,7 @@ class vsg_exchange(CordLogger):
         3.Verify external network can be reachable from cord-tester
         4.Add an iptable rule to drop packets destined to external network in vcpe
         5.Verify now external network cant be reachable
-        6.Delele the iptale in vcpe instance
+        6.Delele the iptable in vcpe instance
         7.Verify external network can be reachable from cord-tester
         """
         df = defer.Deferred()

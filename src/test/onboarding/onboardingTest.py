@@ -1221,23 +1221,8 @@ class onboarding_exchange(CordLogger):
                                                    volt_subscriber_info = volt_subscriber_info)
             log.info('Created reserved subscriber %s' %(subId))
 
-    def test_vsg_xos_subscriber_create_all(self):
-        for index in xrange(len(self.subscriber_info)):
-            #check if the index exists
-            subId = self.vsg_xos_subscriber_id(index)
-            if subId and subId != '0':
-                self.vsg_xos_subscriber_delete(index, subId = subId)
-            subId = self.vsg_xos_subscriber_create(index)
-            log.info('Created Subscriber %s' %(subId))
-
-    def test_vsg_xos_subscriber_delete_all(self):
-        for index in xrange(len(self.subscriber_info)):
-            subId = self.vsg_xos_subscriber_id(index)
-            if subId and subId != '0':
-                self.vsg_xos_subscriber_delete(index, subId = subId)
-
     @deferred(500)
-    def test_exampleservice_xos_subcriber_access_exampleservice(self,index=0):
+    def test_exampleservice_xos_subscriber_access_exampleservice(self,index=0):
         """
         Algo:
         1. Create two vcpe instances using XOS
@@ -1270,7 +1255,7 @@ class onboarding_exchange(CordLogger):
         return df
 
     @deferred(500)
-    def test_exampleservice_multiple_subcribers_access_same_service(self,index1=0,index2=1):
+    def test_exampleservice_multiple_subscribers_access_same_service(self,index1=0,index2=1):
         """
         Algo:
         1. Create two vcpe instances using XOS
