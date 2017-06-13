@@ -32,6 +32,7 @@ class voltha_exchange(unittest.TestCase):
     VOLTHA_HOST = 'localhost'
     VOLTHA_REST_PORT = 8881
     voltha = None
+    success = True
     apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
     olt_apps = () #'org.opencord.cordmcast')
     vtn_app = 'org.opencord.vtn'
@@ -47,6 +48,7 @@ class voltha_exchange(unittest.TestCase):
     VOLTHA_ENABLED  = True
     INTF_TX_DEFAULT = 'veth2'
     INTF_RX_DEFAULT = 'veth0'
+    INTF_2_RX_DEFAULT = 'veth6'
     TESTCASE_TIMEOUT = 300
 #    VOLTHA_CONFIG_FAKE = True
     VOLTHA_CONFIG_FAKE = False
@@ -235,22 +237,37 @@ yg==
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port)
            log_test.info('Running subscriber %s tls auth test with valid TLS certificate' %olt_uni_port)
            tls.runTest()
+           if tls.failTest is True:
+              self.success = False
            assert_equal(tls.failTest, False)
         if cert_info == "no_cert":
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port, client_cert = '')
            log_test.info('Running subscriber %s tls auth test with no TLS certificate' %olt_uni_port)
            tls.runTest()
+           if tls.failTest is False:
+              self.success = False
            assert_equal(tls.failTest, True)
         if cert_info == "invalid_cert":
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port, client_cert = self.CLIENT_CERT_INVALID)
            log_test.info('Running subscriber %s tls auth test with invalid TLS certificate' %olt_uni_port)
            tls.runTest()
+           if tls.failTest is False:
+              self.success = False
+           assert_equal(tls.failTest, True)
+        if cert_info == "same_cert":
+           tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port)
+           log_test.info('Running subscriber %s tls auth test with invalid TLS certificate' %olt_uni_port)
+           tls.runTest()
+           if tls.failTest is False:
+              self.success = False
            assert_equal(tls.failTest, True)
         if cert_info == "app_deactivate" or cert_info == "restart_radius" or cert_info == "disable_olt_device" or \
-           cert_info == "uni_port_admin_down" or cert_info == "restart_olt_device" or cert_info == "restart_olt_device":
+           cert_info == "uni_port_admin_down" or cert_info == "restart_olt_device" or cert_info == "restart_onu_device":
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port, client_cert = self.CLIENT_CERT_INVALID)
            log_test.info('Running subscriber %s tls auth test with %s' %(olt_uni_port,cert_info))
            tls.runTest()
+           if tls.failTest is False:
+              self.success = False
            assert_equal(tls.failTest, True)
         self.test_status = True
         return self.test_status
@@ -497,6 +514,7 @@ yg==
             thread2.join()
             try:
         #        assert_equal(status, True)
+                assert_equal(self.success, True)
                 time.sleep(10)
             finally:
                 self.voltha.disable_device(device_id, delete = True)
@@ -548,6 +566,7 @@ yg==
             thread2.join()
             try:
         #        assert_equal(status, True)
+                assert_equal(self.success, True)
                 time.sleep(10)
             finally:
                 self.voltha.disable_device(device_id, delete = True)
@@ -602,6 +621,7 @@ yg==
             thread2.join()
             try:
         #        assert_equal(status, True)
+                assert_equal(self.success, True)
                 time.sleep(10)
             finally:
                 self.voltha.disable_device(device_id, delete = True)
@@ -656,6 +676,7 @@ yg==
             thread2.join()
             try:
         #        assert_equal(status, True)
+                assert_equal(self.success, True)
                 time.sleep(10)
             finally:
                 self.voltha.disable_device(device_id, delete = True)
@@ -710,6 +731,7 @@ yg==
             thread2.join()
             try:
         #        assert_equal(status, True)
+                assert_equal(self.success, True)
                 time.sleep(10)
             finally:
                 self.voltha.disable_device(device_id, delete = True)
@@ -738,6 +760,8 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
+            log_test.info('All available devices on voltha = %s'%devices_list['items'])
+
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(self.VOLTHA_HOST,
@@ -766,6 +790,7 @@ yg==
             thread2.join()
             try:
         #        assert_equal(status, True)
+                assert_equal(self.success, True)
                 time.sleep(10)
             finally:
                 self.voltha.disable_device(device_id, delete = True)
@@ -773,6 +798,7 @@ yg==
         reactor.callLater(0, tls_flow_check_operating_olt_state, df)
         return df
 
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:
@@ -784,6 +810,52 @@ yg==
         5. Verify that two subscribers are authenticated successfully.
         """
 
+        df = defer.Deferred()
+        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            devices_list = self.voltha.get_devices()
+            log_test.info('All available devices on voltha = %s'%devices_list['items'])
+
+            onu_device_id = devices_list['items'][1]['id']
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            devices_list = self.voltha.get_devices()
+            thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT,))
+            thread2 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_2_RX_DEFAULT,))
+            thread1.start()
+            time.sleep(randint(1,2))
+            log_test.info('Initiating tls auth packets from one more subscriber on same olt device which is deteced on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+        #        assert_equal(status, True)
+                assert_equal(self.success, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_eap_tls_authentication_using_same_certificates(self):
         """
         Test Method:
@@ -794,6 +866,51 @@ yg==
         4. Validate that two valid certificates are being exchanged between two subscriber, onos and freeradius.
         5. Verify that two subscribers are not authenticated.
         """
+
+        df = defer.Deferred()
+        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            devices_list = self.voltha.get_devices()
+            log_test.info('All available devices on voltha = %s'%devices_list['items'])
+
+            onu_device_id = devices_list['items'][1]['id']
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            devices_list = self.voltha.get_devices()
+            thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT,))
+            thread2 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_2_RX_DEFAULT, "same_cert",))
+            thread1.start()
+            time.sleep(randint(1,2))
+            log_test.info('Initiating tls auth packets from one more subscriber on same olt device which is deteced on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+        #        assert_equal(status, True)
+                 assert_equal(self.success, True)
+                 time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        return df
 
     def test_two_subscribers_with_voltha_for_eap_tls_authentication_initiating_invalid_tls_packets_for_one_subscriber(self):
         """
