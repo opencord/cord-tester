@@ -930,8 +930,8 @@ class onboarding_exchange(CordLogger):
         reactor.callLater(0,test_exampleservice,df)
         return df
 
-    @deferred(150)
-    def test_exampleservice_for_tenant_message_after_service_restart(self,service_message="\"world\""):
+    @deferred(80)
+    def test_exampleservice_for_tenant_message_after_service_restart(self,tenant_message="\"world\""):
         """
         Algo:
         1. Get dhcp ip to vcpe interface in cord-tester
@@ -996,6 +996,8 @@ class onboarding_exchange(CordLogger):
         5. Restart vcpe instance and do curl request again
         8. Verifying curl  request success
         """
+        if self.on_pod is False:
+            return
         df = defer.Deferred()
         def test_exampleservice(df):
             vcpe_intf = self.dhcp_vcpes_reserved[0]
@@ -1013,14 +1015,22 @@ class onboarding_exchange(CordLogger):
                 status, _ = vsg.run_cmd(cmd)
                 assert_equal(status, True)
                 time.sleep(5)
-		self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
-                st, out = getstatusoutput(curl_cmd)
-		assert_not_equal(out,'')
+                self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                clock = 0
+                status = False
+                while(clock <= 30):
+                    time.sleep(5)
+                    st, out = getstatusoutput(curl_cmd)
+                    if out != '':
+                        status = True
+                        break
+                    clock += 5
+                assert_equal(status,True)
             except Exception as error:
-		log.info('Got Unexpeted error %s'%error)
-		raise
-	    finally:
-		self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+                log.info('Got Unexpeted error %s'%error)
+                raise
+            finally:
+                self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
         return df
@@ -1036,39 +1046,45 @@ class onboarding_exchange(CordLogger):
         5. Restart vcpe instance and do curl request again
         8. Verifying curl  request success
         """
+        if self.on_pod is False:
+            return
         df = defer.Deferred()
         def test_exampleservice(df):
             vcpe_intf = self.dhcp_vcpes_reserved[0]
             vcpe_name = self.container_vcpes_reserved[0]
             vm_public_ip = self.get_exampleservice_vm_public_ip()
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
-	    wan_intf = 'eth0'
+            wan_intf = 'eth0'
+            mgmt = 'eth0'
             try:
                 self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
                 #curl request from test container
                 curl_cmd = 'curl -s http://{} --max-time 5'.format(vm_public_ip)
                 st, out = getstatusoutput(curl_cmd)
                 assert_not_equal(out,'')
-                #restarting example service VM
-                cmd = 'sudo docker exec {} ifconfig down {}'.format(vcpe_name,wan_intf)
-                status, _ = vsg.run_cmd(cmd)
-                assert_equal(status, True)
-                time.sleep(1)
+                st = VSGAccess.vcpe_wan_down(vcpe_name)
+                if st is False:
+                        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe_intf)
+                assert_not_equal(st, '0')
+                time.sleep(2)
+                self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
                 curl_cmd = 'curl -s http://{} --max-time 5'.format(vm_public_ip)
                 st, out = getstatusoutput(curl_cmd)
                 assert_equal(out,'')
-                cmd = 'sudo docker exec {} ifconfig up {}'.format(vcpe_name,wan_intf)
-                status, _ = vsg.run_cmd(cmd)
-                assert_equal(status, True)
-                time.sleep(1)
+                st = VSGAccess.vcpe_wan_up(vcpe_name)
+                if st is False:
+                        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe_intf)
+                assert_not_equal(st, '0')
+                time.sleep(5)
+                self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
                 st, out = getstatusoutput(curl_cmd)
                 assert_not_equal(out,'')
             except Exception as error:
                 log.info('Got Unexpeted error %s'%error)
-		vsg.run_cmd('sudo docker exec {} ifconfig up {}'.format(vcpe_name,wan_intf))
+                vsg.run_cmd('sudo docker restart {}'.format(vcpe_name,wan_intf))
                 raise
             finally:
-                self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+                self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
         return df
@@ -1084,7 +1100,7 @@ class onboarding_exchange(CordLogger):
         5. Add a firewall rule in vcpe instance to drop packets destined to example service VM
         6. Do curl request now
         7. Verifying curl response is an empty output
-	8. Delete the firewall rule and do curl request agian
+	8. Delete the firewall rule and do curl request again
 	9. Verifying curl request success
         """
         df = defer.Deferred()
@@ -1109,9 +1125,9 @@ class onboarding_exchange(CordLogger):
             except Exception as error:
                 log.info('Got Unexpeted error %s'%error)
                 raise
-	    finally:
-		vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,vm_public_ip))
-		self.del_static_route_via_vcpe_interface([public_ip],vcpe=vcpe_intf)
+            finally:
+                vsg.run_cmd('sudo docker exec {} iptables -D FORWARD -d {} -j DROP'.format(vcpe_name,vm_public_ip))
+                self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
         return df
@@ -1192,43 +1208,8 @@ class onboarding_exchange(CordLogger):
         subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
         return subId
 
-    def test_vsg_xos_subscriber_create_reserved(self):
-        if self.on_pod is False:
-            return
-        tags_reserved = [ (int(vcpe['s_tag']), int(vcpe['c_tag'])) for vcpe in self.vcpes_reserved ]
-        volt_tenants = self.restApiXos.ApiGet('TENANT_VOLT')
-        subscribers = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
-        reserved_tenants = filter(lambda tenant: (int(tenant['s_tag']), int(tenant['c_tag'])) in tags_reserved, volt_tenants)
-        reserved_config = []
-        for tenant in reserved_tenants:
-            for subscriber in subscribers:
-                if int(subscriber['id']) == int(tenant['subscriber']):
-                    volt_subscriber_info = {}
-                    volt_subscriber_info['voltTenant'] = dict(s_tag = tenant['s_tag'],
-                                                              c_tag = tenant['c_tag'],
-                                                              subscriber = tenant['subscriber'])
-                    volt_subscriber_info['volt_id'] = tenant['id']
-                    volt_subscriber_info['account_num'] = subscriber['identity']['account_num']
-                    reserved_config.append( (subscriber, volt_subscriber_info) )
-                    break
-            else:
-                log.info('Subscriber not found for tenant %s, s_tag: %s, c_tag: %s' %(str(tenant['subscriber']),
-                                                                                      str(tenant['s_tag']),
-                                                                                      str(tenant['c_tag'])))
-
-        for subscriber_info, volt_subscriber_info in reserved_config:
-            self.vsg_xos_subscriber_delete(0,
-                                           subId = str(subscriber_info['id']),
-                                           voltId = str(volt_subscriber_info['volt_id']),
-                                           subscriber_info = subscriber_info,
-                                           volt_subscriber_info = volt_subscriber_info)
-            subId = self.vsg_xos_subscriber_create(0,
-                                                   subscriber_info = subscriber_info,
-                                                   volt_subscriber_info = volt_subscriber_info)
-            log.info('Created reserved subscriber %s' %(subId))
-
     @deferred(500)
-    def test_exampleservice_xos_subscriber_access_exampleservice(self,index=0):
+    def test_xos_subcriber_access_exampleservice(self,index=0):
         """
         Algo:
         1. Create two vcpe instances using XOS
@@ -1256,12 +1237,13 @@ class onboarding_exchange(CordLogger):
                 raise
 	    finally:
                 self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+                self.vsg_xos_subscriber_delete(index, subId = subId)
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
         return df
 
     @deferred(500)
-    def test_exampleservice_multiple_subscribers_access_same_service(self,index1=0,index2=1):
+    def test_exampleservice_multiple_subcribers_access_same_service(self,index1=0,index2=1):
         """
         Algo:
         1. Create two vcpe instances using XOS
@@ -1275,7 +1257,7 @@ class onboarding_exchange(CordLogger):
             vm_public_ip = self.get_exampleservice_vm_public_ip()
             vcpe_intf1 = self.dhcp_vcpes[0]
             vcpe_intf2 = self.dhcp_vcpes[1]
-            subId1 = self.vsg_xos_subscriber_id(index)
+            subId1 = self.vsg_xos_subscriber_id(index1)
             if subId1 == '0':
                 subId1 = self.vsg_xos_subscriber_create(index1)
             assert_not_equal(subId1,'0')
@@ -1297,6 +1279,8 @@ class onboarding_exchange(CordLogger):
                 log.info('Got unexpected error %s'%error)
                 self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf1)
                 self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf2)
+                self.vsg_xos_subscriber_delete(index1, subId = subId1)
+                self.vsg_xos_subscriber_delete(index2, subId = subId2)
                 raise
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
