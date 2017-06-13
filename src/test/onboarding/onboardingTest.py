@@ -25,13 +25,13 @@ import neutronclient.v2_0.client as neutronclient
 from nose.tools import assert_equal, assert_not_equal
 from twisted.internet import defer
 from nose.twistedtools import reactor, deferred
-from CordTestUtils import get_mac, log_test
+from CordTestUtils import *
 from onosclidriver import OnosCliDriver
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnboardingServiceUtils import OnboardingServiceUtils
 from SSHTestAgent import SSHTestAgent
-from CordTestUtils import running_on_pod, getstatusoutput
+from CordTestConfig import setup_module, running_on_ciab
 from CordLogger import CordLogger
 from CordTestUtils import *
 from CordTestUtils import log_test as log
@@ -456,6 +456,8 @@ class onboarding_exchange(CordLogger):
         2. Do curl request to the example service running VM IP from test client
         3. Verifying curl request success
         """
+        if self.on_pod is False:
+            return
         df = defer.Deferred()
         def test_exampleservice(df):
 	    vm_public_ip = self.get_exampleservice_vm_public_ip()
@@ -591,12 +593,12 @@ class onboarding_exchange(CordLogger):
                 self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
                 #curl request from test container
                 cmd = 'curl -s http://{} --max-time 5'.format(vm_public_ip)
-                st,_ = getstatusoutput(cmd)
+                st, out = getstatusoutput(cmd)
                 assert_not_equal(out,'')
-                st,_ = getstatusoutput('ifconfig {} down'.format(vcpe_intf))
+                st, _ = getstatusoutput('ifconfig {} down'.format(vcpe_intf))
                 assert_equal(st, False)
 		time.sleep(1)
-                st,_ = getstatusoutput('ifconfig {} up'.format(vcpe_intf))
+                st, _ = getstatusoutput('ifconfig {} up'.format(vcpe_intf))
 		assert_equal(st, False)
                 time.sleep(1)
 	        self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
@@ -607,6 +609,7 @@ class onboarding_exchange(CordLogger):
                 raise
             finally:
                 self.del_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
+		getstatusoutput('ifconfig {} up'.format(vcpe_intf))
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
         return df
@@ -691,11 +694,13 @@ class onboarding_exchange(CordLogger):
                 assert_not_equal(out,'')
                 log.info('Suspending example service running vm')
                 service_vm.suspend()
-                time.sleep(2)
+                time.sleep(5)
                 st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
                 assert_equal(out,'')
                 service_vm.resume()
 		time.sleep(5)
+                st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
+                assert_not_equal(out,'')
             except Exception as error:
                 log.info('Got Unexpected error %s'%error)
                 service_vm.stop()
@@ -735,7 +740,7 @@ class onboarding_exchange(CordLogger):
             assert_not_equal(service_vm,None)
             try:
                 self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
-                st,_ = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
+                st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
 		assert_not_equal(out,'')
                 log.info('Restarting example service running vm')
                 service_vm.reboot()
@@ -759,6 +764,7 @@ class onboarding_exchange(CordLogger):
         reactor.callLater(0,test_exampleservice,df)
         return df
 
+    #not test. vSG VM goes down after restart
     @deferred(70)
     def test_exampleservice_access_after_vsg_vm_restart(self):
         """
@@ -781,7 +787,7 @@ class onboarding_exchange(CordLogger):
 	    vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             try:
                 self.add_static_route_via_vcpe_interface([vm_public_ip],vcpe=vcpe_intf)
-                st,_ = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
+                st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
                 assert_not_equal(out,'')
                 log.info('Restarting vSG VM')
                 vsg.reboot()
@@ -805,7 +811,7 @@ class onboarding_exchange(CordLogger):
         reactor.callLater(0,test_exampleservice,df)
         return df
 
-    @deferred(60)
+    @deferred(80)
     def test_exampleservice_access_after_service_stop(self):
         """
         Algo:
@@ -841,10 +847,10 @@ class onboarding_exchange(CordLogger):
                 st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
 		assert_equal(out,'')
                 service_vm.start()
-		time.sleep(15)
+		time.sleep(5)
                 clock = 0
                 status = False
-                while(clock <= 40):
+                while(clock <= 60):
                     time.sleep(5)
                     st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
                     if out != '':
@@ -862,7 +868,7 @@ class onboarding_exchange(CordLogger):
         reactor.callLater(0,test_exampleservice,df)
         return df
 
-    @deferred(60)
+    @deferred(80)
     def test_exampleservice_for_service_message_after_service_stop_and_start(self, service_message="\"hello\""):
         """
         Algo:
@@ -894,13 +900,13 @@ class onboarding_exchange(CordLogger):
                 assert_not_equal(out,'')
 	        log.info('Stopping example service running VM')
                 service_vm.stop()
-                time.sleep(1)
+                time.sleep(5)
                 st, out = getstatusoutput('curl -s http://{} --max-time 5'.format(vm_public_ip))
                 assert_equal(out,'')
                 service.start()
 	        time.sleep(5)
 		clock = 0
-		while(clock <= 30):
+		while(clock <= 60):
 		    time.sleep(5)
                     st,out = getstatusoutput('curl -s http://{} --max-time 10'.format(vm_public_ip))
 		    if out != '':
@@ -910,7 +916,7 @@ class onboarding_exchange(CordLogger):
                     	    line = line.split(':')
                     	    if line[0].strip() == 'Service Message':
                         	srvs_msg = line[1].strip()
-				clock = 30
+				clock = 60
 				break
 		    clock += 5
                 assert_equal(service_message, srvs_msg)
