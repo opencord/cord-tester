@@ -162,7 +162,7 @@ if __name__ == '__main__':
     time.sleep(5)
     result = test.ApiDelete(key, urlSuffix)
 '''
-'''
+#'''
 test = restApi()
 #key = "UTILS_SYNCHRONIZER"
 #key = "CORE_USERS"
@@ -172,7 +172,7 @@ test = restApi()
 #jsonResponse = test.ApiPost(key,{"identity":{"name":"My House 22"}})
 #jsonResponse = test.ApiPost(key,{"firstname":"Test002","lastname":"User002","email":"test002@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"})
 key = "VOLT_TENANT"
-key = "VOLT_SUBSCRIBER"
+#key = "VOLT_SUBSCRIBER"
 #jsonResponse = test.ApiDelete(key,204)
 #jsonResponse = test.ApiPut(key,{"firstname":"Test002","lastname":"User002","email":"test002update@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"},14)
 #jsonResponse = test.ApiPost(key2,{"username":"test002update@onlab.us","password":"TestUser002"})
@@ -184,7 +184,8 @@ key = "VOLT_SUBSCRIBER"
 #input_dict = { "s_tag" : "111", "c_tag" : "222", "subscriber" : 23}
 input_dict = {
          "s_tag" : 117,
-         "c_tag" : 227
+         "c_tag" : 227,
+         "subscriber_root_id" : "16"
         }
 
 #input_dict1 = { "name" : "mysite_Test1", "site" : 1 , "creator" : 1}
@@ -200,13 +201,13 @@ input_dict2 = {
     }
 #jsonResponse = test.ApiPost(key,input_dict)
 #jsonResponse = test.ApiChameleonPut(key,input_dict,12)
-#jsonGetData = test.ApiGet(key,"/12")
+jsonGetData = test.ApiGet(key)
 #print "========="
 #print jsonGetData
 #jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"30")
-jsonO = test.ApiDelete(key,"/7")
+#jsonO = test.ApiChameleonDelete(key,"56")
 #jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
-#jsonResponse = test.ApiPost(key,{"name":"test-2"})
+#jsonResponse = test.ApiPost(key,input_dict)
 #jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
 print "========="
-'''
+#'''

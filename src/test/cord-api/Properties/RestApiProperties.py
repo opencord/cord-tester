@@ -3,7 +3,7 @@
 SERVER_IP = 'localhost'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
-PASSWD = 'y7vibol8lK67TLXLVWN2'
+PASSWD = 'GKHDWlgEgHB780HSbUSc'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
 VOLT_TENANT = '/xosapi/v1/volt/volttenants'
 TENANT_SUBSCRIBER = '/api/tenant/cord/subscriber/'

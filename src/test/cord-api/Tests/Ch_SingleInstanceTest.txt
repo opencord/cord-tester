@@ -1,0 +1,108 @@
+*** Settings ***
+Documentation     Test suite for Instance creation for multiple subscribers with same "s_tag" - Chameleon APIs
+Suite Setup       Read InputFile
+Test Template     Verify Single Instance Functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Ch_Subscriber.json
+${PATHFILE2}      ${CURDIR}/data/Ch_SingleInstance_VoltTenant.json
+
+*** Test Cases ***    TYPE                 LISTINDEX
+Test Create Subscriber-1
+                      SUBSCRIBER_CREATE    0
+
+Test Create Subscriber-2
+                      SUBSCRIBER_CREATE    1
+
+Test Create Subscriber-3
+                      SUBSCRIBER_CREATE    2
+
+Test Create Tenant-1
+                      TENANT_CREATE        0
+
+Test Create Tenant-2
+                      TENANT_CREATE        1
+
+Test Create Tenant-3
+                      TENANT_CREATE        2
+
+Test Instance creation validation
+                      INSTANCE_VALIDATE    0
+
+*** Keywords ***
+Read InputFile
+    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    Set Suite Variable    ${slist}    ${subscriberList}
+    ${voltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
+    Set Suite Variable    ${vlist}    ${voltList}
+    @{instanceList}=    Create List
+    Set Suite Variable    @{instanceList}
+
+Verify Single Instance functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "SUBSCRIBER_CREATE"    Test Post Subscriber Create    ${listIndex}
+    Run Keyword If    "${type}" == "TENANT_CREATE"    Test Post volt Tenant Create    ${listIndex}
+    Run Keyword If    "${type}" == "INSTANCE_VALIDATE"    Test Instance Validation    ${listIndex}
+
+Test Post Subscriber Create
+    [Arguments]    ${listIndex}
+    ${subscriberList} =    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    ${instanceList}    Create List
+
+Test Post volt Tenant Create
+    [Arguments]    ${listIndex}
+    ${voltTenantList} =    Get Variable Value    ${vlist}
+    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
+    ${service_specific_id}=    Get From Dictionary    ${voltTenantDict}    service_specific_id
+    ${get_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${get_result_list}=    Get From Dictionary    ${get_result}    items
+    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result_list}    service_specific_id    ${service_specific_id}
+    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    ${updatedVoltDict}=    utils.setFieldValueInDict    ${voltDict}    subscriber_root_id    ${subscriberID}
+    ${api_result}=    restApi.ApiPost    VOLT_TENANT    ${updatedVoltDict}
+    Should Be True    ${api_result}
+    # Verifying Get operation after POST
+    Sleep    20
+    ${getVolt_result}=    restApi.ApiGet    VOLT_TENANT
+    Log    ${getVolt_result}
+    ${getVolt_result_list}=    utils.getFieldValueFromDict    ${getVolt_result}    items
+    Log    ${getVolt_result_list}
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result_list}    subscriber_root_id    ${subscriberID}
+    Log    ${getJsonDict}
+    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    Should Be True    ${test_result}
+    # Validation of Instances
+    Log    ${instanceList}
+    Log    ${getJsonDict}
+    ${VSGTenantList}=    Get From Dictionary    ${getJsonDict}    subscribed_tenants_ids
+    Log    ${VSGTenantList}
+    ${VSGTenant}=    Get From List    ${VSGTenantList}    0
+    ${getVSG_result}=    restApi.ApiChameleonGet    VSG_TENANT    ${VSGTenant}
+    ${instance_id}=    Get From Dictionary    ${getVSG_result}    instance_id
+    Append To List    ${instanceList}    ${instance_id}
+    Log    ${instanceList}
+
+Test Instance Validation
+    [Arguments]    ${listIndex}
+    ${get_result}=    restApi.ApiGet    VSG_TENANT
+    Should Be True    ${get_result}
+    ${instanceFinalList}=    Remove Duplicates    ${instanceList}
+    Log    ${instanceFinalList}
+    ${instanceCount}=    Get Length    ${instanceFinalList}
+    Log    ${instanceCount}
+    Should Be True    ${instanceCount} == 1
+    ${instance_id}=    Get From List    ${instanceFinalList}    0
+    ${get_CoreInstanceresult}=    restApi.ApiChameleonGet    CH_CORE_INSTANCES    ${instance_id}
+    Should Be True    ${get_CoreInstanceresult}
