@@ -158,12 +158,20 @@ yg==
                   dhcp_config[k] = config[k]
         self.onos_load_config('org.onosproject.dhcp', dhcp_dict)
 
-    def dhcp_sndrcv(self, dhcp, update_seed = False):
-        cip, sip = dhcp.discover(update_seed = update_seed)
-        assert_not_equal(cip, None)
-        assert_not_equal(sip, None)
-        log_test.info('Got dhcp client IP %s from server %s for mac %s' %
-                 (cip, sip, dhcp.get_mac(cip)[0]))
+    def dhcp_sndrcv(self, dhcp, update_seed = False, mac = None, validation = True):
+        if validation :
+           cip, sip = dhcp.discover(mac = mac, update_seed = update_seed)
+           assert_not_equal(cip, None)
+           assert_not_equal(sip, None)
+           log_test.info('Got dhcp client IP %s from server %s for mac %s' %
+                   (cip, sip, dhcp.get_mac(cip)[0]))
+        if validation == False:
+           cip, sip = dhcp.discover(mac = mac, update_seed = update_seed)
+           assert_equal(cip, None)
+           assert_equal(sip, None)
+           log_test.info('Dhcp client did not get IP from server %s for mac %s' %
+                   (cip, sip, dhcp.get_mac(cip)[0]))
+
         return cip,sip
 
     def dhcp_request(self, onu_iface = None, seed_ip = '10.10.10.1', update_seed = False):
@@ -272,6 +280,17 @@ yg==
             assert_equal(status, True)
             time.sleep(2)
 
+    @classmethod
+    def deactivate_apps(cls, apps):
+        self.success = True
+        for app in apps:
+            onos_ctrl = OnosCtrl(app)
+            status, _ = onos_ctrl.deactivate()
+            if status is False:
+               self.success = False
+            assert_equal(status, True)
+            time.sleep(2)
+
     def tls_flow_check(self, olt_uni_port, cert_info = None):
         def tls_fail_cb():
              log_test.info('TLS verification failed')
@@ -315,9 +334,21 @@ yg==
         return self.test_status
 
     def dhcp_flow_check(self, onu_iface =None, negative_test = None):
+        self.success = True
+
         if negative_test is None:
            cip, sip = self.dhcp_request(onu_iface, update_seed = True)
-           log_test.info('Subscriber %s got client ip %s from server %s' %(onu_iface, cip, sip))
+           if not cip:
+              self.success = False
+           log_test.info('Subscriber %s client ip %s from server %s' %(onu_iface, cip, sip))
+           self.test_status = True
+
+        if negative_test == "app_deactivation":
+           cip, sip = self.dhcp_request(onu_iface, update_seed = True)
+           if cip is not None:
+              self.success =  False
+           assert_equal(cip,None)
+           log_test.info('Subscriber %s not got client ip %s from server %s' %(onu_iface, cip, sip))
            self.test_status = True
 
         if negative_test == "invalid_src_mac_broadcast":
@@ -327,6 +358,10 @@ yg==
            self.onos_dhcp_table_load(config)
            self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = onu_iface)
            cip, sip, mac, _ = self.dhcp.only_discover(mac='ff:ff:ff:ff:ff:ff')
+
+           if cip is not None:
+              self.success =  False
+           log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected self.success = %s '%self.success)
            assert_equal(cip,None)
            log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
            self.test_status = True
@@ -337,6 +372,8 @@ yg==
            self.onos_dhcp_table_load(config)
            self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = onu_iface)
            cip, sip, mac, _ = self.dhcp.only_discover(mac='01:80:c2:91:02:e4')
+           if cip is not None:
+              self.success =  False
            assert_equal(cip,None)
            log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
            self.test_status = True
@@ -348,6 +385,8 @@ yg==
            self.onos_dhcp_table_load(config)
            self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = onu_iface)
            cip, sip, mac, _ = self.dhcp.only_discover(mac='00:00:00:00:00:00')
+           if cip is not None:
+              self.success =  False
            assert_equal(cip,None)
            log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
            self.test_status = True
@@ -364,10 +403,108 @@ yg==
            log_test.info('Triggering DHCP discover again after release')
            cip2, sip2 = self.dhcp_sndrcv(self.dhcp, update_seed = True)
            log_test.info('Verifying released IP was given back on rediscover')
+           if cip == cip2:
+              self.success =  False
            assert_equal(cip, cip2)
            log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
            assert_equal(self.dhcp.release(cip2), True)
            self.test_status = True
+        if negative_test == "starvation_positive":
+           config = {'startip':'193.170.1.20', 'endip':'193.170.1.69',
+                     'ip':'193.170.1.2', 'mac': "ca:fe:c2:fe:cc:fe",
+                     'subnet': '255.255.255.0', 'broadcast':'192.168.1.255', 'router': '192.168.1.1'}
+           self.onos_dhcp_table_load(config)
+           self.dhcp = DHCPTest(seed_ip = '192.169.1.1', iface = onu_iface)
+           ip_map = {}
+           for i in range(10):
+               cip, sip = self.dhcp_sndrcv(self.dhcp, update_seed = True)
+               if ip_map.has_key(cip):
+                  self.success =  False
+                  log_test.info('IP %s given out multiple times' %cip)
+                  assert_equal(False, ip_map.has_key(cip))
+               ip_map[cip] = sip
+           self.test_status = True
+        if negative_test == "starvation_negative":
+           config = {'startip':'182.17.0.20', 'endip':'182.17.0.69',
+                     'ip':'182.17.0.2', 'mac': "ca:fe:c3:fe:ca:fe",
+                     'subnet': '255.255.255.0', 'broadcast':'182.17.0.255', 'router':'182.17.0.1'}
+           self.onos_dhcp_table_load(config)
+           self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = onu_iface)
+           log_test.info('Verifying passitive case')
+           for x in xrange(50):
+               mac = RandMAC()._fix()
+               self.dhcp_sndrcv(self.dhcp,mac = mac)
+           log_test.info('Verifying negative case')
+           cip, sip = self.dhcp_sndrcv(self.dhcp,update_seed = True)
+           assert_equal(cip, None)
+           assert_equal(sip, None)
+           self.test_status = True
+           self.success =  True
+        if negative_test == "multiple_discover":
+           config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
+                     'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                     'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+           self.onos_dhcp_table_load(config)
+           self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = onu_iface)
+           cip, sip, mac, _ = self.dhcp.only_discover()
+           log_test.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %
+                       (cip, sip, mac) )
+           assert_not_equal(cip, None)
+           log_test.info('Triggering DHCP discover again.')
+           new_cip, new_sip, new_mac, _ = self.dhcp.only_discover()
+           assert_equal(new_cip, cip)
+           log_test.info('client got same IP as expected when sent 2nd discovery')
+           self.test_status = True
+           self.success =  True
+        if negative_test == "multiple_requests":
+           config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
+                     'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                     'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
+           self.onos_dhcp_table_load(config)
+           self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = onu_iface)
+           log_test.info('Sending DHCP discover and DHCP request.')
+           cip, sip = self.dhcp_sndrcv(self.dhcp,update_seed = True)
+           mac = self.dhcp.get_mac(cip)[0]
+           log_test.info("Sending DHCP request again.")
+           new_cip, new_sip = self.dhcp.only_request(cip, mac)
+           assert_equal(new_cip,cip)
+           log_test.info('server offered same IP to clain for multiple requests, as expected')
+           self.test_status = True
+           self.success =  True
+        if negative_test == "desired_ip_address":
+           config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
+                     'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                     'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+           self.onos_dhcp_table_load(config)
+           self.dhcp = DHCPTest(seed_ip = '20.20.20.50', iface = onu_iface)
+           cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
+           assert_not_equal(cip, None)
+           log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
+                      (cip, sip, mac))
+           assert_equal(cip,self.dhcp.seed_ip)
+           log_test.info('ONOS dhcp server offered client requested IP %s as expected'%self.dhcp.seed_ip)
+           self.test_status = True
+           self.success =  True
+        if negative_test == "desired_out_of_pool_ip_address":
+           config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
+                     'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
+                     'subnet': '255.255.255.0', 'broadcast':'20.20.20.255', 'router':'20.20.20.1'}
+           self.onos_dhcp_table_load(config)
+           self.dhcp = DHCPTest(seed_ip = '20.20.20.75', iface = onu_iface)
+           cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
+           assert_not_equal(cip, None)
+           log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
+                      (cip, sip, mac) )
+           assert_not_equal(cip,self.dhcp.seed_ip)
+           log_test.info('server offered IP from its pool of IPs when requested out of pool IP, as expected')
+           self.test_status = True
+           self.success =  True
+        if negative_test == "request_release":
+           self.test_status = True
+           self.success =  True
+        if negative_test == "request_release":
+           self.test_status = True
+           self.success =  True
 
 
         return self.test_status
@@ -1412,6 +1549,8 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_starvation_positive_scenario(self):
         """
         Test Method:
@@ -1423,7 +1562,42 @@ yg==
         5. Repeat step 3 and 4 for 10 times.
         6  Verify that subscriber should get ip from dhcp server.
         """
+        df = defer.Deferred()
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "starvation_positive")
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
 
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_starvation_negative_scenario(self):
         """
         Test Method:
@@ -1435,6 +1609,41 @@ yg==
         5. Repeat steps 3 and 4 for 10 times.
         6  Verify that subscriber should not get ip from dhcp server.
         """
+        df = defer.Deferred()
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "starvation_negative")
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_sending_multiple_discover(self):
         """
         Test Method:
@@ -1446,6 +1655,42 @@ yg==
         5. Repeat step 3 for 50 times.
         6  Verify that subscriber should get same ip which was received from 1st discover from dhcp server.
         """
+        df = defer.Deferred()
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "multiple_discover")
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_sending_multiple_request(self):
         """
         Test Method:
@@ -1458,7 +1703,41 @@ yg==
         6. Repeat step 5 for 50 times.
         7. Verify that subscriber should get same ip which was received from 1st discover from dhcp server.
         """
+        df = defer.Deferred()
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "multiple_requests")
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
 
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_requesting_desired_ip_address(self):
         """
         Test Method:
@@ -1468,8 +1747,41 @@ yg==
         3. Send dhcp request with desired ip address from residential subscriber to dhcp server which is running as onos app.
         4. Verify that subscriber get ip which was requested in step 3 from dhcp server successfully.
         """
+        df = defer.Deferred()
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "desired_ip_address")
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
 
-    def test_subscriber_with_voltha_for_dhcp_requesting_desired_out_pool_ip_address(self):
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_dhcp_requesting_desired_out_of_pool_ip_address(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1478,7 +1790,42 @@ yg==
         3. Send dhcp request with desired out of pool ip address from residential subscriber to dhcp server which is running as onos app.
         4. Verify that subscriber should not get ip which was requested in step 3 from dhcp server, and its offered only within dhcp pool of ip.
         """
-    def test_subscriber_with_voltha_for_dhcp_deactivate_dhcp_app_in_onos(self):
+        df = defer.Deferred()
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "desired_out_of_pool_ip_address")
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_deactivating_dhcp_app_in_onos(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1490,6 +1837,50 @@ yg==
         6. Repeat step 3.
         7. Verify that subscriber should not get ip from dhcp server, and ping to gateway.
         """
+        df = defer.Deferred()
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+#            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "desired_out_of_pool_ip_address")
+            thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "app_deactivation",))
+            thread2 = threading.Thread(target = self.deactivate_apps, args = (dhcp_app,))
+            log_test.info('Restart dhcp app in onos during client send discover to voltha')
+            thread2.start()
+            time.sleep(randint(0,1))
+            thread1.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_renew_time(self):
         """
         Test Method:
