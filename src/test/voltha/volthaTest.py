@@ -498,7 +498,7 @@ yg==
            assert_not_equal(cip,self.dhcp.seed_ip)
            log_test.info('server offered IP from its pool of IPs when requested out of pool IP, as expected')
            self.test_status = True
-           self.suscess =  True
+           self.success =  True
         if negative_test == "dhcp_renew":
            config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                      'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -516,7 +516,7 @@ yg==
            assert_equal(latest_cip,cip)
            log_test.info('client got same IP after renew time, as expected')
            self.test_status = True
-           self.suscess =  True
+           self.success =  True
         if negative_test == "dhcp_rebind":
            config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                      'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -2048,7 +2048,7 @@ yg==
             thread1.join()
             thread2.join()
             try:
-                assert_equal(self.suscess, True)
+                assert_equal(self.success, True)
                 #assert_equal(status, True)
                 time.sleep(10)
             finally:
@@ -2061,7 +2061,7 @@ yg==
 
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcp_disable_enable_olt_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcp_toggling_olt_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2104,7 +2104,7 @@ yg==
             thread1.join()
             thread2.join()
             try:
-                assert_equal(self.suscess, True)
+                assert_equal(self.success, True)
                 #assert_equal(status, True)
                 time.sleep(10)
             finally:
@@ -2158,7 +2158,7 @@ yg==
             thread1.join()
             thread2.join()
             try:
-                assert_equal(self.suscess, True)
+                assert_equal(self.success, True)
                 #assert_equal(status, True)
                 time.sleep(10)
             finally:
@@ -2171,7 +2171,7 @@ yg==
 
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcp_disable_enable_onu_port_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcp_toggling_onu_port_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2219,7 +2219,7 @@ yg==
             dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT)
             assert_equal(dhcp_status, True)
             try:
-                assert_equal(self.suscess, True)
+                assert_equal(self.success, True)
                 #assert_equal(status, True)
                 time.sleep(10)
             finally:
@@ -2296,7 +2296,7 @@ yg==
         6. Repeat step 3 and 4 for one subscriber where uni port is down.
         7. Verify that subscriber should not get ip from dhcp server and other subscriber ping to gateway should not failed.
         """
-    def test_two_subscriber_with_voltha_for_dhcp_disable_enable_onu_port_for_one_subscriber(self):
+    def test_two_subscriber_with_voltha_for_dhcp_toggling_onu_port_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2323,7 +2323,7 @@ yg==
         6. Disable the olt device which is detected in voltha.
         7. Verify that subscriber should not get ip from dhcp server and other subscriber ping to gateway should failed.
         """
-    def test_two_subscriber_with_voltha_for_dhcp_disable_enable_olt_detected_in_voltha(self):
+    def test_two_subscriber_with_voltha_for_dhcp_toggling_olt_detected_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2546,7 +2546,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_disable_enable_onu_port_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcpRelay_toggling_onu_port_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
