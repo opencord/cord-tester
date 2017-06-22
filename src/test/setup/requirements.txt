@@ -3,7 +3,6 @@ scapy==2.3.2
 monotonic
 configObj
 docker-py
-pyyaml
 nsenter
 pyroute2
 netaddr
