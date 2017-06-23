@@ -159,7 +159,7 @@ yg==
         self.onos_load_config('org.onosproject.dhcp', dhcp_dict)
 
     def dhcp_sndrcv(self, dhcp, update_seed = False, mac = None, validation = True):
-        if validation :
+        if validation:
            cip, sip = dhcp.discover(mac = mac, update_seed = update_seed)
            assert_not_equal(cip, None)
            assert_not_equal(sip, None)
@@ -169,12 +169,11 @@ yg==
            cip, sip = dhcp.discover(mac = mac, update_seed = update_seed)
            assert_equal(cip, None)
            assert_equal(sip, None)
-           log_test.info('Dhcp client did not get IP from server %s for mac %s' %
-                   (cip, sip, dhcp.get_mac(cip)[0]))
+           log_test.info('Dhcp client did not get IP from server')
 
         return cip,sip
 
-    def dhcp_request(self, onu_iface = None, seed_ip = '10.10.10.1', update_seed = False):
+    def dhcp_request(self, onu_iface = None, seed_ip = '10.10.10.1', update_seed = False, validation = True):
         config = {'startip':'10.10.10.20', 'endip':'10.10.10.200',
                   'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
                   'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
@@ -282,13 +281,13 @@ yg==
 
     @classmethod
     def deactivate_apps(cls, apps):
-        self.success = True
+        cls.success = True
         for app in apps:
             onos_ctrl = OnosCtrl(app)
             status, _ = onos_ctrl.deactivate()
             if status is False:
-               self.success = False
-            assert_equal(status, True)
+               cls.success = False
+    #        assert_equal(status, True)
             time.sleep(2)
 
     def tls_flow_check(self, olt_uni_port, cert_info = None):
@@ -467,7 +466,7 @@ yg==
            assert_equal(new_cip, cip)
            log_test.info('client got same IP as expected when sent 2nd discovery')
            self.test_status = True
-           self.success =  True
+ #          self.success =  True
         if negative_test == "multiple_requests":
            config = {'startip':'10.10.10.20', 'endip':'10.10.10.69',
                      'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -482,7 +481,7 @@ yg==
            assert_equal(new_cip,cip)
            log_test.info('server offered same IP to clain for multiple requests, as expected')
            self.test_status = True
-           self.success =  True
+#           self.success =  True
         if negative_test == "desired_ip_address":
            config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                      'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -518,7 +517,7 @@ yg==
            assert_not_equal(cip,self.dhcp.seed_ip)
            log_test.info('server offered IP from its pool of IPs when requested out of pool IP, as expected')
            self.test_status = True
-           self.success =  True
+   #        self.success =  True
         if negative_test == "dhcp_renew":
            config = {'startip':'20.20.20.30', 'endip':'20.20.20.69',
                      'ip':'20.20.20.2', 'mac': "ca:fe:ca:fe:ca:fe",
@@ -904,7 +903,7 @@ yg==
             time.sleep(5)
 
             thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "disable_olt_device",))
-            thread2 = threading.Thread(target = self.voltha.disable_device, args = (device_id,))
+            thread2 = threading.Thread(target = self.voltha.disable_device, args = (device_id, False,))
             thread1.start()
             time.sleep(randint(1,2))
             log_test.info('Disable the ponsim olt device during tls auth flow check on voltha')
@@ -978,6 +977,66 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_eap_tls_authentication_carrying_out_multiple_times_toggling_of_uni_port(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Bring up freeradius server container using CORD TESTER and make sure that ONOS have connectivity to freeradius server.
+        3. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        5. Validate that eap tls packets are being exchanged between subscriber, onos and freeradius.
+        6. Verify that subscriber authenticated successfully.
+        7. Disable uni port which is seen in voltha and issue tls auth packets from subscriber.
+        8. Validate that eap tls packets are not being exchanged between subscriber, onos and freeradius.
+        9. Verify that subscriber authentication is unsuccessful..
+        10. Repeat steps from 3 to 9 for 10 times and finally verify tls flow
+
+        """
+        df = defer.Deferred()
+        no_iterations = 10
+        def tls_flow_check_with_disable_olt_device_scenario(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "uni_port_admin_down",))
+                thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+                thread1.start()
+                time.sleep(randint(1,2))
+                log_test.info('Admin state of uni port is down and up after delay of 30 sec during tls auth flow check on voltha')
+                thread2.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
+            try:
+        #        assert_equal(status, True)
+                assert_equal(auth_status, True)
+                assert_equal(self.success, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_with_disable_olt_device_scenario, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_restarting_olt(self):
         """
         Test Method:
@@ -1031,6 +1090,66 @@ yg==
             df.callback(0)
         reactor.callLater(0, tls_flow_check_operating_olt_state, df)
         return df
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_eap_tls_authentication_performing_multiple_times_restarting_olt(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Bring up freeradius server container using CORD TESTER and make sure that ONOS have connectivity to freeradius server.
+        3. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        5. Validate that eap tls packets are being exchanged between subscriber, onos and freeradius.
+        6. Verify that subscriber authenticated successfully.
+        7. Restart olt which is seen in voltha and issue tls auth packets from subscriber.
+        8. Validate that eap tls packets are not being exchanged between subscriber, onos and freeradius.
+        9. Verify that subscriber authentication is unsuccessful..
+        10. Repeat steps from 3 to 9 for 10 times and finally verify tls flow
+        """
+        df = defer.Deferred()
+        no_iterations = 10
+        def tls_flow_check_with_disable_olt_device_scenario(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "restart_olt_device",))
+                thread2 = threading.Thread(target = self.voltha.restart_device, args = (device_id,))
+                thread1.start()
+                time.sleep(randint(1,2))
+                log_test.info('Restart the ponsim olt device during tls auth flow check on voltha')
+                thread2.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
+            try:
+        #        assert_equal(status, True)
+                assert_equal(auth_status, True)
+                assert_equal(self.success, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_with_disable_olt_device_scenario, df)
+        return df
+
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_restarting_onu(self):
@@ -1088,11 +1207,76 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_operating_olt_state, df)
+        reactor.callLater(0, tls_flow_check_with_disable_olt_device_scenario, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_eap_tls_authentication(self):
+    def test_subscriber_with_voltha_for_eap_tls_authentication_performing_multiple_times_restart_of_onu(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Bring up freeradius server container using CORD TESTER and make sure that ONOS have connectivity to freeradius server.
+        3. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        5. Validate that eap tls packets are being exchanged between subscriber, onos and freeradius.
+        6. Verify that subscriber authenticated successfully.
+        7. Restart onu which is seen in voltha and issue tls auth packets from subscriber.
+        8. Validate that eap tls packets are not being exchanged between subscriber, onos and freeradius.
+        9. Verify that subscriber authentication is unsuccessful..
+        10. Repeat steps from 3 to 9 for 10 times and finally verify tls flow
+        """
+        df = defer.Deferred()
+        no_iterations = 10
+        def tls_flow_check_operating_olt_state(df):
+            aaa_app = ["org.opencord.aaa"]
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            devices_list = self.voltha.get_devices()
+            log_test.info('All available devices on voltha = %s'%devices_list['items'])
+
+            onu_device_id = devices_list['items'][1]['id']
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            devices_list = self.voltha.get_devices()
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "restart_onu_device",))
+                thread2 = threading.Thread(target = self.voltha.restart_device, args = (onu_device_id,))
+                thread1.start()
+                time.sleep(randint(1,2))
+                log_test.info('Restart the ponsim oon device during tls auth flow check on voltha')
+                thread2.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
+            try:
+        #        assert_equal(status, True)
+                assert_equal(auth_status, True)
+                assert_equal(self.success, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+            df.callback(0)
+        reactor.callLater(0, tls_flow_check_operating_olt_state, df)
+        return df
+
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_two_subscriberss_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1104,7 +1288,7 @@ yg==
         """
 
         df = defer.Deferred()
-        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+        def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -1145,11 +1329,12 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
 
+
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_eap_tls_authentication_using_same_certificates(self):
+    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_using_same_certificates(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1161,7 +1346,7 @@ yg==
         """
 
         df = defer.Deferred()
-        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+        def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -1202,11 +1387,11 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_eap_tls_authentication_initiating_invalid_tls_packets_for_one_subscriber(self):
+    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_initiating_invalid_tls_packets_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1220,7 +1405,7 @@ yg==
         """
 
         df = defer.Deferred()
-        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+        def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -1261,11 +1446,11 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_eap_tls_authentication_initiating_invalid_cert_for_one_subscriber(self):
+    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_initiating_invalid_cert_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1279,7 +1464,7 @@ yg==
         """
 
         df = defer.Deferred()
-        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+        def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -1320,11 +1505,11 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_eap_tls_authentication_with_one_uni_port_disabled(self):
+    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_with_one_uni_port_disabled(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1340,7 +1525,7 @@ yg==
         """
 
         df = defer.Deferred()
-        def tls_flow_check_on_two_subscriber_same_olt_device(df):
+        def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -1381,7 +1566,7 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_on_two_subscriber_same_olt_device, df)
+        reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
@@ -1462,6 +1647,7 @@ yg==
             dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "invalid_src_mac_broadcast")
             try:
                 assert_equal(dhcp_status, True)
+                assert_equal(self.success, True)
                 #assert_equal(status, True)
                 time.sleep(10)
             finally:
@@ -1914,12 +2100,10 @@ yg==
             self.config_olt(switch_map)
             olt_configured = True
             time.sleep(5)
-#            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT, "desired_out_of_pool_ip_address")
-            thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "app_deactivation",))
+            thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
             thread2 = threading.Thread(target = self.deactivate_apps, args = (dhcp_app,))
             log_test.info('Restart dhcp app in onos during client send discover to voltha')
             thread2.start()
-            time.sleep(randint(0,1))
             thread1.start()
             time.sleep(10)
             thread1.join()
@@ -1948,6 +2132,7 @@ yg==
         5. Send dhcp renew packet to dhcp server which is running as onos app.
         6. Repeat step 4.
         """
+
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
@@ -2027,10 +2212,8 @@ yg==
         return df
 
 
-
-
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcp_disabling_olt(self):
+    def test_subscriber_with_voltha_for_dhcp_toggling_olt(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2074,6 +2257,68 @@ yg==
             thread2.join()
             try:
                 assert_equal(self.success, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_dhcp_with_multiple_times_disabling_of_olt(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Send dhcp request from residential subscriber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        5. Disable olt devices which is being detected in voltha CLI.
+        6. Repeat step 3.
+        7. Verify that subscriber should not get ip from dhcp server, and ping to gateway.
+        8. Repeat steps from 3 to 7 for 10 times and finally verify dhcp flow
+        """
+        df = defer.Deferred()
+        no_iterations = 10
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
+                thread2 = threading.Thread(target = self.voltha.disable_device, args = (device_id,False,))
+                log_test.info('Disable the olt device in during client send discover to voltha')
+                thread2.start()
+#            time.sleep(randint(0,1))
+                thread1.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT)
+            try:
+                assert_equal(self.success, True)
+                assert_equal(dhcp_status, True)
                 #assert_equal(status, True)
                 time.sleep(10)
             finally:
@@ -2140,6 +2385,67 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_dhcp_toggling_olt_multiple_times(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Send dhcp request from residential subscriber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        5. Disable olt devices which is being detected in voltha CLI.
+        6. Repeat step 3.
+        7. Verify that subscriber should not get ip from dhcp server, and ping to gateway.
+        8. Enable olt devices which is being detected in voltha CLI.
+        9. Repeat steps 3 and 4.
+        """
+
+        df = defer.Deferred()
+        no_iterations = 10
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
+                thread2 = threading.Thread(target = self.voltha.restart_device, args = (device_id,))
+                thread2.start()
+                thread1.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT)
+            try:
+                assert_equal(dhcp_status, True)
+                #assert_equal(status, True)
+                assert_equal(self.success, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_disabling_onu_port(self):
@@ -2194,6 +2500,62 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_dhcp_disabling_onu_port_multiple_times(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Send dhcp request from residential subscriber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        5. Disable onu port which is being detected in voltha CLI.
+        6. Repeat step 3.
+        7. Verify that subscriber should not get ip from dhcp server, and ping to gateway.
+        """
+        df = defer.Deferred()
+        no_iterations = 10
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
+                thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+                thread1.start()
+                thread2.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT)
+            try:
+                #assert_equal(status, True)
+                assert_equal(dhcp_status, True)
+                assert_equal(self.success, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_toggling_onu_port(self):
@@ -2255,6 +2617,68 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
+    @deferred(TESTCASE_TIMEOUT)
+    def test_subscriber_with_voltha_for_dhcp_toggling_onu_port_multiple_times(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Send dhcp request from residential subscriber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        5. Disable onu port which is being detected in voltha CLI.
+        6. Repeat step 3.
+        7. Verify that subscriber should not get ip from dhcp server, and ping to gateway.
+        8. Enable onu port which is being detected in voltha CLI.
+        9. Repeat steps 3 and 4.
+        """
+
+        df = defer.Deferred()
+        no_iterations = 10
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            for i in range(no_iterations):
+                thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
+                thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+                log_test.info('Restart dhcp app in onos during client send discover to voltha')
+                thread2.start()
+                time.sleep(randint(0,1))
+                thread1.start()
+                time.sleep(10)
+                thread1.join()
+                thread2.join()
+            dhcp_status = self.dhcp_flow_check(self.INTF_RX_DEFAULT)
+            assert_equal(dhcp_status, True)
+            try:
+                assert_equal(self.success, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
 
     @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_dhcp_discover(self):
@@ -2296,8 +2720,6 @@ yg==
             time.sleep(10)
             thread1.join()
             thread2.join()
-
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2313,7 +2735,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_dhcp_multiple_discover_messages(self):
+    def test_two_subscribers_with_voltha_for_dhcp_multiple_discover(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2324,6 +2746,8 @@ yg==
         5. Repeat step 3 and 4 for 10 times for both subscribers.
         6  Verify that subscribers should get same ips which are offered the first time from dhcp server.
         """
+
+
         df = defer.Deferred()
         self.success = True
         dhcp_app =  'org.onosproject.dhcp'
@@ -2353,8 +2777,6 @@ yg==
             time.sleep(10)
             thread1.join()
             thread2.join()
-
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2370,7 +2792,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_dhcp_multiple_discover_messages_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_dhcp_and_with_multiple_discover_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2411,8 +2833,6 @@ yg==
             time.sleep(10)
             thread1.join()
             thread2.join()
-
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2428,7 +2848,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_dhcp_discover_message_with_desired_ip_address_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_dhcp_discover_and_desired_ip_address_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2468,7 +2888,6 @@ yg==
             time.sleep(10)
             thread1.join()
             thread2.join()
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2484,7 +2903,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_dhcp_discover_with_and_without_dhcp_pool_ip_addresses(self):
+    def test_two_subscribers_with_voltha_for_dhcp_discover_within_and_without_dhcp_pool_ip_addresses(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2523,7 +2942,6 @@ yg==
             time.sleep(10)
             thread1.join()
             thread2.join()
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2580,7 +2998,6 @@ yg==
             time.sleep(10)
             thread1.join()
             thread2.join()
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2594,8 +3011,6 @@ yg==
 
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
-
-
 
     @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_dhcp_toggling_onu_port_for_one_subscriber(self):
@@ -2645,7 +3060,6 @@ yg==
             thread1.join()
             thread2.join()
             thread3.join()
-            log_test.info('Adding subscribers through OLT app THANGAV SUCCESS = %s'%self.success)
             dhcp_flow_status = self.success
             try:
 #                if self.success is not True:
@@ -2662,9 +3076,9 @@ yg==
 
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_dhcp_disable_olt_detected_in_voltha(self):
+    def test_two_subscribers_with_voltha_for_dhcp_disabling_olt(self):
         """
-        Test Method:
+        Test Method: uni_port
         0. Make sure that voltha is up and running on CORD-POD setup.
         1. OLT and ONU is detected and validated.
         2. Issue  tls auth packets from CORD TESTER voltha test module acting as a subscriber..
@@ -2674,7 +3088,55 @@ yg==
         6. Disable the olt device which is detected in voltha.
         7. Verify that subscriber should not get ip from dhcp server and other subscriber ping to gateway should failed.
         """
-    def test_two_subscribers_with_voltha_for_dhcp_toggling_olt_detected_in_voltha(self):
+        df = defer.Deferred()
+        self.success = True
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT,))
+            thread2 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_2_RX_DEFAULT,))
+            thread3 = threading.Thread(target = self.voltha.disable_device, args = (device_id,False,))
+
+            thread1.start()
+            thread2.start()
+            thread3.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            thread3.join()
+            dhcp_flow_status = self.success
+            try:
+#                if self.success is not True:
+                assert_equal(dhcp_flow_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_two_subscribers_with_voltha_for_dhcp_toggling_olt(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2687,8 +3149,56 @@ yg==
         7. Verify that subscriber should not get ip from dhcp server and other subscriber ping to gateway should failed.
         8. Enable the olt device which is detected in voltha.
         9. Verify that subscriber should get ip from dhcp server and other subscriber ping to gateway should not failed.
+
         """
-    def test_two_subscribers_with_voltha_for_dhcp_pause_olt_detected_in_voltha(self):
+        df = defer.Deferred()
+        self.success = True
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT,))
+            thread2 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_2_RX_DEFAULT,))
+            thread3 = threading.Thread(target = self.voltha.restart_device, args = (device_id,))
+            thread1.start()
+            thread2.start()
+            thread3.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            thread3.join()
+            dhcp_flow_status = self.success
+            try:
+#                if self.success is not True:
+                assert_equal(dhcp_flow_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_two_subscribers_with_voltha_for_dhcp_with_paused_olt(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2700,6 +3210,54 @@ yg==
         6. Pause the olt device which is detected in voltha.
         7. Verify that subscriber should not get ip from dhcp server and other subscriber ping to gateway should failed.
         """
+        df = defer.Deferred()
+        self.success = True
+        dhcp_app =  'org.onosproject.dhcp'
+        def dhcp_flow_check_scenario(df):
+            log_test.info('Enabling ponsim_olt')
+            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+            assert_not_equal(device_id, None)
+            voltha = VolthaCtrl(self.VOLTHA_HOST,
+                                rest_port = self.VOLTHA_REST_PORT,
+                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            time.sleep(10)
+            switch_map = None
+            olt_configured = False
+            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+            log_test.info('Installing OLT app')
+            OnosCtrl.install_app(self.olt_app_file)
+            time.sleep(5)
+            log_test.info('Adding subscribers through OLT app')
+            self.config_olt(switch_map)
+            olt_configured = True
+            time.sleep(5)
+            thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT,))
+            thread2 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_2_RX_DEFAULT,))
+            thread3 = threading.Thread(target = self.voltha.pause_device, args = (device_id,))
+            thread1.start()
+            thread2.start()
+            thread3.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            thread3.join()
+            dhcp_flow_status = self.success
+            try:
+#                if self.success is not True:
+                assert_equal(dhcp_flow_status, True)
+                #assert_equal(status, True)
+                time.sleep(10)
+            finally:
+                self.voltha.disable_device(device_id, delete = True)
+                self.remove_olt(switch_map)
+            df.callback(0)
+
+        reactor.callLater(0, dhcp_flow_check_scenario, df)
+        return df
+
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request(self):
         """
         Test Method:
@@ -2710,6 +3268,7 @@ yg==
         4. Verify that subscriber get ip from external dhcp server successfully.
         """
 
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request_with_invalid_broadcast_source_mac(self):
         """
         Test Method:
@@ -2720,6 +3279,7 @@ yg==
         4. Verify that subscriber should not get ip from external dhcp server.
         """
 
+    @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request_with_invalid_multicast_source_mac(self):
         """
         Test Method:
@@ -2897,7 +3457,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_toggling_onu_port_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcpRelay_disable_enable_onu_port_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
