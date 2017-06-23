@@ -246,6 +246,22 @@ class VolthaCtrl(object):
                 return False
         return True
 
+    def restart_device(self, device_id):
+        log.info('Restarting olt or onu device %s' %(device_id))
+        disable_url = '{}/local/devices/{}/restart'.format(self.rest_url, device_id)
+        resp = requests.post(disable_url)
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        return True
+
+    def pause_device(self, device_id):
+        log.info('Restarting olt or onu device %s' %(device_id))
+        disable_url = '{}/local/devices/{}/pause'.format(self.rest_url, device_id)
+        resp = requests.post(disable_url)
+        if resp.ok is not True or resp.status_code != 200:
+            return False
+        return True
+
     def get_operational_status(self, device_id):
         url = '{}/local/devices'.format(self.rest_url)
         log.info('Checking operational status for device %s' %(device_id))
