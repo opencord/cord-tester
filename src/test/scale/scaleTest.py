@@ -17,13 +17,17 @@ import os
 import sys
 import json
 import requests
+import random
 from nose.tools import *
+from scapy.all import *
 from twisted.internet import defer
 from nose.twistedtools import reactor, deferred
 from CordTestUtils import *
 from OltConfig import OltConfig
 from onosclidriver import OnosCliDriver
 from SSHTestAgent import SSHTestAgent
+from Channels import IgmpChannel
+from IGMP import *
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
@@ -51,6 +55,25 @@ class scale_exchange(CordLogger):
     restore_methods = []
     TIMEOUT=120
     NUM_SUBSCRIBERS = 100
+    wan_intf_ip = '10.6.1.129'
+    V_INF1 = 'veth0'
+    V_INF2 = 'veth1'
+    MGROUP1 = '239.1.2.3'
+    MGROUP2 = '239.2.2.3'
+    MINVALIDGROUP1 = '255.255.255.255'
+    MINVALIDGROUP2 = '239.255.255.255'
+    MMACGROUP1 = "01:00:5e:01:02:03"
+    MMACGROUP2 = "01:00:5e:02:02:03"
+    IGMP_DST_MAC = "01:00:5e:00:00:16"
+    IGMP_SRC_MAC = "5a:e1:ac:ec:4d:a1"
+    IP_SRC = '1.2.3.4'
+    IP_DST = '224.0.0.22'
+    igmp_eth = Ether(dst = IGMP_DST_MAC, type = ETH_P_IP)
+    igmp_ip = IP(dst = IP_DST)
+    PORT_TX_DEFAULT = 2
+    PORT_RX_DEFAULT = 1
+    igmp_app = 'org.opencord.igmp'
+
 
     @classmethod
     def getSubscriberCredentials(cls, subId):
@@ -203,7 +226,7 @@ class scale_exchange(CordLogger):
         cls.vcpe_container = vcpe_container_reserved or vcpe_container
         cls.vcpe_dhcp = vcpe_dhcp_reserved or vcpe_dhcp
         VSGAccess.setUp()
-        cls.setUpCordApi()
+        #cls.setUpCordApi()
         if cls.on_pod is True:
             cls.openVCPEAccess(cls.volt_subscriber_info)
 
@@ -221,6 +244,14 @@ class scale_exchange(CordLogger):
         """Restore the vsg test configuration on test case failures"""
         for restore_method in cls.restore_methods:
             restore_method()
+
+    def get_system_cpu_usage(self):
+        """ Getting compute node CPU usage """
+        ssh_agent = SSHTestAgent(host = self.HEAD_NODE, user = self.USER, password = self.PASS)
+        cmd = "top -b -n1 | grep 'Cpu(s)' | awk '{print $2 + $4}'"
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        return float(output)
 
     def vsg_xos_subscriber_id(self, index):
 	log.info('index and its type are %s, %s'%(index, type(index)))
@@ -241,7 +272,7 @@ class scale_exchange(CordLogger):
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
         log.info('Creating tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
-        subId = ''
+        """subId = ''
         try:
             result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
             assert_equal(result, True)
@@ -265,7 +296,7 @@ class scale_exchange(CordLogger):
             log.info('Testing for external connectivity to VCPE %s' %(vcpe))
             self.vsg_for_external_connectivity(index)
         finally:
-            return subId
+            return subId"""
 
     def vsg_xos_subscriber_delete(self, index, subId = '', voltId = '', subscriber_info = None, volt_subscriber_info = None):
         if self.on_pod is False:
@@ -297,6 +328,108 @@ class scale_exchange(CordLogger):
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
         self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
 
+    def onos_load_config(self, config):
+        #log_test.info('onos load config is %s'%config)
+        status, code = OnosCtrl.config(config)
+        if status is False:
+            log_test.info('JSON request returned status %d' %code)
+            assert_equal(status, True)
+        time.sleep(2)
+
+    def onos_ssm_table_load(self, groups, src_list = ['1.2.3.4'],flag = False):
+          ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
+          ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
+          if flag: #to maintain seperate group-source pair.
+              for i in range(len(groups)):
+                  d = {}
+                  d['source'] = src_list[i] or '0.0.0.0'
+                  d['group'] = groups[i]
+                  ssm_xlate_list.append(d)
+          else:
+              for g in groups:
+                  for s in src_list:
+                      d = {}
+                      d['source'] = s or '0.0.0.0'
+                      d['group'] = g
+                      ssm_xlate_list.append(d)
+          self.onos_load_config(ssm_dict)
+          cord_port_map = {}
+          for g in groups:
+                cord_port_map[g] = (self.PORT_TX_DEFAULT, self.PORT_RX_DEFAULT)
+          IgmpChannel().cord_port_table_load(cord_port_map)
+          time.sleep(2)
+
+    def generate_random_multicast_ip_addresses(self,count=500):
+        multicast_ips = []
+        while(count >= 1):
+                ip = '.'.join([str(random.randint(224,239)),str(random.randint(1,254)),str(random.randint(1,254)),str(random.randint(1,254))])
+                if ip in multicast_ips:
+                    pass
+                else:
+                    multicast_ips.append(ip)
+                    count -= 1
+        return multicast_ips
+
+    def generate_random_unicast_ip_addresses(self,count=500):
+        unicast_ips = []
+        while(count >= 1):
+                ip = '.'.join([str(random.randint(11,126)),str(random.randint(1,254)),str(random.randint(1,254)),str(random.randint(1,254))])
+                if ip in unicast_ips:
+                    pass
+                else:
+                    unicast_ips.append(ip)
+                    count -= 1
+        return unicast_ips
+
+    def iptomac(self, mcast_ip):
+        mcast_mac =  '01:00:5e:'
+        octets = mcast_ip.split('.')
+        second_oct = int(octets[1]) & 127
+        third_oct = int(octets[2])
+        fourth_oct = int(octets[3])
+        mcast_mac = mcast_mac + format(second_oct,'02x') + ':' + format(third_oct, '02x') + ':' + format(fourth_oct, '02x')
+        return mcast_mac
+
+    def send_igmp_join(self, groups, src_list = ['1.2.3.4'], record_type=IGMP_V3_GR_TYPE_INCLUDE,
+                       ip_pkt = None, iface = 'veth0', ssm_load = False, delay = 1):
+        if ssm_load is True:
+              self.onos_ssm_table_load(groups, src_list)
+        igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
+                      gaddr=self.IP_DST)
+        for g in groups:
+              gr = IGMPv3gr(rtype= record_type, mcaddr=g)
+              gr.sources = src_list
+              igmp.grps.append(gr)
+        if ip_pkt is None:
+              ip_pkt = self.igmp_eth/self.igmp_ip
+        pkt = ip_pkt/igmp
+        IGMPv3.fixup(pkt)
+        log.info('sending igmp join packet %s'%pkt.show())
+        sendp(pkt, iface=iface)
+        time.sleep(delay)
+
+    def send_multicast_data_traffic(self, group, intf= 'veth2',source = '1.2.3.4'):
+        dst_mac = self.iptomac(group)
+        eth = Ether(dst= dst_mac)
+        ip = IP(dst=group,src=source)
+        data = repr(monotonic.monotonic())
+        sendp(eth/ip/data,count=20, iface = intf)
+
+    def verify_igmp_data_traffic(self, group, intf='veth0', source='1.2.3.4' ):
+        log_test.info('verifying multicast traffic for group %s from source %s'%(group,source))
+        self.success = False
+        def recv_task():
+            def igmp_recv_cb(pkt):
+                #log_test.info('received multicast data packet is %s'%pkt.show())
+                log_test.info('multicast data received for group %s from source %s'%(group,source))
+                self.success = True
+            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].dst == group and p[IP].src == source, count=1,timeout = 2, iface='veth0')
+        t = threading.Thread(target = recv_task)
+        t.start()
+        self.send_multicast_data_traffic(group,source=source)
+        t.join()
+        return self.success
+
     def test_scale_for_vsg_vm_creations(self):
         for index in xrange(len(self.subscriber_info)):
             #check if the index exists
@@ -322,6 +455,16 @@ class scale_exchange(CordLogger):
         if subId and subId != '0':
             self.vsg_xos_subscriber_delete(100, subId)
 
+    def test_scale_of_subcriber_vcpe_creations_in_multiple_vsg_vm(self):
+        subId = self.vsg_xos_subscriber_create(100)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(100, subId)
+
+    def test_scale_of_subcriber_vcpe_creations_with_one_vcpe_in_one_vsg_vm(self):
+        subId = self.vsg_xos_subscriber_create(100)
+        if subId and subId != '0':
+            self.vsg_xos_subscriber_delete(100, subId)
+
     def test_scale_for_cord_subscriber_creation_and_deletion(self):
         subId = self.vsg_xos_subscriber_create(100)
         if subId and subId != '0':
@@ -329,4 +472,106 @@ class scale_exchange(CordLogger):
 
     def test_cord_for_scale_of_subscriber_containers_per_compute_node(self):
         pass
+
+    def test_latency_of_cord_for_control_packets_using_icmp_packet(self):
+        cmd = "ping -c 4 {0} | tail -1| awk '{{print $4}}'".format(self.wan_intf_ip)
+        st, out = getstatusoutput(cmd)
+        if out != '':
+                out = out.split('/')
+                avg_rtt = out[1]
+                latency = float(avg_rtt)/float(2)
+        else:
+            latency = None
+        log.info('CORD setup latency calculated from icmp packet is = %s ms'%latency)
+        assert_not_equal(latency,None)
+
+    def test_latency_of_cord_for_control_packets_using_increasing_sizes_of_icmp_packet(self):
+        pckt_sizes = [100,500,1000,1500]
+        for size in pckt_sizes:
+            cmd = "ping -c 4 -s {} {} | tail -1| awk '{{print $4}}'".format(size,self.wan_intf_ip)
+            st, out = getstatusoutput(cmd)
+            if out != '':
+                out = out.split('/')
+                avg_rtt = out[1]
+                latency = float(avg_rtt)/float(2)
+            else:
+                latency = None
+            log.info('CORD setup latency calculated from icmp packet with size %s bytes is = %s ms'%(size,latency))
+            assert_not_equal(latency,None)
+
+    def test_latency_of_cord_with_traceroute(self):
+        cmd = "traceroute -q1 {} | tail -1| awk '{{print $4}}'".format(self.wan_intf_ip)
+        avg_rtt = float(0)
+        latency = None
+        for index in [1,2,3]:
+            st, out = getstatusoutput(cmd)
+            if out != '':
+                avg_rtt += float(out)
+        latency = float(avg_rtt)/float(6)
+        log.info('CORD setup latency calculated from  traceroute is = %s ms'%latency)
+        assert_not_equal(latency,0.0)
+
+    def test_scale_with_igmp_joins_for_500_multicast_groups_and_check_cpu_usage(self, group_count=500):
+        OnosCtrl(self.igmp_app).activate()
+        groups = self.generate_random_multicast_ip_addresses(count = group_count)
+        sources = self.generate_random_unicast_ip_addresses(count = group_count)
+        self.onos_ssm_table_load(groups,src_list=sources,flag=True)
+        for index in range(group_count):
+            self.send_igmp_join(groups = [groups[index]], src_list = [sources[index]],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                         iface = self.V_INF1)
+            status = self.verify_igmp_data_traffic(groups[index],intf=self.V_INF1,source=sources[index])
+            assert_equal(status, True)
+            log_test.info('data received for group %s from source %s - %d'%(groups[index],sources[index],index))
+            if index % 50 == 0:
+                cpu_usage = self.get_system_cpu_usage()
+                log.info('CPU usage is %s for multicast group entries %s'%(cpu_usage,index+1))
+
+    def test_scale_with_igmp_joins_for_1000_multicast_groups_and_check_cpu_usage(self, group_count=1000):
+        OnosCtrl(self.igmp_app).activate()
+        groups = self.generate_random_multicast_ip_addresses(count = group_count)
+        sources = self.generate_random_unicast_ip_addresses(count = group_count)
+        self.onos_ssm_table_load(groups,src_list=sources,flag=True)
+        for index in range(group_count):
+            self.send_igmp_join(groups = [groups[index]], src_list = [sources[index]],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                         iface = self.V_INF1)
+            status = self.verify_igmp_data_traffic(groups[index],intf=self.V_INF1,source=sources[index])
+            assert_equal(status, True)
+            log_test.info('data received for group %s from source %s - %d'%(groups[index],sources[index],index))
+            if index % 50 == 0:
+                cpu_usage = self.get_system_cpu_usage()
+                log.info('CPU usage is %s for multicast group entries %s'%(cpu_usage,index+1))
+
+    def test_scale_with_igmp_joins_for_2000_multicast_groups_and_check_cpu_usage(self, group_count=2000):
+        OnosCtrl(self.igmp_app).activate()
+        groups = self.generate_random_multicast_ip_addresses(count = group_count)
+        sources = self.generate_random_unicast_ip_addresses(count = group_count)
+        self.onos_ssm_table_load(groups,src_list=sources,flag=True)
+        for index in range(group_count):
+            self.send_igmp_join(groups = [groups[index]], src_list = [sources[index]],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                         iface = self.V_INF1)
+            status = self.verify_igmp_data_traffic(groups[index],intf=self.V_INF1,source=sources[index])
+            assert_equal(status, True)
+            log_test.info('data received for group %s from source %s - %d'%(groups[index],sources[index],index))
+            if index % 50 == 0:
+                cpu_usage = self.get_system_cpu_usage()
+                log.info('CPU usage is %s for multicast group entries %s'%(cpu_usage,index+1))
+
+    def test_scale_igmp_joins_for_2000_multicast_groups_and_check_cpu_usage_after_app_deactivation_and_activation(self,group_count=500):
+        OnosCtrl(self.igmp_app).activate()
+        groups = self.generate_random_multicast_ip_addresses(count = group_count)
+        sources = self.generate_random_unicast_ip_addresses(count = group_count)
+        self.onos_ssm_table_load(groups,src_list=sources,flag=True)
+        for index in range(group_count):
+            self.send_igmp_join(groups = [groups[index]], src_list = [sources[index]],record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                                         iface = self.V_INF1)
+            status = self.verify_igmp_data_traffic(groups[index],intf=self.V_INF1,source=sources[index])
+            assert_equal(status, True)
+            log_test.info('data received for group %s from source %s - %d'%(groups[index],sources[index],index))
+            if index % 50 == 0:
+                cpu_usage = self.get_system_cpu_usage()
+                log.info('CPU usage is %s for multicast group entries %s'%(cpu_usage,index+1))
+        OnosCtrl(self.igmp_app).deactivate()
+        time.sleep(1)
+        cpu_usage = self.get_system_cpu_usage()
+        log.info('CPU usage is %s for multicast group entries %s after igmp app deactivated'%(cpu_usage,index+1))
 
