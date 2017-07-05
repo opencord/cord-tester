@@ -162,7 +162,7 @@ if __name__ == '__main__':
     time.sleep(5)
     result = test.ApiDelete(key, urlSuffix)
 '''
-#'''
+'''
 test = restApi()
 #key = "UTILS_SYNCHRONIZER"
 #key = "CORE_USERS"
@@ -210,4 +210,4 @@ jsonGetData = test.ApiGet(key)
 #jsonResponse = test.ApiPost(key,input_dict)
 #jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
 print "========="
-#'''
+'''
