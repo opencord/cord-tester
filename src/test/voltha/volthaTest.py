@@ -7,6 +7,7 @@ import requests
 import threading
 from random import randint
 from threading import Timer
+from threadPool import ThreadPool
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
@@ -26,12 +27,132 @@ from scapy_ssl_tls.ssl_tls_crypto import *
 from CordTestServer import cord_test_onos_restart, cord_test_shell, cord_test_radius_restart
 from CordContainer import Onos
 
+
+class multicast_channels:
+
+      def __init__(self, port_list):
+          try:
+              self.tx_intf = self.port_map['ports'][port_list[0][0]]
+              self.rx_intf = self.port_map['ports'][port_list[0][1]]
+          except:
+              self.tx_intf = self.INTF_TX_DEFAULT
+              self.rx_intf = self.INTF_RX_DEFAULT
+          channel_start = 0
+          mcast_cb = None
+          Channels.__init__(self, num, channel_start = channel_start,
+                              iface = self.rx_intf, iface_mcast = self.tx_intf, mcast_cb = mcast_cb)
+
+          self.loginType = loginType
+          ##start streaming channels
+          self.join_map = {}
+          ##accumulated join recv stats
+          self.join_rx_stats = Stats()
+          self.recv_timeout = False
+
+
+      def channel_join_update(self, chan, join_time):
+            self.join_map[chan] = ( Stats(), Stats(), Stats(), Stats() )
+            self.channel_update(chan, self.STATS_JOIN, 1, t = join_time)
+
+      def channel_join(self, chan = 0, delay = 2):
+            '''Join a channel and create a send/recv stats map'''
+            if self.join_map.has_key(chan):
+                  del self.join_map[chan]
+            self.delay = delay
+            chan, join_time = self.join(chan)
+            self.channel_join_update(chan, join_time)
+            return chan
+
+      def channel_join_next(self, delay = 2, leave_flag = True):
+            '''Joins the next channel leaving the last channel'''
+            if self.last_chan:
+                  if self.join_map.has_key(self.last_chan):
+                        del self.join_map[self.last_chan]
+            self.delay = delay
+            chan, join_time = self.join_next(leave_flag = leave_flag)
+            self.channel_join_update(chan, join_time)
+            return chan
+
+      def channel_jump(self, delay = 2):
+            '''Jumps randomly to the next channel leaving the last channel'''
+            if self.last_chan is not None:
+                  if self.join_map.has_key(self.last_chan):
+                        del self.join_map[self.last_chan]
+            self.delay = delay
+            chan, join_time = self.jump()
+            self.channel_join_update(chan, join_time)
+            return chan
+
+      def channel_leave(self, chan = 0, force = False):
+            if self.join_map.has_key(chan):
+                  del self.join_map[chan]
+            self.leave(chan, force = force)
+
+      def channel_update(self, chan, stats_type, packets, t=0):
+            if type(chan) == type(0):
+                  chan_list = (chan,)
+            else:
+                  chan_list = chan
+            for c in chan_list:
+                  if self.join_map.has_key(c):
+                        self.join_map[c][stats_type].update(packets = packets, t = t)
+
+      def channel_receive(self, chan, cb = None, count = 1, timeout = 5):
+            log_test.info('Subscriber %s on port %s receiving from group %s, channel %d' %
+                     (self.name, self.rx_intf, self.gaddr(chan), chan))
+            r = self.recv(chan, cb = cb, count = count, timeout = timeout)
+            if len(r) == 0:
+                  log_test.info('Subscriber %s on port %s timed out' %(self.name, self.rx_intf))
+            else:
+                  log_test.info('Subscriber %s on port %s received %d packets' %(self.name, self.rx_intf, len(r)))
+            if self.recv_timeout:
+                  ##Negative test case is disabled for now
+                  assert_equal(len(r), 0)
+
+      def recv_channel_cb(self, pkt):
+            ##First verify that we have received the packet for the joined instance
+            log_test.info('Packet received for group %s, subscriber %s, port %s' %
+                     (pkt[IP].dst, self.name, self.rx_intf))
+            if self.recv_timeout:
+                  return
+            chan = self.caddr(pkt[IP].dst)
+            assert_equal(chan in self.join_map.keys(), True)
+            recv_time = monotonic.monotonic() * 1000000
+            join_time = self.join_map[chan][self.STATS_JOIN].start
+            delta = recv_time - join_time
+            self.join_rx_stats.update(packets=1, t = delta, usecs = True)
+            self.channel_update(chan, self.STATS_RX, 1, t = delta)
+            log_test.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
+
+
+class voltha_subscriber_pool:
+
+      def __init__(self, subscriber, test_cbs):
+            self.subscriber = subscriber
+            self.test_cbs = test_cbs
+
+      def pool_cb(self):
+            for cb in self.test_cbs:
+                  if cb:
+                        self.test_status = cb(self.subscriber)
+                        if self.test_status is not True:
+                           ## This is chaning for other sub status has to check again
+                           self.test_status = True
+                           log_test.info('This service is failed and other services will not run for this subscriber')
+                           break
+            log_test.info('This Subscriber is tested for multiple service eligibility ')
+            self.test_status = True
+
+
 class voltha_exchange(unittest.TestCase):
 
     OLT_TYPE = 'tibit_olt'
     OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_HOST = 'localhost'
     VOLTHA_REST_PORT = 8881
+    VOLTHA_OLT_TYPE = 'ponsim_olt'
+    VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
+    VOLTHA_IGMP_ITERATIONS = 100
     voltha = None
     success = True
     apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
@@ -158,7 +279,7 @@ yg==
                   dhcp_config[k] = config[k]
         self.onos_load_config('org.onosproject.dhcp', dhcp_dict)
 
-    def dhcp_sndrcv(self, dhcp, update_seed = False, mac = None, validation = True):
+    def dhcp_sndrcv(self, dhcp, update_seed = False, mac = None, validation = None):
         if validation:
            cip, sip = dhcp.discover(mac = mac, update_seed = update_seed)
            assert_not_equal(cip, None)
@@ -171,15 +292,18 @@ yg==
            assert_equal(sip, None)
            log_test.info('Dhcp client did not get IP from server')
 
+        if validation == 'skip':
+           cip, sip = dhcp.discover(mac = mac, update_seed = update_seed)
+
         return cip,sip
 
-    def dhcp_request(self, onu_iface = None, seed_ip = '10.10.10.1', update_seed = False, validation = True):
-        config = {'startip':'10.10.10.20', 'endip':'10.10.10.200',
+    def dhcp_request(self, onu_iface = None, seed_ip = '10.10.10.1', update_seed = False, validation = None, startip = '10.10.10.20', mac = None):
+        config = {'startip':startip, 'endip':'10.10.10.200',
                   'ip':'10.10.10.2', 'mac': "ca:fe:ca:fe:ca:fe",
                   'subnet': '255.255.255.0', 'broadcast':'10.10.10.255', 'router':'10.10.10.1'}
         self.onos_dhcp_table_load(config)
         dhcp = DHCPTest(seed_ip = seed_ip, iface =onu_iface)
-        cip, sip = self.dhcp_sndrcv(dhcp, update_seed = update_seed, validation = validation)
+        cip, sip = self.dhcp_sndrcv(dhcp, update_seed = update_seed, validation = validation, mac = mac)
         return cip, sip
 
     @classmethod
@@ -190,6 +314,7 @@ yg==
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, cls.port_list = cls.olt.olt_port_map()
         cls.switches = cls.port_map['switches']
+        cls.ponsim_ports = cls.port_map['ponsim']
         cls.num_ports = cls.port_map['num_ports']
         if cls.num_ports > 1:
               cls.num_ports -= 1 ##account for the tx port
@@ -204,7 +329,6 @@ yg==
             onos_ctrl = OnosCtrl(app)
             onos_ctrl.deactivate()
         cls.install_app_igmp()
-
     @classmethod
     def install_app_igmp(cls):
         ##Uninstall the table app on class exit
@@ -261,7 +385,6 @@ yg==
         time.sleep(30)
         return
 
-
     @classmethod
     def install_app_table(cls):
         ##Uninstall the existing app if any
@@ -290,7 +413,28 @@ yg==
     #        assert_equal(status, True)
             time.sleep(2)
 
-    def tls_flow_check(self, olt_uni_port, cert_info = None):
+    def random_ip(self,start_ip = '10.10.10.20', end_ip = '10.10.10.65'):
+        start = list(map(int, start_ip.split(".")))
+        end = list(map(int, end_ip.split(".")))
+        temp = start
+        ip_range = []
+        ip_range.append(start_ip)
+        while temp != end:
+            start[3] += 1
+            for i in (3, 2, 1):
+                if temp[i] == 255:
+                    temp[i] = 0
+                    temp[i-1] += 1
+            ip_range.append(".".join(map(str, temp)))
+        return random.choice(ip_range)
+
+    def tls_flow_check(self, olt_ports, cert_info = None):
+        if len(olt_ports[0]) >= 2:
+           olt_nni_port = olt_ports[0]
+           olt_uni_port = olt_ports[1]
+        elif len(olt_ports[0]) == 1:
+           olt_uni_port = olt_ports
+
         def tls_fail_cb():
              log_test.info('TLS verification failed')
         if cert_info is None:
@@ -332,12 +476,21 @@ yg==
         self.test_status = True
         return self.test_status
 
-    def dhcp_flow_check(self, onu_iface =None, negative_test = None):
+    def dhcp_flow_check(self, olt_ports =None, negative_test = None):
+        if len(olt_ports[0]) >= 2:
+           olt_nni_port = olt_ports[0]
+           onu_iface = olt_ports[1]
+           dhcp_server_startip = self.random_ip()
+           random_mac = '00:00:00:0a:0a:' + hex(random.randrange(50,254)).split('x')[1]
+        elif len(olt_ports[0]) == 1:
+           onu_iface = olt_ports
+           dhcp_server_startip = '10.10.10.20'
+           random_mac = None
         self.success = True
 
         if negative_test is None:
-           cip, sip = self.dhcp_request(onu_iface, update_seed = True, validation = False)
-           if not cip or sip:
+           cip, sip = self.dhcp_request(onu_iface, update_seed = True, validation = 'skip', startip = dhcp_server_startip, mac = random_mac)
+           if cip == None or sip == None:
               self.success = False
               self.test_status = False
               assert_not_equal(cip,None)
@@ -563,6 +716,186 @@ yg==
            self.test_status = True
      #      self.success =  True
         return self.test_status
+
+      def recv_channel_cb(self, pkt):
+            ##First verify that we have received the packet for the joined instance
+            chan = self.subscriber.caddr(pkt[IP].dst)
+            assert_equal(chan in self.subscriber.join_map.keys(), True)
+            recv_time = monotonic.monotonic() * 1000000
+            join_time = self.subscriber.join_map[chan][self.subscriber.STATS_JOIN].start
+            delta = recv_time - join_time
+            self.subscriber.join_rx_stats.update(packets=1, t = delta, usecs = True)
+            self.subscriber.channel_update(chan, self.subscriber.STATS_RX, 1, t = delta)
+            log_test.debug('Packet received in %.3f usecs for group %s after join' %(delta, pkt[IP].dst))
+            self.test_status = True
+
+      def traffic_verify(self, subscriber):
+           # if subscriber.has_service('TRAFFIC'):
+                  url = 'http://www.google.com'
+                  resp = requests.get(url)
+                  self.test_status = resp.ok
+                  if resp.ok == False:
+                        log_test.info('Subscriber %s failed get from url %s with status code %d'
+                                 %(subscriber.name, url, resp.status_code))
+                  else:
+                        log_test.info('GET request from %s succeeded for subscriber %s'
+                                 %(url, subscriber.name))
+                  return self.test_status
+
+      def voltha_igmp_verify(self, subscriber):
+            chan = 0
+            #if subscriber.has_service('IGMP'):
+                  ##We wait for all the subscribers to join before triggering leaves
+                  if subscriber.rx_port > 1:
+                        time.sleep(5)
+                  subscriber.channel_join(chan, delay = 0)
+                  self.num_joins += 1
+                  while self.num_joins < self.num_subscribers:
+                        time.sleep(5)
+                  log_test.info('All subscribers have joined the channel')
+                  for i in range(10):
+                        subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
+                        log_test.info('Leaving channel %d for subscriber %s' %(chan, subscriber.name))
+                        subscriber.channel_leave(chan)
+                        time.sleep(5)
+                        log_test.info('Interface %s Join RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name,subscriber.join_rx_stats))
+                        #Should not receive packets for this subscriber
+                        self.recv_timeout = True
+                        subscriber.recv_timeout = True
+                        subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
+                        subscriber.recv_timeout = False
+                        self.recv_timeout = False
+                        log_test.info('Joining channel %d for subscriber %s' %(chan, subscriber.name))
+                        subscriber.channel_join(chan, delay = 0)
+                  self.test_status = True
+                  return self.test_status
+
+      def voltha_igmp_jump_verify(self, subscriber):
+            if subscriber.has_service('IGMP'):
+                  for i in xrange(subscriber.num):
+                        log_test.info('Subscriber %s jumping channel' %subscriber.name)
+                        chan = subscriber.channel_jump(delay=0)
+                        subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1)
+                        log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
+                        time.sleep(3)
+                  log_test.info('Interface %s Jump RX stats for subscriber %s, %s' %(subscriber.iface, subscriber.name, subscriber.join_rx_stats))
+                  self.test_status = True
+                  return self.test_status
+
+
+      def voltha_igmp_next_verify(self, subscriber):
+            #if subscriber.has_service('IGMP'):
+                  for c in xrange(self.VOLTHA_IGMP_ITERATIONS):
+                        for i in xrange(subscriber.num):
+                              if i:
+                                    chan = subscriber.channel_join_next(delay=0, leave_flag = self.leave_flag)
+                                    time.sleep(0.2)
+                              else:
+                                    chan = subscriber.channel_join(i, delay=0)
+                                    time.sleep(0.2)
+                                    if subscriber.num == 1:
+                                          subscriber.channel_leave(chan)
+                              log_test.info('Joined next channel %d for subscriber %s' %(chan, subscriber.name))
+                              #subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count=1)
+                              #log_test.info('Verified receive for channel %d, subscriber %s' %(chan, subscriber.name))
+                  self.test_status = True
+                  return self.test_status
+
+    def voltha_subscribers(self, services, cbs = None, num_subscribers = 1, num_channels = 1):
+          """Test subscriber join next for channel surfing"""
+          voltha = VolthaCtrl(self.VOLTHA_HOST,
+                              rest_port = self.VOLTHA_REST_PORT,
+                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+          if self.VOLTHA_OLT_TYPE.startswith('ponsim'):
+             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+             log_test.info('Enabling ponsim olt')
+             device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
+          else:
+             log_test.info('This setup test cases is developed on ponsim olt only, hence stop execution')
+             assert_equal(False, True)
+
+          assert_not_equal(device_id, None)
+          if status == False:
+                voltha.disable_device(device_id, delete = True)
+          assert_equal(status, True)
+          time.sleep(10)
+          switch_map = None
+          olt_configured = False
+          try:
+                switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+                if not switch_map:
+                      log_test.info('No voltha devices found')
+                      return
+                log_test.info('Installing OLT app')
+                OnosCtrl.install_app(self.olt_app_file)
+                time.sleep(5)
+                log_test.info('Adding subscribers through OLT app')
+                self.config_olt(switch_map)
+                olt_configured = True
+                time.sleep(5)
+                self.num_subscribers = num_subscribers
+                self.num_channels = num_channels
+                test_status = self.subscriber_flows_check(num_subscribers = self.num_subscribers,
+                                                          num_channels = self.num_channels,
+                                                          cbs = cbs,
+                                                          port_list = self.generate_port_list(self.num_subscribers,
+                                                                                              self.num_channels),
+                                                          services = services)
+                assert_equal(test_status, True)
+          finally:
+                if switch_map is not None:
+                      if olt_configured is True:
+                            self.remove_olt(switch_map)
+                      voltha.disable_device(device_id, delete = True)
+                      time.sleep(10)
+                      log_test.info('Uninstalling OLT app')
+                      OnosCtrl.uninstall_app(self.olt_app_name)
+
+
+
+    def subscriber_flows_check( self, num_subscribers = 10, num_channels = 1,
+                                  channel_start = 0, cbs = None, port_list = [],
+                                  services = None, negative_subscriber_auth = None):
+          self.test_status = False
+          self.ovs_cleanup()
+          subscribers_count = num_subscribers
+          sub_loop_count =  num_subscribers
+          if not port_list:
+             port_list = self.generate_port_list(num_subscribers, num_channels)
+          subscriber_tx_rx_ports = []
+          for i in range(num_subscribers):
+              subscriber_tx_rx_ports.append((self.port_map['ports'][port_list[i][0]], self.port_map['ports'][port_list[i][1]]))
+          self.onos_aaa_load()
+          self.thread_pool = ThreadPool(min(100, subscribers_count), queue_size=1, wait_timeout=1)
+
+          chan_leave = False #for single channel, multiple subscribers
+          if cbs is None:
+                cbs = (self.tls_flow_check, self.dhcp_flow_check, self.igmp_flow_check)
+                chan_leave = True
+          for subscriber in subscriber_tx_rx_ports:
+                sub_loop_count = sub_loop_count - 1
+                pool_object = voltha_subscriber_pool(subscriber, cbs)
+                self.thread_pool.addTask(pool_object.pool_cb)
+          self.thread_pool.cleanUpThreads()
+          subscribers_count = 0
+          return self.test_status
+
+
+    def generate_port_list(self, subscribers, channels):
+        return self.port_list[:subscribers]
+
+
+    @classmethod
+    def ovs_cleanup(cls):
+            ##For every test case, delete all the OVS groups
+            cmd = 'ovs-ofctl del-groups br-int -OOpenFlow11 >/dev/null 2>&1'
+            try:
+                  cord_test_shell(cmd)
+                  ##Since olt config is used for this test, we just fire a careless local cmd as well
+                  os.system(cmd)
+            finally:
+                  return
+
 
     def test_olt_enable_disable(self):
         log_test.info('Enabling OLT type %s, MAC %s' %(self.OLT_TYPE, self.OLT_MAC))
@@ -1092,7 +1425,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_eap_tls_authentication_performing_multiple_times_restarting_olt(self):
+    def test_subscriber_with_voltha_for_eap_tls_authentication_performing_multiple_times_restart_of_olt(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1276,7 +1609,7 @@ yg==
 
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscriberss_with_voltha_for_eap_tls_authentication(self):
+    def test_two_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1334,7 +1667,7 @@ yg==
 
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_using_same_certificates(self):
+    def test_two_subscribers_with_voltha_for_eap_tls_authentication_using_same_certificates(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1391,7 +1724,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_initiating_invalid_tls_packets_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_eap_tls_authentication_initiating_invalid_tls_packets_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1450,7 +1783,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_initiating_invalid_cert_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_eap_tls_authentication_initiating_invalid_cert_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1509,7 +1842,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscriberss_with_voltha_for_eap_tls_authentication_with_one_uni_port_disabled(self):
+    def test_two_subscribers_with_voltha_for_eap_tls_authentication_with_one_uni_port_disabled(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -1568,6 +1901,64 @@ yg==
             df.callback(0)
         reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
+
+    def test_3_subscribers_with_voltha_for_eap_tls_authentication(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Bring up freeradius server container using CORD TESTER and make sure that ONOS have connectivity to freeradius server.
+        3. Issue auth request packets from CORD TESTER voltha test module acting as multipe subscribers (3 subscribers)
+        4. Validate that eap tls valid auth packets are being exchanged between subscriber, onos and freeradius.
+        5. Verify that subscriber is authenticated successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 3
+        num_channels = 1
+        services = ('TLS')
+        cbs = (self.tls_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                      num_subscribers = num_subscribers,
+                                      num_channels = num_channels)
+
+    def test_5_subscribers_with_voltha_for_eap_tls_authentication(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Bring up freeradius server container using CORD TESTER and make sure that ONOS have connectivity to freeradius server.
+        3. Issue auth request packets from CORD TESTER voltha test module acting as multipe subscribers (5 subscriber)
+        4. Validate that eap tls valid auth packets are being exchanged between subscriber, onos and freeradius.
+        5. Verify that subscriber is authenticated successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 5
+        num_channels = 1
+        services = ('TLS')
+        cbs = (self.tls_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                      num_subscribers = num_subscribers,
+                                      num_channels = num_channels)
+
+    def test_9_subscribers_with_voltha_for_eap_tls_authentication(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Bring up freeradius server container using CORD TESTER and make sure that ONOS have connectivity to freeradius server.
+        3. Issue auth request packets from CORD TESTER voltha test module acting as multipe subscribers (9 subscriber)
+        4. Validate that eap tls valid auth packets are being exchanged between subscriber, onos and freeradius.
+        5. Verify that subscriber is authenticated successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 9
+        num_channels = 1
+        services = ('TLS')
+        cbs = (self.tls_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_request(self):
@@ -3256,9 +3647,116 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
+    def test_3_subscribers_with_voltha_for_dhcp_discover_requests(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as multiple subscribers (3 subscribers)
+        3. Send dhcp request from residential subscrber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 3
+        num_channels = 1
+        services = ('DHCP')
+        cbs = (self.dhcp_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_5_subscribers_with_voltha_for_dhcp_discover_requests(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as multiple subscribers (5 subscribers)
+        3. Send dhcp request from residential subscrber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 5
+        num_channels = 1
+        services = ('DHCP')
+        cbs = (self.dhcp_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_9_subscribers_with_voltha_for_dhcp_discover_requests(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as multiple subscribers (9 subscribers)
+        3. Send dhcp request from residential subscrber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        """
+        """Test subscriber join next for channel surfing with 9 subscribers browsing 1 channels each"""
+        num_subscribers = 9
+        num_channels = 1
+        services = ('DHCP')
+        cbs = (self.dhcp_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_3_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as multiple subscribers (3 subscribers)
+        3. Send dhcp request from residential subscrber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 3
+        num_channels = 1
+        services = ('TLS','DHCP')
+        cbs = (self.tls_flow_check, self.dhcp_flow_check, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_5_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as multiple subscribers (5 subscribers)
+        3. Send dhcp request from residential subscrber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 5
+        num_channels = 1
+        services = ('TLS','DHCP')
+        cbs = (self.tls_flow_check, self.dhcp_flow_check, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_9_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as multiple subscribers (9 subscribers)
+        3. Send dhcp request from residential subscrber to dhcp server which is running as onos app.
+        4. Verify that subscriber get ip from dhcp server successfully.
+        """
+        """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+        num_subscribers = 9
+        num_channels = 1
+        services = ('TLS','DHCP')
+        cbs = (self.tls_flow_check, self.dhcp_flow_check, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request(self):
+    def test_subscriber_with_voltha_for_dhcpRelay_request(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3597,3 +4095,304 @@ yg==
         6. Pause the olt device which is detected in voltha.
         7. Verify that subscriber should not get ip from external dhcp server. and other subscriber ping to gateway should failed.
         """
+
+    def test_subscriber_with_voltha_for_igmp_join_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA.
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port on ONU.
+        6. Verify that multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_leave_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA.
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port on ONU.
+        6. Verify that multicast data packets are being recieved on join received uni port on ONU to cord-tester.
+        7. Send igmp leave for a multicast group address multi-group-addressA.
+        8. Verify that multicast data packets are not being recieved on leave sent uni port on ONU to cord-tester.
+        """
+    def test_subscriber_with_voltha_for_igmp_leave_and_again_join_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA.
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port on ONU.
+        6. Verify that multicast data packets are being recieved on join received uni port on ONU to cord-tester.
+        7. Send igmp leave for a multicast group address multi-group-addressA.
+        8. Verify that multicast data packets are not being recieved on leave sent uni port on ONU to cord-tester.
+        9. Repeat steps 4 to 6.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_2_groups_joins_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for multicast group addresses multi-group-addressA,multi-group-addressB
+        5. Send multicast data traffic for two groups (multi-group-addressA and multi-group-addressB) from other uni port on ONU.
+        6. Verify that 2 groups multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_2_groups_joins_and_leave_for_one_group_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for multicast group addresses multi-group-addressA,multi-group-addressB
+        5. Send multicast data traffic for two groups (multi-group-addressA and multi-group-addressB) from other uni port on ONU.
+        6. Verify that 2 groups multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        7. Send igmp leave for a multicast group address multi-group-addressA.
+        8. Verify that multicast data packets of group(multi-group-addressA) are not being recieved on leave sent uni port on ONU to cord-tester.
+        9. Verify that multicast data packets of group (multi-group-addressB) are being recieved on join sent uni port on ONU to cord-tester.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_join_different_group_src_list_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        7. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listB on ONU.
+        8. Verify that multicast data packets are not being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_change_to_exclude_src_list_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        7. Send igmp joins for a multicast group address multi-group-addressA with exclude source list src_listA
+        8. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        9. Verify that multicast data packets are not being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_change_to_allow_src_list_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source exclude list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are not being recieved on join sent uni port on ONU to cord-tester.
+        7. Send igmp joins for a multicast group address multi-group-addressA with allow source list src_listA
+        8. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        9. Verify that multicast data packets are being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+
+    def test_subscriber_with_voltha_for_igmp_change_to_block_src_list_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        7. Send igmp joins for a multicast group address multi-group-addressA with block source list src_listA
+        8. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        9. Verify that multicast data packets are not being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+    def test_subscriber_with_voltha_for_igmp_allow_new_src_list_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source exclude list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        7. Send igmp joins for a multicast group address multi-group-addressA with allow new source list src_listB
+        8. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listB on ONU.
+        9. Verify that multicast data packets are being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+    def test_subscriber_with_voltha_for_igmp_include_empty_src_list_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source exclude list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are not being recieved on join sent uni port on ONU to cord-tester.
+        7. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listB on ONU.
+        8. Verify that multicast data packets are not being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+    def test_subscribers_with_voltha_for_igmp_exclude_empty_src_list_and_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA with source exclude list src_listA
+        5. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listA on ONU.
+        6. Verify that multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        7. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listB on ONU.
+        8. Verify that multicast data packets are being recieved on join sent uni port on ONU from other source list to cord-tester.
+        """
+
+    def test_two_subscribers_with_voltha_for_igmp_join_and_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressB from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        """
+
+    def test_two_subscribers_with_voltha_for_igmp_join_leave_for_one_subscriber_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Send igmp leave for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        10. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        """
+
+    def test_two_subscribers_with_voltha_for_igmp_leave_join_for_one_subscriber_and_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp leave for a multicast group address multi-group-addressB from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast group adress (multi-group-addressA) data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast group adress (multi-group-addressB) data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Send igmp join for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        10. Verify that multicast of group (multi-group-addressA) data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast of group (multi-group-addressA) data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        12. Verify that multicast of group (multi-group-addressB) data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        """
+
+    def test_two_subscribers_with_voltha_for_igmp_with_uni_port_down_for_one_subscriber_and_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable uni_2 port which is being shown on voltha CLI.
+        10. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        """
+    def test_two_subscribers_with_voltha_for_igmp_toggling_uni_port_for_one_subscriber_and_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable uni_2 port which is being shown on voltha CLI.
+        10. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        12. Enable uni_2 port which we disable at step 9.
+        13. Repeat step 5,6 and 8.
+        """
+    def test_two_subscribers_with_voltha_for_igmp_disabling_olt_and_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable olt device which is being shown on voltha CLI.
+        10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        """
+    def test_two_subscribers_with_voltha_for_igmp_pausing_olt_and_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Pause olt device which is being shown on voltha CLI.
+        10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        """
+    def test_two_subscribers_with_voltha_for_igmp_toggling_olt_and_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable olt device which is being shown on voltha CLI.
+        10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        12. Enable olt device which is disable at step 9.
+        13. Repeat steps 4,5, 7 and 8.
+        """
+
