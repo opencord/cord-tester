@@ -34,6 +34,7 @@ from CordTestUtils import log_test as log
 from CordTestConfig import setup_module, running_on_ciab
 from OnosCtrl import OnosCtrl
 from CordContainer import Onos
+from CordSubscriberUtils import CordSubscriberUtils, XosUtils
 log.setLevel('INFO')
 
 class scale_exchange(CordLogger):
@@ -45,11 +46,11 @@ class scale_exchange(CordLogger):
     test_path = os.path.dirname(os.path.realpath(__file__))
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
     restApiXos =  None
-    subscriber_account_num = 100
-    subscriber_s_tag = 500
-    subscriber_c_tag = 500
-    subscribers_per_s_tag = 8
-    subscriber_map = {}
+    cord_subscriber = None
+    SUBSCRIBER_ACCOUNT_NUM = 100
+    SUBSCRIBER_S_TAG = 500
+    SUBSCRIBER_C_TAG = 500
+    SUBSCRIBERS_PER_S_TAG = 8
     subscriber_info = []
     volt_subscriber_info = []
     restore_methods = []
@@ -74,116 +75,15 @@ class scale_exchange(CordLogger):
     PORT_RX_DEFAULT = 1
     igmp_app = 'org.opencord.igmp'
 
-
-    @classmethod
-    def getSubscriberCredentials(cls, subId):
-        """Generate our own account num, s_tag and c_tags"""
-        if subId in cls.subscriber_map:
-            return cls.subscriber_map[subId]
-        account_num = cls.subscriber_account_num
-        cls.subscriber_account_num += 1
-        s_tag, c_tag = cls.subscriber_s_tag, cls.subscriber_c_tag
-        cls.subscriber_c_tag += 1
-        if cls.subscriber_c_tag % cls.subscribers_per_s_tag == 0:
-            cls.subscriber_s_tag += 1
-        cls.subscriber_map[subId] = account_num, s_tag, c_tag
-        return cls.subscriber_map[subId]
-
-    @classmethod
-    def getXosCredentials(cls):
-        onos_cfg = OnosCtrl.get_config()
-        if onos_cfg is None:
-            return None
-        if 'apps' in onos_cfg and \
-           'org.opencord.vtn' in onos_cfg['apps'] and \
-           'cordvtn' in onos_cfg['apps']['org.opencord.vtn'] and \
-           'xos' in onos_cfg['apps']['org.opencord.vtn']['cordvtn']:
-            xos_cfg = onos_cfg['apps']['org.opencord.vtn']['cordvtn']['xos']
-            endpoint = xos_cfg['endpoint']
-            user = xos_cfg['user']
-            password = xos_cfg['password']
-            xos_endpoints = endpoint.split(':')
-            xos_host = xos_endpoints[1][len('//'):]
-            xos_port = xos_endpoints[2][:-1]
-            #log.info('xos_host: %s, port: %s, user: %s, password: %s' %(xos_host, xos_port, user, password))
-            return dict(host = xos_host, port = xos_port, user = user, password = password)
-
-        return None
-
-    @classmethod
-    def getSubscriberConfig(cls, num_subscribers):
-        features =  {
-            'cdn': True,
-            'uplink_speed': 1000000000,
-            'downlink_speed': 1000000000,
-            'uverse': True,
-            'status': 'enabled'
-        }
-        subscriber_map = []
-        for i in xrange(num_subscribers):
-            subId = 'sub{}'.format(i)
-            account_num, _, _ = cls.getSubscriberCredentials(subId)
-            identity = { 'account_num' : str(account_num),
-                         'name' : 'My House {}'.format(i)
-                         }
-            sub_info = { 'features' : features,
-                         'identity' : identity
-                         }
-            subscriber_map.append(sub_info)
-
-        return subscriber_map
-
-    @classmethod
-    def getVoltSubscriberConfig(cls, num_subscribers):
-        voltSubscriberMap = []
-        for i in xrange(num_subscribers):
-            subId = 'sub{}'.format(i)
-            account_num, s_tag, c_tag = cls.getSubscriberCredentials(subId)
-            voltSubscriberInfo = {}
-            voltSubscriberInfo['voltTenant'] = dict(s_tag = str(s_tag),
-                                                    c_tag = str(c_tag),
-                                                    subscriber = '')
-            voltSubscriberInfo['account_num'] = account_num
-            voltSubscriberMap.append(voltSubscriberInfo)
-
-        return voltSubscriberMap
-
     @classmethod
     def setUpCordApi(cls):
-        our_path = os.path.dirname(os.path.realpath(__file__))
-        cord_api_path = os.path.join(our_path, '..', 'cord-api')
-        framework_path = os.path.join(cord_api_path, 'Framework')
-        utils_path = os.path.join(framework_path, 'utils')
-        data_path = os.path.join(cord_api_path, 'Tests', 'data')
-        subscriber_cfg = os.path.join(data_path, 'Subscriber.json')
-        volt_tenant_cfg = os.path.join(data_path, 'VoltTenant.json')
         num_subscribers = max(cls.NUM_SUBSCRIBERS, 10)
-        cls.subscriber_info = cls.getSubscriberConfig(num_subscribers)
-        cls.volt_subscriber_info = cls.getVoltSubscriberConfig(num_subscribers)
-
-        sys.path.append(utils_path)
-        sys.path.append(framework_path)
-        from restApi import restApi
-        restApiXos = restApi()
-        xos_credentials = cls.getXosCredentials()
-        if xos_credentials is None:
-            restApiXos.controllerIP = cls.HEAD_NODE
-            restApiXos.controllerPort = '9000'
-        else:
-            restApiXos.controllerIP = xos_credentials['host']
-            restApiXos.controllerPort = xos_credentials['port']
-            restApiXos.user = xos_credentials['user']
-            restApiXos.password = xos_credentials['password']
-        cls.restApiXos = restApiXos
-
-    @classmethod
-    def getVoltId(cls, result, subId):
-        if type(result) is not type([]):
-            return None
-        for tenant in result:
-            if str(tenant['subscriber']) == str(subId):
-                return str(tenant['id'])
-        return None
+        cls.cord_subscriber = CordSubscriberUtils(num_subscribers,
+                                                  account_num = cls.SUBSCRIBER_ACCOUNT_NUM,
+                                                  s_tag = cls.SUBSCRIBER_S_TAG,
+                                                  c_tag = cls.SUBSCRIBER_C_TAG,
+                                                  subscribers_per_s_tag = cls.SUBSCRIBERS_PER_S_TAG)
+        cls.restApiXos = XosUtils.getRestApi()
 
     @classmethod
     def setUpClass(cls):
@@ -226,15 +126,15 @@ class scale_exchange(CordLogger):
         cls.vcpe_container = vcpe_container_reserved or vcpe_container
         cls.vcpe_dhcp = vcpe_dhcp_reserved or vcpe_dhcp
         VSGAccess.setUp()
-        #cls.setUpCordApi()
+        cls.setUpCordApi()
         if cls.on_pod is True:
-            cls.openVCPEAccess(cls.volt_subscriber_info)
+            cls.openVCPEAccess(cls.cord_subscriber.volt_subscriber_info)
 
     @classmethod
     def tearDownClass(cls):
         VSGAccess.tearDown()
         if cls.on_pod is True:
-            cls.closeVCPEAccess(cls.volt_subscriber_info)
+            cls.closeVCPEAccess(cls.cord_subscriber.volt_subscriber_info)
 
     def log_set(self, level = None, app = 'org.onosproject'):
         CordLogger.logSet(level = level, app = app, controllers = self.controllers, forced = True)
@@ -253,41 +153,43 @@ class scale_exchange(CordLogger):
         assert_equal(status, True)
         return float(output)
 
-    def vsg_xos_subscriber_id(self, index):
-	log.info('index and its type are %s, %s'%(index, type(index)))
-        volt_subscriber_info = self.volt_subscriber_info[index]
-        result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
-        assert_not_equal(result, None)
-        subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
-        return subId
+    def vsg_for_external_connectivity(self, subscriber_index, reserved = False):
+        if reserved is True:
+            if self.on_pod is True:
+                vcpe = self.dhcp_vcpes_reserved[subscriber_index]
+            else:
+                vcpe = self.untagged_dhcp_vcpes_reserved[subscriber_index]
+        else:
+            if self.on_pod is True:
+                vcpe = self.dhcp_vcpes[subscriber_index]
+            else:
+                vcpe = self.untagged_dhcp_vcpes[subscriber_index]
+        mgmt = 'eth0'
+        host = '8.8.8.8'
+        self.success = False
+        assert_not_equal(vcpe, None)
+        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        assert_not_equal(vcpe_ip, None)
+        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
+        log.info('Sending icmp echo requests to external network 8.8.8.8')
+        st, _ = getstatusoutput('ping -c 3 8.8.8.8')
+        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        assert_equal(st, 0)
 
     def vsg_xos_subscriber_create(self, index, subscriber_info = None, volt_subscriber_info = None):
         if self.on_pod is False:
             return ''
         if subscriber_info is None:
-            subscriber_info = self.subscriber_info[index]
+            subscriber_info = self.cord_subscriber.subscriber_info[index]
         if volt_subscriber_info is None:
-            volt_subscriber_info = self.volt_subscriber_info[index]
+            volt_subscriber_info = self.cord_subscriber.volt_subscriber_info[index]
         s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
-        log.info('Creating tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
-        """subId = ''
-        try:
-            result = self.restApiXos.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
-            assert_equal(result, True)
-            result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
-            assert_not_equal(result, None)
-            subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
-            assert_not_equal(subId, '0')
-            log.info('Subscriber ID for account num %s = %s' %(str(volt_subscriber_info['account_num']), subId))
-            volt_tenant = volt_subscriber_info['voltTenant']
-            #update the subscriber id in the tenant info before making the rest
-            volt_tenant['subscriber'] = subId
-            result = self.restApiXos.ApiPost('TENANT_VOLT', volt_tenant)
-            assert_equal(result, True)
+        subId = self.cord_subscriber.subscriberCreate(index, subscriber_info, volt_subscriber_info)
+        if subId:
             #if the vsg instance was already instantiated, then reduce delay
-            if c_tag % self.subscribers_per_s_tag == 0:
+            if c_tag % self.SUBSCRIBERS_PER_S_TAG == 0:
                 delay = 350
             else:
                 delay = 90
@@ -295,38 +197,20 @@ class scale_exchange(CordLogger):
             time.sleep(delay)
             log.info('Testing for external connectivity to VCPE %s' %(vcpe))
             self.vsg_for_external_connectivity(index)
-        finally:
-            return subId"""
+
+        return subId
 
     def vsg_xos_subscriber_delete(self, index, subId = '', voltId = '', subscriber_info = None, volt_subscriber_info = None):
         if self.on_pod is False:
             return
-        if subscriber_info is None:
-            subscriber_info = self.subscriber_info[index]
-        if volt_subscriber_info is None:
-            volt_subscriber_info = self.volt_subscriber_info[index]
-        s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
-        c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
-        vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
-        log.info('Deleting tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
-        if not subId:
-            #get the subscriber id first
-            result = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
-            assert_not_equal(result, None)
-            subId = self.restApiXos.getSubscriberId(result, volt_subscriber_info['account_num'])
-            assert_not_equal(subId, '0')
-        if not voltId:
-            #get the volt id for the subscriber
-            result = self.restApiXos.ApiGet('TENANT_VOLT')
-            assert_not_equal(result, None)
-            voltId = self.getVoltId(result, subId)
-            assert_not_equal(voltId, None)
-        log.info('Deleting subscriber ID %s for account num %s' %(subId, str(volt_subscriber_info['account_num'])))
-        status = self.restApiXos.ApiDelete('TENANT_SUBSCRIBER', subId)
-        assert_equal(status, True)
-        #Delete the tenant
-        log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
-        self.restApiXos.ApiDelete('TENANT_VOLT', voltId)
+        self.cord_subscriber.subscriberDelete(index, subId = subId, voltId = voltId,
+                                              subscriber_info = subscriber_info,
+                                              volt_subscriber_info = volt_subscriber_info)
+
+    def vsg_xos_subscriber_id(self, index):
+        if self.on_pod is False:
+            return ''
+        return self.cord_subscriber.subscriberId(index)
 
     def onos_load_config(self, config):
         #log_test.info('onos load config is %s'%config)
@@ -431,7 +315,7 @@ class scale_exchange(CordLogger):
         return self.success
 
     def test_scale_for_vsg_vm_creations(self):
-        for index in xrange(len(self.subscriber_info)):
+        for index in xrange(len(self.cord_subscriber.subscriber_info)):
             #check if the index exists
             subId = self.vsg_xos_subscriber_id(index)
             log.info('test_vsg_xos_subscriber_creation')
@@ -441,7 +325,7 @@ class scale_exchange(CordLogger):
             log.info('Created Subscriber %s' %(subId))
 
     def test_scale_for_vcpe_creations(self):
-        for index in xrange(len(self.subscriber_info)):
+        for index in xrange(len(self.cord_subscriber.subscriber_info)):
             #check if the index exists
             subId = self.vsg_xos_subscriber_id(index)
             log.info('test_vsg_xos_subscriber_creation')
@@ -574,4 +458,3 @@ class scale_exchange(CordLogger):
         time.sleep(1)
         cpu_usage = self.get_system_cpu_usage()
         log.info('CPU usage is %s for multicast group entries %s after igmp app deactivated'%(cpu_usage,index+1))
-
