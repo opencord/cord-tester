@@ -19,6 +19,7 @@ from scapy_ssl_tls.ssl_tls import *
 from socket import *
 from struct import *
 import sys
+import binascii
 from nose.tools import assert_equal, assert_not_equal, assert_raises, assert_true
 from CordTestUtils import log_test
 
@@ -67,13 +68,19 @@ class EapolPacket(object):
         self.s.bind((self.intf, ETHERTYPE_PAE))
         self.mymac = self.s.getsockname()[4]
         mac = None
-        if self.src_mac_map.has_key(src_mac):
+        mac_str = None
+        if src_mac == 'random':
+            mac = RandMAC()._fix()
+        elif src_mac in self.src_mac_map:
             mac = self.src_mac_map[src_mac]
         if mac is None:
             mac = self.mymac
+            mac_str = binascii.hexlify(mac)
+        if mac_str is None:
+            mac_str = mac
         self.llheader = Ether(dst = PAE_GROUP_ADDR, src = mac, type = ETHERTYPE_PAE)
 	log_test.info('llheader packet is %s'%self.llheader.show())
-	log_test.info('source mac of  packet is %s'%mac)
+	log_test.info('source mac of  packet is %s'%mac_str)
         self.recv_sock = L2Socket(iface = self.intf, type = ETHERTYPE_PAE)
 
     def cleanup(self):

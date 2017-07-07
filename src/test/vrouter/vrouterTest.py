@@ -665,3 +665,7 @@ line vty
         time.sleep(60)
         self.vrouter_traffic_verify(positive_test = True)
         assert_equal(res, True)
+
+    def vrouter_scale(self, num_routes, peers = 1):
+        '''Called from scale test'''
+        return self.__vrouter_network_verify(num_routes, peers = peers)

@@ -436,6 +436,18 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         reactor.callLater(0, eap_tls_5k_with_diff_mac, df)
         return df
 
+    def tls_scale(self, num_sessions):
+        '''Called from scale test'''
+        def tls_session_fail_cb():
+            pass
+        for i in xrange(num_sessions):
+            tls = TLSAuthTest(src_mac = 'random', fail_cb = tls_session_fail_cb)
+            tls.runTest()
+            if tls.failTest is False:
+                log_test.info('Authentication successful for user %d'%i)
+            else:
+                log_test.info('Authentication failed for user %d' %i)
+
 if __name__ == '__main__':
     t = TLSAuthTest()
     t.runTest()

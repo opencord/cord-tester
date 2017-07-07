@@ -434,175 +434,6 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         log_test.info('Restarting ONOS with new network configuration')
         return cord_test_onos_restart(config = config)
 
-    @classmethod
-    def start_quagga(cls, networks = 4, peer_address = None, router_address = None):
-        log_test.info('Restarting Quagga container with configuration for %d networks' %(networks))
-        config = cls.generate_conf(networks = networks, peer_address = peer_address, router_address = router_address)
-        if networks <= 10000:
-            boot_delay = 25
-        else:
-            delay_map = [60, 100, 150, 200, 300, 450, 600, 800, 1000, 1200]
-            n = min(networks/100000, len(delay_map)-1)
-            boot_delay = delay_map[n]
-        cord_test_quagga_restart(config = config, boot_delay = boot_delay)
-
-    @classmethod
-    def generate_vrouter_conf(cls, networks = 4, peers = 1, peer_address = None, router_address = None):
-        num = 0
-        if peer_address is None:
-           start_peer = ( 192 << 24) | ( 168 << 16)  |  (10 << 8) | 0
-           end_peer =   ( 200 << 24 ) | (168 << 16)  |  (10 << 8) | 0
-        else:
-           ip = peer_address[0][0]
-           start_ip = ip.split('.')
-           start_peer = ( int(start_ip[0]) << 24) | ( int(start_ip[1]) << 16)  |  ( int(start_ip[2]) << 8) | 0
-           end_peer =   ((int(start_ip[0]) + 8) << 24 ) | (int(start_ip[1]) << 16)  |  (int(start_ip[2]) << 8) | 0
-        local_network = end_peer + 1
-        ports_dict = { 'ports' : {} }
-        interface_list = []
-        peer_list = []
-        for n in xrange(start_peer, end_peer, 256):
-            port_map = ports_dict['ports']
-            port = num + 1 if num < cls.MAX_PORTS - 1 else cls.MAX_PORTS - 1
-            device_port_key = '{0}/{1}'.format(cls.device_id, port)
-            try:
-                interfaces = port_map[device_port_key]['interfaces']
-            except:
-                port_map[device_port_key] = { 'interfaces' : [] }
-                interfaces = port_map[device_port_key]['interfaces']
-            ip = n + 2
-            peer_ip = n + 1
-            ips = '%d.%d.%d.%d/24'%( (ip >> 24) & 0xff, ( (ip >> 16) & 0xff ), ( (ip >> 8 ) & 0xff ), ip & 0xff)
-            peer = '%d.%d.%d.%d' % ( (peer_ip >> 24) & 0xff, ( ( peer_ip >> 16) & 0xff ), ( (peer_ip >> 8 ) & 0xff ), peer_ip & 0xff )
-            mac = RandMAC()._fix()
-            peer_list.append((peer, mac))
-            if num < cls.MAX_PORTS - 1:
-                interface_dict = { 'name' : 'b1-{}'.format(port), 'ips': [ips], 'mac' : mac }
-                interfaces.append(interface_dict)
-                interface_list.append(interface_dict['name'])
-            else:
-                interfaces[0]['ips'].append(ips)
-            num += 1
-            if num == peers:
-                break
-        quagga_dict = { 'apps': { 'org.onosproject.router' : { 'router' : {}, 'bgp' : { 'bgpSpeakers' : [] } } } }
-        quagga_router_dict = quagga_dict['apps']['org.onosproject.router']['router']
-        quagga_router_dict['ospfEnabled'] = True
-        quagga_router_dict['interfaces'] = interface_list
-        quagga_router_dict['controlPlaneConnectPoint'] = '{0}/{1}'.format(cls.device_id, peers + 1)
-
-        #bgp_speaker_dict = { 'apps': { 'org.onosproject.router' : { 'bgp' : { 'bgpSpeakers' : [] } } } }
-        bgp_speakers_list = quagga_dict['apps']['org.onosproject.router']['bgp']['bgpSpeakers']
-        speaker_dict = {}
-        speaker_dict['name'] = 'bgp{}'.format(peers+1)
-        speaker_dict['connectPoint'] = '{0}/{1}'.format(cls.device_id, peers + 1)
-        speaker_dict['peers'] = peer_list
-        bgp_speakers_list.append(speaker_dict)
-        cls.peer_list = peer_list
-        return (cls.vrouter_device_dict, ports_dict, quagga_dict)
-    @classmethod
-    def generate_conf(cls, networks = 4, peer_address = None, router_address = None):
-        num = 0
-        if router_address is None:
-            start_network = ( 11 << 24) | ( 10 << 16) | ( 10 << 8) | 0
-            end_network =   ( 172 << 24 ) | ( 0 << 16)  | (0 << 8) | 0
-            network_mask = 24
-        else:
-           ip = router_address
-           start_ip = ip.split('.')
-           network_mask = int(start_ip[3].split('/')[1])
-           start_ip[3] = (start_ip[3].split('/'))[0]
-           start_network = (int(start_ip[0]) << 24) | ( int(start_ip[1]) << 16)  |  ( int(start_ip[2]) << 8) | 0
-           end_network = (172 << 24 ) | (int(start_ip[1]) << 16)  |  (int(start_ip[2]) << 8) | 0
-        net_list = []
-        peer_list = peer_address if peer_address is not None else cls.peer_list
-        network_list = []
-        for n in xrange(start_network, end_network, 256):
-            net = '%d.%d.%d.0'%( (n >> 24) & 0xff, ( ( n >> 16) & 0xff ), ( (n >> 8 ) & 0xff ) )
-            network_list.append(net)
-            gateway = peer_list[num % len(peer_list)][0]
-            net_route = 'ip route {0}/{1} {2}'.format(net, network_mask, gateway)
-            net_list.append(net_route)
-            num += 1
-            if num == networks:
-                break
-        cls.network_list = network_list
-        cls.network_mask = network_mask
-        zebra_routes = '\n'.join(net_list)
-        #log_test.info('Zebra routes: \n:%s\n' %cls.zebra_conf + zebra_routes)
-        return cls.zebra_conf + zebra_routes
-
-    @classmethod
-    def vrouter_configure(cls, networks = 4, peers = 1, peer_address = None,
-                          route_update = None, router_address = None, time_expire = None, adding_new_routes = None):
-        vrouter_configs = cls.vrouter_config_get(networks = networks, peers = peers,
-                                                 peer_address = peer_address, route_update = route_update)
-        cls.start_onos(network_cfg = vrouter_configs)
-        cls.activate_apps()
-        time.sleep(5)
-        cls.vrouter_host_load()
-        ##Start quagga
-        cls.start_quagga(networks = networks, peer_address = peer_address, router_address = router_address)
-        return vrouter_configs
-
-    def __vrouter_network_verify(self, networks, peers = 1, positive_test = True,
-                                 start_network = None, start_peer_address = None, route_update = None,
-                                 invalid_peers = None, time_expire = None, unreachable_route_traffic = None,
-                                 deactivate_activate_vrouter = None, adding_new_routes = None):
-
-        _, ports_map, egress_map = self.vrouter_configure(networks = networks, peers = peers,
-                                                          peer_address = start_peer_address,
-                                                          route_update = route_update,
-                                                          router_address = start_network,
-                                                          time_expire = time_expire,
-                                                          adding_new_routes = adding_new_routes)
-        self.cliEnter()
-        ##Now verify
-        hosts = json.loads(self.cli.hosts(jsonFormat = True))
-        log_test.info('Discovered hosts: %s' %hosts)
-        ##We read from cli if we expect less number of routes to avoid cli timeouts
-        if networks <= 10000:
-            routes = json.loads(self.cli.routes(jsonFormat = True))
-            #log_test.info('Routes: %s' %routes)
-            if start_network is not None:
-               if start_network.split('/')[1] is 24:
-                  assert_equal(len(routes['routes4']), networks)
-               if start_network.split('/')[1] is not 24:
-                  assert_equal(len(routes['routes4']), 1)
-            if start_network is None and invalid_peers is None:
-               assert_equal(len(routes['routes4']), networks)
-            if invalid_peers is not None:
-               assert_equal(len(routes['routes4']), 0)
-            flows = json.loads(self.cli.flows(jsonFormat = True))
-            flows = filter(lambda f: f['flows'], flows)
-            #log_test.info('Flows: %s' %flows)
-            assert_not_equal(len(flows), 0)
-        if invalid_peers is None:
-            self.vrouter_traffic_verify()
-        if positive_test is False:
-            self.__vrouter_network_verify_negative(networks, peers = peers)
-        if time_expire is True:
-            self.start_quagga(networks = networks, peer_address = start_peer_address, router_address = '12.10.10.1/24')
-            self.vrouter_traffic_verify()
-        if unreachable_route_traffic is True:
-            network_list_backup = self.network_list
-            self.network_list = ['2.2.2.2','3.3.3.3','4.4.4.4','5.5.5.5']
-            self.vrouter_traffic_verify(positive_test = False)
-            self.network_list = network_list_backup
-        if deactivate_activate_vrouter is True:
-            log_test.info('Deactivating vrouter app in ONOS controller for negative scenario')
-            self.vrouter_activate(deactivate = True)
-            #routes = json.loads(self.cli.routes(jsonFormat = False, cmd_exist = False))
-            #assert_equal(len(routes['routes4']), 'Command not found')
-            log_test.info('Activating vrouter app again in ONOS controller for negative scenario')
-            self.vrouter_activate(deactivate = False)
-            routes = json.loads(self.cli.routes(jsonFormat = True))
-            assert_equal(len(routes['routes4']), networks)
-            self.vrouter_traffic_verify()
-        self.cliExit()
-        self.vrouter_host_unload()
-        return True
-
     def onos_aaa_config(self):
         aaa_dict = {'apps' : { self.app : { 'AAA' : { 'radiusSecret': 'radius_password',
                                                       'radiusIp': '172.17.0.2' } } } }
@@ -666,9 +497,9 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         cmd = "ping -c 4 {0} | tail -1| awk '{{print $4}}'".format(self.wan_intf_ip)
         st, out = getstatusoutput(cmd)
         if out != '':
-                out = out.split('/')
-                avg_rtt = out[1]
-                latency = float(avg_rtt)/float(2)
+            out = out.split('/')
+            avg_rtt = out[1]
+            latency = float(avg_rtt)/float(2)
         else:
             latency = None
         log.info('CORD setup latency calculated from icmp packet is = %s ms'%latency)
@@ -1017,27 +848,35 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         OnosCtrl(self.igmp_app).activate()
         OnosCtrl(self.acl_app).activate()
 
+    def vrouter_scale(self, num_routes, peers = 1):
+        from vrouterTest import vrouter_exchange
+        vrouter_exchange.setUpClass()
+        vrouter = vrouter_exchange('vrouter_scale')
+        res = vrouter.vrouter_scale(num_routes, peers = peers)
+        vrouter_exchange.tearDownClass()
+        assert_equal(res, True)
+
     def test_scale_for_vrouter_with_10000_routes(self):
-        res = self.__vrouter_network_verify(10000, peers = 1)
-        assert_equal(res, True)
+        self.vrouter_scale(10000, peers = 1)
 
     def test_scale_for_vrouter_with_20000_routes(self):
-        res = self.__vrouter_network_verify(20000, peers = 2)
-        assert_equal(res, True)
+        self.vrouter_scale(20000, peers = 2)
 
-    def test_scale_for_vrouter_with_20000_routes(self):
-        res = self.__vrouter_network_verify(20000, peers = 100)
-        assert_equal(res, True)
+    def test_scale_for_vrouter_with_20000_routes_100_peers(self):
+        self.vrouter_scale(20000, peers = 100)
+
+    def tls_scale(self, num_sessions):
+        from tlsTest import eap_auth_exchange
+        tls = eap_auth_exchange('tls_scale')
+        tls.setUp()
+        tls.tls_scale(num_sessions)
 
     #simulating authentication for multiple users, 5K in this test case
-    @deferred(TEST_TIMEOUT+1800)
+    @deferred(TIMEOUT+1800)
     def test_scale_of_eap_tls_with_5k_sessions_using_diff_mac(self):
         df = defer.Deferred()
         def eap_tls_5k_with_diff_mac(df):
-            for i in xrange(5000):
-                tls = TLSAuthTest(src_mac = 'random')
-                tls.runTest()
-                log_test.info('Authentication successfull for user %d'%i)
+            self.tls_scale(5000)
             df.callback(0)
         reactor.callLater(0, eap_tls_5k_with_diff_mac, df)
         return df
