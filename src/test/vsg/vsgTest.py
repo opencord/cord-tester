@@ -62,13 +62,17 @@ class vsg_exchange(CordLogger):
     NUM_SUBSCRIBERS = 5
 
     @classmethod
-    def setUpCordApi(cls):
-        num_subscribers = max(cls.NUM_SUBSCRIBERS, 5)
+    def setUpCordApi(cls, **subscriber_config):
+        num_subscribers = subscriber_config.get('num_subscribers', cls.NUM_SUBSCRIBERS)
+        account_num = subscriber_config.get('account_num', cls.SUBSCRIBER_ACCOUNT_NUM)
+        s_tag = subscriber_config.get('s_tag', cls.SUBSCRIBER_S_TAG)
+        c_tag = subscriber_config.get('c_tag', cls.SUBSCRIBER_C_TAG)
+        subscribers_per_s_tag = subscriber_config.get('subscribers_per_s_tag', cls.SUBSCRIBERS_PER_S_TAG)
         cls.cord_subscriber = CordSubscriberUtils(num_subscribers,
-                                                  account_num = cls.SUBSCRIBER_ACCOUNT_NUM,
-                                                  s_tag = cls.SUBSCRIBER_S_TAG,
-                                                  c_tag = cls.SUBSCRIBER_C_TAG,
-                                                  subscribers_per_s_tag = cls.SUBSCRIBERS_PER_S_TAG)
+                                                  account_num = account_num,
+                                                  s_tag = s_tag,
+                                                  c_tag = c_tag,
+                                                  subscribers_per_s_tag = subscribers_per_s_tag)
         cls.restApiXos = XosUtils.getRestApi()
 
     @classmethod
@@ -110,7 +114,7 @@ class vsg_exchange(CordLogger):
             OnosCtrl.config(cfg, controller = cls.HEAD_NODE)
 
     @classmethod
-    def setUpClass(cls):
+    def vsgSetup(cls, **subscriber_config):
         cls.controllers = get_controllers()
         cls.controller = cls.controllers[0]
         cls.cli = None
@@ -150,15 +154,24 @@ class vsg_exchange(CordLogger):
         cls.vcpe_container = vcpe_container_reserved or vcpe_container
         cls.vcpe_dhcp = vcpe_dhcp_reserved or vcpe_dhcp
         VSGAccess.setUp()
-        cls.setUpCordApi()
+        cls.setUpCordApi(**subscriber_config)
         if cls.on_pod is True:
             cls.openVCPEAccess(cls.cord_subscriber.volt_subscriber_info)
 
     @classmethod
-    def tearDownClass(cls):
+    def setUpClass(cls):
+        num_subscribers = max(cls.NUM_SUBSCRIBERS, 5)
+        cls.vsgSetup(num_subscribers = num_subscribers)
+
+    @classmethod
+    def vsgTeardown(cls):
         VSGAccess.tearDown()
         if cls.on_pod is True:
             cls.closeVCPEAccess(cls.cord_subscriber.volt_subscriber_info)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.vsgTeardown()
 
     def onos_shutdown(self, controller = None):
         status = True
@@ -2314,10 +2327,11 @@ class vsg_exchange(CordLogger):
                                                    volt_subscriber_info = volt_subscriber_info)
             log.info('Created reserved subscriber %s' %(subId))
 
-    def test_vsg_xos_subscriber_create_all(self):
+    def vsg_create(self, num_subscribers):
         if self.on_pod is False:
             return
-        for index in xrange(len(self.cord_subscriber.subscriber_info)):
+        num_subscribers = min(num_subscribers, len(self.cord_subscriber.subscriber_info))
+        for index in xrange(num_subscribers):
             #check if the index exists
             subId = self.vsg_xos_subscriber_id(index)
             if subId and subId != '0':
@@ -2325,13 +2339,20 @@ class vsg_exchange(CordLogger):
             subId = self.vsg_xos_subscriber_create(index)
             log.info('Created Subscriber %s' %(subId))
 
-    def test_vsg_xos_subscriber_delete_all(self):
+    def test_vsg_xos_subscriber_create_all(self):
+        self.vsg_create(len(self.cord_subscriber.subscriber_info))
+
+    def vsg_delete(self, num_subscribers):
         if self.on_pod is False:
             return
-        for index in xrange(len(self.cord_subscriber.subscriber_info)):
+        num_subscribers = min(num_subscribers, len(self.cord_subscriber.subscriber_info))
+        for index in xrange(num_subscribers):
             subId = self.vsg_xos_subscriber_id(index)
             if subId and subId != '0':
                 self.vsg_xos_subscriber_delete(index, subId = subId)
+
+    def test_vsg_xos_subscriber_delete_all(self):
+        self.vsg_delete(len(self.cord_subscriber.subscriber_info))
 
     def test_vsg_xos_subscriber_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(0)
@@ -3074,3 +3095,4 @@ class vsg_exchange(CordLogger):
 	9.Extract all dns stats
 	10.Verify dns stats for queries sent, queries received for dns host resolve success and failed scenarios
         """
+        pass

@@ -35,6 +35,7 @@ from CordTestConfig import setup_module, running_on_ciab
 from OnosCtrl import OnosCtrl
 from CordContainer import Onos
 from CordSubscriberUtils import CordSubscriberUtils, XosUtils
+from vsgTest import vsg_exchange
 log.setLevel('INFO')
 
 class scale_exchange(CordLogger):
@@ -45,14 +46,10 @@ class scale_exchange(CordLogger):
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
-    restApiXos =  None
-    cord_subscriber = None
     SUBSCRIBER_ACCOUNT_NUM = 100
     SUBSCRIBER_S_TAG = 500
     SUBSCRIBER_C_TAG = 500
     SUBSCRIBERS_PER_S_TAG = 8
-    subscriber_info = []
-    volt_subscriber_info = []
     restore_methods = []
     TIMEOUT=120
     NUM_SUBSCRIBERS = 100
@@ -115,81 +112,18 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
 7cp7jLRL7T+i4orZiAXpeEpAeOrP8r0DYTJi/8A=
 -----END CERTIFICATE-----'''
 
-
-    @classmethod
-    def setUpCordApi(cls):
-        num_subscribers = max(cls.NUM_SUBSCRIBERS, 10)
-        cls.cord_subscriber = CordSubscriberUtils(num_subscribers,
-                                                  account_num = cls.SUBSCRIBER_ACCOUNT_NUM,
-                                                  s_tag = cls.SUBSCRIBER_S_TAG,
-                                                  c_tag = cls.SUBSCRIBER_C_TAG,
-                                                  subscribers_per_s_tag = cls.SUBSCRIBERS_PER_S_TAG)
-        cls.restApiXos = XosUtils.getRestApi()
-
     @classmethod
     def setUpClass(cls):
-        cls.controllers = get_controllers()
-        cls.controller = cls.controllers[0]
-        cls.cli = None
-        cls.on_pod = running_on_pod()
-        cls.on_ciab = running_on_ciab()
-        cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
-        cls.vcpes = cls.olt.get_vcpes()
-        cls.vcpes_dhcp = cls.olt.get_vcpes_by_type('dhcp')
-        cls.vcpes_reserved = cls.olt.get_vcpes_by_type('reserved')
-        cls.dhcp_vcpes_reserved = [ 'vcpe{}.{}.{}'.format(i, cls.vcpes_reserved[i]['s_tag'], cls.vcpes_reserved[i]['c_tag'])
-                                    for i in xrange(len(cls.vcpes_reserved)) ]
-        cls.untagged_dhcp_vcpes_reserved = [ 'vcpe{}'.format(i) for i in xrange(len(cls.vcpes_reserved)) ]
-        cls.container_vcpes_reserved = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_reserved ]
-        vcpe_dhcp_reserved = None
-        vcpe_container_reserved = None
-        if cls.vcpes_reserved:
-            vcpe_dhcp_reserved = cls.dhcp_vcpes_reserved[0]
-            if cls.on_pod is False:
-                vcpe_dhcp_reserved = cls.untagged_dhcp_vcpes_reserved[0]
-            vcpe_container_reserved = cls.container_vcpes_reserved[0]
-
-        cls.vcpe_dhcp_reserved = vcpe_dhcp_reserved
-        cls.vcpe_container_reserved = vcpe_container_reserved
-        dhcp_vcpe_offset = len(cls.vcpes_reserved)
-        cls.dhcp_vcpes = [ 'vcpe{}.{}.{}'.format(i+dhcp_vcpe_offset, cls.vcpes_dhcp[i]['s_tag'], cls.vcpes_dhcp[i]['c_tag'])
-                           for i in xrange(len(cls.vcpes_dhcp))  ]
-        cls.untagged_dhcp_vcpes = [ 'vcpe{}'.format(i+dhcp_vcpe_offset) for i in xrange(len(cls.vcpes_dhcp)) ]
-        cls.container_vcpes = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_dhcp ]
-        vcpe_dhcp = None
-        vcpe_container = None
-        #cache the first dhcp vcpe in the class for quick testing
-        if cls.vcpes_dhcp:
-            vcpe_container = cls.container_vcpes[0]
-            vcpe_dhcp = cls.dhcp_vcpes[0]
-            if cls.on_pod is False:
-                vcpe_dhcp = cls.untagged_dhcp_vcpes[0]
-        cls.vcpe_container = vcpe_container_reserved or vcpe_container
-        cls.vcpe_dhcp = vcpe_dhcp_reserved or vcpe_dhcp
-        VSGAccess.setUp()
-        cls.setUpCordApi()
-        if cls.on_pod is True:
-            cls.openVCPEAccess(cls.cord_subscriber.volt_subscriber_info)
-	cls.activate_apps()
-
-    @classmethod
-    def activate_apps(cls, deactivate = False):
-        for app in cls.vrouter_apps:
-            onos_ctrl = OnosCtrl(app)
-            if deactivate is False:
-                onos_ctrl.activate()
-            else:
-                onos_ctrl.deactivate()
-            time.sleep(2)
-	OnosCtrl(cls.igmp_app).activate()
-	OnosCtrl(cls.acl_app).activate()
-	OnosCtrl(cls.aaa_app).activate()
+        num_subscribers = max(cls.NUM_SUBSCRIBERS, 10)
+        vsg_exchange.vsgSetup(num_subscribers = num_subscribers,
+                              account_num = cls.SUBSCRIBER_ACCOUNT_NUM,
+                              s_tag = cls.SUBSCRIBER_S_TAG,
+                              c_tag = cls.SUBSCRIBER_C_TAG,
+                              subscribers_per_s_tag = cls.SUBSCRIBERS_PER_S_TAG)
 
     @classmethod
     def tearDownClass(cls):
-        VSGAccess.tearDown()
-        if cls.on_pod is True:
-            cls.closeVCPEAccess(cls.cord_subscriber.volt_subscriber_info)
+        vsg_exchange.vsgTeardown()
 
     def log_set(self, level = None, app = 'org.onosproject'):
         CordLogger.logSet(level = level, app = app, controllers = self.controllers, forced = True)
@@ -207,65 +141,6 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
         status, output = ssh_agent.run_cmd(cmd)
         assert_equal(status, True)
         return float(output)
-
-    def vsg_for_external_connectivity(self, subscriber_index, reserved = False):
-        if reserved is True:
-            if self.on_pod is True:
-                vcpe = self.dhcp_vcpes_reserved[subscriber_index]
-            else:
-                vcpe = self.untagged_dhcp_vcpes_reserved[subscriber_index]
-        else:
-            if self.on_pod is True:
-                vcpe = self.dhcp_vcpes[subscriber_index]
-            else:
-                vcpe = self.untagged_dhcp_vcpes[subscriber_index]
-        mgmt = 'eth0'
-        host = '8.8.8.8'
-        self.success = False
-        assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
-        assert_not_equal(vcpe_ip, None)
-        log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
-        log.info('Sending icmp echo requests to external network 8.8.8.8')
-        st, _ = getstatusoutput('ping -c 3 8.8.8.8')
-        VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
-        assert_equal(st, 0)
-
-    def vsg_xos_subscriber_create(self, index, subscriber_info = None, volt_subscriber_info = None):
-        if self.on_pod is False:
-            return ''
-        if subscriber_info is None:
-            subscriber_info = self.cord_subscriber.subscriber_info[index]
-        if volt_subscriber_info is None:
-            volt_subscriber_info = self.cord_subscriber.volt_subscriber_info[index]
-        s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
-        c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
-        vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
-        subId = self.cord_subscriber.subscriberCreate(index, subscriber_info, volt_subscriber_info)
-        if subId:
-            #if the vsg instance was already instantiated, then reduce delay
-            if c_tag % self.SUBSCRIBERS_PER_S_TAG == 0:
-                delay = 350
-            else:
-                delay = 90
-            log.info('Delaying %d seconds for the VCPE to be provisioned' %(delay))
-            time.sleep(delay)
-            log.info('Testing for external connectivity to VCPE %s' %(vcpe))
-            self.vsg_for_external_connectivity(index)
-
-        return subId
-
-    def vsg_xos_subscriber_delete(self, index, subId = '', voltId = '', subscriber_info = None, volt_subscriber_info = None):
-        if self.on_pod is False:
-            return
-        self.cord_subscriber.subscriberDelete(index, subId = subId, voltId = voltId,
-                                              subscriber_info = subscriber_info,
-                                              volt_subscriber_info = volt_subscriber_info)
-
-    def vsg_xos_subscriber_id(self, index):
-        if self.on_pod is False:
-            return ''
-        return self.cord_subscriber.subscriberId(index)
 
     def onos_load_config(self, config):
         #log_test.info('onos load config is %s'%config)
@@ -451,44 +326,44 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
             time.sleep(3)
 
     def test_scale_for_vsg_vm_creations(self):
-        for index in xrange(len(self.cord_subscriber.subscriber_info)):
-            #check if the index exists
-            subId = self.vsg_xos_subscriber_id(index)
-            log.info('test_vsg_xos_subscriber_creation')
-            if subId and subId != '0':
-                self.vsg_xos_subscriber_delete(index, subId = subId)
-            subId = self.vsg_xos_subscriber_create(index)
-            log.info('Created Subscriber %s' %(subId))
+        vsg = vsg_exchange('test_vsg_xos_subscriber_create_all')
+        vsg.test_vsg_xos_subscriber_create_all()
 
     def test_scale_for_vcpe_creations(self):
-        for index in xrange(len(self.cord_subscriber.subscriber_info)):
-            #check if the index exists
-            subId = self.vsg_xos_subscriber_id(index)
-            log.info('test_vsg_xos_subscriber_creation')
-            if subId and subId != '0':
-                self.vsg_xos_subscriber_delete(index, subId = subId)
-            subId = self.vsg_xos_subscriber_create(index)
-            log.info('Created Subscriber %s' %(subId))
+        vsg = vsg_exchange('test_vsg_xos_subscriber_create_all')
+        vsg.test_vsg_xos_subscriber_create_all()
 
     def test_scale_of_subcriber_vcpe_creations_in_single_vsg_vm(self):
-        subId = self.vsg_xos_subscriber_create(100)
-        if subId and subId != '0':
-            self.vsg_xos_subscriber_delete(100, subId)
+        #create 100 subscribers and delete them after creation
+        vsg = vsg_exchange('vsg_create')
+        try:
+            vsg.vsg_create(100)
+        finally:
+            vsg.vsg_delete(100)
 
     def test_scale_of_subcriber_vcpe_creations_in_multiple_vsg_vm(self):
-        subId = self.vsg_xos_subscriber_create(100)
-        if subId and subId != '0':
-            self.vsg_xos_subscriber_delete(100, subId)
+        #create 100 subscribers and delete them after creation
+        vsg = vsg_exchange('vsg_create')
+        try:
+            vsg.vsg_create(100)
+        finally:
+            vsg.vsg_delete(100)
 
     def test_scale_of_subcriber_vcpe_creations_with_one_vcpe_in_one_vsg_vm(self):
-        subId = self.vsg_xos_subscriber_create(100)
-        if subId and subId != '0':
-            self.vsg_xos_subscriber_delete(100, subId)
+        #create 100 subscribers and delete them after creation
+        vsg = vsg_exchange('vsg_create')
+        try:
+            vsg.vsg_create(100)
+        finally:
+            vsg.vsg_delete(100)
 
     def test_scale_for_cord_subscriber_creation_and_deletion(self):
-        subId = self.vsg_xos_subscriber_create(100)
-        if subId and subId != '0':
-            self.vsg_xos_subscriber_delete(100, subId)
+        #create 100 subscribers and delete them after creation
+        vsg = vsg_exchange('vsg_create')
+        try:
+            vsg.vsg_create(100)
+        finally:
+            vsg.vsg_delete(100)
 
     def test_cord_for_scale_of_subscriber_containers_per_compute_node(self):
         pass
