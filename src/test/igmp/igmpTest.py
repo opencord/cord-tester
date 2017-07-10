@@ -57,7 +57,6 @@ class IGMPTestState:
 class igmp_exchange(CordLogger):
 
     V_INF1 = 'veth0'
-    V_INF2 = 'veth1'
     MGROUP1 = '239.1.2.3'
     MGROUP2 = '239.2.2.3'
     MINVALIDGROUP1 = '255.255.255.255'
@@ -85,12 +84,15 @@ class igmp_exchange(CordLogger):
 
     @classmethod
     def setUpClass(cls):
-          cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
-          cls.port_map, _ = cls.olt.olt_port_map()
-          OnosCtrl.cord_olt_config(cls.olt)
+        cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
+        cls.port_map, _ = cls.olt.olt_port_map()
+        OnosCtrl.config_device_driver()
+        OnosCtrl.cord_olt_config(cls.olt)
+        time.sleep(2)
 
     @classmethod
-    def tearDownClass(cls): pass
+    def tearDownClass(cls):
+        OnosCtrl.config_device_driver(driver = 'ovs')
 
     def setUp(self):
         ''' Activate the igmp app'''
@@ -111,6 +113,7 @@ class igmp_exchange(CordLogger):
         time.sleep(2)
 
     def onos_ssm_table_load(self, groups, src_list = ['1.2.3.4'],flag = False):
+          return
           ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
 	  if flag: #to maintain seperate group-source pair.
@@ -341,10 +344,12 @@ class igmp_exchange(CordLogger):
         igmpState = IGMPTestState(groups = groups, df = df)
         igmpStateRecv = IGMPTestState(groups = groups, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb, arg = igmpState)
+        tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+        rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+        mcastTraffic = McastTraffic(groups, iface= tx_intf, cb = self.send_mcast_cb, arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
-        self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
+        self.recv_socket = L3PacketSocket(iface = rx_intf, type = ETH_P_IP)
 
         def igmp_srp_task(stateList):
             igmpSendState, igmpRecvState = stateList
@@ -357,7 +362,7 @@ class igmp_exchange(CordLogger):
                 self.igmp_verify_join(stateList)
                 self.df.callback(0)
 
-        self.send_igmp_join(groups)
+        self.send_igmp_join(groups, iface = rx_intf)
         mcastTraffic.start()
         self.test_timer = reactor.callLater(self.MCAST_TRAFFIC_TIMEOUT, self.mcast_traffic_timer)
         reactor.callLater(0, igmp_srp_task, igmpStateList)
@@ -365,23 +370,27 @@ class igmp_exchange(CordLogger):
 
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+40)
     def test_igmp_leave_verify_traffic(self):
-        groups = [self.MGROUP1, self.MGROUP1]
-        leave_groups = ['224.0.1.10']
+        groups = [self.MGROUP1]
+        leave_groups = [self.MGROUP1]
 	self.onos_ssm_table_load(groups)
         df = defer.Deferred()
         igmpState = IGMPTestState(groups = groups, df = df)
         IGMPTestState(groups = groups, df = df)
-        mcastTraffic = McastTraffic(groups, iface= 'veth2', cb = self.send_mcast_cb,
+        tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+        rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+        mcastTraffic = McastTraffic(groups, iface= tx_intf, cb = self.send_mcast_cb,
                                     arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
-        self.recv_socket = L3PacketSocket(iface = 'veth0', type = ETH_P_IP)
+        self.recv_socket = L3PacketSocket(iface = rx_intf, type = ETH_P_IP)
 
 	mcastTraffic.start()
-	self.send_igmp_join(groups)
-	self.send_igmp_leave(leave_groups, delay = 3)
+	self.send_igmp_join(groups, iface = rx_intf)
+        time.sleep(5)
+	self.send_igmp_leave(leave_groups, delay = 3, iface = rx_intf)
+        time.sleep(10)
 	join_state = IGMPTestState(groups = leave_groups)
-	status = self.igmp_not_recv_task(self.V_INF1,leave_groups, join_state)
+	status = self.igmp_not_recv_task(rx_intf, leave_groups, join_state)
 	log_test.info('verified status for igmp recv task %s'%status)
 	assert status == 1 , 'EXPECTED RESULT'
 	self.df.callback(0)
@@ -397,6 +406,7 @@ class igmp_exchange(CordLogger):
         self.iterations = 0
         self.num_groups = len(self.groups)
         self.MAX_TEST_ITERATIONS = 10
+        rx_intf = self.port_map[self.PORT_RX_DEFAULT]
 
         def igmp_srp_task(v):
               if self.iterations < self.MAX_TEST_ITERATIONS:
@@ -405,11 +415,11 @@ class igmp_exchange(CordLogger):
                           self.num_groups = random.randint(0, len(self.groups))
                           self.send_igmp_join(self.groups[:self.num_groups],
                                               src_list = self.src_list,
-                                              iface = 'veth0', delay = 0)
+                                              iface = rx_intf, delay = 0)
                     else:
                           self.send_igmp_leave(self.groups[:self.num_groups],
                                                src_list = self.src_list,
-                                               iface = 'veth0', delay = 0)
+                                               iface = rx_intf, delay = 0)
                     self.iterations += 1
                     v ^= 1
                     reactor.callLater(1.0 + 0.5*self.num_groups,

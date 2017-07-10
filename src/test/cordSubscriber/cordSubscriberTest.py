@@ -316,17 +316,9 @@ yg==
       def setUpClass(cls):
           '''Load the OLT config and activate relevant apps'''
           cls.update_apps_version()
-          dids = OnosCtrl.get_device_ids()
-          device_map = {}
-          for did in dids:
-                device_map[did] = { 'basic' : { 'driver' : 'pmc-olt' } }
-          network_cfg = {}
-          network_cfg = { 'devices' : device_map }
-          ## Restart ONOS with cpqd driver config for OVS
-          cls.start_onos(network_cfg = network_cfg)
-          cls.install_app_table()
           cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
           if cls.VOLTHA_ENABLED is False:
+                OnosCtrl.config_device_driver()
                 OnosCtrl.cord_olt_config(cls.olt)
           cls.port_map, cls.port_list = cls.olt.olt_port_map()
           cls.switches = cls.port_map['switches']
@@ -338,12 +330,12 @@ yg==
       @classmethod
       def tearDownClass(cls):
           '''Deactivate the olt apps and restart OVS back'''
-          apps = cls.olt_apps + ( cls.table_app,)
+          apps = cls.olt_apps
           for app in apps:
               onos_ctrl = OnosCtrl(app)
               onos_ctrl.deactivate()
-          cls.start_onos(network_cfg = {})
-          cls.install_app_igmp()
+          if cls.VOLTHA_ENABLED is False:
+                OnosCtrl.config_device_driver(driver = 'ovs')
 
       @classmethod
       def activate_apps(cls, apps, deactivate = False):
@@ -355,27 +347,6 @@ yg==
                   status, _ = onos_ctrl.activate()
                   assert_equal(status, True)
                   time.sleep(2)
-
-      @classmethod
-      def install_app_table(cls):
-            ##Uninstall the existing app if any
-            OnosCtrl.uninstall_app(cls.table_app)
-            time.sleep(2)
-            log_test.info('Installing the multi table app %s for subscriber test' %(cls.table_app_file))
-            OnosCtrl.install_app(cls.table_app_file)
-            time.sleep(3)
-            #onos_ctrl = OnosCtrl(cls.vtn_app)
-            #onos_ctrl.deactivate()
-
-      @classmethod
-      def install_app_igmp(cls):
-            ##Uninstall the table app on class exit
-            OnosCtrl.uninstall_app(cls.table_app)
-            time.sleep(2)
-            log_test.info('Installing back the cord igmp app %s for subscriber test on exit' %(cls.app_file))
-            OnosCtrl.install_app(cls.app_file)
-            #onos_ctrl = OnosCtrl(cls.vtn_app)
-            #onos_ctrl.activate()
 
       @classmethod
       def start_onos(cls, network_cfg = None):
@@ -1240,13 +1211,10 @@ yg==
           """Test subscriber join and receive for channel surfing"""
           self.num_subscribers = 5
           self.num_channels = 1
-          test_status = True
-          ##Run this test only if ONOS can be restarted as it incurs a network-cfg change
-          if self.onos_restartable is True:
-                test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
-                                                          num_channels = self.num_channels,
-                                                          port_list = self.generate_port_list(self.num_subscribers,
-                                                                                              self.num_channels))
+          test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
           assert_equal(test_status, True)
 
       def test_cord_subscriber_join_jump(self):

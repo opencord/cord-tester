@@ -256,3 +256,20 @@ class OnosCtrl:
            resp = requests.post(url, auth = cls.auth, data = json_data)
            return resp.ok, resp.status_code
         return False, 400
+
+    @classmethod
+    def config_device_driver(cls, controller = None, dids = None, driver = 'pmc-olt'):
+        driver_apps = ('org.onosproject.drivers', 'org.onosproject.openflow-base',)
+        if dids is None:
+            dids = cls.get_device_ids(controller = controller)
+        device_map = {}
+        for did in dids:
+            device_map[did] = { 'basic' : { 'driver' : driver } }
+        network_cfg = { 'devices' : device_map }
+        cls.config(network_cfg)
+        for driver in driver_apps:
+            cls(driver).deactivate()
+        time.sleep(2)
+        for driver in driver_apps:
+            cls(driver).activate()
+        time.sleep(5)

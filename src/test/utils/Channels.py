@@ -90,6 +90,7 @@ class IgmpChannel:
         time.sleep(2)
 
     def ssm_table_load(self, groups):
+          return
           ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
           for g in groups:
@@ -101,6 +102,7 @@ class IgmpChannel:
           self.onos_load_config(ssm_dict)
 
     def cord_port_table_load(self, cord_port_map):
+          return
           cord_group_dict = {'apps' : { 'org.ciena.cordigmp' : { 'cordIgmpTranslate' : [] } } }
           cord_group_xlate_list = cord_group_dict['apps']['org.ciena.cordigmp']['cordIgmpTranslate']
           for group, ports in cord_port_map.items():
