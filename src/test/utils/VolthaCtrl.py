@@ -4,7 +4,7 @@ import time
 import os
 import signal
 from CordTestUtils import log_test as log, getstatusoutput, get_controller
-from CordContainer import Container
+from CordContainer import Container, Onos
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 
@@ -126,8 +126,9 @@ class VolthaService(object):
 class VolthaCtrl(object):
 
     UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
+    REST_PORT = 8881
 
-    def __init__(self, host, rest_port = 8881, uplink_vlan_map = UPLINK_VLAN_MAP):
+    def __init__(self, host, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP):
         self.host = host
         self.rest_port = rest_port
         self.rest_url = 'http://{}:{}/api/v1'.format(host, rest_port)
@@ -285,3 +286,67 @@ class VolthaCtrl(object):
         if device_info['admin_status'] == 'PREPROVISIONED':
            return True
         return False
+
+def get_olt_app():
+    our_path = os.path.dirname(os.path.realpath(__file__))
+    version = Onos.getVersion()
+    major = int(version.split('.')[0])
+    minor = int(version.split('.')[1])
+    olt_app_version = '1.2-SNAPSHOT'
+    if major > 1:
+        olt_app_version = '2.0-SNAPSHOT'
+    elif major == 1:
+        if minor > 10:
+            olt_app_version = '2.0-SNAPSHOT'
+        elif minor <= 8:
+            olt_app_version = '1.1-SNAPSHOT'
+    olt_app_file = os.path.join(our_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
+    return olt_app_file
+
+def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
+                 olt_type = 'ponsim', olt_mac = '00:0c:e2:31:12:00',
+                 uplink_vlan_map = VolthaCtrl.UPLINK_VLAN_MAP,
+                 config_fake = False, olt_app = None):
+
+    voltha = VolthaCtrl(host, rest_port = rest_port, uplink_vlan_map = uplink_vlan_map)
+    if olt_type.startswith('ponsim'):
+        ponsim_address = '{}:50060'.format(host)
+        log.info('Enabling ponsim olt')
+        device_id, status = voltha.enable_device(olt_type, address = ponsim_address)
+    else:
+        log.info('Enabling OLT instance for %s with mac %s' %(olt_type, olt_mac))
+        device_id, status = voltha.enable_device(olt_type, olt_mac)
+
+    if device_id is None or status is False:
+        voltha.disable_device(device_id)
+        return None
+
+    switch_map = None
+    olt_installed = False
+    if olt_app is None:
+        olt_app = get_olt_app()
+    try:
+        switch_map = voltha.config(fake = config_fake)
+        if switch_map is None:
+            voltha.disable_device(device_id)
+            return None
+        log.info('Installing OLT app %s' %olt_app)
+        OnosCtrl.install_app(olt_app)
+        olt_installed = True
+        time.sleep(5)
+        return voltha, device_id, switch_map
+    except:
+        voltha.disable_device(device_id)
+        time.sleep(10)
+        if olt_installed is True:
+            log.info('Uninstalling OLT app %s' %olt_app)
+            OnosCtrl.uninstall_app(olt_app)
+
+    return None
+
+def voltha_teardown(voltha_ctrl, device_id, switch_map, olt_app = None):
+    voltha_ctrl.disable_device(device_id)
+    time.sleep(10)
+    if olt_app is None:
+        olt_app = get_olt_app()
+    OnosCtrl.uninstall_app(olt_app)
