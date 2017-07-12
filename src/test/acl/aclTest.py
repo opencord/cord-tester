@@ -24,7 +24,7 @@ from CordContainer import Container, Onos
 from portmaps import g_subscriber_port_map
 from CordTestServer import cord_test_onos_restart
 from ACL import ACLTest
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, teardown_module
 import threading
 import time
 import os

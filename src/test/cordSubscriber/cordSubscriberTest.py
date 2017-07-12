@@ -27,7 +27,6 @@ import json
 import requests
 from Stats import Stats
 from OnosCtrl import OnosCtrl
-from VolthaCtrl import VolthaCtrl
 from DHCP import DHCPTest
 from EapTLS import TLSAuthTest
 from Channels import Channels, IgmpChannel
@@ -38,7 +37,7 @@ from OltConfig import *
 from CordTestServer import cord_test_onos_restart, cord_test_shell, cord_test_radius_restart
 from CordTestUtils import log_test, get_controller
 from CordLogger import CordLogger
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, teardown_module
 from CordContainer import Onos
 
 log_test.setLevel('INFO')
@@ -267,8 +266,6 @@ T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
 yg==
 -----END CERTIFICATE-----'''
 
-      #disable voltha auto configuration
-      VOLTHA_AUTO_CONFIGURE = False
       VOLTHA_HOST = None
       VOLTHA_REST_PORT = 8881
       VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
@@ -277,6 +274,9 @@ yg==
       VOLTHA_OLT_TYPE = 'simulated_olt'
       VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
       VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
+      voltha_ctrl = None
+      voltha_device = None
+      voltha_switch_map = None
 
       @classmethod
       def update_apps_version(cls):
@@ -2623,32 +2623,13 @@ yg==
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
                 return
-          voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
-          if self.VOLTHA_OLT_TYPE.startswith('ponsim'):
-                ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
-                log_test.info('Enabling ponsim olt')
-                device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
-          else:
-                log_test.info('Enabling OLT instance for %s with mac %s' %(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC))
-                device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, self.VOLTHA_OLT_MAC)
-
-          assert_not_equal(device_id, None)
-          if status == False:
-                voltha.disable_device(device_id, delete = True)
-          assert_equal(status, True)
-          time.sleep(10)
           switch_map = None
           olt_configured = False
           try:
-                switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+                switch_map = self.voltha_switch_map
                 if not switch_map:
                       log_test.info('No voltha devices found')
                       return
-                log_test.info('Installing OLT app')
-                OnosCtrl.install_app(self.olt_app_file)
-                time.sleep(5)
                 log_test.info('Adding subscribers through OLT app')
                 self.config_olt(switch_map)
                 olt_configured = True
@@ -2666,13 +2647,9 @@ yg==
                 if switch_map is not None:
                       if olt_configured is True:
                             self.remove_olt(switch_map)
-                      voltha.disable_device(device_id, delete = True)
-                      time.sleep(10)
-                      log_test.info('Uninstalling OLT app')
-                      OnosCtrl.uninstall_app(self.olt_app_name)
 
       def test_cord_subscriber_voltha_tls(self):
-          """Test subscriber join next for channel surfing"""
+          """Test subscriber TLS authentication with voltha"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
                 return
@@ -2685,7 +2662,7 @@ yg==
                                       num_channels = num_channels)
 
       def test_cord_subscriber_voltha_tls_igmp(self):
-          """Test subscriber join next for channel surfing"""
+          """Test subscriber TLS and IGMP with voltha with 1 channel"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
                 return
@@ -2698,7 +2675,7 @@ yg==
                                       num_channels = num_channels)
 
       def test_cord_subscriber_voltha_tls_igmp_3(self):
-          """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
+          """Test subscriber TLS and IGMP with voltha for channel surfing with 3 subscribers browsing 3 channels each"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
                 return

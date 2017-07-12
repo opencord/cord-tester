@@ -304,7 +304,7 @@ def get_olt_app():
     return olt_app_file
 
 def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
-                 olt_type = 'ponsim', olt_mac = '00:0c:e2:31:12:00',
+                 olt_type = 'ponsim_olt', olt_mac = '00:0c:e2:31:12:00',
                  uplink_vlan_map = VolthaCtrl.UPLINK_VLAN_MAP,
                  config_fake = False, olt_app = None):
 
@@ -318,7 +318,8 @@ def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
         device_id, status = voltha.enable_device(olt_type, olt_mac)
 
     if device_id is None or status is False:
-        voltha.disable_device(device_id)
+        if device_id:
+            voltha.disable_device(device_id)
         return None
 
     switch_map = None

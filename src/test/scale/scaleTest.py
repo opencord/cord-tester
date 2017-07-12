@@ -31,7 +31,7 @@ from IGMP import *
 from CordLogger import CordLogger
 from VSGAccess import VSGAccess
 from CordTestUtils import log_test as log
-from CordTestConfig import setup_module, running_on_ciab
+from CordTestConfig import setup_module, running_on_ciab, teardown_module
 from OnosCtrl import OnosCtrl
 from CordContainer import Onos
 from CordSubscriberUtils import CordSubscriberUtils, XosUtils

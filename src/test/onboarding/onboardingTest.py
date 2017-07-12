@@ -31,7 +31,7 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnboardingServiceUtils import OnboardingServiceUtils
 from SSHTestAgent import SSHTestAgent
-from CordTestConfig import setup_module, running_on_ciab
+from CordTestConfig import setup_module, running_on_ciab, teardown_module
 from CordLogger import CordLogger
 from CordTestUtils import *
 from CordTestUtils import log_test as log
@@ -39,7 +39,6 @@ import requests
 import time
 import json
 from VSGAccess import VSGAccess
-from CordTestConfig import setup_module, running_on_ciab
 log.setLevel('INFO')
 
 class onboarding_exchange(CordLogger):
@@ -1285,4 +1284,3 @@ class onboarding_exchange(CordLogger):
             df.callback(0)
         reactor.callLater(0,test_exampleservice,df)
         return df
-

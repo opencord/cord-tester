@@ -24,7 +24,6 @@ from OnosCtrl import OnosCtrl
 from CordLogger import CordLogger
 from CordTestUtils import log_test
 from CordTestConfig import setup_module, teardown_module
-from VolthaCtrl import VolthaCtrl
 from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *

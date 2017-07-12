@@ -11,7 +11,7 @@ from threadPool import ThreadPool
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, teardown_module
 from CordTestUtils import log_test
 from VolthaCtrl import VolthaCtrl
 from CordTestUtils import log_test, get_controller
@@ -167,6 +167,7 @@ class voltha_exchange(unittest.TestCase):
     #onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
     onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
+    VOLTHA_AUTO_CONFIGURE = False
     VOLTHA_ENABLED  = True
     INTF_TX_DEFAULT = 'veth2'
     INTF_RX_DEFAULT = 'veth0'
@@ -4395,4 +4396,3 @@ yg==
         12. Enable olt device which is disable at step 9.
         13. Repeat steps 4,5, 7 and 8.
         """
-

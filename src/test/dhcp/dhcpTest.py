@@ -24,7 +24,7 @@ from OltConfig import *
 from OnosCtrl import OnosCtrl
 from portmaps import g_subscriber_port_map
 from CordLogger import CordLogger
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, teardown_module
 from CordTestUtils import log_test
 log_test.setLevel('INFO')
 

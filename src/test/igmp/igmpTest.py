@@ -28,7 +28,7 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from Channels import IgmpChannel
 from CordLogger import CordLogger
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, teardown_module
 from CordTestUtils import log_test
 
 log_test.setLevel('INFO')

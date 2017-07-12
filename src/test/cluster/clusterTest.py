@@ -34,7 +34,7 @@ from EapTLS import TLSAuthTest
 from ACL import ACLTest
 from OnosLog import OnosLog
 from CordLogger import CordLogger
-from CordTestConfig import setup_module
+from CordTestConfig import setup_module, teardown_module
 import os
 import json
 import random

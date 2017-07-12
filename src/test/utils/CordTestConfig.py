@@ -78,7 +78,7 @@ def setup_module(module):
     voltha_attrs = dict(host='172.17.0.1',
                         rest_port = 8881,
                         config_fake = False,
-                        olt_type = 'ponsim',
+                        olt_type = 'ponsim_olt',
                         olt_mac = '00:0c:e2:31:12:00',
                         uplink_vlan_map = { 'of:0000000000000001' : '222' }
                         )
