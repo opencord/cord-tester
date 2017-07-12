@@ -349,4 +349,5 @@ def voltha_teardown(voltha_ctrl, device_id, switch_map, olt_app = None):
     time.sleep(10)
     if olt_app is None:
         olt_app = get_olt_app()
+    log.info('Uninstalling OLT app %s' %olt_app)
     OnosCtrl.uninstall_app(olt_app)

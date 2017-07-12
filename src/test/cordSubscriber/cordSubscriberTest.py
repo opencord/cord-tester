@@ -267,6 +267,8 @@ T1tJBrgI7/WI+dqhKBFolKGKTDWIHsZXQvZ1snGu/FRYzg1l+R/jT8cRB9BDwhUt
 yg==
 -----END CERTIFICATE-----'''
 
+      #disable voltha auto configuration
+      VOLTHA_AUTO_CONFIGURE = False
       VOLTHA_HOST = None
       VOLTHA_REST_PORT = 8881
       VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }

@@ -6,6 +6,7 @@ from nose.tools import assert_not_equal
 from nose.plugins import Plugin
 from CordTestUtils import log_test as log
 from CordTestUtils import running_on_pod
+from VolthaCtrl import voltha_setup, voltha_teardown
 from SSHTestAgent import SSHTestAgent
 log.setLevel('INFO')
 
@@ -49,7 +50,7 @@ class CordTestConfigRestore(Plugin):
     def addFailure(self, test, exception):
         self.doFailure(test, exception)
 
-def setup_module(module):
+def get_test_class(module):
     class_test = None
     for name, obj in inspect.getmembers(module):
         if inspect.isclass(obj) and issubclass(obj, unittest.TestCase):
@@ -59,6 +60,10 @@ def setup_module(module):
             else:
                 class_test = obj
 
+    return class_test
+
+def setup_module(module):
+    class_test = get_test_class(module)
     assert_not_equal(class_test, None)
     module_name = module.__name__.split('.')[-1]
     cfg = '{}.json'.format(module_name)
@@ -68,6 +73,47 @@ def setup_module(module):
             json_data = json.load(f)
             for k, v in json_data.iteritems():
                 setattr(class_test, k, v)
+
+    #check for voltha and configure as appropriate
+    voltha_attrs = dict(host='172.17.0.1',
+                        rest_port = 8881,
+                        config_fake = False,
+                        olt_type = 'ponsim',
+                        olt_mac = '00:0c:e2:31:12:00',
+                        uplink_vlan_map = { 'of:0000000000000001' : '222' }
+                        )
+    voltha_enabled = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
+    voltha_configure = True
+    if hasattr(class_test, 'VOLTHA_AUTO_CONFIGURE'):
+        voltha_configure = getattr(class_test, 'VOLTHA_AUTO_CONFIGURE')
+
+    if voltha_enabled and voltha_configure:
+        for k,v in voltha_attrs.iteritems():
+            voltha_attr = 'VOLTHA_{}'.format(k.upper())
+            if hasattr(class_test, voltha_attr):
+                v = getattr(class_test, voltha_attr)
+                voltha_attrs[k] = v
+            else:
+                setattr(class_test, voltha_attr, v)
+        ret = voltha_setup(**voltha_attrs)
+        if ret is not None:
+            #setup the stage to drop voltha on the way out
+            setattr(class_test, 'voltha_ctrl', ret[0])
+            setattr(class_test, 'voltha_device', ret[1])
+            setattr(class_test, 'voltha_switch_map', ret[2])
+
+def teardown_module(module):
+    class_test = get_test_class(module)
+    if class_test is None:
+        return
+    if not hasattr(class_test, 'voltha_ctrl') or \
+       not hasattr(class_test, 'voltha_device') or \
+       not hasattr(class_test, 'voltha_switch_map'):
+        return
+    voltha_ctrl = getattr(class_test, 'voltha_ctrl')
+    voltha_device = getattr(class_test, 'voltha_device')
+    voltha_switch_map = getattr(class_test, 'voltha_switch_map')
+    voltha_teardown(voltha_ctrl, voltha_device, voltha_switch_map)
 
 def running_on_ciab():
     if running_on_pod() is False:

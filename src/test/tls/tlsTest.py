@@ -23,8 +23,8 @@ from EapTLS import TLSAuthTest
 from OnosCtrl import OnosCtrl
 from CordLogger import CordLogger
 from CordTestUtils import log_test
-from CordTestConfig import setup_module
-from VolthaCtrl import VolthaCtrl, voltha_setup, voltha_teardown
+from CordTestConfig import setup_module, teardown_module
+from VolthaCtrl import VolthaCtrl
 from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
@@ -41,9 +41,6 @@ class eap_auth_exchange(CordLogger):
     VOLTHA_OLT_TYPE = 'simulated_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
-    voltha_device = None
-    voltha_ctrl = None
-    voltha_switch_map = None
     #this is from ca.pem file
     CLIENT_CERT_INVALID = '''-----BEGIN CERTIFICATE-----
 MIIEyTCCA7GgAwIBAgIJAN3OagiHm6AXMA0GCSqGSIb3DQEBCwUAMIGLMQswCQYD
@@ -85,24 +82,6 @@ dxOocmYdGFIAT9AiRnR4Jc/hqabBVNMZlGAA+2dELajpaHqb4yx5gBLVkT7VgHjI
                              'TLS_DHE_RSA_WITH_AES_256_CBC_SHA256',
                              'TLS_DH_anon_WITH_AES_256_CBC_SHA256']
 
-
-    @classmethod
-    def setUpClass(cls):
-        #activate the device if voltha was enabled
-        if cls.VOLTHA_ENABLED is False or cls.VOLTHA_HOST is None:
-            return
-        ret = voltha_setup(host = cls.VOLTHA_HOST,
-                           rest_port = cls.VOLTHA_REST_PORT,
-                           olt_type = cls.VOLTHA_OLT_TYPE,
-                           olt_mac = cls.VOLTHA_OLT_MAC,
-                           uplink_vlan_map = cls.VOLTHA_UPLINK_VLAN_MAP)
-        if ret is not None:
-            cls.voltha_ctrl, cls.voltha_device, cls.voltha_switch_map = ret[0], ret[1], ret[2]
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls.voltha_ctrl and cls.voltha_device:
-            voltha_teardown(cls.voltha_ctrl, cls.voltha_device, cls.voltha_switch_map)
 
     def setUp(self):
         super(eap_auth_exchange, self).setUp()
