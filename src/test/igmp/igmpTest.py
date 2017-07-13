@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from twisted.internet import defer
 from nose.tools import *
 from nose.twistedtools import reactor, deferred
-from twisted.internet import defer
 from scapy.all import *
+from select import select as socket_select
 import time, monotonic
 import os
 import random
@@ -30,7 +31,6 @@ from Channels import IgmpChannel
 from CordLogger import CordLogger
 from CordTestConfig import setup_module, teardown_module
 from CordTestUtils import log_test
-
 log_test.setLevel('INFO')
 
 class IGMPTestState:
@@ -81,18 +81,21 @@ class igmp_exchange(CordLogger):
     ROVER_TEST_TIMEOUT = 300 #3600*86
     ROVER_TIMEOUT = (ROVER_TEST_TIMEOUT - 100)
     ROVER_JOIN_TIMEOUT = 60
+    VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
 
     @classmethod
     def setUpClass(cls):
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, _ = cls.olt.olt_port_map()
-        OnosCtrl.config_device_driver()
-        OnosCtrl.cord_olt_config(cls.olt)
+        if cls.VOLTHA_ENABLED is False:
+            OnosCtrl.config_device_driver()
+            OnosCtrl.cord_olt_config(cls.olt)
         time.sleep(2)
 
     @classmethod
     def tearDownClass(cls):
-        OnosCtrl.config_device_driver(driver = 'ovs')
+        if cls.VOLTHA_ENABLED is False:
+            OnosCtrl.config_device_driver(driver = 'ovs')
 
     def setUp(self):
         ''' Activate the igmp app'''
@@ -239,6 +242,7 @@ class igmp_exchange(CordLogger):
         log_test.info('IGMP test verification success')
 
     def mcast_traffic_timer(self):
+          log_test.info('MCAST traffic timer expiry')
           self.mcastTraffic.stopReceives()
 
     def send_mcast_cb(self, send_state):
@@ -247,16 +251,18 @@ class igmp_exchange(CordLogger):
         return 0
 
     ##Runs in the context of twisted reactor thread
-    def igmp_recv(self, igmpState, iface = 'veth0'):
-        p = self.recv_socket.recv()
-        try:
-              send_time = float(p.payload.load)
-              recv_time = monotonic.monotonic()
-        except:
-              log_test.info('Unexpected Payload received: %s' %p.payload.load)
-              return 0
-        #log_test.info( 'Recv in %.6f secs' %(recv_time - send_time))
-        igmpState.update(p.dst, rx = 1, t = recv_time - send_time)
+    def igmp_recv(self, igmpState):
+        s = socket_select([self.recv_socket], [], [], 1.0)
+        if self.recv_socket in s[0]:
+              p = self.recv_socket.recv()
+              try:
+                    send_time = float(p.payload.load)
+                    recv_time = monotonic.monotonic()
+              except:
+                    log_test.info('Unexpected Payload received: %s' %p.payload.load)
+                    return 0
+              #log_test.info( 'Recv in %.6f secs' %(recv_time - send_time))
+              igmpState.update(p.dst, rx = 1, t = recv_time - send_time)
         return 0
 
     def send_igmp_join(self, groups, src_list = ['1.2.3.4'], record_type=IGMP_V3_GR_TYPE_INCLUDE,
@@ -336,7 +342,7 @@ class igmp_exchange(CordLogger):
         if delay != 0:
             time.sleep(delay)
 
-    @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
+    @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
     def test_igmp_join_verify_traffic(self):
         groups = [self.MGROUP1, self.MGROUP1]
 	self.onos_ssm_table_load(groups)
@@ -358,6 +364,8 @@ class igmp_exchange(CordLogger):
                 reactor.callLater(0, igmp_srp_task, stateList)
             else:
                 self.mcastTraffic.stop()
+                #log_test.info('Sending IGMP leave for groups: %s' %groups)
+                self.send_igmp_leave(groups, iface = rx_intf, delay = 2)
                 self.recv_socket.close()
                 self.igmp_verify_join(stateList)
                 self.df.callback(0)
