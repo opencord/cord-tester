@@ -41,26 +41,32 @@ class IgmpChannel:
     igmp_ip = IP(dst = IP_DST, src = IP_SRC)
     ssm_list = []
 
-    def __init__(self, iface = 'veth0', ssm_list = [], src_list = ['1.2.3.4'], delay = 2,controller=None):
+    def __init__(self, iface = 'veth0', ssm_list = [], src_list = None, delay = 2,controller=None):
+
 	self.controller=controller
         self.iface = iface
         self.ssm_list += ssm_list
-        self.src_list = src_list
+        if src_list is None:
+           self.src_list = ['1.2.3.4']
+        else:
+            self.src_list = src_list
         self.delay = delay
         self.onos_ctrl = OnosCtrl('org.opencord.igmp',controller=self.controller)
         self.onos_ctrl.activate()
 
-    def igmp_load_ssm_config(self, ssm_list = []):
+    def igmp_load_ssm_config(self, ssm_list = [], src_list = None):
         if not ssm_list:
             ssm_list = self.ssm_list
-        self.ssm_table_load(ssm_list)
+        self.ssm_table_load(ssm_list, src_list = src_list)
 
-    def igmp_join(self, groups):
+    def igmp_join(self, groups, src_list = None, record_type = None):
+        if record_type is None:
+           record_type = IGMP_V3_GR_TYPE_INCLUDE
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_INCLUDE, mcaddr=g)
-              gr.sources = self.src_list
+              gr = IGMPv3gr(rtype=record_type, mcaddr=g)
+              gr.sources = src_list
               igmp.grps.append(gr)
 
         pkt = self.igmp_eth/self.igmp_ip/igmp
@@ -69,12 +75,12 @@ class IgmpChannel:
         if self.delay != 0:
             time.sleep(self.delay)
 
-    def igmp_leave(self, groups):
+    def igmp_leave(self, groups, src_list = None):
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
               gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
-              gr.sources = self.src_list
+              gr.sources = src_list
               igmp.grps.append(gr)
 
         pkt = self.igmp_eth/self.igmp_ip/igmp
@@ -89,12 +95,11 @@ class IgmpChannel:
             log_test.info('JSON config request returned status %d' %code)
         time.sleep(2)
 
-    def ssm_table_load(self, groups):
-          return
+    def ssm_table_load(self, groups, src_list = None):
           ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
           for g in groups:
-                for s in self.src_list:
+                for s in src_list:
                       d = {}
                       d['source'] = s
                       d['group'] = g
@@ -102,7 +107,6 @@ class IgmpChannel:
           self.onos_load_config(ssm_dict)
 
     def cord_port_table_load(self, cord_port_map):
-          return
           cord_group_dict = {'apps' : { 'org.ciena.cordigmp' : { 'cordIgmpTranslate' : [] } } }
           cord_group_xlate_list = cord_group_dict['apps']['org.ciena.cordigmp']['cordIgmpTranslate']
           for group, ports in cord_port_map.items():
@@ -118,7 +122,7 @@ class Channels(IgmpChannel):
     Started = 1
     Idle = 0
     Joined = 1
-    def __init__(self, num, channel_start = 0, iface = 'veth0', iface_mcast = 'veth2', mcast_cb = None):
+    def __init__(self, num, channel_start = 0, iface = 'veth0', iface_mcast = 'veth2', mcast_cb = None, src_list = None):
         self.num = num
         self.channel_start = channel_start
         self.channels = self.generate(self.num, self.channel_start)
@@ -132,9 +136,10 @@ class Channels(IgmpChannel):
         self.last_chan = None
         self.iface_mcast = iface_mcast
         self.mcast_cb = mcast_cb
+        self.src_list = src_list
         for c in range(self.num):
             self.channel_states[c] = [self.Idle]
-        IgmpChannel.__init__(self, ssm_list = self.channels, iface=iface)
+        IgmpChannel.__init__(self, ssm_list = self.channels, iface=iface, src_list = src_list)
 
     def generate(self, num, channel_start = 0):
         start = (225 << 24) | ( ( (channel_start >> 16) & 0xff) << 16 ) | \
@@ -162,7 +167,8 @@ class Channels(IgmpChannel):
             self.streams.start()
             self.state = self.Started
 
-    def join(self, chan = None):
+    def join(self, chan = None, src_list = None, record_type = None):
+    #def join(self, chan = None):
         if chan is None:
             chan = random.randint(0, self.num)
         else:
@@ -171,15 +177,14 @@ class Channels(IgmpChannel):
 
         if self.get_state(chan) == self.Joined:
             return chan, 0
-
         groups = [self.channels[chan]]
         join_start = monotonic.monotonic()
-        self.igmp_join(groups)
+        self.igmp_join(groups, src_list = src_list, record_type = record_type)
         self.set_state(chan, self.Joined)
         self.last_chan = chan
         return chan, join_start
 
-    def leave(self, chan, force = False):
+    def leave(self, chan, force = False, src_list = None):
         if chan is None:
             chan = self.last_chan
         if chan is None or chan >= self.num:
@@ -187,7 +192,7 @@ class Channels(IgmpChannel):
         if force is False and self.get_state(chan) != self.Joined:
             return False
         groups = [self.channels[chan]]
-        self.igmp_leave(groups)
+        self.igmp_leave(groups, src_list = src_list)
         self.set_state(chan, self.Idle)
         if chan == self.last_chan:
             self.last_chan = None
@@ -199,7 +204,7 @@ class Channels(IgmpChannel):
             if chan is None:
                 return None
             leave = chan
-            join = chan+1
+            join  = chan+1
         else:
             leave = chan - 1
             join = chan
@@ -237,14 +242,20 @@ class Channels(IgmpChannel):
             return self.group_channel_map[group]
         return None
 
-    def recv_cb(self, pkt):
+    def recv_cb(self, pkt, src_list = None):
         '''Default channel receive callback'''
         log_test.debug('Received packet from source %s, destination %s' %(pkt[IP].src, pkt[IP].dst))
-        send_time = float(pkt[IP].payload.load)
-        recv_time = monotonic.monotonic()
-        log_test.debug('Packet received in %.3f usecs' %(recv_time - send_time))
+        if src_list is None:
+           send_time = float(pkt[IP].payload.load)
+           recv_time = monotonic.monotonic()
+           log_test.debug('Packet received in %.3f usecs' %(recv_time - send_time))
+        elif(pkt[IP].src == src_list[0]):
+           log_test.debug('Received packet from specified source %s, destination %s' %(pkt[IP].src, pkt[IP].dst))
+        elif(pkt[IP].src != src_list[0]):
+           log_test.debug('Received packet not from specified source %s, destination %s' %(pkt[IP].src, pkt[IP].dst))
+           time.sleep(60)
 
-    def recv(self, chan, cb = None, count = 1, timeout = 5):
+    def recv(self, chan, cb = None, count = 1, timeout = 5, src_list = None):
         if chan is None:
             return None
         if type(chan) == type([]) or type(chan) == type(()):
@@ -253,7 +264,7 @@ class Channels(IgmpChannel):
         else:
             groups = (self.gaddr(chan),)
         if cb is None:
-            cb = self.recv_cb
+            cb = self.recv_cb(src_list = src_list)
         return sniff(prn = cb, count=count, timeout = timeout,
                      lfilter = lambda p: IP in p and p[IP].dst in groups, iface = bytes(self.iface[:15]))
 
@@ -273,11 +284,11 @@ if __name__ == '__main__':
     start = 0
     ssm_list = []
     for i in xrange(2):
-        channels = Channels(num, start)
+        channels = Channels(num, start, src_list = src_list)
         ssm_list += channels.channels
         start += num
-    igmpChannel = IgmpChannel()
-    igmpChannel.igmp_load_ssm_config(ssm_list)
+    igmpChannel = IgmpChannel(src_list = src_list)
+    igmpChannel.igmp_load_ssm_config(ssm_list, src_list)
     channels.start()
     for i in range(num):
         channels.join(i)
