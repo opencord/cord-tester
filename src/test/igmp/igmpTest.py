@@ -72,7 +72,7 @@ class igmp_exchange(CordLogger):
     igmp_ip = IP(dst = IP_DST)
     IGMP_TEST_TIMEOUT = 5
     IGMP_QUERY_TIMEOUT = 60
-    MCAST_TRAFFIC_TIMEOUT = 10
+    MCAST_TRAFFIC_TIMEOUT = 20
     PORT_TX_DEFAULT = 2
     PORT_RX_DEFAULT = 1
     max_packets = 100
@@ -342,7 +342,7 @@ class igmp_exchange(CordLogger):
         if delay != 0:
             time.sleep(delay)
 
-    @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+20)
+    @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmp_join_verify_traffic(self):
         groups = [self.MGROUP1, self.MGROUP1]
 	self.onos_ssm_table_load(groups)
