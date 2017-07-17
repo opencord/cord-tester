@@ -55,11 +55,15 @@ class IgmpChannel:
         self.onos_ctrl.activate()
 
     def igmp_load_ssm_config(self, ssm_list = [], src_list = None):
+        if src_list is None:
+            src_list = self.src_list
         if not ssm_list:
             ssm_list = self.ssm_list
         self.ssm_table_load(ssm_list, src_list = src_list)
 
     def igmp_join(self, groups, src_list = None, record_type = None):
+        if src_list is None:
+            src_list = self.src_list
         if record_type is None:
            record_type = IGMP_V3_GR_TYPE_INCLUDE
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
@@ -76,6 +80,8 @@ class IgmpChannel:
             time.sleep(self.delay)
 
     def igmp_leave(self, groups, src_list = None):
+        if src_list is None:
+            src_list = self.src_list
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr='224.0.1.1')
         for g in groups:
@@ -96,6 +102,9 @@ class IgmpChannel:
         time.sleep(2)
 
     def ssm_table_load(self, groups, src_list = None):
+          return
+          if src_list is None:
+              src_list = self.src_list
           ssm_dict = {'apps' : { 'org.opencord.igmp' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.opencord.igmp']['ssmTranslate']
           for g in groups:
@@ -107,6 +116,7 @@ class IgmpChannel:
           self.onos_load_config(ssm_dict)
 
     def cord_port_table_load(self, cord_port_map):
+          return
           cord_group_dict = {'apps' : { 'org.ciena.cordigmp' : { 'cordIgmpTranslate' : [] } } }
           cord_group_xlate_list = cord_group_dict['apps']['org.ciena.cordigmp']['cordIgmpTranslate']
           for group, ports in cord_port_map.items():
@@ -283,6 +293,7 @@ if __name__ == '__main__':
     num = 5
     start = 0
     ssm_list = []
+    src_list = [ '1.2.3.4' ]
     for i in xrange(2):
         channels = Channels(num, start, src_list = src_list)
         ssm_list += channels.channels
