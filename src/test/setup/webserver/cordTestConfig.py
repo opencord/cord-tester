@@ -4,10 +4,58 @@ import httplib
 import json
 import os
 import sys
+import copy
+
+class CordTesterRun(object):
+    our_path = os.path.dirname(os.path.realpath(__file__))
+    exec_base = os.path.realpath(os.path.join(our_path, '..'))
+
+    @classmethod
+    def start(cls, manifest):
+        status = False
+        manifest_file = os.path.join(cls.exec_base, manifest)
+        if os.access(manifest_file, os.F_OK):
+            cmd = 'sudo {}/cord-test.py setup -m {}'.format(cls.exec_base, manifest_file)
+            ret = os.system(cmd)
+            status = True if ret == 0 else False
+
+        return status
+
+    @classmethod
+    def cleanup(cls, manifest):
+        status = False
+        manifest_file = os.path.join(cls.exec_base, manifest)
+        if os.access(manifest_file, os.F_OK):
+            cmd = 'sudo {}/cord-test.py cleanup -m {}'.format(cls.exec_base, manifest_file)
+            os.system(cmd)
+            status = True
+
+        return status
+
+    @classmethod
+    def test(cls, manifest, test, config = None):
+        manifest_file = os.path.join(cls.exec_base, manifest)
+        if not os.access(manifest_file, os.F_OK):
+            return False
+        #get test case as we could give a specific test to execute within a test case
+        test_case = test.split(':')[0]
+        cordWeb = CordTesterWebConfig(test_case)
+        if config:
+            status = cordWeb.update(config)
+            #test case is invalid
+            if status is False:
+                return status
+        cmd = 'sudo {}/cord-test.py run -m {} -t {}'.format(cls.exec_base, manifest_file, test)
+        ret = os.system(cmd)
+        status = True if ret == 0 else False
+        if config:
+            cordWeb.restore()
+        return status
 
 class CordTesterWebConfig(object):
     our_path = os.path.dirname(os.path.realpath(__file__))
     test_base = os.path.realpath(os.path.join(our_path, '..', '..'))
+    restore_config = {}
 
     def __init__(self, test_case):
         self.test_case = test_case
@@ -24,7 +72,7 @@ class CordTesterWebConfig(object):
             if os.access(self.test_config, os.F_OK):
                 with open(self.test_config, 'r') as f:
                     cur_config = json.load(f)
-                os.rename(self.test_config, '{}.save'.format(self.test_config))
+                self.save(copy.copy(cur_config))
             for k, v in config.iteritems():
                 cur_config[k] = v
                 with open(self.test_config, 'w') as f:
@@ -32,13 +80,18 @@ class CordTesterWebConfig(object):
             return True
         return False
 
+    def save(self, cur_config):
+        self.restore_config[self.test_case] = cur_config
+
     def restore(self):
+        config = None
         if self.test_config:
-            if os.access(self.test_config, os.F_OK):
-                restore_file = '{}.save'.format(self.test_config)
-                if os.access(restore_file, os.F_OK):
-                    os.rename(restore_file, self.test_config)
+            if self.test_case in self.restore_config:
+                config = self.restore_config[self.test_case]
+                with open(self.test_config, 'w') as f:
+                    json.dump(config, f, indent = 4)
                 return True
+
         return False
 
     def get(self):
@@ -89,3 +142,34 @@ def restore():
         if status:
             response = ('', httplib.OK)
     return response
+
+@app.route('/start', methods = ['POST'])
+def start():
+    data = request.get_json(force = True)
+    manifest = data.get('manifest', 'manifest.json')
+    status = CordTesterRun.start(manifest)
+    if status:
+        return ('', httplib.OK)
+    return ('', httplib.NOT_ACCEPTABLE)
+
+@app.route('/cleanup', methods = ['POST'])
+def cleanup():
+    data = request.get_json(force = True)
+    manifest = data.get('manifest', 'manifest.json')
+    status = CordTesterRun.cleanup(manifest)
+    if status:
+        return ('', httplib.OK)
+    return ('', httplib.NOT_ACCEPTABLE)
+
+@app.route('/test', methods = ['POST'])
+def test():
+    data = request.get_json(force = True)
+    manifest = data.get('manifest', 'manifest.json')
+    test = data.get('test', None)
+    config = data.get('config', None)
+    if test is None:
+        return ('', httplib.NOT_FOUND)
+    status = CordTesterRun.test(manifest, test, config = config)
+    if status:
+        return ('', httplib.OK)
+    return ('', httplib.NOT_ACCEPTABLE)
