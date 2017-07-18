@@ -1,0 +1,21 @@
+{
+    "V_INF1" : "veth0",
+    "V_INF2" : "veth1",
+    "MGROUP1" : "239.1.2.3",
+    "MGROUP2" : "239.2.2.3",
+    "MINVALIDGROUP1" : "255.255.255.255",
+    "MINVALIDGROUP2" : "239.255.255.255",
+    "IGMP_DST_MAC" : "01:00:5e:00:00:16",
+    "IGMP_SRC_MAC" : "5a:e1:ac:ec:4d:a1",
+    "IP_SRC" : "1.2.3.4",
+    "IP_DST" : "224.0.0.22",
+    "NEGATIVE_TRAFFIC_STATUS" : 1,
+    "IGMP_TEST_TIMEOUT" : 5,
+    "IGMP_QUERY_TIMEOUT" : 60,
+    "MCAST_TRAFFIC_TIMEOUT" : 10,
+    "PORT_TX_DEFAULT" : 2,
+    "PORT_RX_DEFAULT" : 1,
+    "ROVER_TEST_TIMEOUT" : 300,
+    "ROVER_TIMEOUT" : 200,
+    "ROVER_JOIN_TIMEOUT" : 60
+}
