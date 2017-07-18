@@ -168,6 +168,7 @@ class voltha_exchange(unittest.TestCase):
     VOLTHA_IGMP_ITERATIONS = 100
     voltha = None
     success = True
+    olt_device_id = None
     apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
     olt_apps = () #'org.opencord.cordmcast')
     vtn_app = 'org.opencord.vtn'
@@ -802,33 +803,35 @@ yg==
 	return self.test_status
 
     def igmp_flow_check_join_change_to_exclude(self, subscriber, multiple_sub = False):
-	  chan = 0
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
-	  self.num_joins += 1
-	  while self.num_joins < self.num_subscribers:
-		time.sleep(5)
-	  log_test.info('All subscribers have joined the channel')
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
-	  time.sleep(5)
-	  log_test.info('Leaving channel %d for subscriber on port %s from specific source ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
-	  time.sleep(5)
-	  self.recv_timeout = True
-	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[1])
-	  if self.test_status is True:
-	     self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
-	     if self.test_status is True:
-		log_test.info('Subscriber should not receive data from channel %s on specific source %s, test is failed' %(chan, subscriber.rx_port))
-		self.test_status = False
-	  subscriber.recv_timeout = False
-	  self.recv_timeout = False
-	  subscriber.channel_leave(chan, src_list = subscriber.src_list)
-#                  self.test_status = True
-	  return self.test_status
+	chan = 2
+	subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+	self.num_joins += 1
+	while self.num_joins < self.num_subscribers:
+	      time.sleep(5)
+        log_test.info('All subscribers have joined the channel')
+	self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
+	time.sleep(5)
+	chan = 1
+	log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
+	subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list, record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
+	time.sleep(5)
+	self.recv_timeout = True
+	subscriber.recv_timeout = True
+	self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[1])
+	if self.test_status is True:
+	   self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
+	   if self.test_status is True:
+	      log_test.info('Subscriber should not receive data from channel %s on specific source %s, test is failed' %(chan, subscriber.rx_port))
+	      self.test_status = False
+        subscriber.recv_timeout = False
+	self.recv_timeout = False
+	chan = 0
+	subscriber.channel_leave(chan, src_list = subscriber.src_list)
+#                self.test_status = True
+	return self.test_status
 
     def igmp_flow_check_join_change_to_exclude_again_include_back(self, subscriber, multiple_sub = False):
-	  chan = 0
+	  chan = 2
 	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
 	  self.num_joins += 1
 	  while self.num_joins < self.num_subscribers:
@@ -836,7 +839,8 @@ yg==
 	  log_test.info('All subscribers have joined the channel')
 	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
 	  time.sleep(5)
-	  log_test.info('Leaving channel %d for subscriber on port %s from specific source ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
+	  chan = 1
+	  log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port,))
 	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
 	  time.sleep(5)
 	  self.recv_timeout = True
@@ -849,14 +853,16 @@ yg==
 		self.test_status = False
 	  subscriber.recv_timeout = False
 	  self.recv_timeout = False
-	  log_test.info('Again include the source list in the group %s souce ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE)
+	  chan = 1
+	  log_test.info('Again include the channel %s on port %s with souce list ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
+	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list, record_type = IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE)
 	  time.sleep(5)
 	  self.recv_timeout = True
 	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
+	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
 	  subscriber.recv_timeout = False
 	  self.recv_timeout = False
+	  chan = 2
 	  subscriber.channel_leave(chan, src_list = subscriber.src_list)
 #                  self.test_status = True
 	  return self.test_status
@@ -919,6 +925,76 @@ yg==
 	  subscriber.channel_leave(chan, src_list = subscriber.src_list)
 	  return self.test_status
 
+    def igmp_flow_check_group_include_source_empty_list(self, subscriber, multiple_sub = False):
+        chan = 0
+        subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+        self.num_joins += 1
+        while self.num_joins < self.num_subscribers:
+              time.sleep(5)
+        log_test.info('All subscribers have joined the channel')
+        self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
+	if self.test_status is True:
+           log_test.info('Subscriber should not receive data from channel %s on any specific source %s, test is failed' %(chan, subscriber.rx_port))
+           self.test_status = False
+        else:
+           log_test.info('Subscriber not receive data from channel %s on any specific source %s' %(chan, subscriber.rx_port))
+        log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
+        subscriber.channel_leave(chan, src_list = subscriber.src_list)
+        time.sleep(5)
+        subscriber.recv_timeout = False
+        self.recv_timeout = False
+        return self.test_status
+
+    def igmp_flow_check_group_exclude_source_empty_list(self, subscriber, multiple_sub = False):
+        chan = 0
+        subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list,record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
+        self.num_joins += 1
+        while self.num_joins < self.num_subscribers:
+              time.sleep(5)
+        log_test.info('All subscribers have joined the channel')
+        for i in range(10):
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
+            log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
+            subscriber.channel_leave(chan, src_list = subscriber.src_list)
+            time.sleep(5)
+            log_test.info('Interface %s Join RX stats for subscriber, %s' %(subscriber.iface,subscriber.join_rx_stats))
+        #Should not receive packets for this subscriber
+            self.recv_timeout = True
+            subscriber.recv_timeout = True
+            subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+            log_test.info('Joining channel %d for subscriber port %s' %(chan, subscriber.rx_port))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+#                  self.test_status = True
+        return self.test_status
+
+    def igmp_flow_check_during_olt_onu_operational_issues(self, subscriber, multiple_sub = False):
+        chan = 0
+        subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+        self.num_joins += 1
+        while self.num_joins < self.num_subscribers:
+              time.sleep(5)
+        log_test.info('All subscribers have joined the channel')
+        for i in range(2):
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
+            log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
+            subscriber.channel_leave(chan, src_list = subscriber.src_list)
+            time.sleep(5)
+            log_test.info('Interface %s Join RX stats for subscriber, %s' %(subscriber.iface,subscriber.join_rx_stats))
+        #Should not receive packets for this subscriber
+            self.recv_timeout = True
+            subscriber.recv_timeout = True
+            subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+            log_test.info('Joining channel %d for subscriber port %s' %(chan, subscriber.rx_port))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+#                  self.test_status = True
+        return self.test_status
+
+
+
     def voltha_igmp_jump_verify(self, subscriber):
 	    if subscriber.has_service('IGMP'):
 		  for i in xrange(subscriber.num):
@@ -957,6 +1033,8 @@ yg==
              ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
              log_test.info('Enabling ponsim olt')
              device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
+             if device_id != '':
+                self.olt_device_id = device_id
           else:
              log_test.info('This setup test cases is developed on ponsim olt only, hence stop execution')
              assert_equal(False, True)
@@ -988,6 +1066,8 @@ yg==
                                                           port_list = self.generate_port_list(self.num_subscribers,
                                                                                               self.num_channels),
                                                           src_list = src_list, services = services)
+                if test_status is False:
+                   self.success = False
                 assert_equal(test_status, True)
           finally:
                 if switch_map is not None:
@@ -1758,7 +1838,6 @@ yg==
         reactor.callLater(0, tls_flow_check_operating_olt_state, df)
         return df
 
-
     @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
@@ -2377,8 +2456,6 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
-
-
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_starvation_negative_scenario(self):
         """
@@ -2423,7 +2500,6 @@ yg==
 
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
-
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_sending_multiple_discover(self):
@@ -2746,7 +2822,6 @@ yg==
 
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
-
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcp_toggling_olt(self):
@@ -3882,7 +3957,7 @@ yg==
                                     num_channels = num_channels)
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcpRelay_request(self):
+    def test_subscriber_with_voltha_for_dhcprelay_request(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3893,7 +3968,7 @@ yg==
         """
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request_with_invalid_broadcast_source_mac(self):
+    def test_subscriber_with_voltha_for_dhcprelay_request_with_invalid_broadcast_source_mac(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are is up and running on CORD-POD setup.
@@ -3904,7 +3979,7 @@ yg==
         """
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request_with_invalid_multicast_source_mac(self):
+    def test_subscriber_with_voltha_for_dhcprelay_request_with_invalid_multicast_source_mac(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are is up and running on CORD-POD setup.
@@ -3914,7 +3989,7 @@ yg==
         4. Verify that subscriber should not get ip from external dhcp server.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request_with_invalid_source_mac(self):
+    def test_subscriber_with_voltha_for_dhcprelay_request_with_invalid_source_mac(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3924,7 +3999,7 @@ yg==
         4. Verify that subscriber should not get ip from external dhcp server.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_dhcp_request_and_release(self):
+    def test_subscriber_with_voltha_for_dhcprelay_request_and_release(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3936,7 +4011,7 @@ yg==
         6  Verify that subscriber should not get ip from external dhcp server, ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_starvation(self):
+    def test_subscriber_with_voltha_for_dhcprelay_starvation(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3948,7 +4023,7 @@ yg==
         6  Verify that subscriber should get ip from external dhcp server..
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_starvation_negative_scenario(self):
+    def test_subscriber_with_voltha_for_dhcprelay_starvation_negative_scenario(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3959,7 +4034,7 @@ yg==
         5. Repeat steps 3 and 4 for 10 times.
         6  Verify that subscriber should not get ip from external dhcp server..
         """
-    def test_subscriber_with_voltha_for_dhcpRelay_sending_multiple_discover(self):
+    def test_subscriber_with_voltha_for_dhcprelay_sending_multiple_discover(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3970,7 +4045,7 @@ yg==
         5. Repeat step 3 for 50 times.
         6  Verify that subscriber should get same ip which was received from 1st discover from external dhcp server..
         """
-    def test_subscriber_with_voltha_for_dhcpRelay_sending_multiple_request(self):
+    def test_subscriber_with_voltha_for_dhcprelay_sending_multiple_request(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3983,7 +4058,7 @@ yg==
         7. Verify that subscriber should get same ip which was received from 1st discover from external dhcp server..
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_requesting_desired_ip_address(self):
+    def test_subscriber_with_voltha_for_dhcprelay_requesting_desired_ip_address(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -3993,7 +4068,7 @@ yg==
         4. Verify that subscriber get ip which was requested in step 3 from external dhcp server. successfully.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_requesting_desired_out_of_pool_ip_address(self):
+    def test_subscriber_with_voltha_for_dhcprelay_requesting_desired_out_of_pool_ip_address(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4003,7 +4078,7 @@ yg==
         4. Verify that subscriber should not get ip which was requested in step 3 from external dhcp server., and its offered only within dhcp pool of ip.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_deactivating_dhcpRelay_app_in_onos(self):
+    def test_subscriber_with_voltha_deactivating_dhcprelay_app_in_onos(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4016,7 +4091,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_renew_time(self):
+    def test_subscriber_with_voltha_for_dhcprelay_renew_time(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4028,7 +4103,7 @@ yg==
         6. Repeat step 4.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_rebind_time(self):
+    def test_subscriber_with_voltha_for_dhcprelay_rebind_time(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4040,7 +4115,7 @@ yg==
         6. Repeat step 4.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_disable_olt_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcprelay_disabling_olt(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4053,7 +4128,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_toggling_olt_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcprelay_toggling_olt(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4068,7 +4143,7 @@ yg==
         9. Repeat steps 3 and 4.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_disable_onu_port_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcprelay_disable_onu_port_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4081,7 +4156,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcpRelay_disable_enable_onu_port_in_voltha(self):
+    def test_subscriber_with_voltha_for_dhcprelay_disable_enable_onu_port_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4096,7 +4171,7 @@ yg==
         9. Repeat steps 3 and 4.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_discover(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_discover(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4106,7 +4181,7 @@ yg==
         4. Verify that subscribers had got different ips from external dhcp server. successfully.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_multiple_discover(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_multiple_discover(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4118,7 +4193,7 @@ yg==
         6  Verify that subscribers should get same ips which are offered the first time from external dhcp server..
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_multiple_discover_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_multiple_discover_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4130,7 +4205,7 @@ yg==
         6  Verify that subscriber should get same ip which is offered the first time from external dhcp server. and other subscriber ping to gateway should not failed
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_discover_desired_ip_address_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_discover_desired_ip_address_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4141,7 +4216,7 @@ yg==
         4. Verify that subscribers had got different ips (one subscriber desired ip and other subscriber random ip) from external dhcp server. successfully.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_discover_in_range_and_out_of_range_from_dhcp_pool_ip_addresses(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_discover_for_in_range_and_out_of_range_from_dhcp_pool_ip_addresses(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4152,7 +4227,7 @@ yg==
         4. Verify that subscribers had got different ips (both subscriber got random ips within dhcp pool) from external dhcp server. successfully.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_disable_onu_port_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_disabling_onu_port_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4165,7 +4240,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server. and other subscriber ping to gateway should not failed.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_toggle_onu_port_for_one_subscriber(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_toggling_onu_port_for_one_subscriber(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4181,7 +4256,7 @@ yg==
         10. Verify that subscriber should get ip from external dhcp server. and other subscriber ping to gateway should not failed.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_disable_olt_detected_in_voltha(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_disabling_olt(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4194,7 +4269,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server. and other subscriber ping to gateway should failed.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_toggle_olt_detected_in_voltha(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_toggling_olt(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4209,7 +4284,7 @@ yg==
         9. Verify that subscriber should get ip from external dhcp server. and other subscriber ping to gateway should not failed.
         """
 
-    def test_two_subscribers_with_voltha_for_dhcpRelay_pause_olt_detected_in_voltha(self):
+    def test_two_subscribers_with_voltha_for_dhcprelay_with_paused_olt_detected(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -4265,7 +4340,6 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-
     def test_subscriber_with_voltha_for_igmp_leave_and_again_join_verify_traffic(self):
         """
         Test Method:
@@ -4289,7 +4363,6 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-
     def test_subscriber_with_voltha_for_igmp_2_groups_joins_verify_traffic(self):
         """
         Test Method:
@@ -4301,7 +4374,6 @@ yg==
         5. Send multicast data traffic for two groups (multi-group-addressA and multi-group-addressB) from other uni port on ONU.
         6. Verify that 2 groups multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
         """
-
         """Test subscriber join next for channel surfing with 3 subscribers browsing 3 channels each"""
         num_subscribers = 1
         num_channels = 2
@@ -4310,7 +4382,6 @@ yg==
         self.voltha_subscribers(services, cbs = cbs,
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
-
 
     def test_subscriber_with_voltha_for_igmp_2_groups_joins_and_leave_for_one_group_verify_traffic(self):
         """
@@ -4335,7 +4406,6 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-
     def test_subscriber_with_voltha_for_igmp_join_different_group_src_list_verify_traffic(self):
         """
         Test Method:
@@ -4356,7 +4426,6 @@ yg==
         self.voltha_subscribers(services, cbs = cbs, src_list = ['2.3.4.5','3.4.5.6'],
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
-
 
     def test_subscriber_with_voltha_for_igmp_change_to_exclude_mcast_group_verify_traffic(self):
         """
@@ -4381,8 +4450,6 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-
-
     def test_subscriber_with_voltha_for_igmp_change_to_include_back_from_exclude_mcast_group_verify_traffic(self):
         """
         Test Method:
@@ -4398,13 +4465,12 @@ yg==
         9. Verify that multicast data packets are being recieved on join sent uni port on ONU from other source list to cord-tester.
         """
         num_subscribers = 1
-        num_channels = 1
+        num_channels = 2
         services = ('IGMP')
         cbs = (self.igmp_flow_check_join_change_to_exclude_again_include_back, None, None)
         self.voltha_subscribers(services, cbs = cbs, src_list = ['2.3.4.5','3.4.5.6'],
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
-
 
     def test_subscriber_with_voltha_for_igmp_change_to_block_src_list_verify_traffic(self):
         """
@@ -4429,9 +4495,6 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-
-
-
     def test_subscriber_with_voltha_for_igmp_allow_new_src_list_verify_traffic(self):
         """
         Test Method:
@@ -4455,8 +4518,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-
-    def test_subscriber_with_voltha_for_igmp_include_empty_src_list_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_group_include_empty_src_list_verify_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4469,7 +4531,16 @@ yg==
         7. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listB on ONU.
         8. Verify that multicast data packets are not being recieved on join sent uni port on ONU from other source list to cord-tester.
         """
-    def test_subscribers_with_voltha_for_igmp_exclude_empty_src_list_and_verify_traffic(self):
+
+        num_subscribers = 1
+        num_channels = 1
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check_group_include_source_empty_list, None, None)
+        self.voltha_subscribers(services, cbs = cbs, src_list = ['0'],
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_subscribers_with_voltha_for_igmp_group_exclude_empty_src_list_and_verify_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4482,6 +4553,14 @@ yg==
         7. Send multicast data traffic for a group (multi-group-addressA) from other uni port with source ip as src_listB on ONU.
         8. Verify that multicast data packets are being recieved on join sent uni port on ONU from other source list to cord-tester.
         """
+
+        num_subscribers = 1
+        num_channels = 1
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check_group_exclude_source_empty_list, None, None)
+        self.voltha_subscribers(services, cbs = cbs, src_list = ['0'],
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
 
     def test_two_subscribers_with_voltha_for_igmp_join_and_verifying_traffic(self):
         """
@@ -4496,6 +4575,14 @@ yg==
         7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
         8. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
+
+        num_subscribers = 2
+        num_channels = 1
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs, src_list = ['1.2.3.4'],
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
 
     def test_two_subscribers_with_voltha_for_igmp_join_leave_for_one_subscriber_verifying_traffic(self):
         """
@@ -4513,6 +4600,13 @@ yg==
         10. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
         11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
+        num_subscribers = 2
+        num_channels = 2
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check_join_change_to_exclude, None, None)
+        self.voltha_subscribers(services, cbs = cbs, src_list = ['1.2.3.4','2.3.4.5'],
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
 
     def test_two_subscribers_with_voltha_for_igmp_leave_join_for_one_subscriber_and_verifying_traffic(self):
         """
@@ -4532,6 +4626,15 @@ yg==
         12. Verify that multicast of group (multi-group-addressB) data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
 
+        num_subscribers = 2
+        num_channels = 2
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check_join_change_to_exclude_again_include_back, None, None)
+        self.voltha_subscribers(services, cbs = cbs, src_list = ['1.2.3.4', '3.4.5.6'],
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_igmp_with_uni_port_down_for_one_subscriber_and_verifying_traffic(self):
         """
         Test Method:
@@ -4548,6 +4651,35 @@ yg==
         10. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
         11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
+        #rx_port = self.port_map['ports'][port_list[i][1]]
+        df = defer.Deferred()
+        def igmp_flow_check_operating_onu_admin_state(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check_during_olt_onu_operational_issues, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+	    thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread2 = threading.Thread(target = self.voltha_uni_port_toggle, args = (self.port_map['ports'][port_list[1][1]],))
+            thread1.start()
+            time.sleep(randint(40,50))
+            log_test.info('Admin state of uni port is down and up after delay of 30 sec during tls auth flow check on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, False)
+                log_test.info('Igmp flow check expected to fail, hence ignore the test_status of igmp flow check')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_onu_admin_state, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_igmp_toggling_uni_port_for_one_subscriber_and_verifying_traffic(self):
         """
         Test Method:
@@ -4566,6 +4698,34 @@ yg==
         12. Enable uni_2 port which we disable at step 9.
         13. Repeat step 5,6 and 8.
         """
+        df = defer.Deferred()
+        def igmp_flow_check_operating_onu_admin_state(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread2 = threading.Thread(target = self.voltha_uni_port_toggle, args = (self.port_map['ports'][port_list[1][1]],))
+            thread1.start()
+            time.sleep(randint(50,60))
+            log_test.info('Admin state of uni port is down and up after delay of 30 sec during tls auth flow check on voltha')
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, True)
+                log_test.info('Igmp flow check expected to fail during UNI port down only, after UNI port is up it should be success')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_onu_admin_state, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_igmp_disabling_olt_and_verifying_traffic(self):
         """
         Test Method:
@@ -4582,6 +4742,33 @@ yg==
         10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
         11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
+        df = defer.Deferred()
+        def igmp_flow_check_operating_olt_admin_disble(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check_during_olt_onu_operational_issues, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1.start()
+            time.sleep(randint(50,60))
+            thread2 = threading.Thread(target = self.voltha.disable_device, args = (self.olt_device_id, False,))
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, False)
+                log_test.info('Igmp flow check expected to fail during olt device is disabled, so ignored test_status of this test')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_olt_admin_disble, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_igmp_pausing_olt_and_verifying_traffic(self):
         """
         Test Method:
@@ -4598,6 +4785,33 @@ yg==
         10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
         11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
+        df = defer.Deferred()
+        def igmp_flow_check_operating_olt_admin_pause(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check_during_olt_onu_operational_issues, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1.start()
+            time.sleep(randint(50,60))
+            thread2 = threading.Thread(target = self.voltha.pause_device, args = (self.olt_device_id,))
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, False)
+                log_test.info('Igmp flow check expected to fail during olt device is paused, so ignored test_status of this test')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_olt_admin_pause, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
     def test_two_subscribers_with_voltha_for_igmp_toggling_olt_and_verify_traffic(self):
         """
         Test Method:
@@ -4616,3 +4830,28 @@ yg==
         12. Enable olt device which is disable at step 9.
         13. Repeat steps 4,5, 7 and 8.
         """
+        df = defer.Deferred()
+        def igmp_flow_check_operating_olt_admin_restart(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1.start()
+            time.sleep(randint(50,60))
+            thread2 = threading.Thread(target = self.voltha.restart_device, args = (self.olt_device_id,))
+            thread2.start()
+            time.sleep(10)
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, True)
+                log_test.info('Igmp flow check expected to fail during olt device is restarted, After OLT device is up, it should be success')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_olt_admin_restart, df)
+        return df
