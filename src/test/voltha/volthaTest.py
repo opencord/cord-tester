@@ -36,7 +36,6 @@ class Voltha_olt_subscribers(Channels):
       STATS_JOIN = 2
       STATS_LEAVE = 3
 
-
       def __init__(self, tx_port, rx_port, num_channels =1, channel_start = 0, src_list = None):
           self.tx_port = tx_port
           self.rx_port = rx_port
@@ -150,7 +149,7 @@ class voltha_subscriber_pool:
                   if cb:
                         self.test_status = cb(self.subscriber, multiple_sub = True)
                         if self.test_status is not True:
-                           ## This is chaning for other sub status has to check again
+                           ## This is chaining for other sub status has to check again
                            self.test_status = True
                            log_test.info('This service is failed and other services will not run for this subscriber')
                            break
@@ -169,7 +168,8 @@ class voltha_exchange(unittest.TestCase):
     voltha = None
     success = True
     olt_device_id = None
-    apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
+    apps = ('org.opencord.aaa', 'org.onosproject.dhcp', 'org.onosproject.dhcprelay')
+    app_dhcp = ('org.onosproject.dhcp')
     olt_apps = () #'org.opencord.cordmcast')
     vtn_app = 'org.opencord.vtn'
     table_app = 'org.ciena.cordigmp'
@@ -183,6 +183,25 @@ class voltha_exchange(unittest.TestCase):
     onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
     VOLTHA_AUTO_CONFIGURE = False
     num_joins = 0
+
+    relay_interfaces_last = ()
+    interface_to_mac_map = {}
+    host_ip_map = {}
+    default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
+    default_options = [ ('subnet-mask', '255.255.255.0'),
+                     ('broadcast-address', '192.168.1.255'),
+                     ('domain-name-servers', '192.168.1.1'),
+                     ('domain-name', '"mydomain.cord-tester"'),
+                   ]
+    ##specify the IP for the dhcp interface matching the subnet and subnet config
+    ##this is done for each interface dhcpd server would be listening on
+    default_subnet_config = [ ('192.168.1.2',
+'''
+subnet 192.168.1.0 netmask 255.255.255.0 {
+    range 192.168.1.10 192.168.1.100;
+}
+'''), ]
+
 
     VOLTHA_ENABLED  = True
     INTF_TX_DEFAULT = 'veth2'
@@ -269,6 +288,30 @@ yg==
             cls.app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-{}.oar'.format(cordigmp_app_version))
             cls.table_app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-multitable-{}.oar'.format(cordigmp_app_version))
             cls.olt_app_file = os.path.join(cls.test_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
+
+    @classmethod
+    def dhcprelay_setUpClass(cls):
+        ''' Activate the dhcprelay app'''
+        OnosCtrl(cls.app_dhcp).deactivate()
+        time.sleep(3)
+        cls.onos_ctrl = OnosCtrl('org.onosproject.dhcprelay')
+        status, _ = cls.onos_ctrl.activate()
+        assert_equal(status, True)
+        time.sleep(3)
+        cls.dhcp_relay_setup()
+        ##start dhcpd initially with default config
+        cls.dhcpd_start()
+
+    @classmethod
+    def dhcprelay_tearDownClass(cls):
+        '''Deactivate the dhcp relay app'''
+        try:
+            os.unlink('{}/dhcpd.conf'.format(cls.dhcp_data_dir))
+            os.unlink('{}/dhcpd.leases'.format(cls.dhcp_data_dir))
+        except: pass
+        cls.onos_ctrl.deactivate()
+        cls.dhcpd_stop()
+        cls.dhcp_relay_cleanup()
 
     @classmethod
     def onos_load_config(cls, app, config):
@@ -460,6 +503,201 @@ yg==
             ip_range.append(".".join(map(str, temp)))
         return random.choice(ip_range)
 
+    @classmethod
+    def dhcp_relay_setup(cls):
+        #did = OnosCtrl.get_device_id()
+        #cls.relay_device_id = did
+        #cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
+        #cls.port_map, _ = cls.olt.olt_port_map() self.port_map['ports'][port_list[1][1]]
+        if cls.port_map:
+            ##Per subscriber, we use 1 relay port
+            try:
+                relay_port = cls.port_map['ports']
+            except:
+                relay_port = cls.port_map['uplink']
+            cls.relay_interface_port = relay_port
+            cls.relay_interfaces = (cls.port_map[cls.relay_interface_port],)
+        else:
+#            cls.relay_interface_port = 100
+#            cls.relay_interfaces = (g_subscriber_port_map[cls.relay_interface_port],)
+             log_test.info('No ONU ports are available, hence returning nothing')
+        cls.relay_interfaces_last = cls.relay_interfaces
+        if cls.port_map:
+            ##generate a ip/mac client virtual interface config for onos
+            interface_list = []
+            for port in cls.port_map['ports']:
+                port_num = cls.port_map[port]
+                if port_num == cls.port_map['uplink']:
+                    continue
+                ip = cls.get_host_ip(port_num)
+                mac = cls.get_mac(port)
+                interface_list.append((port_num, ip, mac))
+
+            #configure dhcp server virtual interface on the same subnet as first client interface
+            relay_ip = cls.get_host_ip(interface_list[0][0])
+            relay_mac = cls.get_mac(cls.port_map[cls.relay_interface_port])
+            interface_list.append((cls.relay_interface_port, relay_ip, relay_mac))
+            cls.onos_interface_load(interface_list)
+
+    @classmethod
+    def onos_interface_load(cls, interface_list):
+        interface_dict = { 'ports': {} }
+        for port_num, ip, mac in interface_list:
+            port_map = interface_dict['ports']
+            port = '{}/{}'.format(cls.relay_device_id, port_num)
+            port_map[port] = { 'interfaces': [] }
+            interface_list = port_map[port]['interfaces']
+            interface_map = { 'ips' : [ '{}/{}'.format(ip, 24) ],
+                              'mac' : mac,
+                              'name': 'vir-{}'.format(port_num)
+                            }
+            interface_list.append(interface_map)
+
+        cls.onos_load_config(interface_dict)
+        cls.configs['interface_config'] = interface_dict
+
+    @classmethod
+    def get_host_ip(cls, port):
+        if cls.host_ip_map.has_key(port):
+            return cls.host_ip_map[port]
+        cls.host_ip_map[port] = '192.168.1.{}'.format(port)
+        return cls.host_ip_map[port]
+
+    @classmethod
+    def host_load(cls, iface):
+        '''Have ONOS discover the hosts for dhcp-relay responses'''
+        port = g_subscriber_port_map[iface]
+        host = '173.17.1.{}'.format(port)
+        cmds = ( 'ifconfig {} 0'.format(iface),
+                 'ifconfig {0} {1}'.format(iface, host),
+                 'arping -I {0} {1} -c 2'.format(iface, host),
+                 'ifconfig {} 0'.format(iface), )
+        for c in cmds:
+            os.system(c)
+
+    @classmethod
+    def dhcpd_conf_generate(cls, config = default_config, options = default_options,
+                            subnet = default_subnet_config):
+        conf = ''
+        for k, v in config.items():
+            conf += '{} {};\n'.format(k, v)
+
+        opts = ''
+        for k, v in options:
+            opts += 'option {} {};\n'.format(k, v)
+
+        subnet_config = ''
+        for _, v in subnet:
+            subnet_config += '{}\n'.format(v)
+
+        return '{}{}{}'.format(conf, opts, subnet_config)
+
+    @classmethod
+    def dhcpd_start(cls, intf_list = None,
+                    config = default_config, options = default_options,
+                    subnet = default_subnet_config):
+        '''Start the dhcpd server by generating the conf file'''
+        if intf_list is None:
+            intf_list = cls.relay_interfaces
+        ##stop dhcpd if already running
+        cls.dhcpd_stop()
+        dhcp_conf = cls.dhcpd_conf_generate(config = config, options = options,
+                                            subnet = subnet)
+        ##first touch dhcpd.leases if it doesn't exist
+        lease_file = '{}/dhcpd.leases'.format(cls.dhcp_data_dir)
+        if os.access(lease_file, os.F_OK) is False:
+            with open(lease_file, 'w') as fd: pass
+
+        conf_file = '{}/dhcpd.conf'.format(cls.dhcp_data_dir)
+        with open(conf_file, 'w') as fd:
+            fd.write(dhcp_conf)
+
+        #now configure the dhcpd interfaces for various subnets
+        index = 0
+        intf_info = []
+        for ip,_ in subnet:
+            intf = intf_list[index]
+            mac = cls.get_mac(intf)
+            intf_info.append((ip, mac))
+            index += 1
+            os.system('ifconfig {} {}'.format(intf, ip))
+
+        intf_str = ','.join(intf_list)
+        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format(conf_file, lease_file, intf_str)
+        log_test.info('Starting DHCPD server with command: %s' %dhcpd_cmd)
+        ret = os.system(dhcpd_cmd)
+        assert_equal(ret, 0)
+        time.sleep(3)
+        cls.relay_interfaces_last = cls.relay_interfaces
+        cls.relay_interfaces = intf_list
+        cls.onos_dhcp_relay_load(*intf_info[0])
+
+    @classmethod
+    def dhcpd_stop(cls):
+        os.system('pkill -9 dhcpd')
+        for intf in cls.relay_interfaces:
+            os.system('ifconfig {} 0'.format(intf))
+
+        cls.relay_interfaces = cls.relay_interfaces_last
+
+    @classmethod
+    def get_mac(cls, iface):
+        if cls.interface_to_mac_map.has_key(iface):
+            return cls.interface_to_mac_map[iface]
+        mac = get_mac(iface, pad = 0)
+        cls.interface_to_mac_map[iface] = mac
+        return mac
+
+    def send_recv(self, mac=None, update_seed = False, validate = True):
+        cip, sip = self.dhcp.discover(mac = mac, update_seed = update_seed)
+        if validate:
+            assert_not_equal(cip, None)
+            assert_not_equal(sip, None)
+        log_test.info('Got dhcp client IP %s from server %s for mac %s' %
+                (cip, sip, self.dhcp.get_mac(cip)[0]))
+        return cip,sip
+
+    @classmethod
+    def dhcpd_conf_generate(cls, config = default_config, options = default_options,
+                            subnet = default_subnet_config):
+        conf = ''
+        for k, v in config.items():
+            conf += '{} {};\n'.format(k, v)
+
+        opts = ''
+        for k, v in options:
+            opts += 'option {} {};\n'.format(k, v)
+
+        subnet_config = ''
+        for _, v in subnet:
+            subnet_config += '{}\n'.format(v)
+
+        return '{}{}{}'.format(conf, opts, subnet_config)
+
+    @classmethod
+    def onos_dhcp_relay_load(cls, server_ip, server_mac):
+        relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
+        dhcp_dict = {'apps':{'org.onosproject.dhcp-relay':{'dhcprelay':
+                                                          {'dhcpserverConnectPoint':relay_device_map,
+                                                           'serverip':server_ip,
+                                                           'servermac':server_mac
+                                                           }
+                                                           }
+                             }
+                     }
+        cls.onos_load_config(dhcp_dict)
+        cls.configs['relay_config'] = dhcp_dict
+
+    @classmethod
+    def dhcp_relay_cleanup(cls):
+        ##reset the ONOS port configuration back to default
+        for config in cls.configs.items():
+            OnosCtrl.delete(config)
+        # if cls.onos_restartable is True:
+        #     log_test.info('Cleaning up dhcp relay config by restarting ONOS with default network cfg')
+        #     return cord_test_onos_restart(config = {})
+
+
     def tls_flow_check(self, olt_ports, cert_info = None, multiple_sub = False):
         if multiple_sub is True:
            olt_nni_port = olt_ports.tx_port
@@ -549,7 +787,7 @@ yg==
 
            if cip is not None:
               self.success =  False
-           log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected self.success = %s '%self.success)
+           log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected = %s '%self.success)
            assert_equal(cip,None)
            log_test.info('ONOS dhcp server rejected client discover with invalid source mac as expected')
            self.test_status = True
@@ -993,8 +1231,6 @@ yg==
 #                  self.test_status = True
         return self.test_status
 
-
-
     def voltha_igmp_jump_verify(self, subscriber):
 	    if subscriber.has_service('IGMP'):
 		  for i in xrange(subscriber.num):
@@ -1098,7 +1334,12 @@ yg==
           igmpChannel = IgmpChannel(src_list = src_list)
           ssm_groups = map(lambda sub: sub.channels, subscriber_tx_rx_ports)
           ssm_list = reduce(lambda ssm1, ssm2: ssm1+ssm2, ssm_groups)
-          igmpChannel.igmp_load_ssm_config(ssm_list, src_list= src_list)
+          if src_list is None:
+             igmpChannel = IgmpChannel()
+             igmpChannel.igmp_load_ssm_config(ssm_list)
+          else:
+             igmpChannel = IgmpChannel(src_list = src_list)
+             igmpChannel.igmp_load_ssm_config(ssm_list, src_list= src_list)
 
           self.thread_pool = ThreadPool(min(100, subscribers_count), queue_size=1, wait_timeout=1)
 
@@ -3966,6 +4207,25 @@ yg==
         3. Send dhcp request from residential subscrber to external dhcp server.
         4. Verify that subscriber get ip from external dhcp server successfully.
         """
+        self.dhcprelay_setUpClass()
+#       if not port_list:
+        port_list = self.generate_port_list(1, 0)
+        iface = self.port_map['ports'][port_list[1][1]]
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        self.send_recv(mac=mac)
+        self.dhcprelay_tearDwonClass()
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_dhcprelay_request_with_invalid_broadcast_source_mac(self):
@@ -4297,7 +4557,7 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server. and other subscriber ping to gateway should failed.
         """
 
-    def test_subscriber_with_voltha_for_igmp_join_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_join_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4318,7 +4578,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_leave_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_leave_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4340,7 +4600,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_leave_and_again_join_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_leave_and_again_join_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4363,7 +4623,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_2_groups_joins_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_2_groups_joins_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4383,7 +4643,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_2_groups_joins_and_leave_for_one_group_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_2_groups_joins_and_leave_for_one_group_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4406,7 +4666,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_join_different_group_src_list_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_join_different_group_src_list_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4427,7 +4687,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_change_to_exclude_mcast_group_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_change_to_exclude_mcast_group_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4450,7 +4710,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_change_to_include_back_from_exclude_mcast_group_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_change_to_include_back_from_exclude_mcast_group_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4472,7 +4732,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_change_to_block_src_list_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_change_to_block_src_list_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4495,7 +4755,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_allow_new_src_list_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4518,7 +4778,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_group_include_empty_src_list_verify_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_group_include_empty_src_list_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4540,7 +4800,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscribers_with_voltha_for_igmp_group_exclude_empty_src_list_and_verify_traffic(self):
+    def test_subscribers_with_voltha_for_igmp_group_exclude_empty_src_list_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4562,7 +4822,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_two_subscribers_with_voltha_for_igmp_join_and_verifying_traffic(self):
+    def test_two_subscribers_with_voltha_for_igmp_join_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4608,7 +4868,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_two_subscribers_with_voltha_for_igmp_leave_join_for_one_subscriber_and_verifying_traffic(self):
+    def test_two_subscribers_with_voltha_for_igmp_leave_join_for_one_subscriber_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4635,7 +4895,7 @@ yg==
                                     num_channels = num_channels)
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_igmp_with_uni_port_down_for_one_subscriber_and_verifying_traffic(self):
+    def test_two_subscribers_with_voltha_for_igmp_with_uni_port_down_for_one_subscriber_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4717,7 +4977,7 @@ yg==
             thread2.join()
             try:
                 assert_equal(self.success, True)
-                log_test.info('Igmp flow check expected to fail during UNI port down only, after UNI port is up it should be success')
+                log_test.info('Igmp flow check expected to fail during UNI port down only, after UNI port is up it should be successful')
                 time.sleep(10)
             finally:
                 pass
@@ -4726,7 +4986,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_igmp_disabling_olt_and_verifying_traffic(self):
+    def test_two_subscribers_with_voltha_for_igmp_disabling_olt_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4769,7 +5029,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_igmp_pausing_olt_and_verifying_traffic(self):
+    def test_two_subscribers_with_voltha_for_igmp_pausing_olt_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4812,7 +5072,7 @@ yg==
         return df
 
     @deferred(TESTCASE_TIMEOUT)
-    def test_two_subscribers_with_voltha_for_igmp_toggling_olt_and_verify_traffic(self):
+    def test_two_subscribers_with_voltha_for_igmp_toggling_olt_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4848,10 +5108,198 @@ yg==
             thread2.join()
             try:
                 assert_equal(self.success, True)
-                log_test.info('Igmp flow check expected to fail during olt device is restarted, After OLT device is up, it should be success')
+                log_test.info('Igmp flow check expected to fail during olt device restart, After OLT device is up, it should be successful')
                 time.sleep(10)
             finally:
                 pass
             df.callback(0)
         reactor.callLater(0, igmp_flow_check_operating_olt_admin_restart, df)
         return df
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_two_subscribers_with_voltha_for_igmp_multiple_times_disabling_olt_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable olt device which is being shown on voltha CLI.
+        10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        12. Repeat steps  4 to 11 steps multiple times (example 20 times)
+        """
+        df = defer.Deferred()
+        no_iterations = 20
+        def igmp_flow_check_operating_olt_admin_disble(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1.start()
+            time.sleep(randint(30,40))
+            for i in range(no_iterations):
+                thread2 = threading.Thread(target = self.voltha.disable_device, args = (self.olt_device_id, False,))
+                thread2.start()
+                time.sleep(8)
+                thread2.join()
+            thread1.join()
+            thread1.isAlive()
+            thread2.join()
+            try:
+                assert_equal(self.success, False)
+                log_test.info('Igmp flow check expected to fail during olt device is disabled, so ignored test_status of this test')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_olt_admin_disble, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT + 200)
+    def test_two_subscribers_with_voltha_for_igmp_multiple_times_toggling_uni_port_for_one_subscriber_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable uni_2 port which is being shown on voltha CLI.
+        10. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        12. Enable uni_2 port which we disable at step 9.
+        13. Repeat step 5,6 and 8.
+        14. Repeat steps  4 to 13 steps multiple times (example 5 times)
+        """
+        df = defer.Deferred()
+        no_iterations = 5
+        def igmp_flow_check_operating_onu_admin_state(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1.start()
+            time.sleep(randint(40,60))
+            for i in range(no_iterations):
+                thread2 = threading.Thread(target = self.voltha_uni_port_toggle, args = (self.port_map['ports'][port_list[1][1]],))
+                log_test.info('Admin state of uni port is down and up after delay of 30 sec during igmp flow check on voltha')
+                thread2.start()
+                time.sleep(1)
+                thread2.join()
+            thread1.isAlive()
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, True)
+                log_test.info('Igmp flow check expected to fail during UNI port down only, after UNI port is up it should be successful')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_onu_admin_state, df)
+        return df
+
+    @deferred(TESTCASE_TIMEOUT)
+    def test_two_subscribers_with_voltha_for_igmp_multiple_times_toggling_olt_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue tls auth packets from CORD TESTER voltha test module acting as a subscriber..
+        3. Issue dhcp client packets to get IP address from dhcp server for a subscriber and check connectivity.
+        4. Send igmp joins for a multicast group address multi-group-addressA from one subscribers (uni_1 port)
+        5. Send igmp joins for a multicast group address multi-group-addressA from other subscribers ( uni_2 port)
+        6. Send multicast data traffic for a group (multi-group-addressA) from other uni_3 port on ONU.
+        7. Verify that multicast data packets are being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        8. Verify that multicast data packets are being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        9. Disable olt device which is being shown on voltha CLI.
+        10. Verify that multicast data packets are not being recieved on join sent uni (uni_1) port on ONU to cord-tester.
+        11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
+        12. Enable olt device which is disable at step 9.
+        13. Repeat steps 4,5, 7 and 8.
+        14. Repeat steps  4 to 13 steps multiple times (example 10 times)
+        """
+        df = defer.Deferred()
+        no_iterations = 10
+        def igmp_flow_check_operating_olt_admin_restart(df):
+            num_subscribers = 2
+            num_channels = 2
+            services = ('IGMP')
+            cbs = (self.igmp_flow_check, None, None)
+            port_list = self.generate_port_list(num_subscribers, num_channels)
+
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1.start()
+            time.sleep(randint(50,60))
+            for i in range(no_iterations):
+                thread2 = threading.Thread(target = self.voltha.restart_device, args = (self.olt_device_id,))
+                thread2.start()
+                time.sleep(10)
+                thread2.join()
+            thread1.join()
+            thread2.join()
+            try:
+                assert_equal(self.success, True)
+                log_test.info('Igmp flow check expected to fail during olt device restart, after OLT device is up, it should be successful')
+                time.sleep(10)
+            finally:
+                pass
+            df.callback(0)
+        reactor.callLater(0, igmp_flow_check_operating_olt_admin_restart, df)
+        return df
+
+    def test_5_subscriber_with_voltha_for_igmp_with_10_group_joins_verifying_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue multiple tls auth packets from CORD TESTER voltha test module acting as subscribers..
+        3. Issue multiple dhcp client packets to get IP address from dhcp server for as subscribers and check connectivity.
+        4. Send multiple igmp joins for 10 multicast group addresses multi-group-addressA,multi-group-addressB etc
+        5. Send multicast data traffic for two groups (multi-group-addressA and multi-group-addressB) from other uni port on ONU.
+        6. Verify that 2 groups multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        """
+
+        num_subscribers = 5
+        num_channels = 10
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
+    def test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic(self):
+        """
+        Test Method:
+        0. Make sure that voltha is up and running on CORD-POD setup.
+        1. OLT and ONU is detected and validated.
+        2. Issue multiple tls auth packets from CORD TESTER voltha test module acting as subscribers..
+        3. Issue multiple dhcp client packets to get IP address from dhcp server for subscribers and check connectivity.
+        4. Send multiple igmp joins for 10 multicast group addresses multi-group-addressA,multi-group-addressB etc
+        5. Send multicast data traffic for two groups (multi-group-addressA and multi-group-addressB) from other uni port on ONU.
+        6. Verify that 2 groups multicast data packets are being recieved on join sent uni port on ONU to cord-tester.
+        """
+        num_subscribers = 9
+        num_channels = 10
+        services = ('IGMP')
+        cbs = (self.igmp_flow_check, None, None)
+        self.voltha_subscribers(services, cbs = cbs,
+                                    num_subscribers = num_subscribers,
+                                    num_channels = num_channels)
+
