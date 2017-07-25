@@ -596,6 +596,7 @@ class Onos(Container):
     onos_form_cluster = os.path.join(setup_dir, 'onos-form-cluster')
     cord_apps_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'apps')
     host_guest_map = ( (host_config_dir, guest_config_dir), )
+    ssl_key = None
     cluster_cfg = os.path.join(host_config_dir, 'cluster.json')
     cluster_mode = False
     cluster_instances = []
@@ -653,6 +654,14 @@ class Onos(Container):
         Onos.guest_data_dir = '/root/onos/apache-karaf-{}/data'.format(karaf)
         Onos.guest_log_file = '/root/onos/apache-karaf-{}/data/log/karaf.log'.format(karaf)
 
+    @classmethod
+    def update_ssl_key(cls, key):
+        if os.access(key, os.F_OK):
+            try:
+                shutil.copy(key, cls.host_config_dir)
+                cls.ssl_key = os.path.join(cls.host_config_dir, os.path.basename(key))
+            except:pass
+
     def remove_data_volume(self):
         if self.data_map is not None:
             self.remove_data_map(*self.data_map)
@@ -678,6 +687,9 @@ class Onos(Container):
         self.data_map = None
         instance_memory = (get_mem(jvm_heap_size = Onos.JVM_HEAP_SIZE, instances = Onos.MAX_INSTANCES),) * 2
         self.env['JAVA_OPTS'] = self.JAVA_OPTS_FORMAT.format(*instance_memory)
+        if self.ssl_key:
+            key_files = ( os.path.join(self.guest_config_dir, os.path.basename(self.ssl_key)), ) * 2
+            self.env['JAVA_OPTS'] += ' -DenableOFTLS=true -Djavax.net.ssl.keyStore={} -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore={} -Djavax.net.ssl.trustStorePassword=222222'.format(*key_files)
         if cluster is True:
             self.ports = []
             if data_volume is not None:

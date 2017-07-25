@@ -62,6 +62,7 @@ class VolthaService(object):
             print('Chameleon voltha sevice is already running. Skipped start')
 
         #now start voltha and ofagent
+        voltha_setup_cmd = "cd {} && sh -c '. ./env.sh && make rebuild-venv && make protos'".format(self.voltha_loc)
         voltha_start_cmd = "cd {} && sh -c '. ./env.sh && \
         nohup python voltha/main.py -v --consul=localhost:8500 --kafka={}:9092 -I {} \
         --fluentd={}:24224 --rest-port=8880 --grpc-port=50555 \
@@ -69,7 +70,15 @@ class VolthaService(object):
                                          self.service_map['kafka']['ip'],
                                          self.interface,
                                          self.service_map['fluentd']['ip'])
+        pki_dir = '{}/pki'.format(self.voltha_loc)
         if not self.service_running('python voltha/main.py'):
+            voltha_pki_dir = '/voltha'
+            if os.access(pki_dir, os.F_OK):
+                pki_xfer_cmd = 'mkdir -p {} && cp -rv {}/pki {}'.format(voltha_pki_dir,
+                                                                        self.voltha_loc,
+                                                                        voltha_pki_dir)
+                os.system(pki_xfer_cmd)
+            #os.system(voltha_setup_cmd)
             ret = os.system(voltha_start_cmd)
             if ret != 0:
                 raise Exception('Failed to start VOLTHA. Return code %d' %ret)
@@ -84,6 +93,12 @@ class VolthaService(object):
                                           self.service_map['fluentd']['ip'],
                                           self.controller)
         if not self.service_running('python ofagent/main.py'):
+            ofagent_pki_dir = '/ofagent'
+            if os.access(pki_dir, os.F_OK):
+                pki_xfer_cmd = 'mkdir -p {} && cp -rv {}/pki {}'.format(ofagent_pki_dir,
+                                                                        self.voltha_loc,
+                                                                        ofagent_pki_dir)
+                os.system(pki_xfer_cmd)
             ret = os.system(ofagent_start_cmd)
             if ret != 0:
                 raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)

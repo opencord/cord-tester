@@ -585,7 +585,6 @@ def runTest(args):
 
     onos_cord = None
     Onos.update_data_dir(test_manifest.karaf_version)
-
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -623,6 +622,10 @@ def runTest(args):
         ##don't setup cluster config again
         cluster_mode = False
     if onos_ip is None:
+        if voltha_loc:
+            voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
+            Onos.update_ssl_key(voltha_key)
+            test_manifest.start_switch = False
         image_names = test_manifest.onos_image.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
         if len(image_names) > 1:
@@ -921,6 +924,10 @@ def setupCordTester(args):
     onos = None
     onos_ips = []
     if onos_ip is None:
+        if voltha_loc:
+            voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
+            Onos.update_ssl_key(voltha_key)
+            test_manifest.start_switch = False
         data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                     data_volume = data_volume, async = async_mode, network = test_manifest.docker_network)
