@@ -726,7 +726,7 @@ def runTest(args):
                      'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                      'MAAS_API_KEY': maas_api_key,
                      'KARAF_VERSION' : test_manifest.karaf_version,
-                     'VOLTHA_ENABLED' : 1 if voltha_loc else 0
+                     'VOLTHA_ENABLED' : int(test_manifest.voltha_enable)
                    }
 
     if ssh_key_file:
@@ -1016,7 +1016,7 @@ def setupCordTester(args):
                          'HEAD_NODE': head_node if head_node else CORD_TEST_HOST,
                          'MAAS_API_KEY': maas_api_key,
                          'KARAF_VERSION' : test_manifest.karaf_version,
-                         'VOLTHA_ENABLED' : 1 if voltha_loc else 0
+                         'VOLTHA_ENABLED' : int(test_manifest.voltha_enable)
                        }
 
         if ssh_key_file:
@@ -1338,7 +1338,8 @@ if __name__ == '__main__':
                             help='Specify the voltha location in order to start voltha')
     parser_run.add_argument('-voltha-intf', '--voltha-intf', default='eth0', type=str,
                             help='Specify the voltha interface for voltha to listen')
-
+    parser_run.add_argument('-voltha-enable', '--voltha-enable', action='store_true',
+                            help='Run the tests with voltha environment enabled')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1386,6 +1387,8 @@ if __name__ == '__main__':
                               help='Specify the voltha location in order to start voltha')
     parser_setup.add_argument('-voltha-intf', '--voltha-intf', default='eth0', type=str,
                               help='Specify the voltha interface for voltha to listen')
+    parser_setup.add_argument('-voltha-enable', '--voltha-enable', action='store_true',
+                              help='Run the tests with voltha environment enabled')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
