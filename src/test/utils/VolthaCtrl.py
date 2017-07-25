@@ -57,7 +57,7 @@ class VolthaService(object):
             ret = os.system(chameleon_start_cmd)
             if ret != 0:
                 raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
-            time.sleep(5)
+            time.sleep(10)
         else:
             print('Chameleon voltha sevice is already running. Skipped start')
 
@@ -82,7 +82,7 @@ class VolthaService(object):
             ret = os.system(voltha_start_cmd)
             if ret != 0:
                 raise Exception('Failed to start VOLTHA. Return code %d' %ret)
-            time.sleep(5)
+            time.sleep(10)
         else:
             print('VOLTHA core is already running. Skipped start')
 
@@ -102,7 +102,7 @@ class VolthaService(object):
             ret = os.system(ofagent_start_cmd)
             if ret != 0:
                 raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)
-            time.sleep(3)
+            time.sleep(10)
         else:
             print('VOLTHA ofagent is already running. Skipped start')
 
@@ -255,6 +255,8 @@ class VolthaCtrl(object):
         if resp.ok is not True or resp.status_code != 200:
             return False
         if delete is True:
+            #rest for disable completion
+            time.sleep(10)
             log.info('Deleting device %s' %(device_id))
             delete_url = '{}/local/devices/{}/delete'.format(self.rest_url, device_id)
             resp = requests.delete(delete_url)
