@@ -235,7 +235,7 @@ class VolthaCtrl(object):
         if resp.ok is not True or resp.status_code != 200:
             return None, False
         #get operational status
-        time.sleep(5)
+        time.sleep(10)
         log.info('Checking operational status for device %s' %(device_id))
         resp = requests.get('{}/{}'.format(url, device_id))
         if resp.ok is not True or resp.status_code != 200:
@@ -344,6 +344,7 @@ def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
     if olt_app is None:
         olt_app = get_olt_app()
     try:
+        time.sleep(5)
         switch_map = voltha.config(fake = config_fake)
         if switch_map is None:
             voltha.disable_device(device_id)
