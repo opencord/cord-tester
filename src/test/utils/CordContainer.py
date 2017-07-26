@@ -96,7 +96,10 @@ class Container(object):
         if port_list:
             port_bindings = {}
             for p in port_list:
-                port_bindings[str(p)] = str(p)
+                if type(p) is tuple:
+                    port_bindings[str(p[0])] = str(p[1])
+                else:
+                    port_bindings[str(p)] = str(p)
 
         if host_guest_map:
             binds = []
@@ -586,7 +589,9 @@ class Onos(Container):
                        ['igmp', '1.2-SNAPSHOT'],
                        )
     cord_apps_version_updated = False
-    ports = [] #[ 8181, 8101, 9876, 6653, 6633, 2000, 2620, 5005 ]
+    expose_port = False
+    expose_ports = [ 8181, 8101, 9876, 6653, 6633, 2000, 2620, 5005 ]
+    ports = []
     setup_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'setup')
     host_config_dir = os.path.join(setup_dir, 'onos-config')
     guest_config_dir = '/root/onos/config'
@@ -662,6 +667,15 @@ class Onos(Container):
                 cls.ssl_key = os.path.join(cls.host_config_dir, os.path.basename(key))
             except:pass
 
+    @classmethod
+    def set_expose_port(cls, flag):
+        cls.expose_port = flag
+
+    def get_port_map(self, instance=0):
+        if self.expose_port is False:
+            return self.ports
+        return map(lambda p: (p, p + instance), self.expose_ports)
+
     def remove_data_volume(self):
         if self.data_map is not None:
             self.remove_data_map(*self.data_map)
@@ -669,7 +683,7 @@ class Onos(Container):
     def __init__(self, name = NAME, image = IMAGE, prefix = PREFIX, tag = TAG,
                  boot_delay = 20, restart = False, network_cfg = None,
                  cluster = False, data_volume = None, async = False, quagga_config = None,
-                 network = None):
+                 network = None, instance = 0):
         if restart is True:
             ##Find the right image to restart
             running_image = filter(lambda c: c['Names'][0] == '/{}'.format(name), self.dckr.containers())
@@ -687,11 +701,11 @@ class Onos(Container):
         self.data_map = None
         instance_memory = (get_mem(jvm_heap_size = Onos.JVM_HEAP_SIZE, instances = Onos.MAX_INSTANCES),) * 2
         self.env['JAVA_OPTS'] = self.JAVA_OPTS_FORMAT.format(*instance_memory)
+        self.ports = self.get_port_map(instance = instance)
         if self.ssl_key:
             key_files = ( os.path.join(self.guest_config_dir, os.path.basename(self.ssl_key)), ) * 2
             self.env['JAVA_OPTS'] += ' -DenableOFTLS=true -Djavax.net.ssl.keyStore={} -Djavax.net.ssl.keyStorePassword=222222 -Djavax.net.ssl.trustStore={} -Djavax.net.ssl.trustStorePassword=222222'.format(*key_files)
         if cluster is True:
-            self.ports = []
             if data_volume is not None:
                 self.data_map = self.get_data_map(data_volume, self.guest_data_dir)
                 self.host_guest_map = self.host_guest_map + self.data_map
@@ -853,9 +867,10 @@ class Onos(Container):
         if not cls.cluster_instances or Onos.cluster_mode is False:
             return
         for i in range(count):
-            name = '{}-{}'.format(Onos.NAME, len(cls.cluster_instances)+1)
+            instance = len(cls.cluster_instances)
+            name = '{}-{}'.format(Onos.NAME, instance+1)
             onos = cls(name = name, image = Onos.IMAGE, tag = Onos.TAG, prefix = Container.IMAGE_PREFIX,
-                       cluster = True, network_cfg = network_cfg)
+                       cluster = True, network_cfg = network_cfg, instance = instance)
             cls.cluster_instances.append(onos)
 
         cls.setup_cluster(cls.cluster_instances)

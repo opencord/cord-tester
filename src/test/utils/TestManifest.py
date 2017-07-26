@@ -53,6 +53,7 @@ class TestManifest(object):
             self.voltha_loc = args.voltha_loc
             self.voltha_intf = args.voltha_intf
             self.voltha_enable = args.voltha_enable
+            self.expose_port = args.expose_port
         else:
             with open(self.manifest, 'r') as fd:
                 data = json.load(fd)
@@ -85,3 +86,4 @@ class TestManifest(object):
             if self.voltha_loc:
                 voltha_enable = True
             self.voltha_enable = data.get('voltha_enable', voltha_enable)
+            self.expose_port = data.get('expose_port', False)

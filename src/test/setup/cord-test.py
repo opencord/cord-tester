@@ -585,6 +585,7 @@ def runTest(args):
 
     onos_cord = None
     Onos.update_data_dir(test_manifest.karaf_version)
+    Onos.set_expose_port(test_manifest.expose_port)
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -657,7 +658,7 @@ def runTest(args):
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
-                        quagga_config = quagga_config, network = test_manifest.docker_network)
+                        quagga_config = quagga_config, network = test_manifest.docker_network, instance = i)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
@@ -864,6 +865,7 @@ def setupCordTester(args):
     onos_cord = None
     onos_cord_loc = test_manifest.onos_cord
     Onos.update_data_dir(test_manifest.karaf_version)
+    Onos.set_expose_port(test_manifest.expose_port)
     olt_config_file = test_manifest.olt_config
     if not os.access(olt_config_file, os.F_OK):
         olt_config_file = os.path.join(CordTester.tester_base, 'olt_config.json')
@@ -946,7 +948,7 @@ def setupCordTester(args):
             quagga_config = Onos.get_quagga_config(i)
             onos = Onos(name = name, image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                         data_volume = data_volume, async = async_mode,
-                        quagga_config = quagga_config, network = test_manifest.docker_network)
+                        quagga_config = quagga_config, network = test_manifest.docker_network, instance = i)
             onos_instances.append(onos)
             if onos.running:
                 onos_ips.append(onos.ipaddr)
@@ -1340,6 +1342,9 @@ if __name__ == '__main__':
                             help='Specify the voltha interface for voltha to listen')
     parser_run.add_argument('-voltha-enable', '--voltha-enable', action='store_true',
                             help='Run the tests with voltha environment enabled')
+    parser_run.add_argument('-expose-port', '--expose-port', action='store_true',
+                            help='Start ONOS by exposing the controller ports to the host.'
+                            'Add +1 for every other onos/cluster instance when running more than 1 ONOS instances')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1389,6 +1394,9 @@ if __name__ == '__main__':
                               help='Specify the voltha interface for voltha to listen')
     parser_setup.add_argument('-voltha-enable', '--voltha-enable', action='store_true',
                               help='Run the tests with voltha environment enabled')
+    parser_setup.add_argument('-expose-port', '--expose-port', action='store_true',
+                              help='Start ONOS by exposing the controller ports to the host.'
+                              'Add +1 for every other onos/cluster instance when running more than 1 ONOS instances')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
