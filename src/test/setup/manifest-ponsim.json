@@ -8,5 +8,6 @@
     "jvm_heap_size" : "1G",
     "karaf_version" : "3.0.8",
     "voltha_loc" : "/home/ubuntu/voltha/incubator/voltha",
-    "voltha_intf" : "ponmgmt"
+    "voltha_intf" : "ponmgmt",
+    "expose_port" : true
 }
