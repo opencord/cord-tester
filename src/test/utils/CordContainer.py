@@ -23,7 +23,10 @@ from pyroute2 import IPRoute
 from pyroute2.netlink import NetlinkError
 from itertools import chain
 from nsenter import Namespace
-from docker import Client
+try:
+    from docker import APIClient as Client
+except:
+    from docker import Client
 from docker import utils as dockerutils
 import shutil
 from OnosCtrl import OnosCtrl

@@ -4,7 +4,10 @@ logging.getLogger('scapy.runtime').setLevel(logging.ERROR)
 from CordTestUtils import log_test as log
 from onosclidriver import OnosCliDriver
 from OnosCtrl import OnosCtrl
-from docker import Client
+try:
+    from docker import APIClient as Client
+except:
+    from docker import Client
 from CordContainer import *
 import json
 import requests

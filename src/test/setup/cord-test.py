@@ -31,7 +31,10 @@ from CordContainer import *
 from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_test_server_shutdown,CORD_TEST_HOST,CORD_TEST_PORT
 from TestManifest import TestManifest
 from VolthaCtrl import VolthaService
-from docker import Client
+try:
+    from docker import APIClient as Client
+except:
+    from docker import Client
 from docker.utils import kwargs_from_env
 from Xos import XosServiceProfile
 try:

@@ -2,7 +2,7 @@ nose
 scapy==2.3.2
 monotonic
 configObj
-docker-py
+docker
 nsenter
 pyroute2
 netaddr
