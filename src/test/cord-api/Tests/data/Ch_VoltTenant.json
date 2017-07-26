@@ -4,8 +4,7 @@
       "voltTenant" : 
        {
          "s_tag" : 114,
-         "c_tag" : 224,
-         "subscriber_root_id" : ""
+         "c_tag" : 224
        },
        "service_specific_id" : "304"
     },
@@ -13,8 +12,7 @@
      "voltTenant" : 
       {
         "s_tag" : 121,
-        "c_tag" : 333,
-        "subscriber_root_id" : ""
+        "c_tag" : 333
       },
       "service_specific_id" : "305"
     },
@@ -22,8 +20,7 @@
      "voltTenant" :
       {
         "s_tag" : 131,
-        "c_tag" : 444,
-        "subscriber_root_id" : ""
+        "c_tag" : 444
       },
      "service_specific_id" : "306"
     }
