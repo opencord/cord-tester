@@ -482,6 +482,11 @@ yg==
 
     @deferred(10)
     def test_latency_of_cord_for_control_packets_using_icmp_packet(self):
+        """
+	Test-Method:
+	1. Ping from cord-tester to wan interface IP of CiaB setup
+	2. Grep latency of ping packets
+	"""
         df = defer.Deferred()
         def scale_vcpe_instances(df):
             cmd = "ping -c 4 {0} | tail -1| awk '{{print $4}}'".format(self.wan_intf_ip)
@@ -500,6 +505,12 @@ yg==
 
     @deferred(20)
     def test_latency_of_cord_for_control_packets_using_increasing_sizes_of_icmp_packet(self):
+        """
+	Test-Method:
+	1. Ping from cord-tester to wan interface IP of CiaB setup
+	2. Grep the latency of ping packet
+	3. Repeat the process for varying sizes of ping packets
+	"""
         df = defer.Deferred()
         def scale_vcpe_instances(df):
             pckt_sizes = [100,500,1000,1500]
@@ -520,6 +531,12 @@ yg==
 
     @deferred(10)
     def test_latency_of_cord_with_traceroute(self):
+        """
+	Test-Method:
+	1. Traceroute from cord-tester to wan interface IP of CiaB setup
+	2. Grep the latency of ping packet
+	3. Repeat the process for varying sizes of ping packets
+	"""
         df = defer.Deferred()
         def scale_vcpe_instances(df):
             cmd = "traceroute -q1 {} | tail -1| awk '{{print $4}}'".format(self.wan_intf_ip)
@@ -540,6 +557,13 @@ yg==
     #tested with 50 igmp joins on CiaB setup
     @deferred(1000)
     def test_scale_with_igmp_joins_for_500_multicast_groups_and_check_cpu_usage(self, group_count=500):
+        """
+	Test-Method:
+	1. Register 500 igmp groups in onos
+	2. Send  igmp joins for registered groups
+	3. Send multicast traffic to all registered groups
+	4. Verify traffic forwards properly
+	"""
         df = defer.Deferred()
         def scale_igmp_joins(df):
             OnosCtrl(self.igmp_app).activate()
@@ -563,6 +587,15 @@ yg==
     #tested with 50 igmp joins on CiaB setup
     @deferred(1000)
     def test_scale_with_igmp_joins_for_1000_multicast_groups_and_igmp_app_toggle(self, group_count=1000):
+	"""
+	Test-Method:
+	1. Register 1000 igmp groups in onos
+	2. Send  igmp joins for registered groups
+	3. Send multicast traffic to all registered groups
+	4. Verify traffic forwards properly
+	5. deactivate and activate igmp app in onos
+	6. Verify multicast traffic do not forward after igmp app deactivated
+	"""
         df = defer.Deferred()
         def scale_igmp_joins(df):
             OnosCtrl(self.igmp_app).activate()
@@ -583,7 +616,7 @@ yg==
                     status = scale().verify_igmp_data_traffic(groups[index],intf=self.V_INF1,source=sources[index])
                     assert_equal(status, False)
 		    log_test.info('data received for group %s from source %s - %d'%(groups[index],sources[index],index))
-		OnosCtrl(self.igmp_app).ctivate()
+		OnosCtrl(self.igmp_app).activate()
 	    except Exception as error:
 		log.info('Got unexpected error %s'%error)
 		OnosCtrl(self.igmp_app).activate()
@@ -595,6 +628,13 @@ yg==
     #tested with 50 igmp joins on CiaB setup
     @deferred(1800)
     def test_scale_with_igmp_joins_for_2000_multicast_groups_and_check_cpu_usage(self, group_count=2000):
+	"""
+	Test-Method:
+	1. Register 500 igmp groups in onos
+	2. Send  igmp joins for registered groups
+	3. Send multicast traffic to all registered groups
+	4. Verify traffic forwards properly
+	"""
         df = defer.Deferred()
         def scale_igmp_joins(df):
             OnosCtrl(self.igmp_app).activate()
@@ -621,6 +661,13 @@ yg==
     #tested with 50 igmp joins on CiaB setup
     @deferred(1000)
     def test_scale_of_igmp_joins_for_2000_multicast_groups_and_check_cpu_usage_after_app_deactivation_and_activation(self,group_count=2000):
+	"""
+	Test-Method:
+	1. Register 2000 igmp groups in onos
+	2. Send  igmp joins for registered groups
+	3. Send multicast traffic to all registered groups
+	4. Verify traffic forwards properly
+	"""
         df = defer.Deferred()
         def scale_igmp_joins(df):
 	    cpu_usage1 = scale().get_system_cpu_usage()
@@ -653,6 +700,12 @@ yg==
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
     def test_scale_adding_1k_flow_entries_in_onos_with_dynamic_tcp_ports(self,count=1000):
+	"""
+	Test-Method:
+	1. Add 1000 flow entries with varying tcp port number in onos
+	2. Send data traffic for added tcp port numbers
+	3. Verify onos forwards data traffic propoerly
+	"""
 	scale().flows_setup()
         df = defer.Deferred()
         def scale_flow_entries(df):
@@ -701,6 +754,12 @@ yg==
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
     def test_scale_adding_5k_ip_flow_entries_in_onos_and_checking_cpu_usage(self,count=5000):
+	"""
+	Test-Method:
+	1. Add 5000 flow entries with varying source and destination IP
+	2. Send data traffic matching flow entries
+	3. Verify onos forwards data traffic propoerly
+	"""
 	scale().flows_setup()
         df = defer.Deferred()
         def scale_flow_entries(df):
@@ -751,6 +810,12 @@ yg==
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
     def test_scale_adding_10k_flow_entries_in_onos_with_dynamic_udp_ports(self,count=10000):
+	"""
+	Test-Method:
+	1. Add 10000 flow entries with varying udp port number in onos
+	2. Send data traffic matching flow entries
+	3. Verify onos forwards data traffic propoerly
+	"""
         scale().flows_setup()
         df = defer.Deferred()
         def scale_flow_entries(df):
@@ -799,6 +864,12 @@ yg==
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
     def test_scale_adding_10k_constant_destination_mac_flow_entries_in_onos_and_check_cpu_usage(self,count=100):
+	"""
+	Test-Method:
+	1. Add 10000 flow entries with varying source mac
+	2. Send data traffic matching flow entries
+	3. Verify onos forwards data traffic propoerly
+	"""
 	scale().flows_setup()
         df = defer.Deferred()
         def scale_flow_entries(df):
@@ -849,86 +920,192 @@ yg==
 
     @deferred(1000)
     def test_scale_adding_10k_acl_rules_to_deny_matching_destination_tcp_port_traffic(self,count=10000):
+	"""
+	Test-Method:
+	1. Add 10000 acl deny rules with varying tcp port number
+	2. Send data traffic matching flow entries
+	3. Verify onos drops data traffic propoerly
+	"""
         df = defer.Deferred()
-        def scale_vcpe_instances(df):
+        def scale_acl_rules(df):
+		    acl_rule = ACLTest()
+		    ingress = self.ingress_iface
+            egress = self.CURRENT_PORT_NUM
+			status, code, host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+            self.CURRENT_PORT_NUM += 1
+            time.sleep(5)
+			assert_equal(status, True)
+			srcMac = '00:00:00:00:00:11'
+            dstMac = host_ip_mac[0][1]
+            scale().acl_hosts_add(dstHostIpMac = host_ip_mac, egress_iface_count = 1,  egress_iface_num = egress )
+			try:
+                for index in range(0,count):
+				    status,code,host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+                    self.CURRENT_PORT_NUM += 1
+                    src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_port = random.randint(1024,65535)
+                    log.info('adding acl rule = %d with src ip = %s, dst ip = %s and dst tcp port = %d'%(index+1, src_ip,dst_ip,dst_port))
+                    status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip, ipProto ='TCP', dstTpPort =dst_port, action = 'deny')
+                    assert_equal(status, True)
+					self.acl_rule_traffic_send_recv(srcMac = srcMac, dstMac = dstMac ,srcIp = src_ip, dstIp = dst_ip,ingress =ingress, egress = egress, ip_proto = 'TCP',positive_test = False)
+					scale().acl_hosts_remove(egress_iface_count = 1,  egress_iface_num = egress)
+		    except Exception as error:
+                log.info('Got unexpected error %s'%error)
+				self.acl_hosts_remove(egress_iface_count = 1,  egress_iface_num = egress)
+                raise
+            df.callback(0)
+        reactor.callLater(0, scale_vsg_vms, df)
+        return df
+
+    @deferred(1000)
+    def test_scale_adding_10k_acl_rules_to_allow_src_and_dst_ip_matching_traffic_check_cpu_usage(self,count=10000):
+	"""
+	Test-Method:
+	1. Grep system usage before starting test case
+	2. Configure 10000 acl rules in onos
+	3. Verify traffic test for all 10000 acl rules configured
+	4. Grep system usage again now
+	"""
+        df = defer.Deferred()
+        def scale_acl_rules(df):
             cpu_usage1 = self.get_system_cpu_usage()
+		    ingress = self.ingress_iface
+            egress = self.CURRENT_PORT_NUM
+			status, code, host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+            self.CURRENT_PORT_NUM += 1
+            time.sleep(5)
+			assert_equal(status, True)
+			srcMac = '00:00:00:00:00:11'
+            dstMac = host_ip_mac[0][1]
+            self.acl_hosts_add(dstHostIpMac = host_ip_mac, egress_iface_count = 1,  egress_iface_num = egress )
             acl_rule = ACLTest()
-            for index in range(0,count):
-                src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
-                dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
-                dst_port = random.randint(1024,65535)
-                log.info('adding acl rule = %d with src ip = %s, dst ip = %s and dst tcp port = %d'%(index+1, src_ip,dst_ip,dst_port))
-                status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip, ipProto ='TCP', dstTpPort =dst_port, action = 'deny')
-                assert_equal(status, True)
-                if index % 100 == 0:
-                    cpu_usage = self.get_system_cpu_usage()
-                    log.info('CPU usage is %s for multicast group entries %s'%(cpu_usage,index+1))
-                    time.sleep(1)
+			try:
+                for index in range(0,count):
+				    status,code,host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+                    self.CURRENT_PORT_NUM += 1
+                    src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_port = random.randint(1024,65535)
+                    log.info('adding acl rule = %d with src ip = %s, dst ip = %s '%(index+1, src_ip,dst_ip))
+                    status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip,action = 'allow')
+                    assert_equal(status, True)
+					self.acl_rule_traffic_send_recv(srcMac = srcMac, dstMac = dstMac ,srcIp =self.ACL_SRC_IP, dstIp = self.ACL_DST_IP,ingress =ingress, egress = egress, ip_proto = 'UDP', dstPortNum = 456)
+                    if index % 100 == 0:
+                        cpu_usage = self.get_system_cpu_usage()
+                        log.info('CPU usage is %s for acl rule number %s'%(cpu_usage,index+1))
+                        time.sleep(1)
+				    self.acl_hosts_remove(egress_iface_count = 1,  egress_iface_num = egress)
+			except Exception as error:
+                log.info('Got unexpected error %s'%error)
+				self.acl_hosts_remove(egress_iface_count = 1,  egress_iface_num = egress)
+                raise
             cpu_usage2 = self.get_system_cpu_usage()
             log.info('system cpu usage before flows added = %f and after %d flows added = %f'%(cpu_usage1,count,cpu_usage2))
             df.callback(0)
-        reactor.callLater(0, scale_vsg_vms, df)
+        reactor.callLater(0, scale_acl_rules, df)
         return df
 
     @deferred(1000)
-    def test_scale_adding_and_deleting_10k_acl_rules_to_allow_src_and_dst_ip_matching_traffic_check_cpu_usage(self,count=10000):
+    def test_scale_adding_and_deleting_10k_acl_rules_to_allow_src_and_dst_ip_matching_traffic(self,count=10000):
+        """
+	Test-Method:
+	1. Add 10000 acl rules to allow source and destinaiton IP matching traffic
+	2. Send acl rules matching traffic
+	3. Delete all the added acl rules
+	"""
         df = defer.Deferred()
-        def scale_vcpe_instances(df):
-            cpu_usage1 = self.get_system_cpu_usage()
+        def scale_acl_rules(df):
+		    ingress = self.ingress_iface
+            egress = self.CURRENT_PORT_NUM
+			status, code, host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+            self.CURRENT_PORT_NUM += 1
+            time.sleep(5)
+			assert_equal(status, True)
+			srcMac = '00:00:00:00:00:11'
+            dstMac = host_ip_mac[0][1]
+            self.acl_hosts_add(dstHostIpMac = host_ip_mac, egress_iface_count = 1,  egress_iface_num = egress )
             acl_rule = ACLTest()
-            for index in range(0,count):
-                src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
-                dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
-                dst_port = random.randint(1024,65535)
-                log.info('adding acl rule = %d with src ip = %s, dst ip = %s '%(index+1, src_ip,dst_ip))
-                status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip,action = 'allow')
-                assert_equal(status, True)
-                if index % 100 == 0:
-                    cpu_usage = self.get_system_cpu_usage()
-                    log.info('CPU usage is %s for acl rule number %s'%(cpu_usage,index+1))
-                    time.sleep(1)
-            cpu_usage2 = self.get_system_cpu_usage()
-            result = acl_rule.get_acl_rules()
-            result = result.json()['aclRules']
-            for acl in result:
-                acl_rule.remove_acl_rule(acl['id'])
-                #log.info('acl is %s'%acl)
-            cpu_usage3 = self.get_system_cpu_usage()
-            log.info('system cpu usage before flows added = %f and after %d flows added = %f, after deleting all acl rules = %f'%(cpu_usage1,count,cpu_usage2,cpu_usage3))
+			try:
+                for index in range(0,count):
+				    status,code,host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+                    self.CURRENT_PORT_NUM += 1
+                    src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_port = random.randint(1024,65535)
+                    log.info('adding acl rule = %d with src ip = %s, dst ip = %s '%(index+1, src_ip,dst_ip))
+                    status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip,action = 'allow')
+                    assert_equal(status, True)
+					self.acl_rule_traffic_send_recv(srcMac = srcMac, dstMac = dstMac ,srcIp =self.ACL_SRC_IP, dstIp = self.ACL_DST_IP,ingress =ingress, egress = egress, ip_proto = 'UDP', dstPortNum = 456)
+                result = acl_rule.get_acl_rules()
+                result = result.json()['aclRules']
+                for acl in result:
+                    acl_rule.remove_acl_rule(acl['id'])
+                    log.info('removed acl with Id --> %s'%acl['id'])
+				self.acl_hosts_remove(egress_iface_count = 1,  egress_iface_num = egress)
+			except Exception as error:
+                log.info('Got unexpected error %s'%error)
+				self.acl_hosts_remove(egress_iface_count = 1,  egress_iface_num = egress)
+                raise
             df.callback(0)
-        reactor.callLater(0, scale_vsg_vms, df)
+        reactor.callLater(0, scale_acl_rules, df)
         return df
 
     @deferred(1000)
-    def test_scale_adding_20k_acl_rules_to_allow_src_and_dst_ip_matching_traffic_and_deactivate_acl_app_checking_cpu_usage(self,count=20000):
+    def test_scale_adding_20k_acl_rules_to_deny_src_and_dst_ip_matching_traffic_with_acl_app_toggle(self,count=20000):
+	"""
+	Test-Method:
+	1. Add 20000 acl rules to allow source and destinaiton IP matching traffic
+	2. Send acl rules matching traffic
+	3. Verify onos drops the traffic as the rule is deny type
+	4. Deactivate the acl app in onos
+	4. Verify now onos forwards the traffic
+	"""
         df = defer.Deferred()
-        def scale_vcpe_instances(df):
-            cpu_usage1 = self.get_system_cpu_usage()
+        def scale_acl_rules(df):
+		    ingress = self.ingress_iface
+            egress = self.CURRENT_PORT_NUM
+			status, code, host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+            self.CURRENT_PORT_NUM += 1
+            time.sleep(5)
+			assert_equal(status, True)
+			srcMac = '00:00:00:00:00:11'
+            dstMac = host_ip_mac[0][1]
+            self.acl_hosts_add(dstHostIpMac = host_ip_mac, egress_iface_count = 1,  egress_iface_num = egress )
             acl_rule = ACLTest()
-            for index in range(0,count):
-                src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
-                dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
-                dst_port = random.randint(1024,65535)
-                log.info('adding acl rule = %d with src ip = %s, dst ip = %s '%(index+1, src_ip,dst_ip))
-                status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip,action = 'allow')
-                assert_equal(status, True)
-                if index % 200 == 0:
-                    cpu_usage = self.get_system_cpu_usage()
-                    log.info('CPU usage is %s for acl rule number %s'%(cpu_usage,index+1))
-                    time.sleep(1)
-            cpu_usage2 = self.get_system_cpu_usage()
-            OnosCtrl(cls.acl_app).deactivate()
-            time.sleep(3)
-            cpu_usage3 = self.get_system_cpu_usage()
-            log.info('system cpu usage before flows added = %f, after %d flows added = %f, and after deactivating acl app = %f'%(cpu_usage1,count,cpu_usage2,cpu_usage3))
+            try:
+                for index in range(0,count):
+				    status,code,host_ip_mac = acl_rule.generate_onos_interface_config(iface_num= self.CURRENT_PORT_NUM, iface_name = 'b1',iface_count = 1, iface_ip = self.HOST_DST_IP)
+                    self.CURRENT_PORT_NUM += 1
+                    src_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_ip =  self.generate_random_unicast_ip_addresses(count=1)[0]+'/32'
+                    dst_port = random.randint(1024,65535)
+                    log.info('adding acl rule = %d with src ip = %s, dst ip = %s '%(index+1, src_ip,dst_ip))
+                    status,code = acl_rule.adding_acl_rule('v4', srcIp=src_ip, dstIp = dst_ip,action = 'deny')
+                    assert_equal(status, True)
+					self.acl_rule_traffic_send_recv(srcMac = srcMac, dstMac = dstMac ,srcIp =self.ACL_SRC_IP, dstIp = self.ACL_DST_IP,ingress =ingress, egress = egress, ip_proto = 'UDP', dstPortNum = 456)
+                OnosCtrl(cls.acl_app).deactivate()
+                time.sleep(3)
+			except Exception as error:
+                log.info('Got unexpected error %s'%error)
+                raise
             df.callback(0)
-        reactor.callLater(0, scale_vsg_vms, df)
+        reactor.callLater(0, scale_acl_rules, df)
         return df
 
     @deferred(1000)
     def test_scale_adding_igmp_and_acl_with_flow_entries_and_check_cpu_usage(self,igmp_groups=1300, flows_count=10000):
+	"""
+	Test-Method:
+	1. Add igmp and flow entries in onos
+	2. Send igmp joins for corresponding igmp entries
+	3. Send multicast data traffic to registered igmp groups
+	3. Verify onos forwards the traffic
+	4. Send traffic matching the flow entries
+	4. Verify onos forwards the traffic
+	"""
         df = defer.Deferred()
-        def scale_vcpe_instances(df):
+        def scale_igmp_acl_flows(df):
             cpu_usage1 = self.get_system_cpu_usage()
             egress = 1
             ingress = 2
@@ -967,13 +1144,24 @@ yg==
             cpu_usage2 = self.get_system_cpu_usage()
             log.info('system cpu usage before flows added = %f, after %d flows added = %f'%(cpu_usage1,count,cpu_usage2))
             df.callback(0)
-        reactor.callLater(0, scale_vsg_vms, df)
+        reactor.callLater(0, scale_igmp_acl_flows, df)
         return df
 
     @deferred(1000)
     def test_scale_adding_igmp_acl_and_flow_entries_and_simultaneously_toggling_app_activation(self,igmp_groups=1300, flows_count=10000):
+	"""
+	Test-Method:
+	1. Add igmp, acl and flow entries in onos
+	2. Send igmp joins for corresponding igmp entries
+	3. Send multicast data traffic to registered igmp groups
+	3. Verify onos forwards the traffic
+	4. Send traffic matching the flow entries
+	4. Verify onos forwards the traffic
+	5. Send traffic matching acl rules
+	6. Verify onos forwards the traffic
+	"""
         df = defer.Deferred()
-        def scale_vcpe_instances(df):
+        def scale_igmp_acl_flows(df):
             cpu_usage1 = self.get_system_cpu_usage()
             def adding_igmp_entries():
                 OnosCtrl(self.igmp_app).activate()
@@ -1028,11 +1216,18 @@ yg==
             OnosCtrl(self.igmp_app).activate()
             OnosCtrl(self.acl_app).activate()
             df.callback(0)
-        reactor.callLater(0, scale_vsg_vms, df)
+        reactor.callLater(0, scale_igmp_acl_flows, df)
         return df
 
     @deferred(1000)
     def test_scale_for_vrouter_with_10_routes_with_10_peers(self):
+	"""
+	Test-Method:
+	1. Add 10 routes with 10 pairs in quagga
+	2. Verify routes pushed to onos  from quagga
+	3. Send traffic destined  the routes added
+	3. Verify onos forwards the traffic
+	"""
 	scale().vrouter_setup()
 	df = defer.Deferred()
         def scale_vrouter_routes(df):
@@ -1048,7 +1243,14 @@ yg==
 
     #tested with 100 routes on CiaB
     @deferred(1000)
-    def test_scale_for_vrouter_with_20000_routes_with_100_peers(self):
+    def test_scale_for_vrouter_with_10000_routes_with_100_peers(self):
+	"""
+	Test-Method:
+	1. Add 100000 routes with 100 pairs in quagga
+	2. Verify routes pushed to onos  from quagga
+	3. Send traffic destined  the routes added
+	3. Verify onos forwards the traffic
+	"""
         scale().vrouter_setup()
         df = defer.Deferred()
         def scale_vrouter_routes(df):
@@ -1064,12 +1266,19 @@ yg==
 
     #tested with 100 routes on CiaB
     @deferred(1500)
-    def test_scale_for_vrouter_with_20000_routes_with_100_peers(self):
+    def test_scale_for_vrouter_with_20000_routes_with_200_peers(self):
+	"""
+	Test-Method:
+	1. Add 20000 routes with 200 pairs in quagga
+	2. Verify routes pushed to onos  from quagga
+	3. Send traffic destined  the routes added
+	3. Verify onos forwards the traffic
+	"""
         scale().vrouter_setup()
         df = defer.Deferred()
         def scale_vrouter_routes(df):
 	    try:
-                res = scale().vrouter_network_verify(20000, peers = 100)
+                res = scale().vrouter_network_verify(20000, peers = 200)
                 assert_equal(res, True)
 	    except Exception as error:
 		log.info('Got Unexpected error %s'%error)
@@ -1081,6 +1290,11 @@ yg==
     #tested with 100 subscribers on CiaB
     @deferred(1800)
     def test_scale_of_eap_tls_with_5k_sessions_using_diff_mac(self):
+	"""
+	Test-Method:
+	1. Simulate eap authentication requests for 5000 users
+	2. Verify authentication is succes for all 5000 users
+	"""
 	OnosCtrl('org.opencord.aaa').activate()
         df = defer.Deferred()
         def eap_tls_5k_with_diff_mac(df):
@@ -1099,6 +1313,14 @@ yg==
     #tested with 100 subscribers on CiaB
     @deferred(1800)
     def test_scale_of_eap_tls_with_5k_sessions_using_diff_mac_with_aaa_deactivate_and_activated(self):
+	"""
+	Test-Method:
+	1. Simulate eap authentication requests for 5000 users
+	2. Verify authentication is succes for all 5000 users
+	3. Deactivate and activate the aaa app in onos
+	4. Simulate eap authentication requests for 5000 users
+	5. Verify authentication is succes for all 5000 users
+	"""
 	OnosCtrl('org.opencord.aaa').activate()
 	df = defer.Deferred()
         def eap_tls_5k_with_diff_mac(df):
@@ -1126,6 +1348,12 @@ yg==
     #tested with 10 subscribers on CiaB
     @deferred(1800)
     def test_scale_5k_cord_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
+	"""
+	Test-Method:
+	1. Simulate 5000 subscribers to get authentication access
+	2. Send igmp joins from all the subcribers
+	3. Verify multicast traffic received to all 5000 subscribers
+	"""
 	scale().subscriber_setup()
         df = defer.Deferred()
         def cordsub_auth_invalid_cert(df):
@@ -1149,6 +1377,12 @@ yg==
     #tested with 10 subscribers on CiaB
     @deferred(1800)
     def test_scale_5k_cord_subscribers_igmp_join_jump_1500channel(self):
+	"""
+        Test-Method:
+        1. Simulate 5000 subscribers
+        2. Send igmp joins from all the subcribers
+        3. Verify multicast traffic received to all 5000 subscribers
+        """
         scale().subscriber_setup()
         df = defer.Deferred()
         def cordsub_igmp_join_jump(df):
@@ -1173,6 +1407,12 @@ yg==
     #tested with 10 subscribers on CiaB
     @deferred(1800)
     def test_scale_10k_cord_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
+	"""
+        Test-Method:
+        1. Simulate 10000 subscribers to get authentication access
+        2. Send igmp joins from all the subcribers
+        3. Verify multicast traffic received to all 10000 subscribers
+        """
 	scale().subscriber_setup()
         df = defer.Deferred()
         def cordsub_auth_valid_cert(df):
@@ -1193,3 +1433,4 @@ yg==
             df.callback(0)
         reactor.callLater(0, cordsub_auth_valid_cert, df)
         return df
+

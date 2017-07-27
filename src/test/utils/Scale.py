@@ -199,6 +199,21 @@ class scale(object):
     IGMP_DST_MAC = "01:00:5e:00:00:16"
     igmp_eth = Ether(dst = IGMP_DST_MAC, type = ETH_P_IP)
     igmp_ip = IP(dst = IP_DST)
+	INGRESS_PORT = 1
+    EGRESS_PORT = 2
+    ingress_iface = 1
+    egress_iface = 2
+    MAX_PORTS = 100
+    CURRENT_PORT_NUM = egress_iface
+    ACL_SRC_IP = '192.168.20.3/32'
+    ACL_DST_IP = '192.168.30.2/32'
+    ACL_SRC_IP_RULE_2 = '192.168.40.3/32'
+    ACL_DST_IP_RULE_2 = '192.168.50.2/32'
+    ACL_SRC_IP_PREFIX_24 = '192.168.20.3/24'
+    ACL_DST_IP_PREFIX_24 = '192.168.30.2/24'
+    HOST_DST_IP = '192.168.30.0/24'
+    HOST_DST_IP_RULE_2 = '192.168.50.0/24'
+
 
 
 
@@ -338,7 +353,74 @@ yg==
         self.send_multicast_data_traffic(group,source=source)
         t.join()
         return self.success
+##################### acl utility functions ###############################
 
+    @classmethod
+    def acl_hosts_add(cls, dstHostIpMac, egress_iface_count = 1,  egress_iface_num = None):
+        index = 0
+        if egress_iface_num is None:
+            egress_iface_num = cls.egress_iface
+        for ip,_ in dstHostIpMac:
+            egress = cls.port_map[egress_iface_num]
+            log.info('Assigning ip %s to interface %s' %(ip, egress))
+            config_cmds_egress = ( 'ifconfig {} 0'.format(egress),
+                                   'ifconfig {0} up'.format(egress),
+                                   'ifconfig {0} {1}'.format(egress, ip),
+                                   'arping -I {0} {1} -c 2'.format(egress, ip.split('/')[0]),
+                                   'ifconfig {0}'.format(egress),
+                                 )
+            for cmd in config_cmds_egress:
+                os.system(cmd)
+            index += 1
+            if index == egress_iface_count:
+               break
+            egress_iface_count += 1
+            egress_iface_num += 1
+    @classmethod
+    def acl_hosts_remove(cls, egress_iface_count = 1,  egress_iface_num = None):
+        if egress_iface_num is None:
+           egress_iface_num = cls.egress_iface
+        n = 0
+        for n in range(egress_iface_count):
+           egress = cls.port_map[egress_iface_num]
+           config_cmds_egress = ('ifconfig {} 0'.format(egress))
+           os.system(config_cmds_egress)
+           egress_iface_num += 1
+    def acl_rule_traffic_send_recv(self, srcMac, dstMac, srcIp, dstIp, ingress =None, egress=None, ip_proto=None, dstPortNum = None, positive_test = True):
+        if ingress is None:
+           ingress = self.ingress_iface
+        if egress is None:
+           egress = self.egress_iface
+        ingress = self.port_map[ingress]
+        egress = self.port_map[egress]
+        self.success = False if positive_test else True
+        timeout = 10 if positive_test else 1
+        count = 2 if positive_test else 1
+        self.start_sending = True
+        def recv_task():
+            def recv_cb(pkt):
+                log.info('Pkt seen with ingress ip %s, egress ip %s' %(pkt[IP].src, pkt[IP].dst))
+                self.success = True if positive_test else False
+            sniff(count=count, timeout=timeout,
+                  lfilter = lambda p: IP in p and p[IP].dst == dstIp.split('/')[0] and p[IP].src == srcIp.split('/')[0],
+                  prn = recv_cb, iface = egress)
+            self.start_sending = False
+
+        t = threading.Thread(target = recv_task)
+        t.start()
+        L2 = Ether(src = srcMac, dst = dstMac)
+        L3 = IP(src = srcIp.split('/')[0], dst = dstIp.split('/')[0])
+        pkt = L2/L3
+		        log.info('Sending a packet with dst ip %s, src ip %s , dst mac %s src mac %s on port %s to verify if flows are correct' %
+                 (dstIp.split('/')[0], srcIp.split('/')[0], dstMac, srcMac, ingress))
+        while self.start_sending is True:
+            sendp(pkt, count=50, iface = ingress)
+        t.join()
+        assert_equal(self.success, True)
+
+
+
+############################# vrouter utility functiuons ####################
     @classmethod
     def vrouter_setup(cls):
         apps = ('org.onosproject.proxyarp', 'org.onosproject.hostprovider', 'org.onosproject.vrouter', 'org.onosproject.fwd')
@@ -432,7 +514,6 @@ line vty
         bgp_speakers_list.append(speaker_dict)
         cls.peer_list = peer_list
         return (cls.vrouter_device_dict, ports_dict, quagga_dict)
-
     @classmethod
     def generate_conf(cls, networks = 4, peer_address = None, router_address = None):
         num = 0
@@ -727,7 +808,6 @@ line vty
           ssm_groups = map(lambda sub: sub.channels, self.subscriber_list)
           ssm_list = reduce(lambda ssm1, ssm2: ssm1+ssm2, ssm_groups)
           igmpChannel.igmp_load_ssm_config(ssm_list)
-
     def subscriber_join_verify( self, num_subscribers = 10, num_channels = 1,
                                   channel_start = 0, cbs = None, port_list = [],
                                   services = None, negative_subscriber_auth = None):
@@ -962,9 +1042,9 @@ line vty
         return ':'.join(mac)
 
     def inc_ip(self, ip, i):
+
         ip[i] =str(int(ip[i])+1)
         return '.'.join(ip)
-
     def next_ip(self, ip):
 
         lst = ip.split('.')
@@ -985,4 +1065,3 @@ line vty
         lst=ip.split('.')
         lst[0] = '182'
         return '.'.join(lst)
-
