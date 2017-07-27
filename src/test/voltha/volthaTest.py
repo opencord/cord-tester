@@ -14,7 +14,7 @@ from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from CordTestConfig import setup_module, teardown_module
 from CordTestUtils import log_test
-from VolthaCtrl import VolthaCtrl
+from VolthaCtrl import VolthaCtrl, voltha_setup, voltha_teardown
 from CordTestUtils import log_test, get_controller
 from portmaps import g_subscriber_port_map
 from OltConfig import *
@@ -1404,25 +1404,17 @@ yg==
         4. Validate that eap tls valid auth packets are being exchanged between subscriber, onos and freeradius.
         5. Verify that subscriber is authenticated successfully.
         """
-        log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
-        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
-        assert_not_equal(device_id, None)
-        if status == False:
-            self.voltha.disable_device(device_id, delete = True)
-        assert_equal(status, True)
-        time.sleep(10)
-        switch_map = None
-        olt_configured = False
-        voltha = VolthaCtrl(**self.voltha_attrs)
+        ret = voltha_setup(
+              host = self.VOLTHA_HOST,
+              rest_port = self.VOLTHA_REST_PORT,
+              olt_type = 'ponsim_olt',
+              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP,
+              uplink_vlan_start = self.VOLTHA_UPLINK_VLAN_START,
+              config_fake = self.VOLTHA_CONFIG_FAKE,
+              olt_app = self.olt_app_file)
+        assert_not_equal(ret, None)
+        voltha, device_id, switch_map = ret[0], ret[1], ret[2]
         try:
-            switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
-            if not switch_map:
-                log_test.info('No voltha devices found')
-                return
-            log_test.info('Installing OLT app')
-            OnosCtrl.install_app(self.olt_app_file)
-            time.sleep(5)
             log_test.info('Adding subscribers through OLT app')
             self.config_olt(switch_map)
             olt_configured = True
@@ -1433,9 +1425,7 @@ yg==
             if switch_map is not None:
                 if olt_configured is True:
                     self.remove_olt(switch_map)
-                self.voltha.disable_device(device_id, delete = True)
-                time.sleep(10)
-                OnosCtrl.uninstall_app(self.olt_app_name)
+                voltha_teardown(voltha, device_id, switch_map, olt_app = self.olt_app_file)
 
     @deferred(TESTCASE_TIMEOUT)
     def test_subscriber_with_voltha_for_eap_tls_authentication_failure(self):
