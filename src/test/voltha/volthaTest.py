@@ -166,6 +166,7 @@ class voltha_exchange(unittest.TestCase):
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_IGMP_ITERATIONS = 100
     voltha = None
+    voltha_attrs = None
     success = True
     olt_device_id = None
     apps = ('org.opencord.aaa', 'org.onosproject.dhcp', 'org.onosproject.dhcprelay')
@@ -208,9 +209,9 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     INTF_RX_DEFAULT = 'veth0'
     INTF_2_RX_DEFAULT = 'veth6'
     TESTCASE_TIMEOUT = 300
-#    VOLTHA_CONFIG_FAKE = True
     VOLTHA_CONFIG_FAKE = False
     VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
+    VOLTHA_UPLINK_VLAN_START = 444
     VOLTHA_ONU_UNI_PORT = 'veth0'
 
     dhcp_server_config = {
@@ -369,7 +370,11 @@ yg==
     @classmethod
     def setUpClass(cls):
         cls.update_apps_version()
-        cls.voltha = VolthaCtrl(cls.VOLTHA_HOST, rest_port = cls.VOLTHA_REST_PORT)
+        cls.voltha_attrs = dict(host = cls.VOLTHA_HOST,
+                                rest_port = cls.VOLTHA_REST_PORT,
+                                uplink_vlan_map = cls.VOLTHA_UPLINK_VLAN_MAP,
+                                uplink_vlan_start = cls.VOLTHA_UPLINK_VLAN_START)
+        cls.voltha = VolthaCtrl(**cls.voltha_attrs)
         cls.install_app_table()
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, cls.port_list = cls.olt.olt_port_map()
@@ -1262,9 +1267,7 @@ yg==
 
     def voltha_subscribers(self, services, cbs = None, num_subscribers = 1, num_channels = 1, src_list = None):
           """Test subscriber join next for channel surfing"""
-          voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+          voltha = VolthaCtrl(**self.voltha_attrs)
           if self.VOLTHA_OLT_TYPE.startswith('ponsim'):
              ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
              log_test.info('Enabling ponsim olt')
@@ -1411,9 +1414,7 @@ yg==
         time.sleep(10)
         switch_map = None
         olt_configured = False
-        voltha = VolthaCtrl(self.VOLTHA_HOST,
-                            rest_port = self.VOLTHA_REST_PORT,
-                            uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+        voltha = VolthaCtrl(**self.voltha_attrs)
         try:
             switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
             if not switch_map:
@@ -1453,9 +1454,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1497,9 +1496,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1540,9 +1537,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1586,9 +1581,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1638,9 +1631,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1693,9 +1684,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1748,9 +1737,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1806,9 +1793,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1863,9 +1848,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1920,9 +1903,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -1981,9 +1962,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2042,9 +2021,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2102,9 +2079,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2159,9 +2134,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2218,9 +2191,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2277,9 +2248,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2338,9 +2307,7 @@ yg==
 
             onu_device_id = devices_list['items'][1]['id']
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                              rest_port = self.VOLTHA_REST_PORT,
-                              uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2446,9 +2413,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2490,9 +2455,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2536,9 +2499,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2579,9 +2540,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2624,9 +2583,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2670,9 +2627,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2715,9 +2670,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2760,9 +2713,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2806,9 +2757,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2849,9 +2798,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2892,9 +2839,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2939,9 +2884,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -2992,9 +2935,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3037,9 +2978,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3084,9 +3023,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3141,9 +3078,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3201,9 +3136,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3258,9 +3191,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3314,9 +3245,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3368,9 +3297,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3427,9 +3354,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3488,9 +3413,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3545,9 +3468,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3602,9 +3523,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3658,9 +3577,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3713,9 +3630,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3767,9 +3682,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3821,9 +3734,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3878,9 +3789,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3935,9 +3844,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -3996,9 +3903,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -4053,9 +3958,7 @@ yg==
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
-            voltha = VolthaCtrl(self.VOLTHA_HOST,
-                                rest_port = self.VOLTHA_REST_PORT,
-                                uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
+            voltha = VolthaCtrl(**self.voltha_attrs)
             time.sleep(10)
             switch_map = None
             olt_configured = False
@@ -5302,4 +5205,3 @@ yg==
         self.voltha_subscribers(services, cbs = cbs,
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
-

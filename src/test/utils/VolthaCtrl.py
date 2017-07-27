@@ -139,15 +139,17 @@ class VolthaService(object):
         os.system(service_stop_cmd)
 
 class VolthaCtrl(object):
-
+    UPLINK_VLAN_START = 333
     UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
     REST_PORT = 8881
+    HOST = '172.17.0.1'
 
-    def __init__(self, host, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP):
+    def __init__(self, host = HOST, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP, uplink_vlan_start = UPLINK_VLAN_START):
         self.host = host
         self.rest_port = rest_port
         self.rest_url = 'http://{}:{}/api/v1'.format(host, rest_port)
         self.uplink_vlan_map = uplink_vlan_map
+        VolthaCtrl.UPLINK_VLAN_START = uplink_vlan_start
         self.switches = []
         self.switch_map = {}
 
@@ -165,8 +167,11 @@ class VolthaCtrl(object):
             nni_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and p['annotations']['portName'].startswith('nni'), ports)
             uni_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and p['annotations']['portName'].startswith('uni'), ports)
             if device_id not in self.uplink_vlan_map:
-                log.info('Skipping voltha device %s as uplink vlan does not exist' %device_id)
-                continue
+                uplink_vlan = VolthaCtrl.UPLINK_VLAN_START
+                VolthaCtrl.UPLINK_VLAN_START += 1
+                log.info('Voltha device %s not in map. Using uplink vlan %d' %(device_id, uplink_vlan))
+            else:
+                uplink_vlan = self.uplink_vlan_map[device_id]
             if not nni_ports:
                 log.info('Voltha device %s has no NNI ports' %device_id)
                 if fake is True:
@@ -183,7 +188,6 @@ class VolthaCtrl(object):
                 else:
                     log.info('Skip configuring device %s' %device_id)
                     continue
-            uplink_vlan = self.uplink_vlan_map[device_id]
             onu_ports = map(lambda uni: uni['port'], uni_ports)
             self.switch_map[device_id] = dict(uplink_vlan = uplink_vlan, ports = onu_ports)
             device_config['devices'][device_id] = {}
@@ -323,9 +327,12 @@ def get_olt_app():
 def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
                  olt_type = 'ponsim_olt', olt_mac = '00:0c:e2:31:12:00',
                  uplink_vlan_map = VolthaCtrl.UPLINK_VLAN_MAP,
+                 uplink_vlan_start = VolthaCtrl.UPLINK_VLAN_START,
                  config_fake = False, olt_app = None):
 
-    voltha = VolthaCtrl(host, rest_port = rest_port, uplink_vlan_map = uplink_vlan_map)
+    voltha = VolthaCtrl(host, rest_port = rest_port,
+                        uplink_vlan_map = uplink_vlan_map,
+                        uplink_vlan_start = uplink_vlan_start)
     if olt_type.startswith('ponsim'):
         ponsim_address = '{}:50060'.format(host)
         log.info('Enabling ponsim olt')
