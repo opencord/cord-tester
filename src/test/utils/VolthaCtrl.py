@@ -143,6 +143,7 @@ class VolthaCtrl(object):
     UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
     REST_PORT = 8881
     HOST = '172.17.0.1'
+    ONOS_APPS = ('org.onosproject.dhcp', 'org.onosproject.dhcp-relay', 'org.ciena.cordigmp')
 
     def __init__(self, host = HOST, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP, uplink_vlan_start = UPLINK_VLAN_START):
         self.host = host
@@ -201,10 +202,13 @@ class VolthaCtrl(object):
             OnosCtrl('org.onosproject.drivers').deactivate()
             OnosCtrl('org.onosproject.openflow-base').deactivate()
             OnosCtrl.config(device_config)
-            time.sleep(2)
+            time.sleep(10)
             OnosCtrl('org.onosproject.drivers').activate()
             OnosCtrl('org.onosproject.openflow-base').activate()
             time.sleep(5)
+            log.info('Reactivating CORD and ONOS apps')
+            Onos.activate_cord_apps(deactivate = True)
+            Onos.activate_apps(self.ONOS_APPS, deactivate = True)
 
         return self.switch_map
 

@@ -587,9 +587,9 @@ class Onos(Container):
     JAVA_OPTS_DEFAULT = JAVA_OPTS_FORMAT.format(*SYSTEM_MEMORY) #-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
-    onos_cord_apps = ( ['cord-config', '1.2-SNAPSHOT'],
-                       ['aaa', '1.2-SNAPSHOT'],
-                       ['igmp', '1.2-SNAPSHOT'],
+    onos_cord_apps = ( ['cord-config', '1.2-SNAPSHOT', 'org.opencord.config'],
+                       ['aaa', '1.2-SNAPSHOT', 'org.opencord.aaa'],
+                       ['igmp', '1.2-SNAPSHOT', 'org.opencord.igmp'],
                        )
     cord_apps_version_updated = False
     expose_port = False
@@ -994,7 +994,7 @@ class Onos(Container):
     @classmethod
     def install_cord_apps(cls, onos_ip = None):
         cls.update_cord_apps_version(onos_ip = onos_ip)
-        for app, version in cls.onos_cord_apps:
+        for app, version,_ in cls.onos_cord_apps:
             app_file = '{}/{}-{}.oar'.format(cls.cord_apps_dir, app, version)
             ok, code = OnosCtrl.install_app(app_file, onos_ip = onos_ip)
             ##app already installed (conflicts)
@@ -1002,6 +1002,21 @@ class Onos(Container):
                 ok = True
             print('ONOS app %s, version %s %s' %(app, version, 'installed' if ok else 'failed to install'))
             time.sleep(2)
+
+    @classmethod
+    def activate_apps(cls, apps, onos_ip = None, deactivate = False):
+        for app in apps:
+            if deactivate is True:
+                OnosCtrl(app, controller = onos_ip).deactivate()
+                time.sleep(2)
+            OnosCtrl(app, controller = onos_ip).activate()
+
+        time.sleep(5)
+
+    @classmethod
+    def activate_cord_apps(cls, onos_ip = None, deactivate = True):
+        cord_apps = map(lambda a: a[2], cls.onos_cord_apps)
+        cls.activate_apps(cord_apps, onos_ip = onos_ip, deactivate = deactivate)
 
 class OnosStopWrapper(Container):
     def __init__(self, name):
