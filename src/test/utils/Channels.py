@@ -147,6 +147,7 @@ class Channels(IgmpChannel):
         self.iface_mcast = iface_mcast
         self.mcast_cb = mcast_cb
         self.src_list = src_list
+        self.streams_list = []
         for c in range(self.num):
             self.channel_states[c] = [self.Idle]
         IgmpChannel.__init__(self, ssm_list = self.channels, iface=iface, src_list = src_list)
@@ -173,8 +174,19 @@ class Channels(IgmpChannel):
         if self.state == self.Stopped:
             if self.streams:
                 self.streams.stop()
-            self.streams = McastTraffic(self.channels, iface=self.iface_mcast, cb = self.mcast_cb)
-            self.streams.start()
+            if self.streams_list:
+               for i in range(len(self.streams_list)):
+                  self.streams_list[i].stop()
+            if self.src_list:
+               for i in range(len(self.src_list)):
+                  self.streams_list.append(McastTraffic(self.channels, iface=self.iface_mcast, cb = self.mcast_cb, src_ip = self.src_list[i]))
+                  self.streams_list[i].start()
+#               self.streams = McastTraffic(self.channels, iface=self.iface_mcast, cb = self.mcast_cb)
+#               self.streams.start()
+
+            else:
+                self.streams = McastTraffic(self.channels, iface=self.iface_mcast, cb = self.mcast_cb)
+                self.streams.start()
             self.state = self.Started
 
     def join(self, chan = None, src_list = None, record_type = None):
@@ -208,8 +220,8 @@ class Channels(IgmpChannel):
             self.last_chan = None
         return True
 
-    def join_next(self, chan = None, leave_flag = True):
-        if chan is None:
+    def join_next(self, chan = None, src_list = None, leave_flag = True):
+        if chan is None and self.last_chan is not None:
             chan = self.last_chan
             if chan is None:
                 return None
@@ -218,15 +230,18 @@ class Channels(IgmpChannel):
         else:
             leave = chan - 1
             join = chan
+        else:
+            leave = 0
+            join = 0
 
         if join >= self.num:
             join = 0
 
         if leave >= 0 and leave != join:
             if leave_flag is True:
-                self.leave(leave)
+                self.leave(leave, src_list = src_list)
 
-        return self.join(join)
+        return self.join(join, src_list = src_list)
 
     def jump(self):
         chan = self.last_chan
@@ -281,6 +296,9 @@ class Channels(IgmpChannel):
     def stop(self):
         if self.streams:
             self.streams.stop()
+        if self.streams_list:
+           for i in range(len(self.streams_list)):
+               self.streams_list[i].stop()
         self.state = self.Stopped
 
     def get_state(self, chan):
