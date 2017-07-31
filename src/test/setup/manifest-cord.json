@@ -4,7 +4,7 @@
     "start_switch": true,
     "onos_image": "onosproject/onos:latest",
     "onos" : "172.19.0.2",
-    "onos_cord" : "/home/vagrant/onos_cord",
+    "onos_cord" : "/opt/onos_cord",
     "service_profile" : "rcord",
     "synchronizer" : "vtn",
     "docker_network" : "onoscord_default",
