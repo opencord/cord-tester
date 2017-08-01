@@ -290,6 +290,20 @@ class Channels(IgmpChannel):
         return sniff(prn = cb, count=count, timeout = timeout,
                      lfilter = lambda p: IP in p and p[IP].dst in groups, iface = bytes(self.iface[:15]))
 
+    def not_recv(self, chan, cb = None, count = 1, timeout = 5, src_list = None):
+        if chan is None:
+            return None
+        if type(chan) == type([]) or type(chan) == type(()):
+            channel_list=filter(lambda c: c < self.num, chan)
+            groups = map(lambda c: self.gaddr(c), channel_list)
+        else:
+            groups = (self.gaddr(chan),)
+
+        if cb is None:
+            cb = self.recv_cb(src_list = src_list)
+        return sniff(prn = cb, count=count, timeout = timeout,
+                     lfilter = lambda p: IP in p and p[IP].dst in groups and p[IP].src in src_list, iface = bytes(self.iface[:15]))
+
     def stop(self):
         if self.streams:
             self.streams.stop()
@@ -299,7 +313,8 @@ class Channels(IgmpChannel):
         self.state = self.Stopped
 
     def get_state(self, chan):
-        return self.channel_states[chan][0]
+        abc = self.channel_states[chan][0]
+        return abc
 
     def set_state(self, chan, state):
         self.channel_states[chan][0] = state

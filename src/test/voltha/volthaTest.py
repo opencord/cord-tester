@@ -129,11 +129,40 @@ class Voltha_olt_subscribers(Channels):
                   self.test_status = True
             return self.test_status
 
+      def channel_not_receive(self, chan, cb = None, count = 1, timeout = 5, src_list = None):
+            log_test.info('Subscriber on port %s checking data traffic receiving from group %s, channel %d' %
+                     (self.rx_intf, self.gaddr(chan), chan))
+            r = self.not_recv(chan, cb = cb, count = count, timeout = timeout, src_list = src_list)
+            if len(r) == 0:
+                  log_test.info('Subscriber on port %s timed out' %( self.rx_intf))
+                  self.test_status = True
+            else:
+                  self.test_status = False
+                  pass
+#                  log_test.info('Subscriber on port %s received %d packets' %(self.rx_intf, len(r)))
+            if self.recv_timeout:
+                  ##Negative test case is disabled for now
+                  log_test.info('Subscriber on port %s not received %d packets' %(self.rx_intf, len(r)))
+                  assert_equal(len(r), 0)
+                  self.test_status = True
+            return self.test_status
+
+
       def recv_channel_cb(self, pkt, src_list = None):
 
             ##First verify that we have received the packet for the joined instance
-            log_test.info('Packet received for group %s, subscriber, port %s showing full packet %s'%
-                     (pkt[IP].dst, self.rx_intf, pkt.show))
+            log_test.info('Packet received for group %s, subscriber, port %s and from source ip %s showing full packet %s'%
+                     (pkt[IP].dst, self.rx_intf, pkt[IP].src, pkt.show))
+            if src_list is not None:
+               for i in src_list:
+                   if pkt[IP].src == src_list[i]:
+                      pass
+                   else:
+                      log_test.info('Packet received for group %s, subscriber, port %s and from source ip %s which is not expcted on that port'%
+                                                    (pkt[IP].dst, self.rx_intf, pkt[IP].src))
+
+                      self.recv_timeout = True
+
             if self.recv_timeout:
                   return
             chan = self.caddr(pkt[IP].dst)
@@ -1039,6 +1068,8 @@ yg==
 	chan = 0
         for i in range(self.VOLTHA_IGMP_ITERATIONS + subscriber.num_channels):
             if subscriber.num_channels == 1:
+               if i != 0:
+                  subscriber.channel_leave(chan, src_list = subscriber.src_list)
                chan = subscriber.channel_join(chan, delay = 2, src_list = subscriber.src_list)
             else:
                chan = subscriber.channel_join_next(delay = 2, src_list = subscriber.src_list)
@@ -1062,8 +1093,43 @@ yg==
                subscriber.channel_receive(chan-1, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
                subscriber.recv_timeout = False
                self.recv_timeout = False
-#	    log_test.info('Joining channel %d for subscriber port %s' %(chan, subscriber.rx_port))
+            log_test.info('Joining channel %d for subscriber port %s' %(chan, subscriber.rx_port))
 #	    subscriber.channel_join(chan, delay = 2, src_list = subscriber.src_list)
+#            chan = subscriber.num_channels - i
+#                  self.test_status = True
+	return self.test_status
+
+    def igmp_join_next_channel_flow_check(self, subscriber, multiple_sub = False):
+        chan = 0
+        for i in range(self.VOLTHA_IGMP_ITERATIONS + subscriber.num_channels):
+#            if subscriber.num_channels == 1:
+#               chan = subscriber.channel_join(chan, delay = 2, src_list = subscriber.src_list)
+#            else:
+            chan = subscriber.channel_join_next(delay = 2, src_list = subscriber.src_list)
+            self.num_joins += 1
+            while self.num_joins < self.num_subscribers:
+                 time.sleep(5)
+            log_test.info('All subscribers have joined the channel')
+    #        for i in range(1):
+            time.sleep(0.5)
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
+            #log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
+            #subscriber.channel_leave(chan, src_list = subscriber.src_list)
+            time.sleep(5)
+#           log_test.info('Interface %s Join RX stats for subscriber, %s' %(subscriber.iface,subscriber.join_rx_stats))
+#            if subscriber.num_channels == 1:
+#               pass
+#            elif chan != 0:
+#               pass
+            #Should not receive packets for this channel
+#               log_test.info
+#               self.recv_timeout = True
+#               subscriber.recv_timeout = True
+#               subscriber.channel_receive(chan-1, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
+#               subscriber.recv_timeout = False
+#               self.recv_timeout = False
+#           log_test.info('Joining channel %d for subscriber port %s' %(chan, subscriber.rx_port))
+#           subscriber.channel_join(chan, delay = 2, src_list = subscriber.src_list)
             chan = subscriber.num_channels - i
 #                  self.test_status = True
 	return self.test_status
@@ -1120,104 +1186,141 @@ yg==
         subscriber.recv_timeout = False
 	self.recv_timeout = False
 	chan = 0
-	subscriber.channel_leave(chan, src_list = subscriber.src_list)
+        #for i in range(self.VOLTHA_IGMP_ITERATIONS):
+        for i in range(3):
+	    subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+            self.num_joins += 1
+            while self.num_joins < self.num_subscribers:
+	          time.sleep(5)
+            log_test.info('All subscribers have joined the channel')
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 5, src_list = subscriber.src_list[1])
+            time.sleep(5)
+            log_test.info('Leaving channel %d for subscriber on port %s from specific source address %s and waited till GMI timer expires' %(chan, subscriber.rx_port, subscriber.src_list[0]))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
+            #### Adding delay till igmp timer expire data traffic is received from source specific of  subscriber.src_list[0]
+            time.sleep(60)
+            self.recv_timeout = False
+            subscriber.recv_timeout = False
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[1])
+            if self.test_status is True:
+               self.test_status = subscriber.channel_not_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[0])
+            if self.test_status is False:
+               subscriber.channel_leave(chan, src_list = subscriber.src_list)
+               continue
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+            subscriber.channel_leave(chan, src_list = subscriber.src_list)
 #                self.test_status = True
 	return self.test_status
 
     def igmp_flow_check_join_change_to_exclude_again_include_back(self, subscriber, multiple_sub = False):
-	  chan = 2
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
-	  self.num_joins += 1
-	  while self.num_joins < self.num_subscribers:
-		time.sleep(5)
-	  log_test.info('All subscribers have joined the channel')
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
-	  time.sleep(5)
-	  chan = 1
-	  log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port,))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
-	  time.sleep(5)
-	  self.recv_timeout = True
-	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[1])
-	  if self.test_status is True:
-	     self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
-	     if self.test_status is True:
-		log_test.info('Subscriber should not receive data from channel %s on specific source %s, test is failed' %(chan, subscriber.rx_port))
-		self.test_status = False
-	  subscriber.recv_timeout = False
-	  self.recv_timeout = False
-	  chan = 1
-	  log_test.info('Again include the channel %s on port %s with souce list ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list, record_type = IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE)
-	  time.sleep(5)
-	  self.recv_timeout = True
-	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
-	  subscriber.recv_timeout = False
-	  self.recv_timeout = False
-	  chan = 2
-	  subscriber.channel_leave(chan, src_list = subscriber.src_list)
-#                  self.test_status = True
-	  return self.test_status
+        chan = 0
+        #for i in range(self.VOLTHA_IGMP_ITERATIONS):
+        for i in range(3):
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+            self.num_joins += 1
+            while self.num_joins < self.num_subscribers:
+                  time.sleep(5)
+            log_test.info('All subscribers have joined the channel')
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 5, src_list = subscriber.src_list[1])
+            time.sleep(5)
+            log_test.info('Leaving channel %d for subscriber on port %s from specific source address %s and waited till GMI timer expires' %(chan, subscriber.rx_port, subscriber.src_list[0]))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
+            #### Adding delay till igmp timer expire data traffic is received from source specific of  subscriber.src_list[0]
+            time.sleep(60)
+            self.recv_timeout = False
+            subscriber.recv_timeout = False
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[1])
+            if self.test_status is True:
+               self.test_status = subscriber.channel_not_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[0])
+            if self.test_status is False:
+               subscriber.channel_leave(chan, src_list = subscriber.src_list)
+               continue
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+            log_test.info('Again include the channel %s on port %s with souce list ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list, record_type = IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE)
+            time.sleep(5)
+#            self.recv_timeout = True
+#            subscriber.recv_timeout = True
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 5, src_list = subscriber.src_list[0])
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+
+
+            subscriber.channel_leave(chan, src_list = subscriber.src_list)
+#                self.test_status = True
+        return self.test_status
+
 
     def igmp_flow_check_join_change_to_block(self, subscriber, multiple_sub = False):
-	  chan = 0
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
-	  self.num_joins += 1
-	  while self.num_joins < self.num_subscribers:
-		time.sleep(5)
-	  log_test.info('All subscribers have joined the channel')
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
-	  time.sleep(5)
-	  log_test.info('Leaving channel %d for subscriber on port %s from specific source ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_BLOCK_OLD)
-	  time.sleep(5)
-	  self.recv_timeout = True
-	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[1])
-	  if self.test_status is True:
-	     self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
-	     if self.test_status is True:
-		log_test.info('Subscriber should not receive data from channel %s on specific source %s, test is failed' %(chan, subscriber.rx_port))
-		self.test_status = False
-	  subscriber.recv_timeout = False
-	  self.recv_timeout = False
-	  subscriber.channel_leave(chan, src_list = subscriber.src_list)
-	  return self.test_status
+        chan = 0
+        #for i in range(self.VOLTHA_IGMP_ITERATIONS):
+        for i in range(3):
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+            self.num_joins += 1
+            while self.num_joins < self.num_subscribers:
+                  time.sleep(5)
+            log_test.info('All subscribers have joined the channel')
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 5, src_list = subscriber.src_list[1])
+            time.sleep(5)
+            log_test.info('Leaving channel %d for subscriber on port %s from specific source address %s and waited till GMI timer expires' %(chan, subscriber.rx_port, subscriber.src_list[0]))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_BLOCK_OLD)
+            #### Adding delay till igmp timer expire data traffic is received from source specific of  subscriber.src_list[0]
+            time.sleep(60)
+            self.recv_timeout = False
+            subscriber.recv_timeout = False
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[1])
+            if self.test_status is True:
+               self.test_status = subscriber.channel_not_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[0])
+            if self.test_status is False:
+               subscriber.channel_leave(chan, src_list = subscriber.src_list)
+               continue
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+            subscriber.channel_leave(chan, src_list = subscriber.src_list)
+#                self.test_status = True
+        return self.test_status
+
 
     def igmp_flow_check_join_change_to_block_again_allow_back(self, subscriber, multiple_sub = False):
-	  chan = 0
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
-	  self.num_joins += 1
-	  while self.num_joins < self.num_subscribers:
-		time.sleep(5)
-	  log_test.info('All subscribers have joined the channel')
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
-	  time.sleep(5)
-	  log_test.info('Leaving channel %d for subscriber on port %s from specific source ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
-	  time.sleep(5)
-	  self.recv_timeout = True
-	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[1])
-	  if self.test_status is True:
-	     self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list[0])
-	     if self.test_status is True:
-		log_test.info('Subscriber should not receive data from channel %s on specific source %s, test is failed' %(chan, subscriber.rx_port))
-		self.test_status = False
-	  subscriber.recv_timeout = False
-	  self.recv_timeout = False
-	  log_test.info('Again include the source list in the group %s souce ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
-	  subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_ALLOW_NEW)
-	  time.sleep(5)
-	  self.recv_timeout = True
-	  subscriber.recv_timeout = True
-	  self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10, src_list = subscriber.src_list)
-	  subscriber.recv_timeout = False
-	  self.recv_timeout = False
-	  subscriber.channel_leave(chan, src_list = subscriber.src_list)
-	  return self.test_status
+        chan = 0
+        #for i in range(self.VOLTHA_IGMP_ITERATIONS):
+        for i in range(3):
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+            self.num_joins += 1
+            while self.num_joins < self.num_subscribers:
+                  time.sleep(5)
+            log_test.info('All subscribers have joined the channel')
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 5, src_list = subscriber.src_list[1])
+            time.sleep(5)
+            log_test.info('Leaving channel %d for subscriber on port %s from specific source address %s and waited till GMI timer expires' %(chan, subscriber.rx_port, subscriber.src_list[0]))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list[0], record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
+            #### Adding delay till igmp timer expire data traffic is received from source specific of  subscriber.src_list[0]
+            time.sleep(60)
+            self.recv_timeout = False
+            subscriber.recv_timeout = False
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[1])
+            if self.test_status is True:
+               self.test_status = subscriber.channel_not_receive(chan, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list[0])
+            if self.test_status is False:
+               subscriber.channel_leave(chan, src_list = subscriber.src_list)
+               continue
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+            log_test.info('Again include the channel %s on port %s with souce list ip %s' %(chan, subscriber.rx_port,subscriber.src_list[0]))
+            subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list, record_type = IGMP_V3_GR_TYPE_ALLOW_NEW)
+            time.sleep(5)
+#            self.recv_timeout = True
+#            subscriber.recv_timeout = True
+            self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 5, src_list = subscriber.src_list[0])
+            subscriber.recv_timeout = False
+            self.recv_timeout = False
+
+
+            subscriber.channel_leave(chan, src_list = subscriber.src_list)
+#                self.test_status = True
+        return self.test_status
 
     def igmp_flow_check_group_include_source_empty_list(self, subscriber, multiple_sub = False):
         chan = 0
@@ -1232,6 +1335,7 @@ yg==
            self.test_status = False
         else:
            log_test.info('Subscriber not receive data from channel %s on any specific source %s' %(chan, subscriber.rx_port))
+           self.test_status = True
         log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
         subscriber.channel_leave(chan, src_list = subscriber.src_list)
         time.sleep(5)
@@ -1240,6 +1344,33 @@ yg==
         return self.test_status
 
     def igmp_flow_check_group_exclude_source_empty_list(self, subscriber, multiple_sub = False):
+        chan = 0
+        subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list)
+        self.num_joins += 1
+        while self.num_joins < self.num_subscribers:
+              time.sleep(5)
+        log_test.info('All subscribers have joined the channel')
+        self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
+        if self.test_status is True:
+           log_test.info('Subscriber should not receive data from channel %s on any specific source %s, test is failed' %(chan, subscriber.rx_port))
+           self.test_status = False
+        else:
+           log_test.info('Subscriber not receive data from channel %s on any specific source %s' %(chan, subscriber.rx_port))
+           self.test_status = True
+
+        subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list, record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
+        log_test.info('Send join to multicast group with exclude empty source list and waited till GMI timer expires')
+        time.sleep(60)
+
+        self.test_status = subscriber.channel_receive(chan, cb = subscriber.recv_channel_cb, count = 10)
+        log_test.info('Leaving channel %d for subscriber on port %s' %(chan, subscriber.rx_port))
+        subscriber.channel_leave(chan, src_list = subscriber.src_list)
+        time.sleep(5)
+        subscriber.recv_timeout = False
+        self.recv_timeout = False
+        return self.test_status
+
+    def igmp_flow_check_group_exclude_source_empty_list_1(self, subscriber, multiple_sub = False):
         chan = 0
         subscriber.channel_join(chan, delay = 0, src_list = subscriber.src_list,record_type = IGMP_V3_GR_TYPE_CHANGE_TO_EXCLUDE)
         self.num_joins += 1
@@ -4665,7 +4796,7 @@ yg==
         """
 
         num_subscribers = 1
-        num_channels = 2
+        num_channels = 1
         services = ('IGMP')
         cbs = (self.igmp_flow_check_join_change_to_exclude, None, None)
         self.voltha_subscribers(services, cbs = cbs, src_list = ['2.3.4.5','3.4.5.6'],
@@ -4687,7 +4818,7 @@ yg==
         9. Verify that multicast data packets are being recieved on join sent uni port on ONU from other source list to cord-tester.
         """
         num_subscribers = 1
-        num_channels = 2
+        num_channels = 1
         services = ('IGMP')
         cbs = (self.igmp_flow_check_join_change_to_exclude_again_include_back, None, None)
         self.voltha_subscribers(services, cbs = cbs, src_list = ['2.3.4.5','3.4.5.6'],
@@ -4823,7 +4954,7 @@ yg==
         11. Verify that multicast data packets are not being recieved on join sent uni (uni_2) port on ONU to cord-tester.
         """
         num_subscribers = 2
-        num_channels = 2
+        num_channels = 1
         services = ('IGMP')
         cbs = (self.igmp_flow_check_join_change_to_exclude, None, None)
         self.voltha_subscribers(services, cbs = cbs, src_list = ['1.2.3.4','2.3.4.5'],
@@ -4849,7 +4980,7 @@ yg==
         """
 
         num_subscribers = 2
-        num_channels = 2
+        num_channels = 1
         services = ('IGMP')
         cbs = (self.igmp_flow_check_join_change_to_exclude_again_include_back, None, None)
         self.voltha_subscribers(services, cbs = cbs, src_list = ['1.2.3.4', '3.4.5.6'],
@@ -4877,12 +5008,12 @@ yg==
         df = defer.Deferred()
         def igmp_flow_check_operating_onu_admin_state(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check_during_olt_onu_operational_issues, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-	    thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+	    thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread2 = threading.Thread(target = self.voltha_uni_port_toggle, args = (self.port_map['ports'][port_list[1][1]],))
             thread1.start()
             time.sleep(randint(40,50))
@@ -4923,12 +5054,12 @@ yg==
         df = defer.Deferred()
         def igmp_flow_check_operating_onu_admin_state(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread2 = threading.Thread(target = self.voltha_uni_port_toggle, args = (self.port_map['ports'][port_list[1][1]],))
             thread1.start()
             time.sleep(randint(50,60))
@@ -4967,12 +5098,12 @@ yg==
         df = defer.Deferred()
         def igmp_flow_check_operating_olt_admin_disble(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check_during_olt_onu_operational_issues, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread1.start()
             time.sleep(randint(50,60))
             thread2 = threading.Thread(target = self.voltha.disable_device, args = (self.olt_device_id, False,))
@@ -5010,12 +5141,12 @@ yg==
         df = defer.Deferred()
         def igmp_flow_check_operating_olt_admin_pause(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check_during_olt_onu_operational_issues, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread1.start()
             time.sleep(randint(50,60))
             thread2 = threading.Thread(target = self.voltha.pause_device, args = (self.olt_device_id,))
@@ -5055,12 +5186,12 @@ yg==
         df = defer.Deferred()
         def igmp_flow_check_operating_olt_admin_restart(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread1.start()
             time.sleep(randint(50,60))
             thread2 = threading.Thread(target = self.voltha.restart_device, args = (self.olt_device_id,))
@@ -5100,12 +5231,12 @@ yg==
         no_iterations = 20
         def igmp_flow_check_operating_olt_admin_disble(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread1.start()
             time.sleep(randint(30,40))
             for i in range(no_iterations):
@@ -5150,12 +5281,12 @@ yg==
         no_iterations = 5
         def igmp_flow_check_operating_onu_admin_state(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread1.start()
             time.sleep(randint(40,60))
             for i in range(no_iterations):
@@ -5201,12 +5332,12 @@ yg==
         no_iterations = 10
         def igmp_flow_check_operating_olt_admin_restart(df):
             num_subscribers = 2
-            num_channels = 2
+            num_channels = 1
             services = ('IGMP')
             cbs = (self.igmp_flow_check, None, None)
             port_list = self.generate_port_list(num_subscribers, num_channels)
 
-            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 2, ['1.2.3.4', '3.4.5.6'],))
+            thread1 = threading.Thread(target = self.voltha_subscribers, args = (services, cbs, 2, 1, ['1.2.3.4', '3.4.5.6'],))
             thread1.start()
             time.sleep(randint(50,60))
             for i in range(no_iterations):
