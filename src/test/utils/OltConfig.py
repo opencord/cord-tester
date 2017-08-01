@@ -53,7 +53,7 @@ class OltConfig:
             if self.olt_conf['port_map'].has_key('host'):
                 #if host interface is specified, then use the host instead of ovs switch
                 port_map['host'] = self.olt_conf['port_map']['host']
-                port_map['switches'] = [ port_map['host'] ]
+                port_map['switches'] = [ port_map['host'] ] + port_map['switches']
             else:
                 port_map['host'] = port_map['switches'][0]
             nr_switches = len(port_map['switches'])
@@ -62,6 +62,17 @@ class OltConfig:
                 port_map['ports'] = self.olt_conf['port_map']['ports']
                 num_ports = len(port_map['ports'])
                 port_map['switch_port_list'].append( (port_map['switches'][0], port_map['ports']) )
+                index = 1
+                for switch in port_map['switches'][1:]:
+                    port_start = index * num_ports * 2
+                    port_end = port_start + num_ports * 2
+                    index += 1
+                    port_list = []
+                    for port in xrange(port_start, port_end, 2):
+                        port_name = 'veth{}'.format(port)
+                        port_map['ports'].append(port_name)
+                        port_list.append(port_name)
+                    port_map['switch_port_list'].append( (switch, port_list) )
             else:
                 port_map['ports'] = []
                 num_ports = int(self.olt_conf['port_map']['num_ports'])

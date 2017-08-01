@@ -84,13 +84,13 @@ class CordTester(Container):
             self.create = False
             self.rm = False
         self.olt = False
+        self.switch_started = False
         olt_config_file = 'olt_config.json'
         if env is not None:
             if env.has_key('OLT_CONFIG'):
                 self.olt = True
             if env.has_key('OLT_CONFIG_FILE'):
                 olt_config_file = os.path.basename(env['OLT_CONFIG_FILE'])
-
         olt_conf_file = os.path.join(self.tester_base, olt_config_file)
         olt_config = OltConfig(olt_conf_file)
         self.port_map, _ = olt_config.olt_port_map()
@@ -155,27 +155,31 @@ class CordTester(Container):
         devices = OnosCtrl.get_devices(controller = ctlr)
         if devices:
             device = filter(lambda d: d['id'] == device_id, devices)
-            return True
+            if device:
+                return True
         return False
 
-    def start_switch(self, boot_delay = 2):
+    def start_switch(self, manifest, boot_delay = 2):
         """Start OVS"""
         ##Determine if OVS has to be started locally or not
         s_file,s_sandbox = ('of-bridge-local.sh',self.tester_base) if self.olt else ('of-bridge.sh',self.sandbox_setup)
         ovs_cmd = os.path.join(s_sandbox, s_file)
+        switches = filter(lambda sw: sw.startswith('br-int'), self.switches)
         if self.olt:
             if CordTester.switch_on_olt is True:
                 return
             CordTester.switch_on_olt = True
-            ovs_cmd += ' {} {}'.format(len(self.switches), self.ctlr_ip)
-            print('Starting OVS on the host with %d switches for controller: %s' %(len(self.switches), self.ctlr_ip))
+            ovs_cmd += ' {} {}'.format(len(switches), self.ctlr_ip)
+            if manifest.voltha_enable and manifest.voltha_loc and Onos.ssl_key:
+                ovs_cmd += ' {}'.format(manifest.voltha_loc)
+            print('Starting OVS on the host with %d switches for controller: %s' %(len(switches), self.ctlr_ip))
         else:
             ovs_cmd += ' {}'.format(self.switches[0])
             print('Starting OVS on test container %s for controller: %s' %(self.name, self.ctlr_ip))
         self.execute_switch(ovs_cmd)
         time.sleep(5)
         ## Wait for the controller to see the switch
-        for switch in self.switches:
+        for switch in switches:
             status = 1
             tries = 0
             result = self.ctlr_switch_availability(switch) and self.test_flow(switch)
@@ -202,6 +206,8 @@ class CordTester(Container):
 
         if boot_delay:
             time.sleep(boot_delay)
+
+        self.switch_started = True
 
     def setup_vcpes(self, port_num = 0):
         res = 0
@@ -257,6 +263,8 @@ class CordTester(Container):
         port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
         print('Provisioning the ports for the test container\n')
         for host_intf, ports in port_list:
+            if self.switch_started is False and host_intf.startswith('br-int'):
+                continue
             setup_ponsim = ponsim
             host_index = 0
             host_intf_base = 'pon1'
@@ -299,6 +307,10 @@ class CordTester(Container):
                 print('Running PIPEWORK cmd: %s' %pipework_cmd)
                 res += os.system(pipework_cmd)
                 port_num += 1
+
+            if setup_ponsim is True:
+                ponsim = False
+                wan = None
 
         self.setup_vcpes(vcpe_port_num)
         return res, port_num
@@ -629,7 +641,6 @@ def runTest(args):
         if voltha_loc:
             voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
             Onos.update_ssl_key(voltha_key)
-            test_manifest.start_switch = False
         image_names = test_manifest.onos_image.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
         if len(image_names) > 1:
@@ -790,7 +801,7 @@ def runTest(args):
             continue
         if test_cnt.create and (test_manifest.start_switch or not test_manifest.olt):
             if not args.no_switch:
-                test_cnt.start_switch()
+                test_cnt.start_switch(test_manifest)
         if test_cnt.create and test_cnt.olt:
             _, port_num = test_cnt.setup_intfs(port_num = port_num)
 
@@ -820,7 +831,7 @@ def runTest(args):
             #For non parallel tests, we just restart the switch also for OLT's
             CordTester.switch_on_olt = False
             if not args.no_switch:
-                test_cnt.start_switch()
+                test_cnt.start_switch(test_manifest)
         if test_cnt.create and test_cnt.olt:
             test_cnt.setup_intfs(port_num = port_num)
         test_cnt.run_tests()
@@ -932,7 +943,6 @@ def setupCordTester(args):
         if voltha_loc:
             voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
             Onos.update_ssl_key(voltha_key)
-            test_manifest.start_switch = False
         data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                     data_volume = data_volume, async = async_mode, network = test_manifest.docker_network)
@@ -1049,7 +1059,7 @@ def setupCordTester(args):
                               network = test_manifest.docker_network)
 
         if test_manifest.start_switch or not test_manifest.olt:
-            test_cnt.start_switch()
+            test_cnt.start_switch(test_manifest)
         if test_cnt.olt:
             test_cnt.setup_intfs(port_num = 0)
         print('Test container %s started and provisioned to run tests using nosetests' %(test_cnt.name))
