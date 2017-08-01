@@ -230,9 +230,6 @@ class Channels(IgmpChannel):
         else:
             leave = chan - 1
             join = chan
-        else:
-            leave = 0
-            join = 0
 
         if join >= self.num:
             join = 0
