@@ -637,10 +637,10 @@ def runTest(args):
     if cluster_mode is True and len(existing_list) > 1:
         ##don't setup cluster config again
         cluster_mode = False
+    if voltha_loc:
+        voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
+        Onos.update_ssl_key(voltha_key)
     if onos_ip is None:
-        if voltha_loc:
-            voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
-            Onos.update_ssl_key(voltha_key)
         image_names = test_manifest.onos_image.rsplit(':', 1)
         onos_cnt['image'] = image_names[0]
         if len(image_names) > 1:
@@ -939,10 +939,10 @@ def setupCordTester(args):
 
     onos = None
     onos_ips = []
+    if voltha_loc:
+        voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
+        Onos.update_ssl_key(voltha_key)
     if onos_ip is None:
-        if voltha_loc:
-            voltha_key = os.path.join(voltha_loc, 'docker', 'onos_cfg', 'onos.jks')
-            Onos.update_ssl_key(voltha_key)
         data_volume = '{}-data'.format(Onos.NAME) if test_manifest.shared_volume else None
         onos = Onos(image = Onos.IMAGE, tag = Onos.TAG, boot_delay = 60, cluster = cluster_mode,
                     data_volume = data_volume, async = async_mode, network = test_manifest.docker_network)
