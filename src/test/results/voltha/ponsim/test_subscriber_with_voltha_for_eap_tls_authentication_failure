@@ -1,0 +1,88 @@
+ubuntu@cord-rs-s8:~/cord-tester/src/test/setup$ sudo ./cord-test.py run -m manifest-ponsim.json -t voltha:voltha_exchange.test_subscriber_with_voltha_for_eap_tls_authentication_failure
+# Host [172.17.0.2]:8101 found: line 3 type RSA
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+result.ok, result.status_code are False and 409
+ONOS app cord-config, version 2.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app aaa, version 2.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app igmp, version 2.0-SNAPSHOT installed
+Controller IP [u'172.17.0.2'], Test type voltha:voltha_exchange.test_subscriber_with_voltha_for_eap_tls_authentication_failure
+Installing cord tester ONOS app /home/ubuntu/cord-tester/src/test/apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar
+result.ok, result.status_code are False and 409
+WARNING: The DOCKER_HOST_IP variable is not set. Defaulting to a blank string.
+compose_zookeeper_1 is up-to-date
+compose_fluentd_1 is up-to-date
+compose_consul_1 is up-to-date
+compose_registrator_1 is up-to-date
+compose_kafka_1 is up-to-date
+IP 172.18.0.3 for service consul
+IP 172.18.0.5 for service kafka
+IP 172.18.0.4 for service zookeeper
+IP 172.18.0.6 for service registrator
+IP 172.18.0.2 for service fluentd
+Chameleon voltha sevice is already running. Skipped start
+VOLTHA core is already running. Skipped start
+VOLTHA ofagent is already running. Skipped start
+PONSIM already running. Skipped start
+Radius server running with IP 172.17.0.3
+Running ['voltha:voltha_exchange.test_subscriber_with_voltha_for_eap_tls_authentication_failure'] tests across 1 containers in parallel
+Modifying scapy tool files before running a test: ['voltha:voltha_exchange.test_subscriber_with_voltha_for_eap_tls_authentication_failure']
+Running tests: ['voltha:voltha_exchange.test_subscriber_with_voltha_for_eap_tls_authentication_failure']
+WARNING: No route found for IPv6 destination :: (no default route?)
+Connecting to controller at 172.17.0.2
+onoscli: Trying to connect to 172.17.0.2
+# Host [172.17.0.2]:8101 found: line 1 type RSA
+Spawning pexpect for ip 172.17.0.2
+ssh connection asked for password, gave password
+Command 'summary -j' sent to onoscli.
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+Installing the multi table app /root/test/src/test/voltha/../apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar for subscriber test
+Test Method: ... Enabling ponsim_olt
+Pre-provisioning ponsim_olt with address 172.17.0.1:50060
+Enabling device 30f27bd183f0
+Checking operational status for device 30f27bd183f0
+Installing OLT app
+Adding subscribers through OLT app
+Running subscriber veth0 tls auth test with no TLS certificate
+llheader packet is None
+source mac of  packet is 4efe788ced55
+_eapStart method started over interface veth0
+Inside EAP ID Req for interface veth0
+Got EAPOL packet with type id and code request for interface veth0
+Interface: veth0, Packet code: 1, type: 1, id: 0
+Send EAP Response with identity raduser over interface veth0
+Got hello request for id 1 over interface veth0
+Sending Client Hello TLS payload of len 50, id 1 over interface veth0
+Receiving server certificates over interface veth0
+Interface veth0, Appending packet type 02 to packet history of len 74
+Interface: veth0, Pending bytes left 1306
+Interface veth0, Appending packet type 0b to packet history of len 2216
+Interface veth0, Appending packet type 0d to packet history of len 154
+server hello received over interface veth0
+Interface veth0, Appending packet type 0e to packet history of len 4
+Sending client certificate request over interface veth0
+Sending Client Hello TLS Certificate payload of len 605 over interface veth0
+entering into testFail function for interface veth0
+TLS verification failed
+Disabling device 30f27bd183f0
+Deleting device 30f27bd183f0
+ok
+Installing back the cord igmp app /root/test/src/test/voltha/../apps/ciena-cordigmp-3.0-SNAPSHOT.oar for subscriber test on exit
+
+----------------------------------------------------------------------
+Ran 1 test in 95.043s
+
+OK
+Test volthaTest.py:voltha_exchange.test_subscriber_with_voltha_for_eap_tls_authentication_failure Success
+Done running tests
+ubuntu@cord-rs-s8:~/cord-tester/src/test/setup$
+

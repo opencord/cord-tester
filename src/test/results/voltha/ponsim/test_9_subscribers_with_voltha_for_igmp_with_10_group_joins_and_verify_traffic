@@ -1,0 +1,2042 @@
+ubuntu@cord-rs-s8:~/cord-tester/src/test/setup$ sudo ./cord-test.py run -m manifest-ponsim.json -t voltha:voltha_exchange.test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic
+# Host [172.17.0.2]:8101 found: line 3 type RSA
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+result.ok, result.status_code are False and 409
+ONOS app cord-config, version 2.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app aaa, version 2.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app igmp, version 2.0-SNAPSHOT installed
+Controller IP [u'172.17.0.2'], Test type voltha:voltha_exchange.test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic
+Installing cord tester ONOS app /home/ubuntu/cord-tester/src/test/apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar
+result.ok, result.status_code are False and 409
+WARNING: The DOCKER_HOST_IP variable is not set. Defaulting to a blank string.
+compose_zookeeper_1 is up-to-date
+compose_fluentd_1 is up-to-date
+compose_consul_1 is up-to-date
+compose_registrator_1 is up-to-date
+compose_kafka_1 is up-to-date
+IP 172.18.0.2 for service consul
+IP 172.18.0.5 for service kafka
+IP 172.18.0.4 for service zookeeper
+IP 172.18.0.6 for service registrator
+IP 172.18.0.3 for service fluentd
+Chameleon voltha sevice is already running. Skipped start
+VOLTHA core is already running. Skipped start
+VOLTHA ofagent is already running. Skipped start
+PONSIM already running. Skipped start
+Radius server running with IP 172.17.0.3
+Running ['voltha:voltha_exchange.test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic'] tests across 1 containers in parallel
+Starting test container cord-tester1, image cordtest/nose, tag candidate
+Provisioning the ports for the test container
+
+Running PIPEWORK cmd: pipework pon1_128 -i veth0 -l l1 cord-tester1 192.168.100.1/24
+Running PIPEWORK cmd: pipework ponmgmt -i veth2 -l l2 cord-tester1 192.168.100.2/24
+Running PIPEWORK cmd: pipework pon1_129 -i veth4 -l l3 cord-tester1 192.168.100.3/24
+Running PIPEWORK cmd: pipework pon1_130 -i veth6 -l l4 cord-tester1 192.168.100.4/24
+Running PIPEWORK cmd: pipework pon1_131 -i veth8 -l l5 cord-tester1 192.168.100.5/24
+Running PIPEWORK cmd: pipework pon1_132 -i veth10 -l l6 cord-tester1 192.168.100.6/24
+Running PIPEWORK cmd: pipework pon1_133 -i veth12 -l l7 cord-tester1 192.168.100.7/24
+Running PIPEWORK cmd: pipework pon1_134 -i veth14 -l l8 cord-tester1 192.168.100.8/24
+Running PIPEWORK cmd: pipework pon1_135 -i veth16 -l l9 cord-tester1 192.168.100.9/24
+Running PIPEWORK cmd: pipework pon1_136 -i veth18 -l l10 cord-tester1 192.168.100.10/24
+Running PIPEWORK cmd: pipework pon1_137 -i veth20 -l l11 cord-tester1 192.168.100.11/24
+Running PIPEWORK cmd: pipework pon1_128 -i veth22 -l l12 cord-tester1 192.168.100.12/24
+Running PIPEWORK cmd: pipework pon1_129 -i veth24 -l l13 cord-tester1 192.168.100.13/24
+Running PIPEWORK cmd: pipework pon1_130 -i veth26 -l l14 cord-tester1 192.168.100.14/24
+Running PIPEWORK cmd: pipework pon1_131 -i veth28 -l l15 cord-tester1 192.168.100.15/24
+Running PIPEWORK cmd: pipework pon1_132 -i veth30 -l l16 cord-tester1 192.168.100.16/24
+Running PIPEWORK cmd: pipework pon1_133 -i veth32 -l l17 cord-tester1 192.168.100.17/24
+Running PIPEWORK cmd: pipework pon1_134 -i veth34 -l l18 cord-tester1 192.168.100.18/24
+Running PIPEWORK cmd: pipework pon1_135 -i veth36 -l l19 cord-tester1 192.168.100.19/24
+Running PIPEWORK cmd: pipework pon1_136 -i veth38 -l l20 cord-tester1 192.168.100.20/24
+Running PIPEWORK cmd: pipework pon1_137 -i veth40 -l l21 cord-tester1 192.168.100.21/24
+Running PIPEWORK cmd: pipework pon1_138 -i veth42 -l l22 cord-tester1 192.168.100.22/24
+Modifying scapy tool files before running a test: ['voltha:voltha_exchange.test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic']
+Running tests: ['voltha:voltha_exchange.test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic']
+WARNING: No route found for IPv6 destination :: (no default route?)
+Connecting to controller at 172.17.0.2
+onoscli: Trying to connect to 172.17.0.2
+Spawning pexpect for ip 172.17.0.2
+ssh connection asked for password, gave password
+Command 'summary -j' sent to onoscli.
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+Installing the multi table app /root/test/src/test/voltha/../apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar for subscriber test
+Test Method: ... Enabling ponsim olt
+Pre-provisioning ponsim_olt with address 172.17.0.1:50060
+Enabling device 845cebb73315
+Checking operational status for device 845cebb73315
+Installing OLT app
+Adding subscribers through OLT app
+172.17.0.4 - - [01/Aug/2017 11:26:32] "POST /RPC2 HTTP/1.1" 200 -
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+Adding group 225.0.0.1
+Adding group 225.0.0.2
+Adding group 225.0.0.3
+Adding group 225.0.0.4
+Adding group 225.0.0.5
+Adding group 225.0.0.6
+Adding group 225.0.0.7
+Adding group 225.0.0.8
+Adding group 225.0.0.9
+Adding group 225.0.0.10
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth4 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth18 timed out
+Subscriber on port veth4 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth8 timed out
+Subscriber on port veth0 timed out
+Subscriber on port veth16 timed out
+Subscriber on port veth12 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth10 timed out
+Joining channel 0 for subscriber port veth18
+Joining channel 0 for subscriber port veth4
+All subscribers have joined the channel
+Joining channel 0 for subscriber port veth6
+Joining channel 0 for subscriber port veth8
+Joining channel 0 for subscriber port veth0
+Joining channel 0 for subscriber port veth12
+Joining channel 0 for subscriber port veth16
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+Joining channel 0 for subscriber port veth14
+Joining channel 0 for subscriber port veth10
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth4 checking data traffic receiving from group 225.0.0.2, channel 1
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Packet received for group 225.0.0.2, subscriber, port veth4 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369327.272132113' |>>>>
+Packet received in 3138701.374 usecs for group 225.0.0.2 after join
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth18 timed out
+Packet received for group 225.0.0.2, subscriber, port veth0 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369328.060124559' |>>>>
+Packet received in 3014366.383 usecs for group 225.0.0.2 after join
+Subscriber on port veth4 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth12 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth16 timed out
+Subscriber on port veth8 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth14 timed out
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth4 timed out
+Subscriber on port veth4 not received 0 packets
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+Joining channel 1 for subscriber port veth4
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 1 for subscriber port veth18
+Subscriber on port veth0 timed out
+Subscriber on port veth0 not received 0 packets
+Joining channel 1 for subscriber port veth0
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth4 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 1 for subscriber port veth12
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth6 timed out
+Subscriber on port veth16 timed out
+Packet received for group 225.0.0.3, subscriber, port veth4 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d0 src=1.2.3.4 dst=225.0.0.3 options=[] |<Raw  load='369342.388105031' |>>>>
+Subscriber on port veth6 not received 0 packets
+Subscriber on port veth16 not received 0 packets
+Packet received in 3002938.600 usecs for group 225.0.0.3 after join
+Joining channel 1 for subscriber port veth6
+Joining channel 1 for subscriber port veth16
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 1 for subscriber port veth10
+Subscriber on port veth8 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Subscriber on port veth8 not received 0 packets
+Joining channel 1 for subscriber port veth14
+Joining channel 1 for subscriber port veth8
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.3, channel 2
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth18 timed out
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth4 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+Packet received for group 225.0.0.2, subscriber, port veth4 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369347.496137241' |>>>>
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth4 not received 1 packets
+Exception in thread Thread-3:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 810, in __bootstrap_inner
+    self.run()
+  File "/root/test/src/test/voltha/../utils/threadPool.py", line 40, in run
+    work.__call__()
+  File "/root/test/src/test/voltha/volthaTest.py", line 186, in pool_cb
+    self.test_status = cb(self.subscriber, multiple_sub = True)
+  File "/root/test/src/test/voltha/volthaTest.py", line 1093, in igmp_flow_check
+    subscriber.channel_receive(chan-1, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
+  File "/root/test/src/test/voltha/volthaTest.py", line 128, in channel_receive
+    assert_equal(len(r), 0)
+  File "/usr/lib/python2.7/unittest/case.py", line 515, in assertEqual
+    assertion_func(first, second, msg=msg)
+  File "/usr/lib/python2.7/unittest/case.py", line 508, in _baseAssertEqual
+    raise self.failureException(msg)
+AssertionError: 1 != 0
+
+Subscriber on port veth0 timed out
+Subscriber on port veth12 timed out
+Subscriber on port veth16 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth8 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.2, channel 1
+Packet received for group 225.0.0.2, subscriber, port veth0 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369353.156139199' |>>>>
+Subscriber on port veth0 not received 1 packets
+Exception in thread Thread-2:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 810, in __bootstrap_inner
+    self.run()
+  File "/root/test/src/test/voltha/../utils/threadPool.py", line 40, in run
+    work.__call__()
+  File "/root/test/src/test/voltha/volthaTest.py", line 186, in pool_cb
+    self.test_status = cb(self.subscriber, multiple_sub = True)
+  File "/root/test/src/test/voltha/volthaTest.py", line 1093, in igmp_flow_check
+    subscriber.channel_receive(chan-1, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
+  File "/root/test/src/test/voltha/volthaTest.py", line 128, in channel_receive
+    assert_equal(len(r), 0)
+  File "/usr/lib/python2.7/unittest/case.py", line 515, in assertEqual
+    assertion_func(first, second, msg=msg)
+  File "/usr/lib/python2.7/unittest/case.py", line 508, in _baseAssertEqual
+    raise self.failureException(msg)
+AssertionError: 1 != 0
+
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth18 timed out
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth18 not received 0 packets
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+Joining channel 2 for subscriber port veth18
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 2 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth16 timed out
+Subscriber on port veth16 not received 0 packets
+Joining channel 2 for subscriber port veth16
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth10 not received 0 packets
+Subscriber on port veth6 not received 0 packets
+Subscriber on port veth14 timed out
+Joining channel 2 for subscriber port veth10
+Subscriber on port veth8 timed out
+Joining channel 2 for subscriber port veth6
+Subscriber on port veth14 not received 0 packets
+Subscriber on port veth8 not received 0 packets
+Joining channel 2 for subscriber port veth14
+Joining channel 2 for subscriber port veth8
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth16 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth8 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 3 for subscriber port veth18
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.3, channel 2
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth12 not received 0 packets
+Joining channel 3 for subscriber port veth12
+Subscriber on port veth16 timed out
+Subscriber on port veth16 not received 0 packets
+Joining channel 3 for subscriber port veth16
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 3 for subscriber port veth6
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 3 for subscriber port veth14
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 3 for subscriber port veth10
+Subscriber on port veth8 timed out
+Subscriber on port veth8 not received 0 packets
+Joining channel 3 for subscriber port veth8
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth16 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth8 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 4 for subscriber port veth18
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 4 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth16 timed out
+Subscriber on port veth16 not received 0 packets
+Joining channel 4 for subscriber port veth16
+Subscriber on port veth14 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth14 not received 0 packets
+Subscriber on port veth6 not received 0 packets
+Subscriber on port veth8 timed out
+Joining channel 4 for subscriber port veth14
+Joining channel 4 for subscriber port veth6
+Subscriber on port veth8 not received 0 packets
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 4 for subscriber port veth8
+Joining channel 4 for subscriber port veth10
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.6, channel 5
+All subscribers have joined the channel
+All subscribers have joined the channel
+Packet received for group 225.0.0.6, subscriber, port veth16 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cd src=1.2.3.4 dst=225.0.0.6 options=[] |<Raw  load='369407.180133922' |>>>>
+Packet received in 2843251.160 usecs for group 225.0.0.6 after join
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth8 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 5 for subscriber port veth18
+Subscriber on port veth16 timed out
+Subscriber on port veth16 not received 0 packets
+Joining channel 5 for subscriber port veth16
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.5, channel 4
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 5 for subscriber port veth12
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 5 for subscriber port veth6
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 5 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Subscriber on port veth8 timed out
+Joining channel 5 for subscriber port veth14
+Subscriber on port veth8 not received 0 packets
+Joining channel 5 for subscriber port veth8
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth16 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.7, channel 6
+Packet received for group 225.0.0.7, subscriber, port veth8 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cc src=1.2.3.4 dst=225.0.0.7 options=[] |<Raw  load='369429.108105927' |>>>>
+Packet received in 2887614.511 usecs for group 225.0.0.7 after join
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth16 checking data traffic receiving from group 225.0.0.6, channel 5
+Packet received for group 225.0.0.6, subscriber, port veth16 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cd src=1.2.3.4 dst=225.0.0.6 options=[] |<Raw  load='369432.968136551' |>>>>
+Subscriber on port veth6 timed out
+Subscriber on port veth16 not received 1 packets
+Exception in thread Thread-9:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 810, in __bootstrap_inner
+    self.run()
+  File "/root/test/src/test/voltha/../utils/threadPool.py", line 40, in run
+    work.__call__()
+  File "/root/test/src/test/voltha/volthaTest.py", line 186, in pool_cb
+    self.test_status = cb(self.subscriber, multiple_sub = True)
+  File "/root/test/src/test/voltha/volthaTest.py", line 1093, in igmp_flow_check
+    subscriber.channel_receive(chan-1, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
+  File "/root/test/src/test/voltha/volthaTest.py", line 128, in channel_receive
+    assert_equal(len(r), 0)
+  File "/usr/lib/python2.7/unittest/case.py", line 515, in assertEqual
+    assertion_func(first, second, msg=msg)
+  File "/usr/lib/python2.7/unittest/case.py", line 508, in _baseAssertEqual
+    raise self.failureException(msg)
+AssertionError: 1 != 0
+
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 6 for subscriber port veth18
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth8 timed out
+Subscriber on port veth8 not received 0 packets
+Joining channel 6 for subscriber port veth8
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 6 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 6 for subscriber port veth6
+All subscribers have joined the channel
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 6 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.8, channel 7
+Joining channel 6 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth8 timed out
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth8 checking data traffic receiving from group 225.0.0.7, channel 6
+Packet received for group 225.0.0.7, subscriber, port veth8 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cc src=1.2.3.4 dst=225.0.0.7 options=[] |<Raw  load='369453.512143964' |>>>>
+Subscriber on port veth8 not received 1 packets
+Exception in thread Thread-5:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/threading.py", line 810, in __bootstrap_inner
+    self.run()
+  File "/root/test/src/test/voltha/../utils/threadPool.py", line 40, in run
+    work.__call__()
+  File "/root/test/src/test/voltha/volthaTest.py", line 186, in pool_cb
+    self.test_status = cb(self.subscriber, multiple_sub = True)
+  File "/root/test/src/test/voltha/volthaTest.py", line 1093, in igmp_flow_check
+    subscriber.channel_receive(chan-1, cb = subscriber.recv_channel_cb, count = 1, src_list = subscriber.src_list)
+  File "/root/test/src/test/voltha/volthaTest.py", line 128, in channel_receive
+    assert_equal(len(r), 0)
+  File "/usr/lib/python2.7/unittest/case.py", line 515, in assertEqual
+    assertion_func(first, second, msg=msg)
+  File "/usr/lib/python2.7/unittest/case.py", line 508, in _baseAssertEqual
+    raise self.failureException(msg)
+AssertionError: 1 != 0
+
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 7 for subscriber port veth18
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 7 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 7 for subscriber port veth6
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 7 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 7 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 8 for subscriber port veth18
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 8 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 8 for subscriber port veth6
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 8 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 8 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.10, channel 9
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.10, channel 9
+All subscribers have joined the channel
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 9 for subscriber port veth18
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 9 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 9 for subscriber port veth6
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 9 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 9 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+All subscribers have joined the channel
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth12 timed out
+Joining channel 0 for subscriber port veth18
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+All subscribers have joined the channel
+Joining channel 0 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+Joining channel 0 for subscriber port veth6
+Joining channel 0 for subscriber port veth10
+Joining channel 0 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+All subscribers have joined the channel
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 1 for subscriber port veth18
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth12 timed out
+All subscribers have joined the channel
+Subscriber on port veth12 not received 0 packets
+Joining channel 1 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth6 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth6 not received 0 packets
+Subscriber on port veth10 not received 0 packets
+Joining channel 1 for subscriber port veth6
+Joining channel 1 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 1 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 2 for subscriber port veth18
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 2 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 2 for subscriber port veth10
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 2 for subscriber port veth6
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 2 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 3 for subscriber port veth18
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 3 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 3 for subscriber port veth10
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 3 for subscriber port veth6
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 3 for subscriber port veth14
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 4 for subscriber port veth18
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+All subscribers have joined the channel
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 4 for subscriber port veth12
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 4 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth14 not received 0 packets
+Subscriber on port veth6 not received 0 packets
+Joining channel 4 for subscriber port veth14
+Joining channel 4 for subscriber port veth6
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 5 for subscriber port veth18
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 5 for subscriber port veth12
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 5 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 5 for subscriber port veth14
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 5 for subscriber port veth6
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth10 timed out
+Subscriber on port veth14 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 6 for subscriber port veth18
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 6 for subscriber port veth12
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 6 for subscriber port veth10
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 6 for subscriber port veth14
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 6 for subscriber port veth6
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth14 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 7 for subscriber port veth18
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 7 for subscriber port veth12
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 7 for subscriber port veth14
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 7 for subscriber port veth10
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 7 for subscriber port veth6
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth18 timed out
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth14 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 8 for subscriber port veth18
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 8 for subscriber port veth12
+All subscribers have joined the channel
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 8 for subscriber port veth14
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 8 for subscriber port veth10
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 8 for subscriber port veth6
+All subscribers have joined the channel
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.10, channel 9
+All subscribers have joined the channel
+All subscribers have joined the channel
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth18 timed out
+All subscribers have joined the channel
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.10, channel 9
+Subscriber on port veth12 timed out
+Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth14 timed out
+Subscriber on port veth10 timed out
+Subscriber on port veth6 timed out
+Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth18 timed out
+Subscriber on port veth18 not received 0 packets
+Joining channel 9 for subscriber port veth18
+This service is failed and other services will not run for this subscriber
+This Subscriber is tested for multiple service eligibility
+Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+Subscriber on port veth12 timed out
+Subscriber on port veth12 not received 0 packets
+Joining channel 9 for subscriber port veth12
+This service is failed and other services will not run for this subscriber
+This Subscriber is tested for multiple service eligibility
+Subscriber on port veth14 timed out
+Subscriber on port veth14 not received 0 packets
+Joining channel 9 for subscriber port veth14
+This service is failed and other services will not run for this subscriber
+This Subscriber is tested for multiple service eligibility
+Subscriber on port veth10 timed out
+Subscriber on port veth10 not received 0 packets
+Joining channel 9 for subscriber port veth10
+This service is failed and other services will not run for this subscriber
+This Subscriber is tested for multiple service eligibility
+Subscriber on port veth6 timed out
+Subscriber on port veth6 not received 0 packets
+Joining channel 9 for subscriber port veth6
+This service is failed and other services will not run for this subscriber
+This Subscriber is tested for multiple service eligibility
+Deleted subscriber for device of:0000000000000001 on port  128
+Deleted subscriber for device of:0000000000000001 on port  129
+Deleted subscriber for device of:0000000000000001 on port  130
+Deleted subscriber for device of:0000000000000001 on port  131
+Deleted subscriber for device of:0000000000000001 on port  132
+Deleted subscriber for device of:0000000000000001 on port  133
+Deleted subscriber for device of:0000000000000001 on port  134
+Deleted subscriber for device of:0000000000000001 on port  135
+Deleted subscriber for device of:0000000000000001 on port  136
+Deleted subscriber for device of:0000000000000001 on port  137
+Deleted subscriber for device of:0000000000000001 on port  138
+Disabling device 845cebb73315
+Deleting device 845cebb73315
+Uninstalling OLT app
+FAIL
+Installing back the cord igmp app /root/test/src/test/voltha/../apps/ciena-cordigmp-3.0-SNAPSHOT.oar for subscriber test on exit
+
+======================================================================
+FAIL: Test Method:
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/root/test/src/test/voltha/volthaTest.py", line 5351, in test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic
+    num_channels = num_channels)
+  File "/root/test/src/test/voltha/volthaTest.py", line 1444, in voltha_subscribers
+    assert_equal(test_status, True)
+AssertionError: False != True
+-------------------- >> begin captured stdout << ---------------------
+result.ok, result.status_code are True and 200
+
+--------------------- >> end captured stdout << ----------------------
+-------------------- >> begin captured logging << --------------------
+scapy.runtime: WARNING: No route found for IPv6 destination :: (no default route?)
+docker.auth.auth: DEBUG: Trying paths: ['/root/.docker/config.json', '/root/.dockercfg']
+docker.auth.auth: DEBUG: No config file found
+docker.auth.auth: DEBUG: Trying paths: ['/root/.docker/config.json', '/root/.dockercfg']
+docker.auth.auth: DEBUG: No config file found
+cordTester: INFO: Connecting to controller at 172.17.0.2
+cordTester: INFO: onoscli: Trying to connect to 172.17.0.2
+onoscli: INFO:
+cordTester: INFO: Spawning pexpect for ip 172.17.0.2
+cordTester: INFO: ssh connection asked for password, gave password
+cordTester: INFO: Command 'summary -j' sent to onoscli.
+cordTester: ERROR: onoscli: eof exception found
+cordTester: ERROR: onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+cordTester: INFO: Installing the multi table app /root/test/src/test/voltha/../apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar for subscriber test
+cordTester: INFO: Enabling ponsim olt
+cordTester: INFO: Pre-provisioning ponsim_olt with address 172.17.0.1:50060
+cordTester: INFO: Enabling device 845cebb73315
+cordTester: INFO: Checking operational status for device 845cebb73315
+cordTester: INFO: Installing OLT app
+cordTester: INFO: Adding subscribers through OLT app
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: DEBUG: Adding group 225.0.0.1
+cordTester: DEBUG: Adding group 225.0.0.2
+cordTester: DEBUG: Adding group 225.0.0.3
+cordTester: DEBUG: Adding group 225.0.0.4
+cordTester: DEBUG: Adding group 225.0.0.5
+cordTester: DEBUG: Adding group 225.0.0.6
+cordTester: DEBUG: Adding group 225.0.0.7
+cordTester: DEBUG: Adding group 225.0.0.8
+cordTester: DEBUG: Adding group 225.0.0.9
+cordTester: DEBUG: Adding group 225.0.0.10
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth4 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth4 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth0 timed out
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Joining channel 0 for subscriber port veth18
+cordTester: INFO: Joining channel 0 for subscriber port veth4
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Joining channel 0 for subscriber port veth6
+cordTester: INFO: Joining channel 0 for subscriber port veth8
+cordTester: INFO: Joining channel 0 for subscriber port veth0
+cordTester: INFO: Joining channel 0 for subscriber port veth12
+cordTester: INFO: Joining channel 0 for subscriber port veth16
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Joining channel 0 for subscriber port veth14
+cordTester: INFO: Joining channel 0 for subscriber port veth10
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth4 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Packet received for group 225.0.0.2, subscriber, port veth4 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369327.272132113' |>>>>
+cordTester: DEBUG: Packet received in 3138701.374 usecs for group 225.0.0.2 after join
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth0 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Packet received for group 225.0.0.2, subscriber, port veth0 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369328.060124559' |>>>>
+cordTester: DEBUG: Packet received in 3014366.383 usecs for group 225.0.0.2 after join
+cordTester: INFO: Subscriber on port veth4 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth4 timed out
+cordTester: INFO: Subscriber on port veth4 not received 0 packets
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Joining channel 1 for subscriber port veth4
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth0 timed out
+cordTester: INFO: Subscriber on port veth0 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth0
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth4 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth12
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Packet received for group 225.0.0.3, subscriber, port veth4 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d0 src=1.2.3.4 dst=225.0.0.3 options=[] |<Raw  load='369342.388105031' |>>>>
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: DEBUG: Packet received in 3002938.600 usecs for group 225.0.0.3 after join
+cordTester: INFO: Subscriber on port veth16 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth6
+cordTester: INFO: Joining channel 1 for subscriber port veth16
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Subscriber on port veth8 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth8
+cordTester: INFO: Joining channel 1 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth0 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth4 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Packet received for group 225.0.0.2, subscriber, port veth4 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369347.496137241' |>>>>
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth4 not received 1 packets
+cordTester: INFO: Subscriber on port veth0 timed out
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth0 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Packet received for group 225.0.0.2, subscriber, port veth0 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95d1 src=1.2.3.4 dst=225.0.0.2 options=[] |<Raw  load='369353.156139199' |>>>>
+cordTester: INFO: Subscriber on port veth0 not received 1 packets
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Joining channel 2 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth16 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth16
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Joining channel 2 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Joining channel 2 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Subscriber on port veth8 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth14
+cordTester: INFO: Joining channel 2 for subscriber port veth8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth16 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth16
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth8 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth16 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth16
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Joining channel 4 for subscriber port veth14
+cordTester: INFO: Joining channel 4 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth8 not received 0 packets
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth8
+cordTester: INFO: Joining channel 4 for subscriber port veth10
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Packet received for group 225.0.0.6, subscriber, port veth16 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cd src=1.2.3.4 dst=225.0.0.6 options=[] |<Raw  load='369407.180133922' |>>>>
+cordTester: DEBUG: Packet received in 2843251.160 usecs for group 225.0.0.6 after join
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: Subscriber on port veth16 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth16
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Joining channel 5 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth8 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth16 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Packet received for group 225.0.0.7, subscriber, port veth8 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cc src=1.2.3.4 dst=225.0.0.7 options=[] |<Raw  load='369429.108105927' |>>>>
+cordTester: DEBUG: Packet received in 2887614.511 usecs for group 225.0.0.7 after join
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth16 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Packet received for group 225.0.0.6, subscriber, port veth16 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cd src=1.2.3.4 dst=225.0.0.6 options=[] |<Raw  load='369432.968136551' |>>>>
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth16 not received 1 packets
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth8 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth8 timed out
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth8 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Packet received for group 225.0.0.7, subscriber, port veth8 and from source ip 1.2.3.4 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x95cc src=1.2.3.4 dst=225.0.0.7 options=[] |<Raw  load='369453.512143964' |>>>>
+cordTester: INFO: Subscriber on port veth8 not received 1 packets
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Joining channel 0 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Joining channel 0 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Joining channel 0 for subscriber port veth6
+cordTester: INFO: Joining channel 0 for subscriber port veth10
+cordTester: INFO: Joining channel 0 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.1, channel 0
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth6
+cordTester: INFO: Joining channel 1 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 1 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.2, channel 1
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 2 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.3, channel 2
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth6
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 3 for subscriber port veth14
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.4, channel 3
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth12
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 4 for subscriber port veth14
+cordTester: INFO: Joining channel 4 for subscriber port veth6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.5, channel 4
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth12
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 5 for subscriber port veth6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.6, channel 5
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth12
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 6 for subscriber port veth6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.7, channel 6
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth12
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 7 for subscriber port veth6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth18
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.8, channel 7
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth12
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth14
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth10
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 8 for subscriber port veth6
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: All subscribers have joined the channel
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.10, channel 9
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth18 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth12 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth18 timed out
+cordTester: INFO: Subscriber on port veth18 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth18
+cordTester: INFO: This service is failed and other services will not run for this subscriber
+cordTester: INFO: This Subscriber is tested for multiple service eligibility
+cordTester: INFO: Subscriber on port veth14 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth10 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth6 checking data traffic receiving from group 225.0.0.9, channel 8
+cordTester: INFO: Subscriber on port veth12 timed out
+cordTester: INFO: Subscriber on port veth12 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth12
+cordTester: INFO: This service is failed and other services will not run for this subscriber
+cordTester: INFO: This Subscriber is tested for multiple service eligibility
+cordTester: INFO: Subscriber on port veth14 timed out
+cordTester: INFO: Subscriber on port veth14 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth14
+cordTester: INFO: This service is failed and other services will not run for this subscriber
+cordTester: INFO: This Subscriber is tested for multiple service eligibility
+cordTester: INFO: Subscriber on port veth10 timed out
+cordTester: INFO: Subscriber on port veth10 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth10
+cordTester: INFO: This service is failed and other services will not run for this subscriber
+cordTester: INFO: This Subscriber is tested for multiple service eligibility
+cordTester: INFO: Subscriber on port veth6 timed out
+cordTester: INFO: Subscriber on port veth6 not received 0 packets
+cordTester: INFO: Joining channel 9 for subscriber port veth6
+cordTester: INFO: This service is failed and other services will not run for this subscriber
+cordTester: INFO: This Subscriber is tested for multiple service eligibility
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  128
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  129
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  130
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  131
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  132
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  133
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  134
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  135
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  136
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  137
+cordTester: INFO: Deleted subscriber for device of:0000000000000001 on port  138
+cordTester: INFO: Disabling device 845cebb73315
+cordTester: INFO: Deleting device 845cebb73315
+cordTester: INFO: Uninstalling OLT app
+--------------------- >> end captured logging << ---------------------
+
+----------------------------------------------------------------------
+Ran 1 test in 491.050s
+
+FAILED (failures=1)
+Test volthaTest.py:voltha_exchange.test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic Failure
+Done running tests
+Removing test container cord-tester1
+ubuntu@cord-rs-s8:~/cord-tester/src/test/setup$
+

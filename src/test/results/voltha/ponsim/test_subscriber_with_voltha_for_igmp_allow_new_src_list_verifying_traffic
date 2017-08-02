@@ -1,0 +1,102 @@
+ubuntu@cord-rs-s8:~/cord-tester/src/test/setup$ sudo ./cord-test.py run -m manifest-ponsim.json -t voltha:voltha_exchange.test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic
+# Host [172.17.0.2]:8101 found: line 3 type RSA
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+result.ok, result.status_code are False and 409
+ONOS app cord-config, version 2.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app aaa, version 2.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app igmp, version 2.0-SNAPSHOT installed
+Controller IP [u'172.17.0.2'], Test type voltha:voltha_exchange.test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic
+Installing cord tester ONOS app /home/ubuntu/cord-tester/src/test/apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar
+result.ok, result.status_code are False and 409
+WARNING: The DOCKER_HOST_IP variable is not set. Defaulting to a blank string.
+compose_consul_1 is up-to-date
+compose_zookeeper_1 is up-to-date
+compose_fluentd_1 is up-to-date
+compose_registrator_1 is up-to-date
+compose_kafka_1 is up-to-date
+IP 172.18.0.3 for service consul
+IP 172.18.0.5 for service kafka
+IP 172.18.0.4 for service zookeeper
+IP 172.18.0.6 for service registrator
+IP 172.18.0.2 for service fluentd
+Chameleon voltha sevice is already running. Skipped start
+VOLTHA core is already running. Skipped start
+VOLTHA ofagent is already running. Skipped start
+PONSIM already running. Skipped start
+Radius server running with IP 172.17.0.3
+Running ['voltha:voltha_exchange.test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic'] tests across 1 containers in parallel
+Modifying scapy tool files before running a test: ['voltha:voltha_exchange.test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic']
+Running tests: ['voltha:voltha_exchange.test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic']
+WARNING: No route found for IPv6 destination :: (no default route?)
+Connecting to controller at 172.17.0.2
+onoscli: Trying to connect to 172.17.0.2
+# Host [172.17.0.2]:8101 found: line 1 type RSA
+Spawning pexpect for ip 172.17.0.2
+ssh connection asked for password, gave password
+Command 'summary -j' sent to onoscli.
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 172.17.0.2 closed.
+
+Installing the multi table app /root/test/src/test/voltha/../apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar for subscriber test
+Test Method: ... Enabling ponsim olt
+Pre-provisioning ponsim_olt with address 172.17.0.1:50060
+Enabling device a3a80084a23c
+Checking operational status for device a3a80084a23c
+Installing OLT app
+Adding subscribers through OLT app
+Adding group 225.0.0.1
+All subscribers have joined the channel
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+Subscriber on port veth0 timed out
+Leaving channel 0 for subscriber on port veth0 from specific source address 2.3.4.5 and waited till GMI timer expires
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 3.4.5.6 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x91ce src=3.4.5.6 dst=225.0.0.1 options=[] |<Raw  load='292669.492156291' |>>>>
+Packet received in 292669543169.052 usecs for group 225.0.0.1 after join
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 2.3.4.5 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x93d0 src=2.3.4.5 dst=225.0.0.1 options=[] |<Raw  load='292669.592150434' |>>>>
+Packet received in 292669635200.946 usecs for group 225.0.0.1 after join
+Again include the channel 0 on port veth0 with souce list ip 2.3.4.5
+Subscriber on port veth0 checking data traffic receiving from group 225.0.0.1, channel 0
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 3.4.5.6 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x91ce src=3.4.5.6 dst=225.0.0.1 options=[] |<Raw  load='292674.668161033' |>>>>
+Packet received in 292674725007.539 usecs for group 225.0.0.1 after join
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 2.3.4.5 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x93d0 src=2.3.4.5 dst=225.0.0.1 options=[] |<Raw  load='292674.688138242' |>>>>
+Packet received in 292674755443.746 usecs for group 225.0.0.1 after join
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 3.4.5.6 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x91ce src=3.4.5.6 dst=225.0.0.1 options=[] |<Raw  load='292674.720142024' |>>>>
+Packet received in 292674757166.690 usecs for group 225.0.0.1 after join
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 2.3.4.5 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x93d0 src=2.3.4.5 dst=225.0.0.1 options=[] |<Raw  load='292674.736150438' |>>>>
+Packet received in 292674801872.757 usecs for group 225.0.0.1 after join
+Packet received for group 225.0.0.1, subscriber, port veth0 and from source ip 3.4.5.6 showing full packet <bound method Ether.show of <Ether  dst=01:00:5e:00:01:01 src=02:88:b4:e4:90:77 type=0x800 |<IP  version=4L ihl=5L tos=0x0 len=36 id=1 flags= frag=0L ttl=64 proto=hopopt chksum=0x91ce src=3.4.5.6 dst=225.0.0.1 options=[] |<Raw  load='292674.752122981' |>>>>
+Packet received in 292674803573.924 usecs for group 225.0.0.1 after join
+This Subscriber is tested for multiple service eligibility
+Deleted subscriber for device of:0000000000000001 on port  128
+Deleted subscriber for device of:0000000000000001 on port  129
+Deleted subscriber for device of:0000000000000001 on port  130
+Deleted subscriber for device of:0000000000000001 on port  131
+Deleted subscriber for device of:0000000000000001 on port  132
+Deleted subscriber for device of:0000000000000001 on port  133
+Deleted subscriber for device of:0000000000000001 on port  134
+Deleted subscriber for device of:0000000000000001 on port  135
+Deleted subscriber for device of:0000000000000001 on port  136
+Deleted subscriber for device of:0000000000000001 on port  137
+Deleted subscriber for device of:0000000000000001 on port  138
+Disabling device a3a80084a23c
+Deleting device a3a80084a23c
+Uninstalling OLT app
+ok
+Installing back the cord igmp app /root/test/src/test/voltha/../apps/ciena-cordigmp-3.0-SNAPSHOT.oar for subscriber test on exit
+
+----------------------------------------------------------------------
+Ran 1 test in 163.514s
+
+OK
+Test volthaTest.py:voltha_exchange.test_subscriber_with_voltha_for_igmp_allow_new_src_list_verifying_traffic Success
+Done running tests
+ubuntu@cord-rs-s8:~/cord-tester/src/test/setup$
