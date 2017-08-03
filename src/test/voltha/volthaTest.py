@@ -432,6 +432,8 @@ yg==
             onos_ctrl = OnosCtrl(app)
             onos_ctrl.deactivate()
         cls.install_app_igmp()
+        cord_test_radius_restart()
+
     @classmethod
     def install_app_igmp(cls):
         ##Uninstall the table app on class exit
@@ -778,11 +780,11 @@ yg==
            assert_equal(tls.failTest, True)
         if cert_info == "same_cert":
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port)
-           log_test.info('Running subscriber %s tls auth test with invalid TLS certificate' %olt_uni_port)
+           log_test.info('Running subscriber %s tls auth test with same valid TLS certificate' %olt_uni_port)
            tls.runTest()
-           if tls.failTest is False:
+           if tls.failTest is True:
               self.success = False
-           assert_equal(tls.failTest, True)
+           assert_equal(tls.failTest, False)
         if cert_info == "app_deactivate" or cert_info == "restart_radius" or cert_info == "disable_olt_device" or \
            cert_info == "uni_port_admin_down" or cert_info == "restart_olt_device" or cert_info == "restart_onu_device":
            tls = TLSAuthTest(fail_cb = tls_fail_cb, intf = olt_uni_port, client_cert = self.CLIENT_CERT_INVALID)
@@ -1132,7 +1134,8 @@ yg==
 #           subscriber.channel_join(chan, delay = 2, src_list = subscriber.src_list)
             chan = subscriber.num_channels - i
 #                  self.test_status = True
-	return self.test_status
+        return self.test_status
+
 
     def igmp_leave_flow_check(self, subscriber, multiple_sub = False):
         chan = 0
@@ -1959,7 +1962,7 @@ yg==
         reactor.callLater(0, tls_flow_check_operating_olt_state, df)
         return df
 
-    @deferred(TESTCASE_TIMEOUT)
+    @deferred(TESTCASE_TIMEOUT +600)
     def test_subscriber_with_voltha_for_eap_tls_authentication_carrying_out_multiple_times_toggling_of_uni_port(self):
         """
         Test Method:
@@ -1997,7 +2000,7 @@ yg==
             time.sleep(5)
             for i in range(no_iterations):
                 thread1 = threading.Thread(target = self.tls_flow_check, args = (self.INTF_RX_DEFAULT, "uni_port_admin_down",))
-                thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+                thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
                 thread1.start()
                 time.sleep(randint(1,2))
                 log_test.info('Admin state of uni port is down and up after delay of 30 sec during tls auth flow check on voltha')
@@ -2005,6 +2008,8 @@ yg==
                 time.sleep(10)
                 thread1.join()
                 thread2.join()
+            time.sleep(60)
+            cord_test_radius_restart()
             auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
             try:
         #        assert_equal(status, True)
@@ -2115,6 +2120,8 @@ yg==
                 time.sleep(10)
                 thread1.join()
                 thread2.join()
+            time.sleep(60)
+            cord_test_radius_restart()
             auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
             try:
         #        assert_equal(status, True)
@@ -2142,7 +2149,7 @@ yg==
         9. Verify that subscriber authentication is unsuccessful..
         """
         df = defer.Deferred()
-        def tls_flow_check_operating_olt_state(df):
+        def tls_flow_check_operating_onu_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
@@ -2181,7 +2188,7 @@ yg==
             finally:
                 self.voltha.disable_device(device_id, delete = True)
             df.callback(0)
-        reactor.callLater(0, tls_flow_check_with_disable_olt_device_scenario, df)
+        reactor.callLater(0, tls_flow_check_operating_onu_state, df)
         return df
 
     @deferred(TESTCASE_TIMEOUT)
@@ -2234,6 +2241,8 @@ yg==
                 time.sleep(10)
                 thread1.join()
                 thread2.join()
+            time.sleep(60)
+            cord_test_radius_restart()
             auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
             try:
         #        assert_equal(status, True)
@@ -3448,7 +3457,7 @@ yg==
             olt_configured = True
             time.sleep(5)
             thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
-            thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+            thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
             thread1.start()
             thread2.start()
             time.sleep(10)
@@ -3501,7 +3510,7 @@ yg==
             time.sleep(5)
             for i in range(no_iterations):
                 thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
-                thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+                thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
                 thread1.start()
                 thread2.start()
                 time.sleep(10)
@@ -3557,7 +3566,7 @@ yg==
             olt_configured = True
             time.sleep(5)
             thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
-            thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+            thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
             log_test.info('Restart dhcp app in onos during client send discover to voltha')
             thread2.start()
             time.sleep(randint(0,1))
@@ -3617,7 +3626,7 @@ yg==
             time.sleep(5)
             for i in range(no_iterations):
                 thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT, "interrupting_dhcp_flows",))
-                thread2 = threading.Thread(target = self.voltha_uni_port_down_up)
+                thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
                 log_test.info('Restart dhcp app in onos during client send discover to voltha')
                 thread2.start()
                 time.sleep(randint(0,1))
@@ -3993,7 +4002,7 @@ yg==
             time.sleep(5)
             thread1 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_RX_DEFAULT,))
             thread2 = threading.Thread(target = self.dhcp_flow_check, args = (self.INTF_2_RX_DEFAULT,))
-            thread3 = threading.Thread(target = self.voltha_uni_port_down_up, args = (self.INTF_2_RX_DEFAULT,))
+            thread3 = threading.Thread(target = self.voltha_uni_port_toggle, args = (self.INTF_2_RX_DEFAULT,))
             thread1.start()
             thread2.start()
             thread3.start()
