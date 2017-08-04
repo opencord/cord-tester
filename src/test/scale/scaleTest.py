@@ -556,10 +556,10 @@ yg==
 
     #tested with 50 igmp joins on CiaB setup
     @deferred(1000)
-    def test_scale_with_igmp_joins_for_500_multicast_groups_and_check_cpu_usage(self, group_count=500):
+    def test_scale_with_igmp_joins_for_multicast_groups_validating_cpu_usage(self, group_count=500):
         """
 	Test-Method:
-	1. Register 500 igmp groups in onos
+	1. Register 500 (group count is number to test) igmp groups in onos
 	2. Send  igmp joins for registered groups
 	3. Send multicast traffic to all registered groups
 	4. Verify traffic forwards properly
@@ -586,10 +586,10 @@ yg==
 
     #tested with 50 igmp joins on CiaB setup
     @deferred(1000)
-    def test_scale_with_igmp_joins_for_1000_multicast_groups_and_igmp_app_toggle(self, group_count=1000):
+    def test_scale_with_igmp_joins_for_multicast_groups_toggling_igmp_app(self, group_count=1000):
 	"""
 	Test-Method:
-	1. Register 1000 igmp groups in onos
+	1. Register 1000 (group_count is a number to test, can increase the number)igmp groups in onos
 	2. Send  igmp joins for registered groups
 	3. Send multicast traffic to all registered groups
 	4. Verify traffic forwards properly
@@ -627,10 +627,10 @@ yg==
 
     #tested with 50 igmp joins on CiaB setup
     @deferred(1800)
-    def test_scale_with_igmp_joins_for_2000_multicast_groups_and_check_cpu_usage(self, group_count=2000):
+    def test_scale_with_igmp_joins_for_multicast_groups_validating_cpu_usage(self, group_count=2000):
 	"""
 	Test-Method:
-	1. Register 500 igmp groups in onos
+	1. Register (group count value to test) igmp groups in onos
 	2. Send  igmp joins for registered groups
 	3. Send multicast traffic to all registered groups
 	4. Verify traffic forwards properly
@@ -660,10 +660,10 @@ yg==
 
     #tested with 50 igmp joins on CiaB setup
     @deferred(1000)
-    def test_scale_of_igmp_joins_for_2000_multicast_groups_and_check_cpu_usage_after_app_deactivation_and_activation(self,group_count=2000):
+    def test_scale_of_igmp_joins_for_multicast_groups_validating_cpu_usage_after_app_deactivation_and_activation(self,group_count=2000):
 	"""
 	Test-Method:
-	1. Register 2000 igmp groups in onos
+	1. Register 2000 (Number to test) igmp groups in onos
 	2. Send  igmp joins for registered groups
 	3. Send multicast traffic to all registered groups
 	4. Verify traffic forwards properly
@@ -699,12 +699,12 @@ yg==
 
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
-    def test_scale_adding_1k_flow_entries_in_onos_with_dynamic_tcp_ports(self,count=1000):
+    def test_scale_adding_large_number_of_flow_entries_for_tcp_ports(self,count=1000):
 	"""
 	Test-Method:
-	1. Add 1000 flow entries with varying tcp port number in onos
+	1. Add 1000 (Large number to test) flow entries with varying tcp port number in onos
 	2. Send data traffic for added tcp port numbers
-	3. Verify onos forwards data traffic propoerly
+	3. Verify onos forwards data traffic properly
 	"""
 	scale().flows_setup()
         df = defer.Deferred()
@@ -753,12 +753,12 @@ yg==
 
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
-    def test_scale_adding_5k_ip_flow_entries_in_onos_and_checking_cpu_usage(self,count=5000):
+    def test_scale_adding_ip_flow_entries_validating_cpu_usage(self,count=5000):
 	"""
 	Test-Method:
-	1. Add 5000 flow entries with varying source and destination IP
+	1. Add 5000(Edit count as per test requirement) flow entries with varying source and destination IP
 	2. Send data traffic matching flow entries
-	3. Verify onos forwards data traffic propoerly
+	3. Verify onos forwards data traffic properly
 	"""
 	scale().flows_setup()
         df = defer.Deferred()
@@ -809,12 +809,12 @@ yg==
 
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
-    def test_scale_adding_10k_flow_entries_in_onos_with_dynamic_udp_ports(self,count=10000):
+    def test_scale_adding_flow_entries_with_udp_ports(self,count=10000):
 	"""
 	Test-Method:
-	1. Add 10000 flow entries with varying udp port number in onos
+	1. Add 10000 (Number as per test requirement)flow entries with varying udp port number in onos
 	2. Send data traffic matching flow entries
-	3. Verify onos forwards data traffic propoerly
+	3. Verify onos forwards data traffic properly
 	"""
         scale().flows_setup()
         df = defer.Deferred()
@@ -863,12 +863,12 @@ yg==
 
     #tested with 100 flow entries on CiaB setup
     @deferred(1000)
-    def test_scale_adding_10k_constant_destination_mac_flow_entries_in_onos_and_check_cpu_usage(self,count=100):
+    def test_scale_adding_constant_destination_mac_flow_entries_validating_cpu_usage(self,count=100):
 	"""
 	Test-Method:
-	1. Add 10000 flow entries with varying source mac
+	1. Add 100(Change number as per requirement) flow entries with varying source mac
 	2. Send data traffic matching flow entries
-	3. Verify onos forwards data traffic propoerly
+	3. Verify onos forwards data traffic properly
 	"""
 	scale().flows_setup()
         df = defer.Deferred()
@@ -919,12 +919,12 @@ yg==
 
 
     @deferred(1000)
-    def test_scale_adding_10k_acl_rules_to_deny_matching_destination_tcp_port_traffic(self,count=10000):
+    def test_scale_adding_acl_rules_to_deny_matching_destination_tcp_port_traffic(self,count=10000):
 	"""
 	Test-Method:
-	1. Add 10000 acl deny rules with varying tcp port number
+	1. Add 10000 (Adjust number as per test requirement)acl deny rules with varying tcp port number
 	2. Send data traffic matching flow entries
-	3. Verify onos drops data traffic propoerly
+	3. Verify onos drops data traffic properly
 	"""
         df = defer.Deferred()
         def scale_acl_rules(df):
@@ -959,11 +959,11 @@ yg==
         return df
 
     @deferred(1000)
-    def test_scale_adding_10k_acl_rules_to_allow_src_and_dst_ip_matching_traffic_check_cpu_usage(self,count=10000):
+    def test_scale_adding_acl_rules_to_allow_src_and_dst_ip_matching_traffic_validating_cpu_usage(self,count=10000):
 	"""
 	Test-Method:
 	1. Grep system usage before starting test case
-	2. Configure 10000 acl rules in onos
+	2. Configure 10000(As per test requirement) acl rules in onos
 	3. Verify traffic test for all 10000 acl rules configured
 	4. Grep system usage again now
 	"""
@@ -1007,10 +1007,10 @@ yg==
         return df
 
     @deferred(1000)
-    def test_scale_adding_and_deleting_10k_acl_rules_to_allow_src_and_dst_ip_matching_traffic(self,count=10000):
+    def test_scale_adding_and_deleting_acl_rules_to_allow_src_and_dst_ip_matching_traffic(self,count=10000):
         """
 	Test-Method:
-	1. Add 10000 acl rules to allow source and destinaiton IP matching traffic
+	1. Add 10000 (Number as per requirement)acl rules to allow source and destinaiton IP matching traffic
 	2. Send acl rules matching traffic
 	3. Delete all the added acl rules
 	"""
@@ -1052,10 +1052,10 @@ yg==
         return df
 
     @deferred(1000)
-    def test_scale_adding_20k_acl_rules_to_deny_src_and_dst_ip_matching_traffic_with_acl_app_toggle(self,count=20000):
+    def test_scale_adding_acl_rules_to_deny_src_and_dst_ip_matching_traffic_toggling_acl_app(self,count=20000):
 	"""
 	Test-Method:
-	1. Add 20000 acl rules to allow source and destinaiton IP matching traffic
+	1. Add 20000 (Number as test requirement)acl rules to allow source and destinaiton IP matching traffic
 	2. Send acl rules matching traffic
 	3. Verify onos drops the traffic as the rule is deny type
 	4. Deactivate the acl app in onos
@@ -1148,7 +1148,7 @@ yg==
         return df
 
     @deferred(1000)
-    def test_scale_adding_igmp_acl_and_flow_entries_and_simultaneously_toggling_app_activation(self,igmp_groups=1300, flows_count=10000):
+    def test_scale_adding_igmp_acl_and_flow_entries_and_simultaneously_toggling_app(self,igmp_groups=1300, flows_count=10000):
 	"""
 	Test-Method:
 	1. Add igmp, acl and flow entries in onos
@@ -1219,34 +1219,12 @@ yg==
         reactor.callLater(0, scale_igmp_acl_flows, df)
         return df
 
-    @deferred(1000)
-    def test_scale_for_vrouter_with_10_routes_with_10_peers(self):
-	"""
-	Test-Method:
-	1. Add 10 routes with 10 pairs in quagga
-	2. Verify routes pushed to onos  from quagga
-	3. Send traffic destined  the routes added
-	3. Verify onos forwards the traffic
-	"""
-	scale().vrouter_setup()
-	df = defer.Deferred()
-        def scale_vrouter_routes(df):
-	    try:
-                res = scale().vrouter_network_verify(100, peers = 10)
-                assert_equal(res, True)
-            except Exception as error:
-                log.info('Got Unexpected error %s'%error)
-		raise
-            df.callback(0)
-        reactor.callLater(0, scale_vrouter_routes, df)
-        return df
-
     #tested with 100 routes on CiaB
     @deferred(1000)
-    def test_scale_for_vrouter_with_10000_routes_with_100_peers(self):
+    def test_scale_for_vrouter_with_large_number_of_routes_and_peers(self):
 	"""
 	Test-Method:
-	1. Add 100000 routes with 100 pairs in quagga
+	1. Add 100000 routes with 100 pairs in quagga(Change scale test number as per test requirement)
 	2. Verify routes pushed to onos  from quagga
 	3. Send traffic destined  the routes added
 	3. Verify onos forwards the traffic
@@ -1264,35 +1242,12 @@ yg==
         reactor.callLater(0, scale_vrouter_routes, df)
         return df
 
-    #tested with 100 routes on CiaB
-    @deferred(1500)
-    def test_scale_for_vrouter_with_20000_routes_with_200_peers(self):
-	"""
-	Test-Method:
-	1. Add 20000 routes with 200 pairs in quagga
-	2. Verify routes pushed to onos  from quagga
-	3. Send traffic destined  the routes added
-	3. Verify onos forwards the traffic
-	"""
-        scale().vrouter_setup()
-        df = defer.Deferred()
-        def scale_vrouter_routes(df):
-	    try:
-                res = scale().vrouter_network_verify(20000, peers = 200)
-                assert_equal(res, True)
-	    except Exception as error:
-		log.info('Got Unexpected error %s'%error)
-		raise
-            df.callback(0)
-        reactor.callLater(0, scale_vrouter_routes, df)
-        return df
-
     #tested with 100 subscribers on CiaB
     @deferred(1800)
-    def test_scale_of_eap_tls_with_5k_sessions_using_diff_mac(self):
+    def test_scale_of_eap_tls_with_huge_number_of_sessions_using_diff_mac(self):
 	"""
 	Test-Method:
-	1. Simulate eap authentication requests for 5000 users
+	1. Simulate eap authentication requests for 5000 users(Adjust user number as per requirement)
 	2. Verify authentication is succes for all 5000 users
 	"""
 	OnosCtrl('org.opencord.aaa').activate()
@@ -1312,10 +1267,10 @@ yg==
 
     #tested with 100 subscribers on CiaB
     @deferred(1800)
-    def test_scale_of_eap_tls_with_5k_sessions_using_diff_mac_with_aaa_deactivate_and_activated(self):
+    def test_scale_of_eap_tls_with_huge_number_of_sessions_using_diff_mac_with_aaa_app_deactivation_and_activation(self):
 	"""
 	Test-Method:
-	1. Simulate eap authentication requests for 5000 users
+	1. Simulate eap authentication requests for 5000 users(Adjust user number as per requirement)
 	2. Verify authentication is succes for all 5000 users
 	3. Deactivate and activate the aaa app in onos
 	4. Simulate eap authentication requests for 5000 users
@@ -1347,10 +1302,10 @@ yg==
 
     #tested with 10 subscribers on CiaB
     @deferred(1800)
-    def test_scale_5k_cord_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
+    def test_scale_for_cord_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
 	"""
 	Test-Method:
-	1. Simulate 5000 subscribers to get authentication access
+	1. Simulate 5000 subscribers to get authentication access(Adjust cord subscribers according to test)
 	2. Send igmp joins from all the subcribers
 	3. Verify multicast traffic received to all 5000 subscribers
 	"""
@@ -1376,10 +1331,10 @@ yg==
 
     #tested with 10 subscribers on CiaB
     @deferred(1800)
-    def test_scale_5k_cord_subscribers_igmp_join_jump_1500channel(self):
+    def test_scale_for_cord_subscribers_with_igmp_join_and_jump_for_multiple_channels(self):
 	"""
         Test-Method:
-        1. Simulate 5000 subscribers
+        1. Simulate 5000 subscribers(Adjust number as per test)
         2. Send igmp joins from all the subcribers
         3. Verify multicast traffic received to all 5000 subscribers
         """
@@ -1406,10 +1361,10 @@ yg==
 
     #tested with 10 subscribers on CiaB
     @deferred(1800)
-    def test_scale_10k_cord_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
+    def test_scale_for_cord_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
 	"""
         Test-Method:
-        1. Simulate 10000 subscribers to get authentication access
+        1. Simulate 10000 subscribers to get authentication access(Adjust number as per test)
         2. Send igmp joins from all the subcribers
         3. Verify multicast traffic received to all 10000 subscribers
         """
