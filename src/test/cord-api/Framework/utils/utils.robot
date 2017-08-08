@@ -1,3 +1,33 @@
+# Copyright 2017-present Open Networking Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Copyright 2017-present Radisys Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+
 *** Settings ***
 Documentation    Library for various utilities
 Library           SSHLibrary
@@ -9,13 +39,15 @@ Library           Collections
 Library           RequestsLibrary
 #Library           ${CURDIR}/readProperties.py
 #Resource          ${CURDIR}/utils.py
+*** Variables ***
+${SSH_KEY}=   id_rsa
 
 *** Keywords ***
 Run Command On Remote System
     [Arguments]    ${system}    ${cmd}    ${user}=${VM_USER}    ${pass}=${VM_PASS}    ${prompt}=$    ${prompt_timeout}=60s    ${use_key}=False
     [Documentation]    SSH's into a remote host, executes command, and logs+returns output
     BuiltIn.Log    Attempting to execute command "${cmd}" on remote system "${system}"
-    BuiltIn.Log    ${password}
+    BuiltIn.Log    ${pass}
     ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=${prompt}    timeout=${prompt_timeout}
     Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}    ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/${SSH_KEY}    any
     #SSHLibrary.Login    ${user}    ${pass}
