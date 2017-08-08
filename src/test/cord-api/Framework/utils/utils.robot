@@ -9,13 +9,15 @@ Library           Collections
 Library           RequestsLibrary
 #Library           ${CURDIR}/readProperties.py
 #Resource          ${CURDIR}/utils.py
+*** Variables ***
+${SSH_KEY}=   id_rsa
 
 *** Keywords ***
 Run Command On Remote System
     [Arguments]    ${system}    ${cmd}    ${user}=${VM_USER}    ${pass}=${VM_PASS}    ${prompt}=$    ${prompt_timeout}=60s    ${use_key}=False
     [Documentation]    SSH's into a remote host, executes command, and logs+returns output
     BuiltIn.Log    Attempting to execute command "${cmd}" on remote system "${system}"
-    BuiltIn.Log    ${password}
+    BuiltIn.Log    ${pass}
     ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=${prompt}    timeout=${prompt_timeout}
     Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}    ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/${SSH_KEY}    any
     #SSHLibrary.Login    ${user}    ${pass}
