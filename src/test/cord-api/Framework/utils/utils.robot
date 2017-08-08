@@ -9,6 +9,8 @@ Library           Collections
 Library           RequestsLibrary
 #Library           ${CURDIR}/readProperties.py
 #Resource          ${CURDIR}/utils.py
+*** Variables ***
+${SSH_KEY}=   id_rsa
 
 *** Keywords ***
 Run Command On Remote System
