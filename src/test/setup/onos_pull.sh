@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-#!/usr/bin/env bash
 ##Use this script as SUDO to pull ONOS safely as it saves/archives repo digest ids.
 ##Repo digest ids are saved in $HOME/onos_repo_digest.txt
 tag=${1:-latest}

@@ -1,4 +1,4 @@
-
+#!/bin/bash
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-#!/bin/bash
 
 sudo brctl addbr fabric
 sudo ip link set fabric up

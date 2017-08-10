@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-#!/usr/bin/env bash
 bridge="$1"
 controller="$2"
 voltha_loc="$3"

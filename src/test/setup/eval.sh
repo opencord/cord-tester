@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bash
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-#!/usr/bin/env bash
 cord_tester="$(dirname $0)/cord-test.py"
 if [ ! -f $cord_tester ]; then
   cord_tester="$HOME/cord-tester/src/test/setup/cord-test.py"

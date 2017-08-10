@@ -1,4 +1,4 @@
-
+#!/bin/bash
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-#!/bin/bash
 ulimit -n 65536
 ip a add 10.10.0.3/16 dev eth1
 #bgpd -u root -f /root/config/bgpd.conf &
