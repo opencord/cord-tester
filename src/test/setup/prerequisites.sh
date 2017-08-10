@@ -96,11 +96,11 @@ if [ $venv -eq 1 ]; then
     virtualenv $setup_path/venv
     echo "Installing cord-tester pip packages on the virtual environment"
     $setup_path/venv/bin/pip install -U distribute
-    $setup_path/venv/bin/pip install -r $setup_path/requirements.txt
+    $setup_path/venv/bin/pip install -U -r $setup_path/requirements.txt
 else
     echo "Installing cord-tester pip packages on the host"
     pip install -U distribute
-    pip install -r $setup_path/requirements.txt
+    pip install -U -r $setup_path/requirements.txt
 fi
 
 ( cd /tmp && git clone https://github.com/jpetazzo/pipework.git && cp -v pipework/pipework /usr/bin && rm -rf pipework )
