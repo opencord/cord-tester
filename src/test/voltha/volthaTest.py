@@ -213,7 +213,7 @@ class voltha_exchange(unittest.TestCase):
     test_path = os.path.dirname(os.path.realpath(__file__))
     table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
     app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
-    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
+    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2.0-SNAPSHOT.oar')
     olt_app_name = 'org.onosproject.olt'
     #onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
@@ -314,7 +314,7 @@ yg==
         major = int(version.split('.')[0])
         minor = int(version.split('.')[1])
         cordigmp_app_version = '2.0-SNAPSHOT'
-        olt_app_version = '1.2-SNAPSHOT'
+        olt_app_version = '1.2.0-SNAPSHOT'
         if major > 1:
             cordigmp_app_version = '3.0-SNAPSHOT'
             olt_app_version = '2.0-SNAPSHOT'

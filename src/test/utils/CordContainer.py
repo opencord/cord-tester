@@ -308,8 +308,8 @@ class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
     onos_config_dir_guest = '/root/onos/config'
     synchronizer_map = { 'vtn' : { 'install':
-                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.2-SNAPSHOT/cord-config-1.2-SNAPSHOT.oar',
-                       'http://mavenrepo:8080/repository/org/opencord/vtn/1.2-SNAPSHOT/vtn-1.2-SNAPSHOT.oar',),
+                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.2.0-SNAPSHOT/cord-config-1.2.0-SNAPSHOT.oar',
+                       'http://mavenrepo:8080/repository/org/opencord/vtn/1.2.0-SNAPSHOT/vtn-1.2.0-SNAPSHOT.oar',),
                                    'activate':
                                    ('org.onosproject.ovsdb-base', 'org.onosproject.drivers.ovsdb',
                                     'org.onosproject.dhcp', 'org.onosproject.optical-model',
@@ -323,8 +323,8 @@ class OnosCord(Container):
                                        'org.onosproject.segmentrouting', 'org.onosproject.proxyarp'),
                                       }
                          }
-    tester_apps = ('http://mavenrepo:8080/repository/org/opencord/aaa/1.2-SNAPSHOT/aaa-1.2-SNAPSHOT.oar',
-                   'http://mavenrepo:8080/repository/org/opencord/igmp/1.2-SNAPSHOT/igmp-1.2-SNAPSHOT.oar',)
+    tester_apps = ('http://mavenrepo:8080/repository/org/opencord/aaa/1.2.0-SNAPSHOT/aaa-1.2.0-SNAPSHOT.oar',
+                   'http://mavenrepo:8080/repository/org/opencord/igmp/1.2.0-SNAPSHOT/igmp-1.2.0-SNAPSHOT.oar',)
 
     old_service_profile = '/opt/cord/orchestration/service-profile/cord-pod'
     cord_profile = '/opt/cord_profile'
@@ -587,9 +587,9 @@ class Onos(Container):
     JAVA_OPTS_DEFAULT = JAVA_OPTS_FORMAT.format(*SYSTEM_MEMORY) #-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
-    onos_cord_apps = ( ['cord-config', '1.2-SNAPSHOT', 'org.opencord.config'],
-                       ['aaa', '1.2-SNAPSHOT', 'org.opencord.aaa'],
-                       ['igmp', '1.2-SNAPSHOT', 'org.opencord.igmp'],
+    onos_cord_apps = ( ['cord-config', '1.2.0-SNAPSHOT', 'org.opencord.config'],
+                       ['aaa', '1.2.0-SNAPSHOT', 'org.opencord.aaa'],
+                       ['igmp', '1.2.0-SNAPSHOT', 'org.opencord.igmp'],
                        )
     cord_apps_version_updated = False
     expose_port = False
@@ -982,11 +982,11 @@ class Onos(Container):
         version = cls.getVersion(onos_ip = onos_ip)
         major = int(version.split('.')[0])
         minor = int(version.split('.')[1])
-        app_version = '1.2-SNAPSHOT'
+        app_version = '1.2.0-SNAPSHOT'
         if major > 1:
-            app_version = '2.0-SNAPSHOT'
+            app_version = '2.0.0-SNAPSHOT'
         elif major == 1 and minor > 10:
-            app_version = '2.0-SNAPSHOT'
+            app_version = '2.0.0-SNAPSHOT'
         for apps in cls.onos_cord_apps:
             apps[1] = app_version
         cls.cord_apps_version_updated = True

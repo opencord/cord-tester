@@ -680,7 +680,7 @@ line vty
             major = int(version.split('.')[0])
             minor = int(version.split('.')[1])
             cordigmp_app_version = '2.0-SNAPSHOT'
-            olt_app_version = '1.2-SNAPSHOT'
+            olt_app_version = '1.2.0-SNAPSHOT'
             if major > 1:
                   cordigmp_app_version = '3.0-SNAPSHOT'
                   olt_app_version = '2.0-SNAPSHOT'

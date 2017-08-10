@@ -105,7 +105,7 @@ class scale_exchange(CordLogger):
     aaa_loaded = False
     table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
     app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
-    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
+    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2.0-SNAPSHOT.oar')
     olt_app_name = 'org.onosproject.olt'
     onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
     cpqd_path = os.path.join(test_path, '..', 'setup')
