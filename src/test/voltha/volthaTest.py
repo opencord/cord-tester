@@ -267,7 +267,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
     VOLTHA_UPLINK_VLAN_START = 444
     VOLTHA_ONU_UNI_PORT = 'veth0'
-
+    VOLTHA_OLT_IP = None
     dhcp_server_config = {
        "ip": "10.1.11.50",
        "mac": "ca:fe:ca:fe:ca:fe",
@@ -1478,8 +1478,16 @@ yg==
              if device_id != '':
                 self.olt_device_id = device_id
           else:
-             log_test.info('This setup test cases is developed on ponsim olt only, hence stop execution')
-             assert_equal(False, True)
+             if self.VOLTHA_OLT_TYPE.startswith('maple'):
+                   if self.VOLTHA_OLT_IP:
+                         address = self.VOLTHA_OLT_IP
+                         log_test.info('Enabling maple olt')
+                         device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = address)
+                   else:
+                         log_test.info('VOLTHA OLT IP needs to be specified for maple olt')
+             else:
+                   log_test.info('This setup test cases is developed for ponsim or maple olt only, hence stop execution')
+                   assert_equal(False, True)
 
           assert_not_equal(device_id, None)
           if status == False:
@@ -1612,6 +1620,18 @@ yg==
             time.sleep(10)
         finally:
             self.voltha.disable_device(device_id, delete = True)
+
+    def test_maple_enable_disable(self):
+        log_test.info('Enabling maple olt')
+        if self.VOLTHA_OLT_IP:
+              address = self.VOLTHA_OLT_IP
+              device_id, status = self.voltha.enable_device('maple_olt', address = address)
+              assert_not_equal(device_id, None)
+              try:
+                    assert_equal(status, True)
+                    time.sleep(10)
+              finally:
+                    self.voltha.disable_device(device_id, delete = True)
 
     def test_subscriber_with_voltha_for_eap_tls_authentication(self):
         """

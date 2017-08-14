@@ -243,7 +243,10 @@ class VolthaCtrl(object):
         if olt_mac is not None:
             device_config = { 'type' : olt_type, 'mac_address' : olt_mac }
         else:
-            device_config = { 'type' : olt_type, 'host_and_port' : address }
+            if len(address.split(':')) > 1:
+                device_config = { 'type' : olt_type, 'host_and_port' : address }
+            else:
+                device_config = { 'type' : olt_type, 'ipv4_address' : address }
         #pre-provision
         if olt_mac is not None:
             log.info('Pre-provisioning %s with mac %s' %(olt_type, olt_mac))
@@ -344,7 +347,7 @@ def get_olt_app():
     olt_app_file = os.path.join(our_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
     return olt_app_file
 
-def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
+def voltha_setup(host = '172.17.0.1', olt_ip = None, rest_port = VolthaCtrl.REST_PORT,
                  olt_type = 'ponsim_olt', olt_mac = '00:0c:e2:31:12:00',
                  uplink_vlan_map = VolthaCtrl.UPLINK_VLAN_MAP,
                  uplink_vlan_start = VolthaCtrl.UPLINK_VLAN_START,
@@ -358,8 +361,15 @@ def voltha_setup(host = '172.17.0.1', rest_port = VolthaCtrl.REST_PORT,
         log.info('Enabling ponsim olt')
         device_id, status = voltha.enable_device(olt_type, address = ponsim_address)
     else:
-        log.info('Enabling OLT instance for %s with mac %s' %(olt_type, olt_mac))
-        device_id, status = voltha.enable_device(olt_type, olt_mac)
+        if olt_type.startswith('maple'):
+            if olt_ip:
+                log.info('Enabling %s' %olt_type)
+                device_id, status = voltha.enable_device(olt_type, address = olt_ip)
+            else:
+                log.info('OLT IP needs to be specified for maple olt')
+        else:
+            log.info('Enabling OLT instance for %s with mac %s' %(olt_type, olt_mac))
+            device_id, status = voltha.enable_device(olt_type, olt_mac)
 
     if device_id is None or status is False:
         if device_id:

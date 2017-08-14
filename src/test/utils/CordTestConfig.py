@@ -96,6 +96,7 @@ def setup_module(module):
                         config_fake = False,
                         olt_type = 'ponsim_olt',
                         olt_mac = '00:0c:e2:31:12:00',
+                        olt_ip = None,
                         uplink_vlan_map = { 'of:0000000000000001' : '222' },
                         uplink_vlan_start = 333
                         )
