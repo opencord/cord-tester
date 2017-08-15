@@ -30,7 +30,7 @@ from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 from CordTestConfig import setup_module, teardown_module
 from CordTestUtils import get_mac, log_test
-from VolthaCtrl import VolthaCtrl, voltha_setup, voltha_teardown
+from VolthaCtrl import VolthaCtrl, VolthaService, voltha_setup, voltha_teardown
 from CordTestUtils import log_test, get_controller
 from portmaps import g_subscriber_port_map
 from OltConfig import *
@@ -212,7 +212,8 @@ class voltha_exchange(unittest.TestCase):
 
     OLT_TYPE = 'tibit_olt'
     OLT_MAC = '00:0c:e2:31:12:00'
-    VOLTHA_HOST = 'localhost'
+    VOLTHA_HOST = VolthaService.DOCKER_HOST_IP
+    VOLTHA_PONSIM_HOST = VolthaService.PONSIM_HOST
     VOLTHA_REST_PORT = 8881
     VOLTHA_OLT_TYPE = 'ponsim_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
@@ -221,10 +222,10 @@ class voltha_exchange(unittest.TestCase):
     voltha_attrs = None
     success = True
     olt_device_id = None
-    apps = ('org.opencord.aaa', 'org.onosproject.dhcp')
+    apps = ('org.opencord.aaa', 'org.onosproject.dhcp',)
     #apps = ('org.opencord.aaa', 'org.onosproject.dhcp', 'org.onosproject.dhcprelay')
-    app_dhcp = ('org.onosproject.dhcp')
-    app_dhcprelay = ('org.onosproject.dhcprelay')
+    app_dhcp = ('org.onosproject.dhcp',)
+    app_dhcprelay = ('org.onosproject.dhcprelay',)
     olt_apps = () #'org.opencord.cordmcast')
     vtn_app = 'org.opencord.vtn'
     table_app = 'org.ciena.cordigmp'
@@ -433,7 +434,6 @@ yg==
                                 uplink_vlan_map = cls.VOLTHA_UPLINK_VLAN_MAP,
                                 uplink_vlan_start = cls.VOLTHA_UPLINK_VLAN_START)
         cls.voltha = VolthaCtrl(**cls.voltha_attrs)
-        cls.install_app_table()
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, cls.port_list = cls.olt.olt_port_map()
         cls.switches = cls.port_map['switches']
@@ -453,7 +453,6 @@ yg==
             onos_ctrl = OnosCtrl(app)
             onos_ctrl.deactivate()
         cls.deactivate_apps(cls.app_dhcprelay)
-        cls.install_app_igmp()
         log_test.info('TearDownClass Restarting the Radius Server in the TA setup')
         cord_test_radius_restart()
 
@@ -529,6 +528,7 @@ yg==
             if deactivate is True:
                onos_ctrl.deactivate()
                time.sleep(2)
+               log_test.info('Activating app %s' %app)
                status, _ = onos_ctrl.activate()
                assert_equal(status, True)
                time.sleep(2)
@@ -540,6 +540,7 @@ yg==
         cls.success = True
         for app in apps:
             onos_ctrl = OnosCtrl(app)
+            log_test.info('Deactivating app %s' %app)
             status, _ = onos_ctrl.deactivate()
             if status is False:
                cls.success = False
@@ -1457,7 +1458,7 @@ yg==
                               rest_port = self.VOLTHA_REST_PORT,
                               uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP)
           if self.VOLTHA_OLT_TYPE.startswith('ponsim'):
-             ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+             ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
              log_test.info('Enabling ponsim olt')
              device_id, status = voltha.enable_device(self.VOLTHA_OLT_TYPE, address = ponsim_address)
              if device_id != '':
@@ -1589,7 +1590,7 @@ yg==
 
     def test_ponsim_enable_disable(self):
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         try:
@@ -1622,6 +1623,7 @@ yg==
         """
         ret = voltha_setup(
               host = self.VOLTHA_HOST,
+              ponsim_host = self.VOLTHA_PONSIM_HOST,
               rest_port = self.VOLTHA_REST_PORT,
               olt_type = 'ponsim_olt',
               uplink_vlan_map = self.VOLTHA_UPLINK_VLAN_MAP,
@@ -1657,7 +1659,7 @@ yg==
         df = defer.Deferred()
         def tls_flow_check_with_no_cert_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1699,7 +1701,7 @@ yg==
         df = defer.Deferred()
         def tls_flow_check_with_invalid_cert_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1740,7 +1742,7 @@ yg==
         df = defer.Deferred()
         def tls_flow_check_with_no_cert_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1784,7 +1786,7 @@ yg==
         def tls_flow_check_deactivating_app(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1834,7 +1836,7 @@ yg==
         def tls_flow_check_restarting_radius(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1887,7 +1889,7 @@ yg==
         def tls_flow_check_operating_olt_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1940,7 +1942,7 @@ yg==
         def tls_flow_check_operating_olt_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -1996,7 +1998,7 @@ yg==
         def tls_flow_check_with_disable_olt_device_scenario(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2053,7 +2055,7 @@ yg==
         def tls_flow_check_operating_olt_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2108,7 +2110,7 @@ yg==
         def tls_flow_check_with_disable_olt_device_scenario(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2165,7 +2167,7 @@ yg==
         def tls_flow_check_operating_onu_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2224,7 +2226,7 @@ yg==
         def tls_flow_check_operating_olt_state(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2284,7 +2286,7 @@ yg==
         def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2339,7 +2341,7 @@ yg==
         def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2396,7 +2398,7 @@ yg==
         def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2453,7 +2455,7 @@ yg==
         def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2512,7 +2514,7 @@ yg==
         def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             devices_list = self.voltha.get_devices()
             log_test.info('All available devices on voltha = %s'%devices_list['items'])
@@ -2626,7 +2628,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2668,7 +2670,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2712,7 +2714,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2753,7 +2755,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2796,7 +2798,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2839,7 +2841,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2882,7 +2884,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2925,7 +2927,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -2969,7 +2971,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3010,7 +3012,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3051,7 +3053,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3096,7 +3098,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3147,7 +3149,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3190,7 +3192,7 @@ yg==
         df = defer.Deferred()
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3235,7 +3237,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3290,7 +3292,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3348,7 +3350,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3403,7 +3405,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3457,7 +3459,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3509,7 +3511,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3566,7 +3568,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3625,7 +3627,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3680,7 +3682,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3735,7 +3737,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3789,7 +3791,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3842,7 +3844,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3894,7 +3896,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -3946,7 +3948,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4001,7 +4003,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4056,7 +4058,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4115,7 +4117,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4170,7 +4172,7 @@ yg==
         dhcp_app =  'org.onosproject.dhcp'
         def dhcp_flow_check_scenario(df):
             log_test.info('Enabling ponsim_olt')
-            ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+            ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
             device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
             assert_not_equal(device_id, None)
             voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4338,7 +4340,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4387,7 +4389,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4438,7 +4440,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4488,7 +4490,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4540,7 +4542,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4598,7 +4600,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4673,7 +4675,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4731,7 +4733,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4785,7 +4787,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4837,7 +4839,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4904,7 +4906,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)
@@ -4964,7 +4966,7 @@ yg==
         subnet = self.default_subnet_config
         dhcpd_interface_list = self.relay_interfaces
         log_test.info('Enabling ponsim_olt')
-        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        ponsim_address = '{}:50060'.format(self.VOLTHA_PONSIM_HOST)
         device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
         assert_not_equal(device_id, None)
         voltha = VolthaCtrl(**self.voltha_attrs)

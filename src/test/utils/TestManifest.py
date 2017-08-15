@@ -69,6 +69,7 @@ class TestManifest(object):
             self.voltha_loc = args.voltha_loc
             self.voltha_intf = args.voltha_intf
             self.voltha_enable = args.voltha_enable
+            self.voltha_container_mode = args.voltha_container_mode
             self.expose_port = args.expose_port
         else:
             with open(self.manifest, 'r') as fd:
@@ -102,4 +103,7 @@ class TestManifest(object):
             if self.voltha_loc:
                 voltha_enable = True
             self.voltha_enable = data.get('voltha_enable', voltha_enable)
+            self.voltha_container_mode = data.get('voltha_container_mode', False)
             self.expose_port = data.get('expose_port', False)
+            if self.voltha_enable and self.voltha_container_mode:
+                self.expose_port = True

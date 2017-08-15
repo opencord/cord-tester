@@ -26,10 +26,17 @@ from OltConfig import OltConfig
 
 class VolthaService(object):
     services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
+    standalone_services = ('chameleon', 'voltha', 'ofagent', 'vcli')
     compose_file = 'docker-compose-system-test.yml'
     service_map = {}
+    PROJECT = 'cordtester'
+    NETWORK = '{}_default'.format(PROJECT)
+    CONTAINER_MODE = False
+    REST_SERVICE = 'chameleon'
+    DOCKER_HOST_IP = '172.17.0.1'
+    PONSIM_HOST = '172.17.0.1'
 
-    def __init__(self, voltha_loc, controller, interface = 'eth0', olt_config = None):
+    def __init__(self, voltha_loc, controller, interface = 'eth0', olt_config = None, container_mode = False):
         if not os.access(voltha_loc, os.F_OK):
             raise Exception('Voltha location %s not found' %voltha_loc)
         compose_file_loc = os.path.join(voltha_loc, 'compose', self.compose_file)
@@ -39,6 +46,7 @@ class VolthaService(object):
         self.controller = controller
         self.interface = interface
         self.compose_file_loc = compose_file_loc
+        VolthaService.CONTAINER_MODE = container_mode
         num_onus = 1
         if olt_config is not None:
             port_map, _ = OltConfig(olt_config).olt_port_map()
@@ -46,81 +54,102 @@ class VolthaService(object):
                 num_onus = max(1, len(port_map['ports']))
         self.num_onus = num_onus
 
-    def start(self):
-        start_cmd = 'docker-compose -f {} up -d {} {} {} {} {}'.format(self.compose_file_loc,
-                                                                       *self.services)
+    def start_services(self, *services):
+        services_fmt = ' {}' * len(services)
+        services_cmd_fmt = 'DOCKER_HOST_IP={} docker-compose -p {} -f {} up -d {}'.format(self.DOCKER_HOST_IP,
+                                                                                          self.PROJECT,
+                                                                                          self.compose_file_loc,
+                                                                                          services_fmt)
+        start_cmd = services_cmd_fmt.format(*services)
         ret = os.system(start_cmd)
         if ret != 0:
             raise Exception('Failed to start voltha services. Failed with code %d' %ret)
 
-        for service in self.services:
-            name = 'compose_{}_1'.format(service)
-            network = 'compose_default'
+        for service in services:
+            name = '{}_{}_1'.format(self.PROJECT, service)
             cnt = Container(name, name)
-            ip = cnt.ip(network = network)
+            ip = cnt.ip(network = self.NETWORK)
             if not ip:
                 raise Exception('IP not found for container %s' %name)
             print('IP %s for service %s' %(ip, service))
-            self.service_map[service] = dict(name = name, network = network, ip = ip)
+            self.service_map[service] = dict(name = name, network = self.NETWORK, ip = ip)
 
-        #first start chameleon
-        chameleon_start_cmd = "cd {} && sh -c '. ./env.sh && \
-        nohup python chameleon/main.py -v --consul=localhost:8500 \
-        --fluentd={}:24224 --grpc-endpoint=localhost:50555 \
-        >/tmp/chameleon.log 2>&1 &'".format(self.voltha_loc,
-                                            self.service_map['fluentd']['ip'])
-        if not self.service_running('python chameleon/main.py'):
-            ret = os.system(chameleon_start_cmd)
-            if ret != 0:
-                raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
+    def ponmgmt_enable(self):
+        cmds = ('echo 8 | tee /sys/class/net/ponmgmt/bridge/group_fwd_mask',
+                'brctl addif ponmgmt {} >/dev/null 2>&1'.format(self.interface),
+        )
+        for cmd in cmds:
+            try:
+                os.system(cmd)
+            except:
+                pass
+
+    def start(self):
+        self.start_services(*self.services)
+        if self.CONTAINER_MODE is True:
+            self.start_services(*self.standalone_services)
+            #enable multicast mac forwarding:
+            self.ponmgmt_enable()
             time.sleep(10)
         else:
-            print('Chameleon voltha sevice is already running. Skipped start')
+            #first start chameleon
+            chameleon_start_cmd = "cd {} && sh -c '. ./env.sh && \
+            nohup python chameleon/main.py -v --consul=localhost:8500 \
+            --fluentd={}:24224 --grpc-endpoint=localhost:50555 \
+            >/tmp/chameleon.log 2>&1 &'".format(self.voltha_loc,
+                                                self.service_map['fluentd']['ip'])
+            if not self.service_running('python chameleon/main.py'):
+                ret = os.system(chameleon_start_cmd)
+                if ret != 0:
+                    raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
+                time.sleep(10)
+            else:
+                print('Chameleon voltha sevice is already running. Skipped start')
 
-        #now start voltha and ofagent
-        voltha_setup_cmd = "cd {} && sh -c '. ./env.sh && make rebuild-venv && make protos'".format(self.voltha_loc)
-        voltha_start_cmd = "cd {} && sh -c '. ./env.sh && \
-        nohup python voltha/main.py -v --consul=localhost:8500 --kafka={}:9092 -I {} \
-        --fluentd={}:24224 --rest-port=8880 --grpc-port=50555 \
-        >/tmp/voltha.log 2>&1 &'".format(self.voltha_loc,
-                                         self.service_map['kafka']['ip'],
-                                         self.interface,
-                                         self.service_map['fluentd']['ip'])
-        pki_dir = '{}/pki'.format(self.voltha_loc)
-        if not self.service_running('python voltha/main.py'):
-            voltha_pki_dir = '/voltha'
-            if os.access(pki_dir, os.F_OK):
-                pki_xfer_cmd = 'mkdir -p {} && cp -rv {}/pki {}'.format(voltha_pki_dir,
-                                                                        self.voltha_loc,
-                                                                        voltha_pki_dir)
-                os.system(pki_xfer_cmd)
-            #os.system(voltha_setup_cmd)
-            ret = os.system(voltha_start_cmd)
-            if ret != 0:
-                raise Exception('Failed to start VOLTHA. Return code %d' %ret)
-            time.sleep(10)
-        else:
-            print('VOLTHA core is already running. Skipped start')
+            #now start voltha and ofagent
+            voltha_setup_cmd = "cd {} && sh -c '. ./env.sh && make rebuild-venv && make protos'".format(self.voltha_loc)
+            voltha_start_cmd = "cd {} && sh -c '. ./env.sh && \
+            nohup python voltha/main.py -v --consul=localhost:8500 --kafka={}:9092 -I {} \
+            --fluentd={}:24224 --rest-port=8880 --grpc-port=50555 \
+            >/tmp/voltha.log 2>&1 &'".format(self.voltha_loc,
+                                             self.service_map['kafka']['ip'],
+                                             self.interface,
+                                             self.service_map['fluentd']['ip'])
+            pki_dir = '{}/pki'.format(self.voltha_loc)
+            if not self.service_running('python voltha/main.py'):
+                voltha_pki_dir = '/voltha'
+                if os.access(pki_dir, os.F_OK):
+                    pki_xfer_cmd = 'mkdir -p {} && cp -rv {}/pki {}'.format(voltha_pki_dir,
+                                                                            self.voltha_loc,
+                                                                            voltha_pki_dir)
+                    os.system(pki_xfer_cmd)
+                #os.system(voltha_setup_cmd)
+                ret = os.system(voltha_start_cmd)
+                if ret != 0:
+                    raise Exception('Failed to start VOLTHA. Return code %d' %ret)
+                time.sleep(10)
+            else:
+                print('VOLTHA core is already running. Skipped start')
 
-        ofagent_start_cmd = "cd {} && sh -c '. ./env.sh && \
-        nohup python ofagent/main.py -v --consul=localhost:8500 \
-        --fluentd={}:24224 --controller={}:6653 --grpc-endpoint=localhost:50555 \
-        >/tmp/ofagent.log 2>&1 &'".format(self.voltha_loc,
-                                          self.service_map['fluentd']['ip'],
-                                          self.controller)
-        if not self.service_running('python ofagent/main.py'):
-            ofagent_pki_dir = '/ofagent'
-            if os.access(pki_dir, os.F_OK):
-                pki_xfer_cmd = 'mkdir -p {} && cp -rv {}/pki {}'.format(ofagent_pki_dir,
-                                                                        self.voltha_loc,
-                                                                        ofagent_pki_dir)
-                os.system(pki_xfer_cmd)
-            ret = os.system(ofagent_start_cmd)
-            if ret != 0:
-                raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)
-            time.sleep(10)
-        else:
-            print('VOLTHA ofagent is already running. Skipped start')
+            ofagent_start_cmd = "cd {} && sh -c '. ./env.sh && \
+            nohup python ofagent/main.py -v --consul=localhost:8500 \
+            --fluentd={}:24224 --controller={}:6653 --grpc-endpoint=localhost:50555 \
+            >/tmp/ofagent.log 2>&1 &'".format(self.voltha_loc,
+                                              self.service_map['fluentd']['ip'],
+                                              self.controller)
+            if not self.service_running('python ofagent/main.py'):
+                ofagent_pki_dir = '/ofagent'
+                if os.access(pki_dir, os.F_OK):
+                    pki_xfer_cmd = 'mkdir -p {} && cp -rv {}/pki {}'.format(ofagent_pki_dir,
+                                                                            self.voltha_loc,
+                                                                            ofagent_pki_dir)
+                    os.system(pki_xfer_cmd)
+                ret = os.system(ofagent_start_cmd)
+                if ret != 0:
+                    raise Exception('VOLTHA ofagent not started. Failed with return code %d' %ret)
+                time.sleep(10)
+            else:
+                print('VOLTHA ofagent is already running. Skipped start')
 
         ponsim_start_cmd = "cd {} && sh -c '. ./env.sh && \
         nohup python ponsim/main.py -o {} -v >/tmp/ponsim.log 2>&1 &'".format(self.voltha_loc, self.num_onus)
@@ -147,12 +176,29 @@ class VolthaService(object):
                     pass
 
     def stop(self):
-        self.kill_service('python voltha/main.py')
-        self.kill_service('python ofagent/main.py')
-        self.kill_service('python chameleon/main.py')
-        self.kill_service('python ponsim/main.py')
-        service_stop_cmd = 'docker-compose -f {} down'.format(self.compose_file_loc)
+        if self.CONTAINER_MODE is False:
+            self.kill_service('python voltha/main.py')
+            self.kill_service('python ofagent/main.py')
+            self.kill_service('python chameleon/main.py')
+            self.kill_service('python ponsim/main.py')
+        service_stop_cmd = 'DOCKER_HOST_IP={} docker-compose -p {} -f {} down'.format(self.DOCKER_HOST_IP,
+                                                                                      self.PROJECT,
+                                                                                      self.compose_file_loc)
         os.system(service_stop_cmd)
+
+    @classmethod
+    def get_ip(cls, service):
+        if service in cls.service_map:
+            return cls.service_map[service]['ip']
+        if service == cls.REST_SERVICE:
+            return os.getenv('VOLTHA_HOST', None)
+        return None
+
+    @classmethod
+    def get_network(cls, service):
+        if service in cls.service_map:
+            return cls.service_map[service]['network']
+        return None
 
 class VolthaCtrl(object):
     UPLINK_VLAN_START = 333
@@ -251,7 +297,7 @@ class VolthaCtrl(object):
         if olt_mac is not None:
             log.info('Pre-provisioning %s with mac %s' %(olt_type, olt_mac))
         else:
-            log.info('Pre-provisioning %s with address %s' %(olt_type, address))
+            log.info('Pre-provisioning %s with address %s, url %s' %(olt_type, address, url))
         resp = requests.post(url, data = json.dumps(device_config))
         if resp.ok is not True or resp.status_code != 200:
             return None, False
@@ -347,7 +393,7 @@ def get_olt_app():
     olt_app_file = os.path.join(our_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
     return olt_app_file
 
-def voltha_setup(host = '172.17.0.1', olt_ip = None, rest_port = VolthaCtrl.REST_PORT,
+def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, olt_ip = None, rest_port = VolthaCtrl.REST_PORT,
                  olt_type = 'ponsim_olt', olt_mac = '00:0c:e2:31:12:00',
                  uplink_vlan_map = VolthaCtrl.UPLINK_VLAN_MAP,
                  uplink_vlan_start = VolthaCtrl.UPLINK_VLAN_START,
@@ -357,7 +403,7 @@ def voltha_setup(host = '172.17.0.1', olt_ip = None, rest_port = VolthaCtrl.REST
                         uplink_vlan_map = uplink_vlan_map,
                         uplink_vlan_start = uplink_vlan_start)
     if olt_type.startswith('ponsim'):
-        ponsim_address = '{}:50060'.format(host)
+        ponsim_address = '{}:50060'.format(ponsim_host)
         log.info('Enabling ponsim olt')
         device_id, status = voltha.enable_device(olt_type, address = ponsim_address)
     else:

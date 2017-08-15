@@ -96,18 +96,25 @@ class CordTester(Container):
         self.vcpes = olt_config.get_vcpes()
         #Try using the host interface in olt conf to setup the switch
         self.switches = self.port_map['switches']
+        voltha_network = VolthaService.get_network('voltha')
+        voltha_rest_ip = VolthaService.get_ip('chameleon')
         if env is not None:
             env['TEST_SWITCH'] = self.switches[0]
             env['TEST_SWITCHES'] = ','.join(self.switches)
             env['TEST_HOST'] = self.name
             env['TEST_INSTANCE'] = instance
             env['TEST_INSTANCES'] = num_instances
+            if voltha_rest_ip:
+                env['VOLTHA_HOST'] = voltha_rest_ip
         if self.create:
             print('Starting test container %s, image %s, tag %s' %(self.name, self.image, self.tag))
             self.start(rm = False, volumes = volumes, environment = env,
                        host_config = host_config, tty = True)
             if network is not None:
                 Container.connect_to_network(self.name, network)
+            if voltha_network:
+                print('Connecting container to VOLTHA container network %s' %(voltha_network))
+                Container.connect_to_network(self.name, voltha_network)
 
     def execute_switch(self, cmd, shell = False):
         if self.olt:
@@ -708,7 +715,8 @@ def runTest(args):
 
     if voltha_loc:
         #start voltha
-        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf, olt_config = olt_config_file)
+        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf,
+                               olt_config = olt_config_file, container_mode = test_manifest.voltha_container_mode)
         voltha.start()
 
     if radius_ip is None:
@@ -988,7 +996,8 @@ def setupCordTester(args):
 
     if voltha_loc:
         #start voltha
-        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf, olt_config = olt_config_file)
+        voltha = VolthaService(voltha_loc, onos_ips[0], interface = voltha_intf,
+                               olt_config = olt_config_file, container_mode = test_manifest.voltha_container_mode)
         voltha.start()
 
     ##Start Radius container if not started
@@ -1354,6 +1363,8 @@ if __name__ == '__main__':
                             help='Specify the voltha interface for voltha to listen')
     parser_run.add_argument('-voltha-enable', '--voltha-enable', action='store_true',
                             help='Run the tests with voltha environment enabled')
+    parser_run.add_argument('-voltha-container-mode', '--voltha-container-mode', action='store_true',
+                            help='Run the tests with voltha container environment enabled')
     parser_run.add_argument('-expose-port', '--expose-port', action='store_true',
                             help='Start ONOS by exposing the controller ports to the host.'
                             'Add +1 for every other onos/cluster instance when running more than 1 ONOS instances')
@@ -1406,6 +1417,8 @@ if __name__ == '__main__':
                               help='Specify the voltha interface for voltha to listen')
     parser_setup.add_argument('-voltha-enable', '--voltha-enable', action='store_true',
                               help='Run the tests with voltha environment enabled')
+    parser_setup.add_argument('-voltha-container-mode', '--voltha-container-mode', action='store_true',
+                              help='Run the tests with voltha container environment enabled')
     parser_setup.add_argument('-expose-port', '--expose-port', action='store_true',
                               help='Start ONOS by exposing the controller ports to the host.'
                               'Add +1 for every other onos/cluster instance when running more than 1 ONOS instances')

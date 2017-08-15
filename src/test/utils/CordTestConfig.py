@@ -22,7 +22,7 @@ from nose.tools import assert_not_equal
 from nose.plugins import Plugin
 from CordTestUtils import log_test as log
 from CordTestUtils import running_on_pod
-from VolthaCtrl import voltha_setup, voltha_teardown
+from VolthaCtrl import voltha_setup, voltha_teardown, VolthaService
 from SSHTestAgent import SSHTestAgent
 log.setLevel('INFO')
 
@@ -91,7 +91,8 @@ def setup_module(module):
                 setattr(class_test, k, v)
 
     #check for voltha and configure as appropriate
-    voltha_attrs = dict(host='172.17.0.1',
+    voltha_attrs = dict(host = VolthaService.DOCKER_HOST_IP,
+                        ponsim_host = VolthaService.PONSIM_HOST,
                         rest_port = 8881,
                         config_fake = False,
                         olt_type = 'ponsim_olt',
@@ -104,6 +105,13 @@ def setup_module(module):
     voltha_configure = True
     if hasattr(class_test, 'VOLTHA_AUTO_CONFIGURE'):
         voltha_configure = getattr(class_test, 'VOLTHA_AUTO_CONFIGURE')
+
+    if hasattr(class_test, 'VOLTHA_HOST'):
+        #update the voltha host ip based on chameleon IP for rest interface
+        rest_interface = VolthaService.get_ip('chameleon')
+        if rest_interface:
+            log.info('Updating VOLTHA_HOST IP to %s' %rest_interface)
+            setattr(class_test, 'VOLTHA_HOST', rest_interface)
 
     if voltha_enabled and voltha_configure:
         for k,v in voltha_attrs.iteritems():
