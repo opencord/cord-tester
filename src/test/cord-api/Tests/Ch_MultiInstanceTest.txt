@@ -45,7 +45,9 @@ Read InputFile
     ${voltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
     Set Suite Variable    ${vlist}    ${voltList}
     @{instanceList}=    Create List
+    ${Subscriber_Id}=    Set Variable
     Set Suite Variable    @{instanceList}
+    Set Suite Variable    ${Subscriber_Id}
 
 Verify Single Instance functionality
     [Arguments]    ${type}    ${listIndex}
@@ -58,38 +60,61 @@ Test Post Subscriber Create
     ${subscriberList} =    Get Variable Value    ${slist}
     ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
     ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
+    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    Log    ${json_result}
+    ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
+    ${result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
+    Should Be True    ${result}
+    #${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
+    #Log    ${Subscriber_Id}
     ${instanceList}    Create List
 
 Test Post volt Tenant Create
     [Arguments]    ${listIndex}
+    ${subscriberList} =    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
+    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    Log    ${json_result}
+    ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
+    ${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
+    Log    ${Subscriber_Id}
     ${voltTenantList} =    Get Variable Value    ${vlist}
     ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
-    ${service_specific_id}=    Get From Dictionary    ${voltTenantDict}    service_specific_id
-    ${get_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${c_tag}=    Get From Dictionary    ${voltDict}    c_tag
+    ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
+    Sleep    10
+    # Verifying GET operation after POST
+    ${get_result}=    restApi.ApiGet    VOLT_TENANT
     ${get_result_list}=    Get From Dictionary    ${get_result}    items
-    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result_list}    service_specific_id    ${service_specific_id}
-    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
-    ${updatedVoltDict}=    utils.setFieldValueInDict    ${voltDict}    subscriber_root_id    ${subscriberID}
-    ${api_result}=    restApi.ApiPost    VOLT_TENANT    ${updatedVoltDict}
-    Should Be True    ${api_result}
-    # Verifying Get operation after POST
-    Sleep    20
-    ${getVolt_result}=    restApi.ApiGet    VOLT_TENANT
-    Log    ${getVolt_result}
-    ${getVolt_result_list}=    utils.getFieldValueFromDict    ${getVolt_result}    items
-    Log    ${getVolt_result_list}
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result_list}    subscriber_root_id    ${subscriberID}
-    Log    ${getJsonDict}
+    ${getJsonDict}=    utils.getDictFromListofDict    ${get_result_list}    c_tag    ${c_tag}
     ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
     Should Be True    ${test_result}
+    ${Volt_Id}=    Get From Dictionary    ${getJsonDict}    id
+    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
+    Log    ${subscribed_links_ids_list}
+    ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
+    Log    ${subscribed_links_ids}
+    # Retrieve service links using provide links ID
+    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
+    # Update the subscriber_service_instance_id to the required subscriber_id to establish desired link
+    ${serviceDict}=    Create Dictionary    subscriber_service_instance_id=${Subscriber_Id}
+    ${result}=    restApi.ApiChameleonPut    CH_CORE_SERVICELINK    ${serviceDict}    ${subscribed_links_ids}
+    Sleep    10
+    Should Be True    ${result}
     # Validation of Instances
     Log    ${instanceList}
-    Log    ${getJsonDict}
-    ${VSGTenantList}=    Get From Dictionary    ${getJsonDict}    subscribed_tenants_ids
-    Log    ${VSGTenantList}
-    ${VSGTenant}=    Get From List    ${VSGTenantList}    0
-    ${getVSG_result}=    restApi.ApiChameleonGet    VSG_TENANT    ${VSGTenant}
+    #Log    ${getJsonDict}
+    #${VSGTenantList}=    Get From Dictionary    ${getJsonDict}    subscribed_tenants_ids
+    #Log    ${VSGTenantList}
+    #${VSGTenant}=    Get From List    ${VSGTenantList}    0
+    #${getVSG_result}=    restApi.ApiChameleonGet    VSG_TENANT    ${VSGTenant}
+    ${getVSG_result}=    restApi.ApiChameleonGet    VSG_TENANT    ${provider_service_instance_id}
     ${instance_id}=    Get From Dictionary    ${getVSG_result}    instance_id
     Append To List    ${instanceList}    ${instance_id}
     Log    ${instanceList}

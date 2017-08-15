@@ -16,12 +16,15 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = 'localhost'
+SERVER_IP = 'ms0925.utah.cloudlab.us'
+#SERVER_IP = '10.201.101.11'
+#SERVER_PORT = '9101'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
-PASSWD = 'GKHDWlgEgHB780HSbUSc'
+PASSWD = 'wfjaPUOSD0nZiWe3LN8M'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
 VOLT_TENANT = '/xosapi/v1/volt/volttenants'
+CH_CORE_SERVICELINK = '/xosapi/v1/core/serviceinstancelinks'
 TENANT_SUBSCRIBER = '/api/tenant/cord/subscriber/'
 TENANT_VOLT = '/api/tenant/cord/volt/'
 UTILS_SYNCHRONIZER = '/api/utility/synchronizer/'
