@@ -26,7 +26,7 @@ from OltConfig import OltConfig
 
 class VolthaService(object):
     services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
-    standalone_services = ('chameleon', 'voltha', 'ofagent', 'vcli')
+    standalone_services = ('voltha', 'ofagent', 'vcli')
     compose_file = 'docker-compose-system-test.yml'
     service_map = {}
     PROJECT = 'cordtester'
@@ -91,21 +91,29 @@ class VolthaService(object):
             #enable multicast mac forwarding:
             self.ponmgmt_enable()
             time.sleep(10)
+            chameleon_start_cmd = "cd {} && sh -c '. ./env.sh && \
+            nohup python chameleon/main.py -v --consul={}:8500 \
+            --fluentd={}:24224 --grpc-endpoint={}:50555 \
+            >/tmp/chameleon.log 2>&1 &'".format(self.voltha_loc,
+                                                self.get_ip('consul'),
+                                                self.get_ip('fluentd'),
+                                                self.get_ip('voltha'))
         else:
-            #first start chameleon
+            #first start chameleon on the host as its only the reliable way for REST
             chameleon_start_cmd = "cd {} && sh -c '. ./env.sh && \
             nohup python chameleon/main.py -v --consul=localhost:8500 \
             --fluentd={}:24224 --grpc-endpoint=localhost:50555 \
             >/tmp/chameleon.log 2>&1 &'".format(self.voltha_loc,
-                                                self.service_map['fluentd']['ip'])
-            if not self.service_running('python chameleon/main.py'):
-                ret = os.system(chameleon_start_cmd)
-                if ret != 0:
-                    raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
-                time.sleep(10)
-            else:
-                print('Chameleon voltha sevice is already running. Skipped start')
+                                                self.get_ip('fluentd'))
+        if not self.service_running('python chameleon/main.py'):
+            ret = os.system(chameleon_start_cmd)
+            if ret != 0:
+                raise Exception('VOLTHA chameleon service not started. Failed with return code %d' %ret)
+            time.sleep(10)
+        else:
+            print('Chameleon voltha sevice is already running. Skipped start')
 
+        if self.CONTAINER_MODE is False:
             #now start voltha and ofagent
             voltha_setup_cmd = "cd {} && sh -c '. ./env.sh && make rebuild-venv && make protos'".format(self.voltha_loc)
             voltha_start_cmd = "cd {} && sh -c '. ./env.sh && \
@@ -179,8 +187,8 @@ class VolthaService(object):
         if self.CONTAINER_MODE is False:
             self.kill_service('python voltha/main.py')
             self.kill_service('python ofagent/main.py')
-            self.kill_service('python chameleon/main.py')
             self.kill_service('python ponsim/main.py')
+        self.kill_service('python chameleon/main.py')
         service_stop_cmd = 'DOCKER_HOST_IP={} docker-compose -p {} -f {} down'.format(self.DOCKER_HOST_IP,
                                                                                       self.PROJECT,
                                                                                       self.compose_file_loc)
@@ -297,7 +305,7 @@ class VolthaCtrl(object):
         if olt_mac is not None:
             log.info('Pre-provisioning %s with mac %s' %(olt_type, olt_mac))
         else:
-            log.info('Pre-provisioning %s with address %s, url %s' %(olt_type, address, url))
+            log.info('Pre-provisioning %s with address %s' %(olt_type, address))
         resp = requests.post(url, data = json.dumps(device_config))
         if resp.ok is not True or resp.status_code != 200:
             return None, False
