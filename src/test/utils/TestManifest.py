@@ -103,7 +103,7 @@ class TestManifest(object):
             if self.voltha_loc:
                 voltha_enable = True
             self.voltha_enable = data.get('voltha_enable', voltha_enable)
-            self.voltha_container_mode = data.get('voltha_container_mode', False)
+            self.voltha_container_mode = data.get('voltha_container_mode', True)
             self.expose_port = data.get('expose_port', False)
             if self.voltha_enable and self.voltha_container_mode:
                 self.expose_port = True
