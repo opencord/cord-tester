@@ -26,7 +26,7 @@ from OltConfig import OltConfig
 
 class VolthaService(object):
     services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
-    standalone_services = ('voltha', 'ofagent', 'vcli')
+    standalone_services = ('voltha', 'ofagent', 'vcli',)
     compose_file = 'docker-compose-system-test.yml'
     service_map = {}
     PROJECT = 'cordtester'
@@ -214,11 +214,19 @@ class VolthaCtrl(object):
     REST_PORT = 8881
     HOST = '172.17.0.1'
     ONOS_APPS = ('org.onosproject.dhcp', 'org.onosproject.dhcp-relay', 'org.ciena.cordigmp')
+    ADMIN_STATE = 'admin_state'
+    OPER_STATUS = 'oper_status'
+    CONNECT_STATUS = 'connect_status'
 
     def __init__(self, host = HOST, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP, uplink_vlan_start = UPLINK_VLAN_START):
         self.host = host
         self.rest_port = rest_port
-        self.rest_url = 'http://{}:{}/api/v1'.format(host, rest_port)
+        self.rest_url = 'http://{}:{}/api/v1/local'.format(host, rest_port)
+        if rest_port == 8882:
+            self.rest_url = 'http://{}:{}/api/v1'.format(host, rest_port)
+            self.ADMIN_STATE = 'adminState'
+            self.OPER_STATUS = 'operStatus'
+            self.CONNECT_STATUS = 'connectStatus'
         self.uplink_vlan_map = uplink_vlan_map
         VolthaCtrl.UPLINK_VLAN_START = uplink_vlan_start
         self.switches = []
@@ -283,14 +291,14 @@ class VolthaCtrl(object):
         return self.switch_map
 
     def get_devices(self):
-        url = '{}/local/devices'.format(self.rest_url)
+        url = '{}/devices'.format(self.rest_url)
         resp = requests.get(url)
         if resp.ok is not True or resp.status_code != 200:
             return None
         return resp.json()
 
     def enable_device(self, olt_type, olt_mac = None, address = None):
-        url = '{}/local/devices'.format(self.rest_url)
+        url = '{}/devices'.format(self.rest_url)
         if olt_mac is None and address is None:
             log.error('Either olt mac or address needs to be specified')
             return None, False
@@ -322,16 +330,16 @@ class VolthaCtrl(object):
         if resp.ok is not True or resp.status_code != 200:
             return device_id, False
         device_info = resp.json()
-        if device_info['oper_status'] != 'ACTIVE' or \
-           device_info['admin_state'] != 'ENABLED' or \
-           device_info['connect_status'] != 'REACHABLE':
+        if device_info[self.OPER_STATUS] != 'ACTIVE' or \
+           device_info[self.ADMIN_STATE] != 'ENABLED' or \
+           device_info[self.CONNECT_STATUS] != 'REACHABLE':
             return device_id, False
 
         return device_id, True
 
     def disable_device(self, device_id, delete = True):
         log.info('Disabling device %s' %(device_id))
-        disable_url = '{}/local/devices/{}/disable'.format(self.rest_url, device_id)
+        disable_url = '{}/devices/{}/disable'.format(self.rest_url, device_id)
         resp = requests.post(disable_url)
         if resp.ok is not True or resp.status_code != 200:
             return False
@@ -339,7 +347,7 @@ class VolthaCtrl(object):
             #rest for disable completion
             time.sleep(10)
             log.info('Deleting device %s' %(device_id))
-            delete_url = '{}/local/devices/{}/delete'.format(self.rest_url, device_id)
+            delete_url = '{}/devices/{}/delete'.format(self.rest_url, device_id)
             resp = requests.delete(delete_url)
             if resp.status_code not in [204, 202, 200]:
                 return False
@@ -347,7 +355,7 @@ class VolthaCtrl(object):
 
     def restart_device(self, device_id):
         log.info('Restarting olt or onu device %s' %(device_id))
-        disable_url = '{}/local/devices/{}/restart'.format(self.rest_url, device_id)
+        disable_url = '{}/devices/{}/restart'.format(self.rest_url, device_id)
         resp = requests.post(disable_url)
         if resp.ok is not True or resp.status_code != 200:
             return False
@@ -355,33 +363,33 @@ class VolthaCtrl(object):
 
     def pause_device(self, device_id):
         log.info('Restarting olt or onu device %s' %(device_id))
-        disable_url = '{}/local/devices/{}/pause'.format(self.rest_url, device_id)
+        disable_url = '{}/devices/{}/pause'.format(self.rest_url, device_id)
         resp = requests.post(disable_url)
         if resp.ok is not True or resp.status_code != 200:
             return False
         return True
 
     def get_operational_status(self, device_id):
-        url = '{}/local/devices'.format(self.rest_url)
+        url = '{}/devices'.format(self.rest_url)
         log.info('Checking operational status for device %s' %(device_id))
         resp = requests.get('{}/{}'.format(url, device_id))
         if resp.ok is not True or resp.status_code != 200:
             return False
         device_info = resp.json()
-        if device_info['oper_status'] != 'ACTIVE' or \
-           device_info['admin_state'] != 'ENABLED' or \
-           device_info['connect_status'] != 'REACHABLE':
+        if device_info[self.OPER_STATUS] != 'ACTIVE' or \
+           device_info[self.ADMIN_STATE] != 'ENABLED' or \
+           device_info[self.CONNECT_STATUS] != 'REACHABLE':
            return False
         return True
 
     def check_preprovision_status(self, device_id):
-        url = '{}/local/devices'.format(self.rest_url)
+        url = '{}/devices'.format(self.rest_url)
         log.info('Check if device %s is in Preprovisioning state'%(device_id))
         resp = requests.get('{}/{}'.format(url, device_id))
         if resp.ok is not True or resp.status_code != 200:
            return False
         device_info = resp.json()
-        if device_info['admin_status'] == 'PREPROVISIONED':
+        if device_info[self.ADMIN_STATE] == 'PREPROVISIONED':
            return True
         return False
 

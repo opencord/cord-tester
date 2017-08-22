@@ -22,7 +22,7 @@ from nose.tools import assert_not_equal
 from nose.plugins import Plugin
 from CordTestUtils import log_test as log
 from CordTestUtils import running_on_pod
-from VolthaCtrl import voltha_setup, voltha_teardown, VolthaService
+from VolthaCtrl import voltha_setup, voltha_teardown, VolthaService, VolthaCtrl
 from SSHTestAgent import SSHTestAgent
 log.setLevel('INFO')
 
@@ -93,7 +93,7 @@ def setup_module(module):
     #check for voltha and configure as appropriate
     voltha_attrs = dict(host = VolthaService.DOCKER_HOST_IP,
                         ponsim_host = VolthaService.PONSIM_HOST,
-                        rest_port = 8881,
+                        rest_port = VolthaCtrl.REST_PORT,
                         config_fake = False,
                         olt_type = 'ponsim_olt',
                         olt_mac = '00:0c:e2:31:12:00',
