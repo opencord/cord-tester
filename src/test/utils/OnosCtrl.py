@@ -96,15 +96,17 @@ class OnosCtrl:
         return resp.ok, resp.status_code
 
     @classmethod
-    def get_devices(cls, controller = None):
+    def get_devices(cls, controller = None, mfr = None):
         if controller is None:
             controller = cls.controller
         url = 'http://%s:8181/onos/v1/devices' %(controller)
         result = requests.get(url, auth = cls.auth)
         if result.ok:
             devices = result.json()['devices']
-            return filter(lambda d: d['available'], devices)
-
+            devices = filter(lambda d: d['available'], devices)
+            if mfr:
+                devices = filter(lambda d: d['mfr'].startswith(mfr), devices)
+            return devices
         return None
 
     @classmethod
@@ -119,12 +121,12 @@ class OnosCtrl:
         return None
 
     @classmethod
-    def get_device_id(cls, controller = None):
+    def get_device_id(cls, controller = None, mfr = None):
         '''If running under olt, we get the first switch connected to onos'''
         olt = OltConfig()
         did = 'of:' + get_mac()
         if olt.on_olt():
-            devices = cls.get_devices(controller = controller)
+            devices = cls.get_devices(controller = controller, mfr = mfr)
             if devices:
                 dids = map(lambda d: d['id'], devices)
                 if len(dids) == 1:
