@@ -48,10 +48,13 @@ Test Delete Subscriber and voltTenant
     Log    ${subscriberDict}
     ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
     Log    ${subscriberId}
+    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${subscriberDict}    subscribed_links_ids
+    ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
+    # Retrieve service links using service links ID
+    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
     # Deletion of volt Tenants
-    ${getVoltDict}=    utils.getDictFromListOfDict    ${getVoltTenant_result_list}    subscriber_root_id    ${subscriberId}
-    ${voltID}=    utils.getFieldValueFromDict    ${getVoltDict}    id
-    ${volt_delete_result}=    restApi.ApiChameleonDelete    VOLT_TENANT    ${voltID}
+    ${volt_delete_result}=    restApi.ApiChameleonDelete    VOLT_TENANT    ${provider_service_instance_id}
     Should Be True    ${volt_delete_result}
     #Deletion of Subscribers
     ${subscriber_delete_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${subscriberId}
