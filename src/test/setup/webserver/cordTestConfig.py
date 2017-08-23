@@ -21,6 +21,7 @@ import json
 import os
 import sys
 import copy
+from collections import OrderedDict
 
 class CordTesterRun(object):
     our_path = os.path.dirname(os.path.realpath(__file__))
@@ -83,16 +84,16 @@ class CordTesterWebConfig(object):
             self.test_config = os.path.join(self.test_path, '{}Test.json'.format(self.test_case))
 
     def update(self, config):
-        cur_config = {}
+        cur_config = OrderedDict()
         if self.test_config:
             if os.access(self.test_config, os.F_OK):
                 with open(self.test_config, 'r') as f:
-                    cur_config = json.load(f)
+                    cur_config = json.load(f, object_pairs_hook = OrderedDict)
                 self.save(copy.copy(cur_config))
             for k, v in config.iteritems():
                 cur_config[k] = v
-                with open(self.test_config, 'w') as f:
-                    json.dump(cur_config, f, indent = 4)
+            with open(self.test_config, 'w') as f:
+                json.dump(cur_config, f, indent = 4)
             return True
         return False
 
@@ -115,7 +116,7 @@ class CordTesterWebConfig(object):
         if self.test_config:
             if os.access(self.test_config, os.F_OK):
                 with open(self.test_config) as f:
-                    cur_config = json.load(f)
+                    cur_config = json.load(f, object_pairs_hook = OrderedDict)
         return cur_config
 
 @app.route('/')
