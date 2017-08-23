@@ -163,7 +163,6 @@ class Voltha_olt_subscribers(Channels):
                   self.test_status = True
             return self.test_status
 
-
       def recv_channel_cb(self, pkt, src_list = None):
 
             ##First verify that we have received the packet for the joined instance
@@ -434,6 +433,7 @@ yg==
                                 uplink_vlan_map = cls.VOLTHA_UPLINK_VLAN_MAP,
                                 uplink_vlan_start = cls.VOLTHA_UPLINK_VLAN_START)
         cls.voltha = VolthaCtrl(**cls.voltha_attrs)
+        cls.install_app_table()
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, cls.port_list = cls.olt.olt_port_map()
         cls.switches = cls.port_map['switches']
@@ -453,6 +453,7 @@ yg==
             onos_ctrl = OnosCtrl(app)
             onos_ctrl.deactivate()
         cls.deactivate_apps(cls.app_dhcprelay)
+        cls.install_app_igmp()
         log_test.info('TearDownClass Restarting the Radius Server in the TA setup')
         cord_test_radius_restart()
 
@@ -532,8 +533,6 @@ yg==
                status, _ = onos_ctrl.activate()
                assert_equal(status, True)
                time.sleep(2)
-
-
 
     @classmethod
     def deactivate_apps(cls, apps):
@@ -722,14 +721,22 @@ yg==
         cls.interface_to_mac_map[iface] = mac
         return mac
 
-    def send_recv(self, mac=None, update_seed = False, validate = True):
-        cip, sip = self.dhcp.discover(mac = mac, update_seed = update_seed)
+    def send_recv(self, mac=None, update_seed = False, validate = True, dhcp_obj = None):
+        if dhcp_obj is None:
+           dhcp_obj =  self.dhcp
+        cip, sip = dhcp_obj.discover(mac = mac, update_seed = update_seed)
         if validate:
             assert_not_equal(cip, None)
             assert_not_equal(sip, None)
         log_test.info('Got dhcp client IP %s from server %s for mac %s' %
-                (cip, sip, self.dhcp.get_mac(cip)[0]))
+                (cip, sip, dhcp_obj.get_mac(cip)[0]))
         return cip,sip
+
+    def send_recv_function_in_thread(self, mac=None, update_seed = False, validate = False, dhcp_obj = None):
+        self.success = True
+        cip, sip = self.send_recv(mac=mac,update_seed=update_seed,validate=validate,dhcp_obj = dhcp_obj)
+        if cip is None or sip is None:
+           self.success = False
 
     @classmethod
     def dhcpd_conf_generate(cls, config = default_config, options = default_options,
@@ -1065,6 +1072,47 @@ yg==
      #      self.success =  True
         return self.test_status
 
+    def dhcprelay_flow_check(self, seed_ip = None, iface = None, mac= None, test_scenario = None):
+        self.success = True
+        if test_scenario is None:
+           self.dhcp = DHCPTest(seed_ip = seed_ip, iface = iface)
+           self.send_recv(mac=mac)
+        elif test_scenario == 'multiple_discover':
+             self.dhcp_2 = DHCPTest(seed_ip = seed_ip, iface = iface)
+             cip, sip, mac, _ = self.dhcp_2.only_discover(mac=mac)
+             log_test.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCP REQUEST.' %
+                                  (cip, sip, mac) )
+             if cip is None:
+                self.success = False
+                assert_not_equal(cip, None)
+             log_test.info('Triggering DHCP discover again.')
+             new_cip, new_sip, new_mac, _ = self.dhcp_2.only_discover(mac=mac)
+             if new_cip != cip:
+                self.success = False
+                assert_equal(new_cip, cip)
+             log_test.info('Got same ip to same the client when sent discover again, as expected')
+
+        elif test_scenario == 'desired_ip':
+             self.dhcp_3 = DHCPTest(seed_ip = '192.168.1.31', iface = iface)
+             cip, sip, mac, _ = self.dhcp_3.only_discover(mac=mac,desired = True)
+             if cip != self.dhcp_3.seed_ip:
+                self.success = False
+                assert_equal(cip,self.dhcp_3.seed_ip)
+             log_test.info('Got dhcp client desired IP %s from server %s for mac %s as expected' %
+                  (cip, sip, mac) )
+
+        elif test_scenario == 'out_of_pool_ip':
+             self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = iface)
+             cip, sip, mac, _ = self.dhcp.only_discover(mac= mac,desired = True)
+             if cip is None or cip == self.dhcp.seed_ip:
+                self.success = False
+                assert_not_equal(cip,None)
+                assert_not_equal(cip,self.dhcp.seed_ip)
+             log_test.info('server offered IP from its pool when requested out of pool IP, as expected')
+        elif test_scenario == 'multiple_discover_1':
+             pass
+        return self.success
+
     def recv_channel_cb(self, pkt):
         ##First verify that we have received the packet for the joined instance
         chan = self.subscriber.caddr(pkt[IP].dst)
@@ -1188,7 +1236,6 @@ yg==
         return self.test_status
 
 
-
     def igmp_flow_check_join_change_to_exclude(self, subscriber, multiple_sub = False):
         chan = 0
         #for i in range(self.VOLTHA_IGMP_ITERATIONS):
@@ -1256,7 +1303,6 @@ yg==
             subscriber.channel_leave(chan, src_list = subscriber.src_list)
 #                self.test_status = True
         return self.test_status
-
 
     def igmp_flow_check_join_change_to_block(self, subscriber, multiple_sub = False):
         chan = 0
@@ -2336,7 +2382,6 @@ yg==
         4. Validate that two valid certificates are being exchanged between two subscriber, onos and freeradius.
         5. Verify that two subscribers are not authenticated.
         """
-
         df = defer.Deferred()
         def tls_flow_check_on_two_subscribers_same_olt_device(df):
             aaa_app = ["org.opencord.aaa"]
@@ -2553,7 +2598,7 @@ yg==
         reactor.callLater(0, tls_flow_check_on_two_subscribers_same_olt_device, df)
         return df
 
-    def test_3_subscribers_with_voltha_for_eap_tls_authentication(self):
+    def test_three_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2573,8 +2618,7 @@ yg==
                                       num_channels = num_channels)
         assert_equal(self.success, True)
 
-
-    def test_5_subscribers_with_voltha_for_eap_tls_authentication(self):
+    def test_five_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -2594,7 +2638,7 @@ yg==
                                       num_channels = num_channels)
         assert_equal(self.success, True)
 
-    def test_9_subscribers_with_voltha_for_eap_tls_authentication(self):
+    def test_nine_subscribers_with_voltha_for_eap_tls_authentication(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -3676,7 +3720,6 @@ yg==
         3. Send dhcp request from two residential subscribers to dhcp server which is running as onos app.
         4. Verify that subscribers had got different ips from dhcp server successfully.
         """
-
         df = defer.Deferred()
         self.success = True
         dhcp_app =  'org.onosproject.dhcp'
@@ -3730,8 +3773,6 @@ yg==
         5. Repeat step 3 and 4 for 10 times for both subscribers.
         6  Verify that subscribers should get same ips which are offered the first time from dhcp server.
         """
-
-
         df = defer.Deferred()
         self.success = True
         dhcp_app =  'org.onosproject.dhcp'
@@ -3785,7 +3826,6 @@ yg==
         5. Repeat step 3 and 4 for 10 times for only one subscriber and ping to gateway from other subscriber.
         6  Verify that subscriber should get same ip which is offered the first time from dhcp server and other subscriber ping to gateway should not failed
         """
-
         df = defer.Deferred()
         self.success = True
         dhcp_app =  'org.onosproject.dhcp'
@@ -4110,7 +4150,6 @@ yg==
         7. Verify that subscriber should not get ip from dhcp server and other subscriber ping to gateway should failed.
         8. Enable the olt device which is detected in voltha.
         9. Verify that subscriber should get ip from dhcp server and other subscriber ping to gateway should not failed.
-
         """
         df = defer.Deferred()
         self.success = True
@@ -4209,7 +4248,7 @@ yg==
         reactor.callLater(0, dhcp_flow_check_scenario, df)
         return df
 
-    def test_3_subscribers_with_voltha_for_dhcp_discover_requests(self):
+    def test_three_subscribers_with_voltha_for_dhcp_discover_requests(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4227,7 +4266,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_5_subscribers_with_voltha_for_dhcp_discover_requests(self):
+    def test_five_subscribers_with_voltha_for_dhcp_discover_requests(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4245,7 +4284,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_9_subscribers_with_voltha_for_dhcp_discover_requests(self):
+    def test_nine_subscribers_with_voltha_for_dhcp_discover_requests(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4263,7 +4302,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_3_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
+    def test_three_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4281,7 +4320,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_5_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
+    def test_five_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4299,7 +4338,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_9_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
+    def test_nine_subscribers_with_voltha_for_tls_auth_and_dhcp_discover_flows(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -4576,6 +4615,7 @@ yg==
            self.voltha.disable_device(device_id, delete = True)
            self.voltha_dhcprelay_tearDownClass()
 
+    ##Not yet validated
     def test_subscriber_with_voltha_for_dhcprelay_starvation(self):
         """
         Test Method:
@@ -4816,7 +4856,6 @@ yg==
            self.voltha.disable_device(device_id, delete = True)
            self.voltha_dhcprelay_tearDownClass()
 
-
     def test_subscriber_with_voltha_for_dhcprelay_requesting_desired_out_of_pool_ip_address(self):
         """
         Test Method:
@@ -4880,6 +4919,54 @@ yg==
         6. Repeat step 3.
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface = self.port_map[self.port_list[0][1]]
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        thread1 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac,))
+        thread2 = threading.Thread(target = self.deactivate_apps, args = (self.app_dhcprelay,))
+        log_test.info('Restart dhcprelay app in onos during client send discover to voltha')
+        thread2.start()
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, False)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_subscriber_with_voltha_for_dhcprelay_renew_time(self):
         """
@@ -5013,6 +5100,56 @@ yg==
         6. Repeat step 3.
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface = self.port_map[self.port_list[0][1]]
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        thread1 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac,))
+        thread2 = threading.Thread(target = self.voltha.disable_device, args = (device_id,False,))
+        log_test.info('Disable olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, False)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
+
 
     def test_subscriber_with_voltha_for_dhcprelay_toggling_olt(self):
         """
@@ -5028,6 +5165,56 @@ yg==
         8. Enable olt devices which is being detected in voltha CLI.
         9. Repeat steps 3 and 4.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface = self.port_map[self.port_list[0][1]]
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        thread1 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac,))
+        thread2 = threading.Thread(target = self.voltha.restart_device, args = (device_id,))
+        log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, False)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
+
 
     def test_subscriber_with_voltha_for_dhcprelay_disable_onu_port_in_voltha(self):
         """
@@ -5042,7 +5229,57 @@ yg==
         7. Verify that subscriber should not get ip from external dhcp server., and ping to gateway.
         """
 
-    def test_subscriber_with_voltha_for_dhcprelay_disable_enable_onu_port_in_voltha(self):
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface = self.port_map[self.port_list[0][1]]
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        thread1 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac,))
+        thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
+        log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, False)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
+
+    def test_subscriber_with_voltha_for_dhcprelay_toggle_onu_port_in_voltha(self):
         """
         Test Method:
         0. Make sure that voltha and external dhcp server are up and running on CORD-POD setup.
@@ -5056,6 +5293,56 @@ yg==
         8. Enable onu port which is being detected in voltha CLI.
         9. Repeat steps 3 and 4.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface = self.port_map[self.port_list[0][1]]
+        mac = self.get_mac(iface)
+        self.host_load(iface)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        thread1 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac,))
+        thread2 = threading.Thread(target = self.voltha_uni_port_toggle)
+        log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, False)
+           #assert_equal(status, True)
+           time.sleep(10)
+           cip, sip = self.send_recv(mac=mac)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_two_subscribers_with_voltha_for_dhcprelay_discover(self):
         """
@@ -5066,6 +5353,59 @@ yg==
         3. Send dhcp request from two residential subscribers to external dhcp server.
         4. Verify that subscribers had got different ips from external dhcp server. successfully.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface_1 = self.port_map[self.port_list[0][1]]
+        iface_2 = self.port_map[self.port_list[3][1]]
+        mac_1 = self.get_mac(iface_1)
+        mac_2 = self.get_mac(iface_2)
+        self.host_load(iface_1)
+        self.host_load(iface_2)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+        self.dhcp_1 = DHCPTest(seed_ip = '10.10.10.1', iface = iface_1)
+        self.dhcp_2 = DHCPTest(seed_ip = '20.20.20.1', iface = iface_2)
+        thread1 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac_1,False,True,self.dhcp_1,))
+        thread2 = threading.Thread(target = self.send_recv_function_in_thread, args = (mac_2,False,True,self.dhcp_2,))
+#        log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, True)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_two_subscribers_with_voltha_for_dhcprelay_multiple_discover(self):
         """
@@ -5078,6 +5418,58 @@ yg==
         5. Repeat step 3 and 4 for 10 times for both subscribers.
         6  Verify that subscribers should get same ips which are offered the first time from external dhcp server..
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface_1 = self.port_map[self.port_list[0][1]]
+        iface_2 = self.port_map[self.port_list[3][1]]
+        mac_1 = self.get_mac(iface_1)
+        mac_2 = self.get_mac(iface_2)
+        self.host_load(iface_1)
+        self.host_load(iface_2)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+        thread1 = threading.Thread(target = self.dhcprelay_flow_check, args = ('10.10.10.1', iface_1, mac_1,'multiple_discover',))
+        thread2 = threading.Thread(target = self.dhcprelay_flow_check, args = ('20.20.20.1', iface_2, mac_2,'multiple_discover',))
+        #log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, True)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_two_subscribers_with_voltha_for_dhcprelay_multiple_discover_for_one_subscriber(self):
         """
@@ -5091,6 +5483,59 @@ yg==
         6  Verify that subscriber should get same ip which is offered the first time from external dhcp server. and other subscriber ping to gateway should not failed
         """
 
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface_1 = self.port_map[self.port_list[0][1]]
+        iface_2 = self.port_map[self.port_list[3][1]]
+        mac_1 = self.get_mac(iface_1)
+        mac_2 = self.get_mac(iface_2)
+        self.host_load(iface_1)
+        self.host_load(iface_2)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+        thread1 = threading.Thread(target = self.dhcprelay_flow_check, args = ('10.10.10.1', iface_1, mac_1,))
+        thread2 = threading.Thread(target = self.dhcprelay_flow_check, args = ('20.20.20.1', iface_2, mac_2,'multiple_discover',))
+        #log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, True)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
+
     def test_two_subscribers_with_voltha_for_dhcprelay_discover_desired_ip_address_for_one_subscriber(self):
         """
         Test Method:
@@ -5101,6 +5546,58 @@ yg==
         3. Send dhcp request with desired ip from other residential subscriber to external dhcp server.
         4. Verify that subscribers had got different ips (one subscriber desired ip and other subscriber random ip) from external dhcp server. successfully.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface_1 = self.port_map[self.port_list[0][1]]
+        iface_2 = self.port_map[self.port_list[3][1]]
+        mac_1 = self.get_mac(iface_1)
+        mac_2 = self.get_mac(iface_2)
+        self.host_load(iface_1)
+        self.host_load(iface_2)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+        thread1 = threading.Thread(target = self.dhcprelay_flow_check, args = ('10.10.10.1', iface_1, mac_1,))
+        thread2 = threading.Thread(target = self.dhcprelay_flow_check, args = ('20.20.20.1', iface_2, mac_2,'desired_ip',))
+        #log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, True)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_two_subscribers_with_voltha_for_dhcprelay_discover_for_in_range_and_out_of_range_from_dhcp_pool_ip_addresses(self):
         """
@@ -5112,6 +5609,59 @@ yg==
         3. Send dhcp request with desired without in dhcp pool ip from other residential subscriber to external dhcp server.
         4. Verify that subscribers had got different ips (both subscriber got random ips within dhcp pool) from external dhcp server. successfully.
         """
+
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface_1 = self.port_map[self.port_list[0][1]]
+        iface_2 = self.port_map[self.port_list[3][1]]
+        mac_1 = self.get_mac(iface_1)
+        mac_2 = self.get_mac(iface_2)
+        self.host_load(iface_1)
+        self.host_load(iface_2)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+        thread1 = threading.Thread(target = self.dhcprelay_flow_check, args = ('10.10.10.1', iface_1, mac_1,))
+        thread2 = threading.Thread(target = self.dhcprelay_flow_check, args = ('20.20.20.1', iface_2, mac_2,'out_of_pool_ip',))
+        #log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(4)
+        thread1.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        try:
+           assert_equal(self.success, True)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_two_subscribers_with_voltha_for_dhcprelay_disabling_onu_port_for_one_subscriber(self):
         """
@@ -5125,6 +5675,61 @@ yg==
         6. Repeat step 3 and 4 for one subscriber where uni port is down.
         7. Verify that subscriber should not get ip from external dhcp server. and other subscriber ping to gateway should not failed.
         """
+        self.voltha_dhcprelay_setUpClass()
+#       if not port_list:
+#        port_list = self.generate_port_list(1, 0)
+        iface_1 = self.port_map[self.port_list[0][1]]
+        iface_2 = self.port_map[self.port_list[3][1]]
+        mac_1 = self.get_mac(iface_1)
+        mac_2 = self.get_mac(iface_2)
+        self.host_load(iface_1)
+        self.host_load(iface_2)
+        ##we use the defaults for this test that serves as an example for others
+        ##You don't need to restart dhcpd server if retaining default config
+        config = self.default_config
+        options = self.default_options
+        subnet = self.default_subnet_config
+        dhcpd_interface_list = self.relay_interfaces
+        log_test.info('Enabling ponsim_olt')
+        ponsim_address = '{}:50060'.format(self.VOLTHA_HOST)
+        device_id, status = self.voltha.enable_device('ponsim_olt', address = ponsim_address)
+        assert_not_equal(device_id, None)
+        voltha = VolthaCtrl(**self.voltha_attrs)
+        time.sleep(10)
+        switch_map = None
+        olt_configured = False
+        switch_map = voltha.config(fake = self.VOLTHA_CONFIG_FAKE)
+        log_test.info('Installing OLT app')
+        OnosCtrl.install_app(self.olt_app_file)
+        time.sleep(5)
+        log_test.info('Adding subscribers through OLT app')
+        self.config_olt(switch_map)
+        olt_configured = True
+        time.sleep(5)
+        self.dhcpd_start(intf_list = dhcpd_interface_list,
+                         config = config,
+                         options = options,
+                         subnet = subnet)
+
+        thread1 = threading.Thread(target = self.dhcprelay_flow_check, args = ('10.10.10.1', iface_1, mac_1,))
+        thread2 = threading.Thread(target = self.dhcprelay_flow_check, args = ('20.20.20.1', iface_2, mac_2,'desired_ip',))
+        thread3 = threading.Thread(target = self.voltha_uni_port_toggle, args = (iface_2,))
+        #log_test.info('Restart olt devices during client send discover to voltha')
+        thread2.start()
+        time.sleep(8)
+        thread1.start()
+        thread3.start()
+        time.sleep(10)
+        thread1.join()
+        thread2.join()
+        thread3.join()
+        try:
+           assert_equal(self.success, False)
+           #assert_equal(status, True)
+           time.sleep(10)
+        finally:
+           self.voltha.disable_device(device_id, delete = True)
+           self.voltha_dhcprelay_tearDownClass()
 
     def test_two_subscribers_with_voltha_for_dhcprelay_toggling_onu_port_for_one_subscriber(self):
         """
@@ -5249,7 +5854,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_5_groups_joins_verifying_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_with_five_groups_joins_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -5269,7 +5874,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_subscriber_with_voltha_for_igmp_5_groups_joins_and_leave_for_one_group_verifying_traffic(self):
+    def test_subscriber_with_voltha_for_igmp_with_five_groups_joins_and_leave_for_one_group_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -5890,7 +6495,7 @@ yg==
         reactor.callLater(0, igmp_flow_check_operating_olt_admin_restart, df)
         return df
 
-    def test_5_subscriber_with_voltha_for_igmp_with_10_group_joins_verifying_traffic(self):
+    def test_five_subscribers_with_voltha_for_igmp_with_ten_group_joins_verifying_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
@@ -5910,7 +6515,7 @@ yg==
                                     num_subscribers = num_subscribers,
                                     num_channels = num_channels)
 
-    def test_9_subscriber_with_voltha_for_igmp_with_10_group_joins_and_verify_traffic(self):
+    def test_nine_subscribers_with_voltha_for_igmp_with_ten_group_joins_and_verify_traffic(self):
         """
         Test Method:
         0. Make sure that voltha is up and running on CORD-POD setup.
