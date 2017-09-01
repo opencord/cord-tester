@@ -273,7 +273,7 @@ class VolthaCtrl(object):
             device_config['devices'][device_id]['basic'] = dict(driver='pmc-olt')
             device_config['devices'][device_id]['accessDevice'] = dict(uplink=nni_ports[0]['port'],
                                                                        vlan = uplink_vlan,
-                                                                       defaultVlan='0'
+                                                                       defaultVlan=str(onu_ports[0])
                                                                        )
         if device_id:
             #toggle drivers/openflow base before reconfiguring the driver and olt config data
@@ -283,7 +283,7 @@ class VolthaCtrl(object):
             time.sleep(10)
             OnosCtrl('org.onosproject.drivers').activate()
             OnosCtrl('org.onosproject.openflow-base').activate()
-            time.sleep(5)
+            time.sleep(10)
             log.info('Reactivating CORD and ONOS apps')
             Onos.activate_cord_apps(deactivate = True)
             Onos.activate_apps(self.ONOS_APPS, deactivate = True)
