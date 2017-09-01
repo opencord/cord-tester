@@ -998,11 +998,17 @@ class Onos(Container):
         version = cls.getVersion(onos_ip = onos_ip)
         major = int(version.split('.')[0])
         minor = int(version.split('.')[1])
+        try:
+            patch = int(version.split('.')[2])
+        except:
+            patch = 0
         app_version = '1.2-SNAPSHOT'
         if major > 1:
             app_version = '2.0-SNAPSHOT'
-        elif major == 1 and minor > 10:
+        elif major == 1 and minor >= 10:
             app_version = '2.0-SNAPSHOT'
+            if patch < 3:
+                app_version = '1.2-SNAPSHOT'
         for apps in cls.onos_cord_apps:
             apps[1] = app_version
         cls.cord_apps_version_updated = True
