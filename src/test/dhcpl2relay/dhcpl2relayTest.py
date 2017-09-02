@@ -196,32 +196,34 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     @classmethod
     def cord_sadis_load(cls):
         relay_device_id = '{}'.format(cls.relay_device_id)
-        sadis_dict = {'apps':{ "org.opencord.sadis" : {
-                                "sadis" : {
-                                  "integration" : {
-                                    "cache" : {
-                                     "enabled" : true,
-                                      "maxsize" : 50,
-                                       "ttl" : "PT1m"
-                                    }
-                                 },
-                                 "entries" : [ {
-                                   "id" : "uni-254", # (This is an entry for a subscriber) Same as the portName of the Port as seen in onos ports command
-                                   "cTag" : 202, # C-tag of the subscriber
-                                   "sTag" : 222, # S-tag of the subscriber
-                                   "nasPortId" : "uni-254"  # NAS Port Id of the subscriber, could be different from the id above
-                                 }, {
-                                   "id" : "eaf78b733390456d80fb24113f5150fd", # (This is an entry for an OLT device) Same as the serial of the OLT logical device as seen in the onos devices command
-                                   "hardwareIdentifier" : "00:1b:22:00:b1:78", # MAC address to be used for this OLT
-                                   "ipAddress" : "192.168.1.252", # IP address to be used for this OLT
-                                   "nasId" : "B100-NASID", # NAS ID to be used for this OLT
-                                   "circuitId" : "",
-                                   "remoteId" : ""
-                                 } ]
-                               }
-                             }
-                          }
-                      }
+        sadis_dict ={
+        "apps": {
+                "org.opencord.sadis": {
+                        "sadis": {
+                                "integration": {
+                                        "cache": {
+                                                "enabled": true,
+                                                "maxsize": 50,
+                                                "ttl": "PT1m"
+                                        }
+                                },
+                                "entries": [{
+                                                "id": "uni-254",
+                                                "cTag": 202,
+                                                "sTag": 222,
+                                                "nasPortId": "uni-254"
+                                        },
+                                        {
+                                                "id": "eaf78b733390456d80fb24113f5150fd",
+                                                "hardwareIdentifier": "00:1b:22:00:b1:78",
+                                                "ipAddress": "192.168.1.252",
+                                                "nasId": "B100-NASID"
+                                        }
+                                ]
+                       }
+                 }
+            }
+        }
         cls.onos_load_config(sadis_dict)
         cls.configs['relay_config'] = sadis_dict
 
@@ -318,7 +320,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         cls.interface_to_mac_map[iface] = mac
         return mac
 
-    def stats(self,success_rate = False, only_discover = False, iface = 'veth0'):
+    def dhcpl2relay_stats_calc(self, success_rate = False, only_discover = False, iface = 'veth0'):
 
 	self.ip_count = 0
 	self.failure_count = 0
@@ -327,17 +329,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	self.transaction_count = 0
 
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = iface)
 	self.start_time = time.time()
 
@@ -393,53 +384,20 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_for_one_request_with_invalid_source_mac_broadcast(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover(mac='ff:ff:ff:ff:ff:ff')
         assert_equal(cip,None)
-	log_test.info('dhcp server rejected client discover with invalid source mac, as expected')
+	log_test.info('Dhcp server rejected client discover with invalid source mac, as expected')
 
     def test_dhcpl2relay_for_one_request_with_invalid_source_mac_multicast(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac='01:80:c2:01:98:05')
         assert_equal(cip,None)
-	log_test.info('dhcp server rejected client discover with invalid source mac, as expected')
+	log_test.info('Dhcp server rejected client discover with invalid source mac, as expected')
 
     def test_dhcpl2relay_for_one_request_with_invalid_source_mac_zero(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac='00:00:00:00:00:00')
         assert_equal(cip,None)
@@ -447,17 +405,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_N_requests(self, iface = 'veth0',requests=10):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '192.169.1.1', iface = iface)
         ip_map = {}
         for i in range(requests):
@@ -472,17 +419,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_one_release(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.100.10', iface = iface)
         cip, sip = self.send_recv(mac=mac)
         log_test.info('Releasing ip %s to server %s' %(cip, sip))
@@ -496,17 +432,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_Nreleases(self, iface = 'veth0'):
         mac = None
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '192.170.1.10', iface = iface)
         ip_map = {}
         for i in range(10):
@@ -535,17 +460,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_starvation(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = iface)
         log_test.info('Verifying 1 ')
 	count = 0
@@ -564,17 +478,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_same_client_and_multiple_discovers(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log_test.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %
@@ -587,17 +490,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_same_client_and_multiple_requests(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
 	log_test.info('Sending DHCP discover and DHCP request.')
 	cip, sip = self.send_recv(mac=mac)
@@ -609,17 +501,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_clients_desired_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '192.168.1.31', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
 	assert_equal(cip,self.dhcp.seed_ip)
@@ -628,18 +509,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_clients_desired_address_in_out_of_pool(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
 	assert_not_equal(cip,None)
@@ -648,17 +517,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_nak_packet(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
@@ -668,38 +526,16 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(new_cip, None)
 	log_test.info('server sent NAK packet when requested other IP than that server offered')
 
-    def test_dhcpl2relay_client_requests_with_specific_lease_time_in_discover_message(self, iface = 'veth0',lease_time=700):
+    def test_dhcpl2relay_with_client_requests_with_specific_lease_time_in_discover_message(self, iface = 'veth0',lease_time=700):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.70', iface = iface)
 	self.dhcp.return_option = 'lease'
 	cip, sip, mac, lval = self.dhcp.only_discover(lease_time=True,lease_value=lease_time)
 	assert_equal(lval, lease_time)
 	log_test.info('dhcp server offered IP address with client requested lease time')
 
-    def test_dhcpl2relay_client_request_after_reboot(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_request_after_reboot(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
@@ -717,17 +553,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_after_server_reboot(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
@@ -745,17 +570,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_specific_lease_time_only_in_discover_but_not_in_request_packet(self, iface = 'veth0',lease_time=700):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	self.dhcp.return_option = 'lease'
 	log_test.info('Sending DHCP discover with lease time of 700')
@@ -768,17 +582,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_specific_lease_time_only_in_request_but_not_in_discover_packet(self, iface = 'veth0',lease_time=800):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True,lease_value=lease_time)
@@ -786,20 +589,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(lval, lease_time)
 	log_test.info('client requested lease time in request packet seen in servre replied ACK packet as expected')
 
-    def test_dhcpl2relay_client_renew_time(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_renew_time(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-	new_options = [('dhcp-renewal-time', 100), ('dhcp-rebinding-time', 125)]
-        options = self.default_options + new_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
@@ -812,20 +603,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(latest_cip, cip)
 	log_test.info('server renewed client IP when client sends request after renew time, as expected')
 
-    def test_dhcpl2relay_client_rebind_time(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_rebind_time(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-	new_options = [('dhcp-renewal-time', 100), ('dhcp-rebinding-time', 125)]
-        options = self.default_options + new_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover()
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
@@ -838,19 +617,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(latest_cip, cip)
         log_test.info('server renewed client IP when client sends request after rebind time, as expected')
 
-    def test_dhcpl2relay_client_expected_subnet_mask(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_expected_subnet_mask(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	expected_subnet = '255.255.255.0'
 	self.dhcp.return_option = 'subnet'
@@ -861,19 +629,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(subnet_mask,expected_subnet)
 	log_test.info('subnet mask in server offer packet is same as configured subnet mask in dhcp server')
 
-    def test_dhcpl2relay_client_sends_dhcp_request_with_wrong_subnet_mask(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_sending_dhcp_request_with_wrong_subnet_mask(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
 	cip, sip, mac, _ = self.dhcp.only_discover()
@@ -885,21 +642,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(new_cip, cip)
 	log_test.info("Got DHCP Ack despite of specifying wrong Subnet Mask in DHCP Request.")
 
-    def test_dhcpl2relay_client_expected_router_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_expected_router_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        config = self.default_config
-	new_options = [('routers', '20.20.20.1')]
-        options = self.default_options + new_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	expected_router_address = '20.20.20.1'
 	self.dhcp.return_option = 'router'
@@ -910,19 +654,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(expected_router_address, router_address_value)
 	log_test.info('router address in server offer packet is same as configured router address in dhcp server')
 
-    def test_dhcpl2relay_client_sends_dhcp_request_with_wrong_router_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_sends_dhcp_request_with_wrong_router_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
 	cip, sip, mac, _ = self.dhcp.only_discover()
@@ -936,17 +669,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_client_expecting_broadcast_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	expected_broadcast_address = '192.168.1.255'
 	self.dhcp.return_option = 'broadcast_address'
@@ -957,19 +679,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(expected_broadcast_address, broadcast_address_value)
 	log_test.info('broadcast address in server offer packet is same as configured broadcast address in dhcp server')
 
-    def test_dhcpl2relay_client_sends_dhcp_request_with_wrong_broadcast_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_sends_dhcp_request_with_wrong_broadcast_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
 	cip, sip, mac, _ = self.dhcp.only_discover()
@@ -981,19 +692,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(new_cip, cip)
 	log_test.info("Got DHCP Ack despite of specifying wrong Broadcast Address in DHCP Request.")
 
-    def test_dhcpl2relay_client_expecting_dns_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_expecting_dns_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	expected_dns_address = '192.168.1.1'
 	self.dhcp.return_option = 'dns'
@@ -1004,19 +704,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(expected_dns_address, dns_address_value)
 	log_test.info('dns address in server offer packet is same as configured dns address in dhcp server')
 
-    def test_dhcpl2relay_client_sends_request_with_wrong_dns_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_sends_request_with_wrong_dns_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        config = self.default_config
-        options = self.default_options
-        subnet = self.default_subnet_config
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
 	cip, sip, mac, _ = self.dhcp.only_discover()
@@ -1032,7 +721,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_transactions_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-	    self.stats()
+	    self.dhcpl2relay_stats_calc()
 	    log_test.info("Statistics for run %d",i)
 	    log_test.info("----------------------------------------------------------------------------------")
 	    log_test.info("No. of transactions     No. of successes     No. of failures     Running Time ")
@@ -1051,7 +740,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_consecutive_successes_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-	    self.stats(success_rate = True)
+	    self.dhcpl2relay_stats_calc(success_rate = True)
 	    log_test.info("Statistics for run %d",i)
 	    log_test.info("----------------------------------------------------------------------------------")
 	    log_test.info("No. of consecutive successful transactions          Running Time ")
@@ -1072,7 +761,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_with_max_clients_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-	    self.stats(only_discover = True)
+	    self.dhcpl2relay_stats_calc(only_discover = True)
 	    log_test.info("----------------------------------------------------------------------------------")
 	    log_test.info("Statistics for run %d of sending only DHCP Discover",i)
 	    log_test.info("----------------------------------------------------------------------------------")
@@ -1095,7 +784,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_consecutive_successful_clients_per_second(self, iface = 'veth0'):
 
 	for i in range(1,4):
-	    self.stats(success_rate = True, only_discover = True)
+	    self.dhcpl2relay_stats_calc(success_rate = True, only_discover = True)
 	    log_test.info("----------------------------------------------------------------------------------")
 	    log_test.info("Statistics for run %d for sending only DHCP Discover",i)
 	    log_test.info("----------------------------------------------------------------------------------")
@@ -1115,22 +804,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	log_test.info("----------------------------------------------------------------------------------")
 
     def test_dhcpl2relay_concurrent_transactions_per_second(self, iface = 'veth0'):
-
-        config = self.default_config
-        options = self.default_options
-        subnet =  [ ('192.168.1.2',
-'''
-subnet 192.168.0.0 netmask 255.255.0.0 {
-    range 192.168.1.10 192.168.2.100;
-}
-'''), ]
-
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
-
 	for key in (key for key in g_subscriber_port_map if key < 100):
 	    self.host_load(g_subscriber_port_map[key])
 
@@ -1211,21 +884,6 @@ subnet 192.168.0.0 netmask 255.255.0.0 {
 	log_test.info("----------------------------------------------------------------------------------")
 
     def test_dhcpl2relay_concurrent_consecutive_successes_per_second(self, iface = 'veth0'):
-
-        config = self.default_config
-        options = self.default_options
-        subnet =  [ ('192.168.1.2',
-'''
-subnet 192.168.0.0 netmask 255.255.0.0 {
-    range 192.168.1.10 192.168.2.100;
-}
-'''), ]
-
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
 	failure_dir = {}
 
 	for key in (key for key in g_subscriber_port_map if key != 100):
@@ -1311,23 +969,7 @@ subnet 192.168.0.0 netmask 255.255.0.0 {
 	log_test.info("Average no. of consecutive successful transactions per second: %d", round(self.total_success/self.running_time,2))
 	log_test.info("----------------------------------------------------------------------------------")
 
-    def test_dhcpl2relay_concurrent_clients_per_second(self, iface = 'veth0'):
-
-        config = self.default_config
-        options = self.default_options
-        subnet =  [ ('192.168.1.2',
-'''
-subnet 192.168.0.0 netmask 255.255.0.0 {
-    range 192.168.1.10 192.168.2.100;
-}
-'''), ]
-
-        dhcpd_interface_list = self.relay_interfaces
-        self.dhcpd_start(intf_list = dhcpd_interface_list,
-                         config = config,
-                         options = options,
-                         subnet = subnet)
-
+    def test_dhcpl2relay_for_concurrent_clients_per_second(self, iface = 'veth0'):
 	for key in (key for key in g_subscriber_port_map if key < 100):
 		self.host_load(g_subscriber_port_map[key])
 
@@ -1402,7 +1044,7 @@ subnet 192.168.0.0 netmask 255.255.0.0 {
 		round(self.transactions/self.running_time,0))
 	log_test.info("----------------------------------------------------------------------------------")
 
-    def test_dhcpl2relay_client_conflict(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_client_conflict(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.host_load(iface)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
