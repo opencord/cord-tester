@@ -103,8 +103,14 @@ class CordTesterWeb(object):
         manifest = self.args.manifest
         olt_type = self.args.olt_type
         test_type = self.args.test_type
+        disable_teardown = self.args.disable_teardown
+        test_mode = self.args.test_mode
+        disable_cleanup = self.args.disable_cleanup
+        if test_mode is True:
+            disable_cleanup = True
         test_config = { 'VOLTHA_HOST' : self.args.voltha_host,
                         'VOLTHA_OLT_TYPE' : self.args.olt_type,
+                        'VOLTHA_TEARDOWN' : not disable_teardown,
                         }
         if olt_type.startswith('tibit'):
             test_config['VOLTHA_OLT_MAC'] = self.args.olt_arg
@@ -119,8 +125,9 @@ class CordTesterWeb(object):
         if self.start_in:
             time.sleep(self.start_in)
 
-        _, status = self.tester.start(manifest = manifest)
-        assert status == httplib.OK, 'Test setup failed with status %d' %status
+        if test_mode is False:
+            _, status = self.tester.start(manifest = manifest)
+            assert status == httplib.OK, 'Test setup failed with status %d' %status
 
         for test in test_type.split(','):
             print('Running test case %s' %(test))
@@ -128,8 +135,9 @@ class CordTesterWeb(object):
             if status != httplib.OK:
                 print('Test case %s failed with status code %d' %(test, status))
 
-        print('Cleaning up the test')
-        self.tester.cleanup(manifest = manifest)
+        if disable_cleanup is False:
+            print('Cleaning up the test')
+            self.tester.cleanup(manifest = manifest)
         return 0 if status == httplib.OK else 127
 
 class CordTesterWebServer(object):
@@ -173,6 +181,11 @@ if __name__ == '__main__':
     parser.add_argument('-voltha-host', '--voltha-host', default='172.17.0.1', help = 'VOLTHA host ip')
     parser.add_argument('-olt-type', '--olt-type', default = 'ponsim_olt', help = 'OLT type')
     parser.add_argument('-olt-arg', '--olt-arg', default = '172.17.0.1', help = 'OLT type argument')
+    parser.add_argument('-disable-teardown', '--disable-teardown', action='store_true', help = 'Disable VOLTHA teardown')
+    parser.add_argument('-disable-cleanup', '--disable-cleanup', action='store_true', help = 'Dont cleanup cord-tester')
+    parser.add_argument('-test-mode', '--test-mode', action='store_true',
+                        help = 'Directly run the cord-tester run-test phase without setup and cleanup')
+
     parser.set_defaults(func = run_test)
     args = parser.parse_args()
     res = args.func(args)

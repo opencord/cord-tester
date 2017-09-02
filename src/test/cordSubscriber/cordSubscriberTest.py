@@ -283,6 +283,7 @@ yg==
 -----END CERTIFICATE-----'''
 
       VOLTHA_HOST = None
+      VOLTHA_TEARDOWN = True
       VOLTHA_REST_PORT = 8881
       VOLTHA_UPLINK_VLAN_MAP = { 'of:0001000000000001' : '222' }
       VOLTHA_UPLINK_VLAN_START = 333
@@ -294,6 +295,7 @@ yg==
       voltha_ctrl = None
       voltha_device = None
       voltha_switch_map = None
+      voltha_preconfigured = False
 
       @classmethod
       def update_apps_version(cls):
@@ -2661,8 +2663,8 @@ yg==
                                                           services = services)
                 assert_equal(test_status, True)
           finally:
-                if switch_map is not None:
-                      if olt_configured is True:
+                if self.VOLTHA_TEARDOWN is True and switch_map is not None:
+                      if self.voltha_preconfigured is False and olt_configured is True:
                             self.remove_olt(switch_map)
 
       def test_cord_subscriber_voltha_tls(self):

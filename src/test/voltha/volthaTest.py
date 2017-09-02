@@ -217,6 +217,7 @@ class voltha_exchange(unittest.TestCase):
     VOLTHA_OLT_TYPE = 'ponsim_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_IGMP_ITERATIONS = 100
+    VOLTHA_TEARDOWN = True
     voltha = None
     voltha_attrs = None
     success = True
@@ -1677,7 +1678,9 @@ yg==
               config_fake = self.VOLTHA_CONFIG_FAKE,
               olt_app = self.olt_app_file)
         assert_not_equal(ret, None)
-        voltha, device_id, switch_map = ret[0], ret[1], ret[2]
+        voltha, device_id, switch_map, preconfigured = ret[0], ret[1], ret[2], ret[3]
+        if self.VOLTHA_TEARDOWN is False:
+              preconfigured = True
         try:
             log_test.info('Adding subscribers through OLT app')
             self.config_olt(switch_map)
@@ -1686,7 +1689,7 @@ yg==
             auth_status = self.tls_flow_check(self.INTF_RX_DEFAULT)
             assert_equal(auth_status, True)
         finally:
-            if switch_map is not None:
+            if switch_map is not None and preconfigured is False:
                 if olt_configured is True:
                     self.remove_olt(switch_map)
                 voltha_teardown(voltha, device_id, switch_map, olt_app = self.olt_app_file)

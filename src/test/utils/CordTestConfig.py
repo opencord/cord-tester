@@ -99,7 +99,8 @@ def setup_module(module):
                         olt_mac = '00:0c:e2:31:12:00',
                         olt_ip = None,
                         uplink_vlan_map = { 'of:0000000000000001' : '222' },
-                        uplink_vlan_start = 333
+                        uplink_vlan_start = 333,
+                        teardown = True,
                         )
     voltha_enabled = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
     voltha_configure = True
@@ -127,6 +128,10 @@ def setup_module(module):
             setattr(class_test, 'voltha_ctrl', ret[0])
             setattr(class_test, 'voltha_device', ret[1])
             setattr(class_test, 'voltha_switch_map', ret[2])
+            voltha_driver_configured = ret[3]
+            setattr(class_test, 'voltha_preconfigured', voltha_driver_configured)
+            if voltha_driver_configured:
+                setattr(class_test, 'VOLTHA_TEARDOWN', False)
 
 def teardown_module(module):
     class_test = get_test_class(module)
@@ -134,12 +139,17 @@ def teardown_module(module):
         return
     if not hasattr(class_test, 'voltha_ctrl') or \
        not hasattr(class_test, 'voltha_device') or \
-       not hasattr(class_test, 'voltha_switch_map'):
+       not hasattr(class_test, 'voltha_switch_map') or \
+       not hasattr(class_test, 'voltha_preconfigured') or \
+       not hasattr(class_test, 'VOLTHA_TEARDOWN'):
         return
     voltha_ctrl = getattr(class_test, 'voltha_ctrl')
     voltha_device = getattr(class_test, 'voltha_device')
     voltha_switch_map = getattr(class_test, 'voltha_switch_map')
-    voltha_teardown(voltha_ctrl, voltha_device, voltha_switch_map)
+    voltha_preconfigured = getattr(class_test, 'voltha_preconfigured')
+    voltha_teardown = getattr(class_test, 'VOLTHA_TEARDOWN')
+    if voltha_preconfigured is False and voltha_teardown is True:
+        voltha_teardown(voltha_ctrl, voltha_device, voltha_switch_map)
 
 def running_on_ciab():
     if running_on_pod() is False:

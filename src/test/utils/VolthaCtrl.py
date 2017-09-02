@@ -218,7 +218,8 @@ class VolthaCtrl(object):
     OPER_STATUS = 'oper_status'
     CONNECT_STATUS = 'connect_status'
 
-    def __init__(self, host = HOST, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP, uplink_vlan_start = UPLINK_VLAN_START):
+    def __init__(self, host = HOST, rest_port = REST_PORT, uplink_vlan_map = UPLINK_VLAN_MAP,
+                 uplink_vlan_start = UPLINK_VLAN_START):
         self.host = host
         self.rest_port = rest_port
         self.rest_url = 'http://{}:{}/api/v1/local'.format(host, rest_port)
@@ -232,7 +233,7 @@ class VolthaCtrl(object):
         self.switches = []
         self.switch_map = {}
 
-    def config(self, fake = False):
+    def config(self, fake = False, driver_configured = False):
         devices = OnosCtrl.get_devices()
         if not devices:
             return self.switch_map
@@ -248,6 +249,7 @@ class VolthaCtrl(object):
             if device_id not in self.uplink_vlan_map:
                 uplink_vlan = VolthaCtrl.UPLINK_VLAN_START
                 VolthaCtrl.UPLINK_VLAN_START += 1
+                self.uplink_vlan_map[device_id] = uplink_vlan
                 log.info('Voltha device %s not in map. Using uplink vlan %d' %(device_id, uplink_vlan))
             else:
                 uplink_vlan = self.uplink_vlan_map[device_id]
@@ -275,7 +277,7 @@ class VolthaCtrl(object):
                                                                        vlan = uplink_vlan,
                                                                        defaultVlan=str(onu_ports[0])
                                                                        )
-        if device_id:
+        if device_id and driver_configured is False:
             #toggle drivers/openflow base before reconfiguring the driver and olt config data
             OnosCtrl('org.onosproject.drivers').deactivate()
             OnosCtrl('org.onosproject.openflow-base').deactivate()
@@ -413,25 +415,40 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
                  olt_type = 'ponsim_olt', olt_mac = '00:0c:e2:31:12:00',
                  uplink_vlan_map = VolthaCtrl.UPLINK_VLAN_MAP,
                  uplink_vlan_start = VolthaCtrl.UPLINK_VLAN_START,
-                 config_fake = False, olt_app = None):
-
+                 config_fake = False, olt_app = None, teardown = True):
+    devices = OnosCtrl.get_devices()
+    olt_devices = filter(lambda d: not d['mfr'].startswith('Nicira') and d['driver'] == 'pmc-olt', devices)
     voltha = VolthaCtrl(host, rest_port = rest_port,
                         uplink_vlan_map = uplink_vlan_map,
                         uplink_vlan_start = uplink_vlan_start)
-    if olt_type.startswith('ponsim'):
-        ponsim_address = '{}:50060'.format(ponsim_host)
-        log.info('Enabling ponsim olt')
-        device_id, status = voltha.enable_device(olt_type, address = ponsim_address)
+    voltha_devices = voltha.get_devices()
+    if voltha_devices:
+        voltha_device_ids = filter(lambda d: d[voltha.OPER_STATUS] == 'ACTIVE' and d[voltha.ADMIN_STATE] == 'ENABLED',
+                                   voltha_devices['items'])
     else:
-        if olt_type.startswith('maple'):
-            if olt_ip:
-                log.info('Enabling %s' %olt_type)
-                device_id, status = voltha.enable_device(olt_type, address = olt_ip)
-            else:
-                log.info('OLT IP needs to be specified for maple olt')
+        voltha_device_ids = []
+
+    driver_configured = len(olt_devices) > 0 and len(voltha_device_ids) > 0
+    if olt_type.startswith('ponsim'):
+        if driver_configured:
+            device_id, status = voltha_device_ids[0], True
         else:
-            log.info('Enabling OLT instance for %s with mac %s' %(olt_type, olt_mac))
-            device_id, status = voltha.enable_device(olt_type, olt_mac)
+            ponsim_address = '{}:50060'.format(ponsim_host)
+            log.info('Enabling ponsim olt')
+            device_id, status = voltha.enable_device(olt_type, address = ponsim_address)
+    else:
+        if driver_configured:
+            device_id, status = voltha_device_ids[0], True
+        else:
+            if olt_type.startswith('maple'):
+                if olt_ip:
+                    log.info('Enabling %s' %olt_type)
+                    device_id, status = voltha.enable_device(olt_type, address = olt_ip)
+                else:
+                    log.info('OLT IP needs to be specified for maple olt')
+            else:
+                log.info('Enabling OLT instance for %s with mac %s' %(olt_type, olt_mac))
+                device_id, status = voltha.enable_device(olt_type, olt_mac)
 
     if device_id is None or status is False:
         if device_id:
@@ -444,7 +461,7 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
         olt_app = get_olt_app()
     try:
         time.sleep(5)
-        switch_map = voltha.config(fake = config_fake)
+        switch_map = voltha.config(fake = config_fake, driver_configured = driver_configured)
         if switch_map is None:
             voltha.disable_device(device_id)
             return None
@@ -452,7 +469,7 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
         OnosCtrl.install_app(olt_app)
         olt_installed = True
         time.sleep(5)
-        return voltha, device_id, switch_map
+        return voltha, device_id, switch_map, driver_configured
     except:
         voltha.disable_device(device_id)
         time.sleep(10)
