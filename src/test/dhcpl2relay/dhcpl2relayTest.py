@@ -65,7 +65,6 @@ class dhcpl2relay_exchange(CordLogger):
     host_ip_map = {}
     test_path = os.path.dirname(os.path.realpath(__file__))
     dhcp_data_dir = os.path.join(test_path, '..', 'setup')
-    #dhcpl2relay-1.0.0.oar
     dhcpl2_app_file = os.path.join(test_path, '..', 'apps/dhcpl2relay-1.0.0.oar')
     sadis_app_file = os.path.join(test_path, '..', 'apps/sadis-app-1.0.0-SNAPSHOT.oar')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config_voltha_local.json'))
@@ -104,16 +103,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         minor = int(version.split('.')[1])
         dhcpl2_app_version = '1.0.0'
         sadis_app_version = '1.0.0-SNAPSHOT'
-#        sadis-app-1.0.0-SNAPSHOT.oar
-#        if major > 1:
-#            cordigmp_app_version = '3.0-SNAPSHOT'
-#            olt_app_version = '2.0-SNAPSHOT'
-#        elif major == 1:
-#            if minor > 10:
-#                cordigmp_app_version = '3.0-SNAPSHOT'
-#                olt_app_version = '2.0-SNAPSHOT'
-#            elif minor <= 8:
-#                olt_app_version = '1.1-SNAPSHOT'
         cls.dhcpl2_app_file = os.path.join(cls.test_path, '..', 'apps/dhcpl2relay-{}.oar'.format(dhcpl2_app_version))
         cls.sadis_app_file = os.path.join(cls.test_path, '..', 'apps/sadis-app-{}.oar'.format(sadis_app_version))
 
@@ -142,7 +131,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def setUp(self):
         super(dhcpl2relay_exchange, self).setUp()
 
-    def tearDownClass(cls):
+    def tearDown(self):
         super(dhcpl2relay_exchange, self).tearDown()
 
     @classmethod
@@ -162,6 +151,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def dhcp_l2_relay_setup(cls):
         did = OnosCtrl.get_device_id()
         #cls.relay_device_id = did
+        ### Need to change this hard coded value later merge
         cls.relay_device_id = 'of:0000e645e100f54e'
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, _ = cls.olt.olt_port_map()
@@ -302,72 +292,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             os.system(c)
 
     @classmethod
-    def Ddhcpd_conf_generate(cls, config = default_config, options = default_options,
-                            subnet = default_subnet_config):
-        conf = ''
-        for k, v in config.items():
-            conf += '{} {};\n'.format(k, v)
-
-        opts = ''
-        for k, v in options:
-            opts += 'option {} {};\n'.format(k, v)
-
-        subnet_config = ''
-        for _, v in subnet:
-            subnet_config += '{}\n'.format(v)
-
-        return '{}{}{}'.format(conf, opts, subnet_config)
-
-    @classmethod
-    def Ddhcpd_start(cls, intf_list = None,
-                    config = default_config, options = default_options,
-                    subnet = default_subnet_config):
-        '''Start the dhcpd server by generating the conf file'''
-        if intf_list is None:
-            intf_list = cls.relay_interfaces
-        ##stop dhcpd if already running
-        cls.dhcpd_stop()
-        dhcp_conf = cls.dhcpd_conf_generate(config = config, options = options,
-                                            subnet = subnet)
-        ##first touch dhcpd.leases if it doesn't exist
-        lease_file = '{}/dhcpd.leases'.format(cls.dhcp_data_dir)
-        if os.access(lease_file, os.F_OK) is False:
-            with open(lease_file, 'w') as fd: pass
-
-        conf_file = '{}/dhcpd.conf'.format(cls.dhcp_data_dir)
-        with open(conf_file, 'w') as fd:
-            fd.write(dhcp_conf)
-
-        #now configure the dhcpd interfaces for various subnets
-        index = 0
-        intf_info = []
-        for ip,_ in subnet:
-            intf = intf_list[index]
-            mac = cls.get_mac(intf)
-            intf_info.append((ip, mac))
-            index += 1
-            os.system('ifconfig {} {}'.format(intf, ip))
-
-        intf_str = ','.join(intf_list)
-        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format(conf_file, lease_file, intf_str)
-        log_test.info('Starting DHCPD server with command: %s' %dhcpd_cmd)
-        #ret = os.system(dhcpd_cmd)
-        assert_equal(ret, 0)
-        time.sleep(3)
-        cls.relay_interfaces_last = cls.relay_interfaces
-        cls.relay_interfaces = intf_list
-        cls.cord_l2_relay_load()
-        cls.cord_sadis_load()
-
-    @classmethod
-    def Ddhcpd_stop(cls):
-        os.system('pkill -9 dhcpd')
-        for intf in cls.relay_interfaces:
-            os.system('ifconfig {} 0'.format(intf))
-
-        cls.relay_interfaces = cls.relay_interfaces_last
-
-    @classmethod
     def get_mac(cls, iface):
         if cls.interface_to_mac_map.has_key(iface):
             return cls.interface_to_mac_map[iface]
@@ -434,17 +358,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_with_one_request(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        #self.host_load(iface)
-        ##we use the defaults for this test that serves as an example for others
-        ##You don't need to restart dhcpd server if retaining default config
-        #config = self.default_config
-        #options = self.default_options
-        #subnet = self.default_subnet_config
-        #dhcpd_interface_list = self.relay_interfaces
-        #self.dhcpd_start(intf_list = dhcpd_interface_list,
-        #                 config = config,
-        #                 options = options,
-        #                 subnet = subnet)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         self.send_recv(mac=mac)
 
