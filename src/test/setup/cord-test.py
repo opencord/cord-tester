@@ -61,7 +61,6 @@ class CordTester(Container):
     'cbench', 'cluster', 'netCondition', 'cordvtn', 'iperf', 'mini', 'vsg')
 
     dhcp_data_dir = os.path.join(tester_base, '..', 'setup')
-    #dhcp_data_dir = os.path.join('/root/test/src/test/setup')
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
     default_options = [ ('subnet-mask', '255.255.255.0'),
                      ('broadcast-address', '192.168.1.255'),
@@ -239,20 +238,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         if manifest.start_switch:
            switch_starts = True
         else:
-           return 'Fasle'
-#        dhcp_data_dir = os.path.join(test_path, '..', 'setup') 
-#        default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
-#        default_options = [ ('subnet-mask', '255.255.255.0'),
-#                     ('broadcast-address', '192.168.1.255'),
-#                     ('domain-name-servers', '192.168.1.1'),
-#                     ('domain-name', '"mydomain.cord-tester"'),
-#                   ]
-#        default_subnet_config = [ ('192.168.1.2',
-#'''
-#subnet 192.168.1.0 netmask 255.255.255.0 {
-#    range 192.168.1.10 192.168.1.100;
-#}
-#'''), ] 
+           return False
         setup_for_relay = self.dhcp_relay_setup()
         dhcp_start_statu = self.dhcpd_start()
         if setup_for_relay and dhcp_start_statu:
@@ -275,10 +261,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             self.relay_interfaces = (self.port_map[self.relay_interface_port],)
         else:
              print 'Setup dhcpd we must have port_map'
-             return 'False'
-#            cls.relay_interface_port = 100
-#            cls.relay_interfaces = (g_subscriber_port_map[cls.relay_interface_port],)
-#        cls.relay_interfaces_last = cls.relay_interfaces
+             return False
         if self.port_map:
             ##generate a ip/mac client virtual interface config for onos
             interface_list = []
@@ -295,7 +278,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             relay_mac = self.get_mac(self.port_map[self.relay_interface_port])
             interface_list.append((self.relay_interface_port, relay_ip, relay_mac))
             self.onos_interface_load(interface_list)
- 
         return True
       
     def onos_load_config(cls, config):
@@ -388,9 +370,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd.conf','/root/test/src/test/setup/dhcpd.leases', intf_str)
         print('Starting DHCPD server with command: %s' %dhcpd_cmd)
         status = cls.execute(dhcpd_cmd, shell = True)
-        #ret = os.system(dhcpd_cmd)
-       # if ret != 0:
-       #    return False
         if status > 255:
            status = 1
         else:
@@ -1259,7 +1238,6 @@ def setupCordTester(args):
             test_cnt.setup_intfs(port_num = 0)
         if test_manifest.setup_dhcpd and test_manifest.start_switch:
            test_cnt.setup_dhcpd(test_manifest)
-            
         print('Test container %s started and provisioned to run tests using nosetests' %(test_cnt.name))
 
     #Finally start the test server and daemonize
