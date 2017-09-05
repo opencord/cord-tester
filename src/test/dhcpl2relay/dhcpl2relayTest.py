@@ -361,6 +361,57 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         self.send_recv(mac=mac)
 
+    def test_dhcpl2relay_app_install(self):
+        pass
+
+    def test_dhcpl2relay_netcfg(self):
+        pass
+
+    def test_dhcpl2relay_with_array_of_connect_points_for_dhcp_server(self):
+        pass
+
+    def test_dhcpl2relay_with_subscriber_configured_with_ctag_stag_as_per_sadis(self):
+        pass
+
+    def test_dhcpl2relay_app_activation_and_deactivation_multiple_times(self):
+        pass
+
+    def test_dhcpl2relay_without_sadis_app(self):
+        pass
+
+    def test_dhcpl2relay_with_sadis_app(self):
+        pass
+
+    def test_dhcpl2relay_with_option_82(self):
+        pass
+
+    def test_dhcpl2relay_without_option_82(self):
+        pass
+
+    def test_dhcl2relay_for_option82_without_configuring_dhcpserver_to_accept_option82(self):
+        pass
+
+    def test_dhcpl2relay_with_uni_port_entry_sadis_config(self):
+        pass
+
+    def test_dhcpl2relay_with_wrong_ctag_options(self):
+        pass
+
+    def test_dhcpl2relay_with_wrong_stag_options(self):
+        pass
+
+    def test_dhcpl2relay_with_nasportid_option_in_sadis(self):
+        pass
+
+    def test_dhcpl2relay_with_nasportid_different_from_id(self):
+        pass
+
+    def test_dhcpl2relay_with_serial_id_of_olt(self):
+        pass
+
+    def test_dhcpl2relay_with_wrong_serial_id_of_olt(self):
+        pass
+
     def test_dhcpl2relay_for_one_request_with_invalid_source_mac_broadcast(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
