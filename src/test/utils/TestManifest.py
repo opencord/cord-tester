@@ -50,6 +50,7 @@ class TestManifest(object):
             self.olt = args.olt
             self.olt_config = args.olt_config
             self.start_switch = args.start_switch
+            self.setup_dhcpd = args.setup_dhcpd
             self.image_prefix = args.prefix
             self.onos_image = args.onos
             self.test_controller = args.test_controller
@@ -90,6 +91,7 @@ class TestManifest(object):
             self.olt = data.get('olt', True)
             self.olt_config = data.get('olt_config', 'olt_config.json')
             self.start_switch = data.get('start_switch', self.olt)
+            self.setup_dhcpd = data.get('setup_dhcpd', self.start_switch)
             self.image_prefix = data.get('image_prefix', '')
             self.onos_image = data.get('onos_image', 'onosproject/onos:latest')
             self.docker_network = data.get('docker_network', None)

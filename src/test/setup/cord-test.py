@@ -60,6 +60,25 @@ class CordTester(Container):
     'cordSubscriber', 'vrouter', 'flows', 'proxyarp', 'acl', 'xos', 'fabric',
     'cbench', 'cluster', 'netCondition', 'cordvtn', 'iperf', 'mini', 'vsg')
 
+    dhcp_data_dir = os.path.join(tester_base, '..', 'setup')
+    default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
+    default_options = [ ('subnet-mask', '255.255.255.0'),
+                     ('broadcast-address', '192.168.1.255'),
+                     ('domain-name-servers', '192.168.1.1'),
+                     ('domain-name', '"mydomain.cord-tester"'),
+                   ]
+    default_subnet_config = [ ('192.168.1.2',
+'''
+subnet 192.168.1.0 netmask 255.255.255.0 {
+    range 192.168.1.10 192.168.1.100;
+}
+'''), ]
+    host_ip_map = {}
+    relay_interfaces_last = ()
+    interface_to_mac_map = {}
+    configs = {}
+
+
     def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None,
                  name = '', image = IMAGE, prefix = '', tag = 'candidate',
                  env = None, rm = False, update = False, network = None):
@@ -214,6 +233,148 @@ class CordTester(Container):
             time.sleep(boot_delay)
 
         self.switch_started = True
+
+    def setup_dhcpd(self,  manifest, boot_delay = 5):
+        if manifest.start_switch:
+           switch_starts = True
+        else:
+           return False
+        setup_for_relay = self.dhcp_relay_setup()
+        dhcp_start_status = self.dhcpd_start()
+        if setup_for_relay and dhcp_start_status:
+           return True
+        else:
+           return False
+
+    def dhcp_relay_setup(self):
+        did = OnosCtrl.get_device_id()
+        self.relay_device_id = did
+        #self.olt = OltConfig(olt_conf_file = self.olt_conf_file)
+        #self.port_map, _ = self.olt.olt_port_map()
+        if self.port_map:
+            ##Per subscriber, we use 1 relay port
+            try:
+                relay_port = self.port_map[self.port_map['relay_ports'][0]]
+            except:
+                relay_port = self.port_map['uplink']
+            self.relay_interface_port = relay_port
+            self.relay_interfaces = (self.port_map[self.relay_interface_port],)
+        else:
+             print 'Setup dhcpd we must have port_map'
+             return False
+        if self.port_map:
+            ##generate a ip/mac client virtual interface config for onos
+            interface_list = []
+            for port in self.port_map['ports']:
+                port_num = self.port_map[port]
+                if port_num == self.port_map['uplink']:
+                    continue
+                ip = self.get_host_ip(port_num)
+                mac = self.get_mac(port)
+                interface_list.append((port_num, ip, mac))
+
+            #configure dhcp server virtual interface on the same subnet as first client interface
+            relay_ip = self.get_host_ip(interface_list[0][0])
+            relay_mac = self.get_mac(self.port_map[self.relay_interface_port])
+            interface_list.append((self.relay_interface_port, relay_ip, relay_mac))
+            self.onos_interface_load(interface_list)
+        return True
+
+    def onos_load_config(cls, config):
+        status, code = OnosCtrl.config(config)
+        if status is False:
+            log_test.info('JSON request returned status %d' %code)
+            assert_equal(status, True)
+        time.sleep(3)
+
+    def onos_interface_load(cls, interface_list):
+        interface_dict = { 'ports': {} }
+        for port_num, ip, mac in interface_list:
+            port_map = interface_dict['ports']
+            port = '{}/{}'.format(cls.relay_device_id, port_num)
+            port_map[port] = { 'interfaces': [] }
+            interface_list = port_map[port]['interfaces']
+            interface_map = { 'ips' : [ '{}/{}'.format(ip, 24) ],
+                              'mac' : mac,
+                              'name': 'vir-{}'.format(port_num)
+                            }
+            interface_list.append(interface_map)
+
+        cls.onos_load_config(interface_dict)
+        cls.configs['interface_config'] = interface_dict
+
+    def get_host_ip(cls, port):
+        if cls.host_ip_map.has_key(port):
+            return cls.host_ip_map[port]
+        cls.host_ip_map[port] = '192.168.100.{}'.format(port)
+        return cls.host_ip_map[port]
+
+    def get_mac(cls, iface):
+        if cls.interface_to_mac_map.has_key(iface):
+            return cls.interface_to_mac_map[iface]
+        mac = get_mac(iface, pad = 0)
+        cls.interface_to_mac_map[iface] = mac
+        return mac
+
+    def dhcpd_conf_generate(cls, config = default_config, options = default_options,
+                            subnet = default_subnet_config):
+        conf = ''
+        for k, v in config.items():
+            conf += '{} {};\n'.format(k, v)
+
+        opts = ''
+        for k, v in options:
+            opts += 'option {} {};\n'.format(k, v)
+
+        subnet_config = ''
+        for _, v in subnet:
+            subnet_config += '{}\n'.format(v)
+
+        return '{}{}{}'.format(conf, opts, subnet_config)
+
+    def dhcpd_start(cls, intf_list = None,
+                    config = default_config, options = default_options,
+                    subnet = default_subnet_config):
+        '''Start the dhcpd server by generating the conf file'''
+        if intf_list is None:
+            intf_list = cls.relay_interfaces
+        ##stop dhcpd if already running
+        #cls.dhcpd_stop()
+        dhcp_conf = cls.dhcpd_conf_generate(config = config, options = options,
+                                            subnet = subnet)
+        ##first touch dhcpd.leases if it doesn't exist
+        lease_file = '{}/dhcpd.leases'.format(cls.dhcp_data_dir)
+        if os.access(lease_file, os.F_OK) is False:
+            with open(lease_file, 'w') as fd: pass
+
+        conf_file = '{}/dhcpd.conf'.format(cls.dhcp_data_dir)
+        with open(conf_file, 'w') as fd:
+            fd.write(dhcp_conf)
+
+        #now configure the dhcpd interfaces for various subnets
+        index = 0
+        intf_info = []
+        for ip,_ in subnet:
+            intf = intf_list[index]
+            mac = cls.get_mac(intf)
+            intf_info.append((ip, mac))
+            index += 1
+            cmd = 'ifconfig {} {}'.format(intf, ip)
+            status = cls.execute(cmd, shell = True)
+
+        intf_str = ','.join(intf_list)
+        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd.conf','/root/test/src/test/setup/dhcpd.leases', intf_str)
+        print('Starting DHCPD server with command: %s' %dhcpd_cmd)
+        status = cls.execute(dhcpd_cmd, shell = True)
+        if status > 255:
+           status = 1
+        else:
+           return False
+        time.sleep(3)
+        cls.relay_interfaces_last = cls.relay_interfaces
+        cls.relay_interfaces = intf_list
+        #cls.onos_dhcp_relay_load(*intf_info[0])
+        return True
 
     def setup_vcpes(self, port_num = 0):
         res = 0
@@ -1070,6 +1231,8 @@ def setupCordTester(args):
             test_cnt.start_switch(test_manifest)
         if test_cnt.olt:
             test_cnt.setup_intfs(port_num = 0)
+        if test_manifest.setup_dhcpd and test_manifest.start_switch:
+           test_cnt.setup_dhcpd(test_manifest)
         print('Test container %s started and provisioned to run tests using nosetests' %(test_cnt.name))
 
     #Finally start the test server and daemonize
@@ -1389,6 +1552,7 @@ if __name__ == '__main__':
                               choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                               help='Specify the log level for the test cases')
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
+    parser_setup.add_argument('-dh', '--setup-dhcpd', action='store_true', help='Start dhcpd Server in external container may be in cord-tester')
     parser_setup.add_argument('-onos-cord', '--onos-cord', default='', type=str,
                               help='Specify config location for ONOS cord when running on podd')
     parser_setup.add_argument('-service-profile', '--service-profile', default='', type=str,
