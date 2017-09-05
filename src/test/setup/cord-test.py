@@ -21,7 +21,7 @@ cli_dir = os.path.join( os.path.dirname(os.path.realpath(__file__)), '../cli')
 sys.path.append(utils_dir)
 sys.path.append(cli_dir)
 sys.path.insert(1, '/usr/local/lib/python2.7/dist-packages')
-from CordTestUtils import get_mac
+from CordTestUtils import get_mac, getstatusoutput
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from OnosFlowCtrl import OnosFlowCtrl
@@ -236,9 +236,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def setup_dhcpd(self,  manifest, boot_delay = 5):
         if manifest.start_switch:
-           switch_starts = True
+            switch_starts = True
         else:
-           return False
+            return False
+        if self.service_running("/usr/sbin/dhcpd"):
+            print('DHCPD already running in container %s' %self.name)
+            return True
         setup_for_relay = self.dhcp_relay_setup()
         dhcp_start_status = self.dhcpd_start()
         if setup_for_relay and dhcp_start_status:
@@ -247,7 +250,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
            return False
 
     def dhcp_relay_setup(self):
-        did = OnosCtrl.get_device_id()
+        ctlr = self.ctlr_ip.split(',')[0]
+        did = OnosCtrl.get_device_id(controller = ctlr, mfr = 'Nicira')
         self.relay_device_id = did
         #self.olt = OltConfig(olt_conf_file = self.olt_conf_file)
         #self.port_map, _ = self.olt.olt_port_map()
@@ -280,18 +284,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             self.onos_interface_load(interface_list)
         return True
 
-    def onos_load_config(cls, config):
-        status, code = OnosCtrl.config(config)
+    def onos_load_config(self, config):
+        ctlr = self.ctlr_ip.split(',')[0]
+        status, code = OnosCtrl.config(config, controller = ctlr)
         if status is False:
             log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
         time.sleep(3)
 
-    def onos_interface_load(cls, interface_list):
+    def onos_interface_load(self, interface_list):
         interface_dict = { 'ports': {} }
         for port_num, ip, mac in interface_list:
             port_map = interface_dict['ports']
-            port = '{}/{}'.format(cls.relay_device_id, port_num)
+            port = '{}/{}'.format(self.relay_device_id, port_num)
             port_map[port] = { 'interfaces': [] }
             interface_list = port_map[port]['interfaces']
             interface_map = { 'ips' : [ '{}/{}'.format(ip, 24) ],
@@ -300,21 +305,28 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                             }
             interface_list.append(interface_map)
 
-        cls.onos_load_config(interface_dict)
-        cls.configs['interface_config'] = interface_dict
+        self.onos_load_config(interface_dict)
+        self.configs['interface_config'] = interface_dict
 
-    def get_host_ip(cls, port):
-        if cls.host_ip_map.has_key(port):
-            return cls.host_ip_map[port]
-        cls.host_ip_map[port] = '192.168.100.{}'.format(port)
-        return cls.host_ip_map[port]
+    def get_host_ip(self, port):
+        if self.host_ip_map.has_key(port):
+            return self.host_ip_map[port]
+        self.host_ip_map[port] = '192.168.100.{}'.format(port)
+        return self.host_ip_map[port]
 
-    def get_mac(cls, iface):
-        if cls.interface_to_mac_map.has_key(iface):
-            return cls.interface_to_mac_map[iface]
-        mac = get_mac(iface, pad = 0)
-        cls.interface_to_mac_map[iface] = mac
+    def get_mac(self, iface):
+        if self.interface_to_mac_map.has_key(iface):
+            return self.interface_to_mac_map[iface]
+        cmd = 'docker exec %s ip link show %s | awk \'/ether/ {print $2}\'' %(self.name, iface)
+        st, mac = getstatusoutput(cmd)
+        assert st == 0, 'Cannot get MAC for interface {}'.format(iface)
+        mac = mac.strip()
+        self.interface_to_mac_map[iface] = mac
         return mac
+
+    def service_running(self, pattern):
+        st, _ = getstatusoutput('docker exec {} pgrep -f "{}"'.format(self.name, pattern))
+        return True if st == 0 else False
 
     def dhcpd_conf_generate(cls, config = default_config, options = default_options,
                             subnet = default_subnet_config):
@@ -332,22 +344,22 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
         return '{}{}{}'.format(conf, opts, subnet_config)
 
-    def dhcpd_start(cls, intf_list = None,
+    def dhcpd_start(self, intf_list = None,
                     config = default_config, options = default_options,
                     subnet = default_subnet_config):
         '''Start the dhcpd server by generating the conf file'''
         if intf_list is None:
-            intf_list = cls.relay_interfaces
+            intf_list = self.relay_interfaces
         ##stop dhcpd if already running
-        #cls.dhcpd_stop()
-        dhcp_conf = cls.dhcpd_conf_generate(config = config, options = options,
-                                            subnet = subnet)
+        #self.dhcpd_stop()
+        dhcp_conf = self.dhcpd_conf_generate(config = config, options = options,
+                                             subnet = subnet)
         ##first touch dhcpd.leases if it doesn't exist
-        lease_file = '{}/dhcpd.leases'.format(cls.dhcp_data_dir)
+        lease_file = '{}/dhcpd.leases'.format(self.dhcp_data_dir)
         if os.access(lease_file, os.F_OK) is False:
             with open(lease_file, 'w') as fd: pass
 
-        conf_file = '{}/dhcpd.conf'.format(cls.dhcp_data_dir)
+        conf_file = '{}/dhcpd.conf'.format(self.dhcp_data_dir)
         with open(conf_file, 'w') as fd:
             fd.write(dhcp_conf)
 
@@ -356,24 +368,24 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         intf_info = []
         for ip,_ in subnet:
             intf = intf_list[index]
-            mac = cls.get_mac(intf)
+            mac = self.get_mac(intf)
             intf_info.append((ip, mac))
             index += 1
             cmd = 'ifconfig {} {}'.format(intf, ip)
-            status = cls.execute(cmd, shell = True)
+            status = self.execute(cmd, shell = True)
 
         intf_str = ','.join(intf_list)
         dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd.conf','/root/test/src/test/setup/dhcpd.leases', intf_str)
         print('Starting DHCPD server with command: %s' %dhcpd_cmd)
-        status = cls.execute(dhcpd_cmd, shell = True)
+        status = self.execute(dhcpd_cmd, shell = True)
         if status > 255:
            status = 1
         else:
            return False
         time.sleep(3)
-        cls.relay_interfaces_last = cls.relay_interfaces
-        cls.relay_interfaces = intf_list
-        #cls.onos_dhcp_relay_load(*intf_info[0])
+        self.relay_interfaces_last = self.relay_interfaces
+        self.relay_interfaces = intf_list
+        #self.onos_dhcp_relay_load(*intf_info[0])
         return True
 
     def setup_vcpes(self, port_num = 0):
@@ -1487,6 +1499,7 @@ if __name__ == '__main__':
                             help='ip:port address to connect for cord test server for container requests')
     parser_run.add_argument('-k', '--keep', action='store_true', help='Keep test container after tests')
     parser_run.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
+    parser_run.add_argument('-dh', '--setup-dhcpd', action='store_true', help='Start dhcpd Server in cord-tester test container')
     parser_run.add_argument('-u', '--update', default='none', choices=['test','quagga','radius', 'all'], type=str, help='Update cord tester container images. '
                         'Eg: --update=quagga to rebuild quagga image.'
                         '    --update=radius to rebuild radius server image.'
@@ -1552,7 +1565,7 @@ if __name__ == '__main__':
                               choices=['DEBUG','TRACE','ERROR','WARN','INFO'],
                               help='Specify the log level for the test cases')
     parser_setup.add_argument('-s', '--start-switch', action='store_true', help='Start OVS when running under OLT config')
-    parser_setup.add_argument('-dh', '--setup-dhcpd', action='store_true', help='Start dhcpd Server in external container may be in cord-tester')
+    parser_setup.add_argument('-dh', '--setup-dhcpd', action='store_true', help='Start dhcpd Server in cord-tester container')
     parser_setup.add_argument('-onos-cord', '--onos-cord', default='', type=str,
                               help='Specify config location for ONOS cord when running on podd')
     parser_setup.add_argument('-service-profile', '--service-profile', default='', type=str,

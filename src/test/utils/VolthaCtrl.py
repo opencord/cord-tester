@@ -480,7 +480,8 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
     return None
 
 def voltha_teardown(voltha_ctrl, device_id, switch_map, olt_app = None):
-    voltha_ctrl.disable_device(device_id)
+    if voltha_ctrl:
+        voltha_ctrl.disable_device(device_id)
     time.sleep(10)
     if olt_app is None:
         olt_app = get_olt_app()

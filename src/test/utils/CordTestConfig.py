@@ -147,8 +147,8 @@ def teardown_module(module):
     voltha_device = getattr(class_test, 'voltha_device')
     voltha_switch_map = getattr(class_test, 'voltha_switch_map')
     voltha_preconfigured = getattr(class_test, 'voltha_preconfigured')
-    voltha_teardown = getattr(class_test, 'VOLTHA_TEARDOWN')
-    if voltha_preconfigured is False and voltha_teardown is True:
+    voltha_tear = getattr(class_test, 'VOLTHA_TEARDOWN')
+    if voltha_preconfigured is False and voltha_tear is True:
         voltha_teardown(voltha_ctrl, voltha_device, voltha_switch_map)
 
 def running_on_ciab():
