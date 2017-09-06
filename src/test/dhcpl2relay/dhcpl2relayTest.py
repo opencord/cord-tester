@@ -142,8 +142,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def tearDown(self):
         super(dhcpl2relay_exchange, self).tearDown()
-        OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
-        OnosCtrl.uninstall_app(cls.sadis_app_file)
+        OnosCtrl.uninstall_app(self.dhcpl2_app_file)
+        OnosCtrl.uninstall_app(self.sadis_app_file)
 
     @classmethod
     def tearDownClass(cls):
@@ -155,8 +155,9 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
         OnosCtrl.uninstall_app(cls.sadis_app_file)
         cls.onos_ctrl.deactivate()
+        OnosCtrl(cls.app).deactivate()
         #cls.dhcpd_stop()
-        cls.dhcp_l2_relay_cleanup()
+        #cls.dhcp_l2_relay_cleanup()
 
     @classmethod
     def dhcp_l2_relay_setup(cls):
@@ -233,7 +234,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def cord_l2_relay_load(cls):
         OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
         #relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
-        relay_device_map = "{}/veth42".format(cls.relay_device_id)
+        relay_device_map = "{}/12".format(cls.relay_device_id)
         print relay_device_map
         dhcp_dict = { "apps" : { "org.opencord.dhcpl2relay" : {"dhcpl2relay" :
                                    {"dhcpserverConnectPoint":[relay_device_map]}

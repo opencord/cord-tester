@@ -63,14 +63,14 @@ class CordTester(Container):
     dhcp_data_dir = os.path.join(tester_base, '..', 'setup')
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
     default_options = [ ('subnet-mask', '255.255.255.0'),
-                     ('broadcast-address', '192.168.1.255'),
-                     ('domain-name-servers', '192.168.1.1'),
+                     ('broadcast-address', '192.168.100.255'),
+                     ('domain-name-servers', '192.168.100.1'),
                      ('domain-name', '"mydomain.cord-tester"'),
                    ]
-    default_subnet_config = [ ('192.168.1.2',
+    default_subnet_config = [ ('192.168.100.2',
 '''
-subnet 192.168.1.0 netmask 255.255.255.0 {
-    range 192.168.1.10 192.168.1.100;
+subnet 192.168.100.0 netmask 255.255.255.0 {
+    range 192.168.100.10 192.168.100.100;
 }
 '''), ]
     host_ip_map = {}
