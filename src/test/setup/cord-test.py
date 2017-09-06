@@ -111,6 +111,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                 olt_config_file = os.path.basename(env['OLT_CONFIG_FILE'])
         olt_conf_file = os.path.join(self.tester_base, olt_config_file)
         olt_config = OltConfig(olt_conf_file)
+        self.olt_conf_file = olt_conf_file
         self.port_map, _ = olt_config.olt_port_map()
         self.vcpes = olt_config.get_vcpes()
         #Try using the host interface in olt conf to setup the switch
@@ -235,9 +236,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         self.switch_started = True
 
     def setup_dhcpd(self,  manifest, boot_delay = 5):
-        if manifest.start_switch:
-            switch_starts = True
-        else:
+        if not self.olt or not manifest.start_switch:
             return False
         if self.service_running("/usr/sbin/dhcpd"):
             print('DHCPD already running in container %s' %self.name)
@@ -251,14 +250,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def dhcp_relay_setup(self):
         ctlr = self.ctlr_ip.split(',')[0]
-        did = OnosCtrl.get_device_id(controller = ctlr, mfr = 'Nicira')
+        did = OnosCtrl.get_device_id(controller = ctlr, mfr = 'Nicira', olt_conf_file = self.olt_conf_file)
         self.relay_device_id = did
-        #self.olt = OltConfig(olt_conf_file = self.olt_conf_file)
-        #self.port_map, _ = self.olt.olt_port_map()
         if self.port_map:
+            ##get the relay port for the OVS switch
+            relay_port = None
+            for host_intf, ports in self.port_map['switch_relay_port_list']:
+                if host_intf.startswith('br-int'):
+                    relay_port = ports[0]
+                    break
+
             ##Per subscriber, we use 1 relay port
             try:
-                relay_port = self.port_map[self.port_map['relay_ports'][0]]
+                relay_port = self.port_map[relay_port]
             except:
                 relay_port = self.port_map['uplink']
             self.relay_interface_port = relay_port

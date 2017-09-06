@@ -121,9 +121,9 @@ class OnosCtrl:
         return None
 
     @classmethod
-    def get_device_id(cls, controller = None, mfr = None):
+    def get_device_id(cls, controller = None, mfr = None, olt_conf_file = ''):
         '''If running under olt, we get the first switch connected to onos'''
-        olt = OltConfig()
+        olt = OltConfig(olt_conf_file = olt_conf_file)
         did = 'of:' + get_mac()
         if olt.on_olt():
             devices = cls.get_devices(controller = controller, mfr = mfr)
@@ -138,9 +138,9 @@ class OnosCtrl:
         return did
 
     @classmethod
-    def get_device_ids(cls, controller = None):
+    def get_device_ids(cls, controller = None, olt_conf_file = ''):
         '''If running under olt, we get the first switch connected to onos'''
-        olt = OltConfig()
+        olt = OltConfig(olt_conf_file = olt_conf_file)
         did = 'of:' + get_mac()
         device_ids = []
         if olt.on_olt():
