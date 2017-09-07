@@ -1,19 +1,12 @@
 # Testing CORD
 
-The _CORD Automated Tester Suite (CATS)_ is an extensible
-end-to-end system test suite targeting CORD PODs. It is typically
-deployed as one or more Docker containers, either on the CORD POD
-or adjacent to the POD and interacts with the POD through the
-PODs interfaces.
+CORD Tester is an automation framework that has been built to test CORD platform.  Currently framework extends to test R-CORD platform.
 
-Its intended use includes:
+Framework is developed in a modular fashion to support various components of CORD.  By being modular, not only end-end but individual functional tests could also be developed.
+- Framework is also used to write tests for both CORD-in-a-Box and physical POD installations.
+- API framework is used to write unit level tests and end-end XOS based tests
 
-* Regression testing for CORD related component development
-* Acceptance testing of a deployed CORD POD
-* Health-testing of an existing CORD POD (including non-service-impacting
-  and possibly service-impacting tests)
-
-The strength of the CATS will come from the collaboration of the whole CORD/ONOS
-community, and as such we welcome contributions.
-
+The following links to learn more about cord-tester framework
+- [Prerequisites](https://github.com/opencord/cord-tester/blob/master/src/test/setup/prerequisites.sh)
+- [Link for clone](https://github.com/opencord/cord-tester)
 
