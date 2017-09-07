@@ -243,6 +243,7 @@ class VolthaCtrl(object):
         device_id = None
         for device in voltha_devices:
             device_id = device['id']
+            serial = device['serial']
             ports = OnosCtrl.get_ports_device(device_id)
             nni_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and p['annotations']['portName'].startswith('nni'), ports)
             uni_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and p['annotations']['portName'].startswith('uni'), ports)
@@ -270,7 +271,13 @@ class VolthaCtrl(object):
                     log.info('Skip configuring device %s' %device_id)
                     continue
             onu_ports = map(lambda uni: uni['port'], uni_ports)
-            self.switch_map[device_id] = dict(uplink_vlan = uplink_vlan, ports = onu_ports)
+            onu_names = map(lambda uni: uni['annotations']['portName'], uni_ports)
+            onu_macs =  map(lambda uni: uni['annotations']['portMac'], uni_ports)
+            self.switch_map[device_id] = dict(uplink_vlan = uplink_vlan,
+                                              serial = serial,
+                                              ports = onu_ports,
+                                              names = onu_names,
+                                              macs = onu_macs)
             device_config['devices'][device_id] = {}
             device_config['devices'][device_id]['basic'] = dict(driver='pmc-olt')
             device_config['devices'][device_id]['accessDevice'] = dict(uplink=nni_ports[0]['port'],
@@ -402,10 +409,10 @@ def get_olt_app():
     minor = int(version.split('.')[1])
     olt_app_version = '1.2-SNAPSHOT'
     if major > 1:
-        olt_app_version = '2.0-SNAPSHOT'
+        olt_app_version = '3.0-SNAPSHOT'
     elif major == 1:
-        if minor > 10:
-            olt_app_version = '2.0-SNAPSHOT'
+        if minor >= 10:
+            olt_app_version = '3.0-SNAPSHOT'
         elif minor <= 8:
             olt_app_version = '1.1-SNAPSHOT'
     olt_app_file = os.path.join(our_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))

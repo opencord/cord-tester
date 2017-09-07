@@ -33,7 +33,8 @@ import json
 import requests
 import os,sys,time
 from OltConfig import OltConfig
-from CordTestUtils import get_mac, get_controller
+from CordTestUtils import get_mac, get_controller, log_test
+from EapolAAA import get_radius_macs
 
 class OnosCtrl:
 
@@ -291,3 +292,141 @@ class OnosCtrl:
         for driver in driver_apps:
             cls(driver).activate()
         time.sleep(5)
+
+    @classmethod
+    def device_id_to_mac(cls, device_id):
+        device_mac_raw = device_id[-12:]
+        hwaddrs = []
+        for i in xrange(0, 12, 2):
+            hwaddrs.append(device_mac_raw[i:i+2])
+
+        device_mac = ':'.join(hwaddrs)
+        return device_mac
+
+    @classmethod
+    def aaa_load_config(cls, controller = None, olt_conf_file = ''):
+        ovs_devices = cls.get_devices(controller = controller, mfr = 'Nicira')
+        if not ovs_devices:
+            log_test.info('No OVS devices found to configure AAA connect points')
+            return
+        olt = OltConfig(olt_conf_file = olt_conf_file)
+        port_map, _ = olt.olt_port_map()
+        app = 'org.opencord.aaa'
+        cfg = { 'apps' : { app : { 'AAA' : {} } } }
+        aaa_cfg = dict(radiusConnectionType = 'port',
+                       radiusSecret = 'radius_password',
+                       radiusServerPort = '1812',
+                       packetCustomizer = 'sample',
+                       vlanId = -1)
+        radius_ip = os.getenv('ONOS_AAA_IP') or '11.0.0.3'
+        radius_subnet = '.'.join(radius_ip.split('.')[:-1])
+        for switch, ports in port_map['switch_radius_port_list']:
+            radius_macs = get_radius_macs(len(ports))
+            aaa_cfg['nasIp'] = controller or cls.controller
+            aaa_cfg['nasMac'] = radius_macs[0]
+            aaa_cfg['radiusMac'] = radius_macs[0]
+            connect_points = []
+            radius_port = port_map[ ports[0] ]
+            radius_ip = '{}.{}'.format(radius_subnet, radius_port)
+            aaa_cfg['radiusIp'] = radius_ip
+            for dev in ovs_devices:
+                connect_point = '{}/{}'.format(dev['id'], radius_port)
+                connect_points.append(connect_point)
+            aaa_cfg['radiusServerConnectPoints'] = connect_points
+            break
+
+        cfg['apps'][app]['AAA'] = aaa_cfg
+        cls.config(cfg, controller = controller)
+
+    @classmethod
+    def get_ovs_switch_map(cls, controller = None, olt_conf_file = ''):
+        port_map = None
+        #build ovs switch map
+        if olt_conf_file:
+            olt = OltConfig(olt_conf_file = olt_conf_file)
+            port_map, _ = olt.olt_port_map()
+
+        devices = cls.get_devices(controller = controller, mfr = 'Nicira')
+        switch_map = {}
+        for dev in devices:
+            device_id = dev['id']
+            serial = dev['serial']
+            ports = cls.get_ports_device(dev['id'], controller = controller)
+            ports = filter(lambda p: p['isEnabled'] and 'annotations' in p, ports)
+            #just create dummy ctag/uni port numbers
+            onu_ports = [1] * len(ports)
+            onu_names = map(lambda p: p['annotations']['portName'], ports)
+            onu_macs = map(lambda p: p['annotations']['portMac'], ports)
+            switch_map[device_id] = dict(uplink_vlan = 1,
+                                         serial = serial,
+                                         ports = onu_ports,
+                                         names = onu_names,
+                                         macs = onu_macs)
+        return switch_map
+
+    @classmethod
+    def sadis_load_config(cls, controller = None, olt_switch_map = {}, olt_conf_file = ''):
+        sadis_app = 'org.opencord.sadis'
+        aaa_app = 'org.opencord.aaa'
+        sadis_cfg = {
+            'apps' : {
+                sadis_app : {
+                    'sadis' : {
+                        'integration' : {
+                            'cache' : {
+                                'enabled' : False,
+                                'maxsize' : 50,
+                                'ttl' : 'PT10m',
+                            },
+                        },
+                        'entries' : [],
+                    },
+                },
+            }
+        }
+        sadis_entries = sadis_cfg['apps'][sadis_app]['sadis']['entries']
+        nasId = '1/1/2'
+        nasPortId = '1/1/2'
+        switch_map = olt_switch_map.copy()
+        ovs_switch_map = cls.get_ovs_switch_map(controller = controller,
+                                                olt_conf_file = olt_conf_file)
+        #log_test.info('OVS switch map: %s' %ovs_switch_map)
+        switch_map.update(ovs_switch_map)
+        for device, entries in switch_map.iteritems():
+            uni_ports = entries['ports']
+            uni_port_names = entries['names']
+            uni_port_macs = entries['macs']
+            s_tag = entries['uplink_vlan']
+            serial = entries['serial']
+            #add entries for uni ports and device
+            for p in xrange(len(uni_ports)):
+                sadis_entry = dict(nasId = nasId, nasPortId = nasPortId, slot = 1)
+                sadis_entry['id'] = uni_port_names[p]
+                sadis_entry['hardwareIdentifier'] = uni_port_macs[p]
+                sadis_entry['cTag'] = uni_ports[p]
+                sadis_entry['sTag'] = s_tag
+                sadis_entry['port'] = uni_ports[p]
+                sadis_entry['ipAddress'] = controller or cls.controller
+                sadis_entries.append(sadis_entry)
+                #add entry for the device itself
+                sadis_entry = dict(nasId = nasId, nasPortId = nasPortId, slot = 1)
+                sadis_entry['id']  = serial
+                sadis_entry['hardwareIdentifier'] = cls.device_id_to_mac(device)
+                sadis_entry['cTag'] = uni_ports[p]
+                sadis_entry['sTag'] = s_tag
+                sadis_entry['port'] = uni_ports[p]
+                sadis_entry['ipAddress'] = controller or cls.controller
+                sadis_entries.append(sadis_entry)
+
+        #log_test.info('Sadis cfg: %s' %json.dumps(sadis_cfg, indent=4))
+        cls.config(sadis_cfg, controller = controller)
+
+        # cls(sadis_app, controller = controller).deactivate()
+        # time.sleep(2)
+        # cls(sadis_app, controller = controller).activate()
+        # time.sleep(2)
+
+        # cls(aaa_app, controller = controller).deactivate()
+        # time.sleep(2)
+        # cls(aaa_app, controller = controller).activate()
+        # time.sleep(2)

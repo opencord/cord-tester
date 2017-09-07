@@ -23,6 +23,7 @@ from nose.plugins import Plugin
 from CordTestUtils import log_test as log
 from CordTestUtils import running_on_pod
 from VolthaCtrl import voltha_setup, voltha_teardown, VolthaService, VolthaCtrl
+from OnosCtrl import OnosCtrl
 from SSHTestAgent import SSHTestAgent
 log.setLevel('INFO')
 
@@ -104,6 +105,9 @@ def setup_module(module):
                         )
     voltha_enabled = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
     voltha_configure = True
+
+    olt_switch_map = {}
+
     if hasattr(class_test, 'VOLTHA_AUTO_CONFIGURE'):
         voltha_configure = getattr(class_test, 'VOLTHA_AUTO_CONFIGURE')
 
@@ -128,10 +132,15 @@ def setup_module(module):
             setattr(class_test, 'voltha_ctrl', ret[0])
             setattr(class_test, 'voltha_device', ret[1])
             setattr(class_test, 'voltha_switch_map', ret[2])
+            olt_switch_map = ret[2]
             voltha_driver_configured = ret[3]
             setattr(class_test, 'voltha_preconfigured', voltha_driver_configured)
             if voltha_driver_configured:
                 setattr(class_test, 'VOLTHA_TEARDOWN', False)
+
+    #load the sadis and aaa config
+    OnosCtrl.sadis_load_config(olt_switch_map = olt_switch_map)
+    OnosCtrl.aaa_load_config()
 
 def teardown_module(module):
     class_test = get_test_class(module)

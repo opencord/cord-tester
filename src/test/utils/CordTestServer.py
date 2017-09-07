@@ -30,6 +30,8 @@
 # limitations under the License.
 #
 from CordContainer import Container, Onos, OnosStopWrapper, OnosCord, OnosCordStopWrapper, Quagga, QuaggaStopWrapper, Radius, reinitContainerClients
+from OltConfig import OltConfig
+from EapolAAA import get_radius_macs
 from nose.tools import nottest
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from resource import getrlimit, RLIMIT_NOFILE
@@ -136,9 +138,32 @@ class CordTestServer(object):
     def run_shell(self, kwargs):
         return self.__run_shell(**kwargs)
 
-    def restart_radius(self):
-        print('Restarting RADIUS Server')
+    def __restart_radius(self, olt_conf_file = ''):
+        olt_conf = os.path.join(Onos.setup_dir, os.path.basename(olt_conf_file))
+        olt = OltConfig(olt_conf_file = olt_conf)
+        port_map, _ = olt.olt_port_map()
         Radius(prefix = Container.IMAGE_PREFIX, restart = True)
+        radius_macs = get_radius_macs(len(port_map['radius_ports']))
+        radius_intf_index = 0
+        radius_intf_subnet = Radius.SUBNET_PREFIX
+        for host_intf, ports in port_map['switch_radius_port_list']:
+            for port in ports:
+                guest_if = 'eth{}'.format(radius_intf_index + 2)
+                port_index = port_map[port]
+                local_if = 'r{}'.format(port_index)
+                guest_ip = '{}.{}/24'.format(radius_intf_subnet, port_index)
+                mac = radius_macs[radius_intf_index]
+                radius_intf_index += 1
+                pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4} {5}'.format(host_intf, guest_if,
+                                                                               local_if, Radius.NAME,
+                                                                               guest_ip, mac)
+                print('Configuring Radius port %s on OVS bridge %s' %(guest_if, host_intf))
+                print('Running pipework command: %s' %(pipework_cmd))
+                res = os.system(pipework_cmd)
+
+    def restart_radius(self, kwargs):
+        print('Restarting RADIUS Server')
+        self.__restart_radius(**kwargs)
         return 'DONE'
 
     def shutdown(self):
@@ -272,6 +297,10 @@ def __cord_test_quagga_restart(**kwargs):
     return rpc_server_instance().restart_quagga(kwargs)
 
 @nottest
+def __cord_test_radius_restart(**kwargs):
+    return rpc_server_instance().restart_radius(kwargs)
+
+@nottest
 def cord_test_quagga_restart(config = None, boot_delay = 30):
     '''Send QUAGGA restart to server'''
     data = __cord_test_quagga_restart(config = config, boot_delay = boot_delay)
@@ -305,9 +334,12 @@ def cord_test_quagga_stop():
     return False
 
 @nottest
-def cord_test_radius_restart():
+def cord_test_radius_restart(olt_conf_file = ''):
     '''Send Radius server restart to server'''
-    data = rpc_server_instance().restart_radius()
+    if not olt_conf_file:
+        olt_conf_file = os.getenv('OLT_CONFIG')
+    olt_conf_file = os.path.basename(olt_conf_file)
+    data = __cord_test_radius_restart(olt_conf_file = olt_conf_file)
     if data == 'DONE':
         return True
     return False

@@ -30,6 +30,8 @@ from CordContainer import *
 from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_test_server_shutdown,CORD_TEST_HOST,CORD_TEST_PORT
 from TestManifest import TestManifest
 from VolthaCtrl import VolthaService
+from EapolAAA import get_radius_macs
+
 try:
     from docker import APIClient as Client
 except:
@@ -81,9 +83,11 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
 
     def __init__(self, tests, instance = 0, num_instances = 1, ctlr_ip = None,
                  name = '', image = IMAGE, prefix = '', tag = 'candidate',
-                 env = None, rm = False, update = False, network = None):
+                 env = None, rm = False, update = False, network = None, radius = None):
         self.tests = tests
         self.ctlr_ip = ctlr_ip
+        #Uncomment to enable configuring radius server ports on ovs bridge
+        self.radius = radius
         self.rm = rm
         self.name = name or self.get_name(num_instances)
         super(CordTester, self).__init__(self.name, image = image, prefix = prefix, tag = tag)
@@ -495,6 +499,26 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
                 ponsim = False
                 wan = None
 
+        if self.switch_started and self.radius:
+            radius_macs = get_radius_macs(len(self.port_map['radius_ports']))
+            radius_intf_index = 0
+            radius_intf_subnet = Radius.SUBNET_PREFIX
+            for host_intf, ports in self.port_map['switch_radius_port_list']:
+                for port in ports:
+                    guest_if = 'eth{}'.format(radius_intf_index+2)
+                    port_index = self.port_map[port]
+                    local_if = 'r{}'.format(port_index)
+                    guest_ip = '{}.{}/24'.format(radius_intf_subnet, port_index)
+                    mac = radius_macs[radius_intf_index]
+                    radius_intf_index += 1
+                    port_num += 1
+                    pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4} {5}'.format(host_intf, guest_if,
+                                                                                   local_if, self.radius.name,
+                                                                                   guest_ip, mac)
+                    print('Configuring Radius port %s on OVS bridge %s' %(guest_if, host_intf))
+                    print('Running pipework command: %s' %(pipework_cmd))
+                    res += os.system(pipework_cmd)
+
         self.setup_vcpes(vcpe_port_num)
         return res, port_num
 
@@ -521,12 +545,12 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
         port_num = 0
         start_vlan = port_map['start_vlan']
         wan = port_map['wan']
-        cmds = ()
         res = 0
         port_list = port_map['switch_port_list'] + port_map['switch_relay_port_list']
         for intf_host, ports in port_list:
             intf_type = cls.get_intf_type(intf_host)
             for port in ports:
+                cmds = ()
                 local_if = 'l{}'.format(port_num+1) #port #'{0}_{1}'.format(port, port_num+1)
                 if intf_type == 0:
                     if start_vlan != 0:
@@ -543,6 +567,19 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
                 for cmd in cmds:
                     res += os.system(cmd)
                 port_num += 1
+
+        for intf_host, ports in port_map['switch_radius_port_list']:
+            intf_type = cls.get_intf_type(intf_host)
+            for port in ports:
+                port_index = port_map[port]
+                local_if = 'r{}'.format(port_index)
+                cmds = ()
+                if intf_type == 2:
+                    cmds = ('ovs-vsctl del-port {} {}'.format(intf_host, local_if),
+                            'ip link del {}'.format(local_if))
+
+                for cmd in cmds:
+                    res += os.system(cmd)
 
         cls.cleanup_vcpes(vcpes)
 
@@ -763,6 +800,7 @@ def runTest(args):
 
     onos_ip = test_manifest.onos_ip
     radius_ip = test_manifest.radius_ip
+    radius = None
     head_node = test_manifest.head_node
     iterations = test_manifest.iterations
     onos_cord_loc = test_manifest.onos_cord
@@ -784,6 +822,7 @@ def runTest(args):
     onos_cord = None
     Onos.update_data_dir(test_manifest.karaf_version)
     Onos.set_expose_port(test_manifest.expose_port)
+    Radius.create_network()
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -897,10 +936,10 @@ def runTest(args):
         voltha.start()
 
     if radius_ip is None:
-        ##Start Radius container
+        ##Create Radius container
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
                         network = test_manifest.docker_network)
-        radius_ip = radius.ip(network = test_manifest.docker_network)
+        radius_ip = radius.ip(network = Radius.NETWORK)
 
     print('Radius server running with IP %s' %radius_ip)
 
@@ -976,7 +1015,8 @@ def runTest(args):
                               env = test_cnt_env,
                               rm = False if args.keep else True,
                               update = update_map['test'],
-                              network = test_manifest.docker_network)
+                              network = test_manifest.docker_network,
+                              radius = radius)
         test_slice_start = test_slice_end
         test_slice_end = test_slice_start + tests_per_container
         update_map['test'] = False
@@ -1054,6 +1094,7 @@ def setupCordTester(args):
 
     onos_ip = test_manifest.onos_ip
     radius_ip = test_manifest.radius_ip
+    radius = None
     head_node = test_manifest.head_node
     iterations = test_manifest.iterations
     service_profile = test_manifest.service_profile
@@ -1075,6 +1116,7 @@ def setupCordTester(args):
                 shutil.copy(olt_config_file, dest)
             except: pass
 
+    Radius.create_network()
     if onos_cord_loc:
         if onos_cord_loc.find(os.path.sep) < 0:
             onos_cord_loc = os.path.join(os.getenv('HOME'), onos_cord_loc)
@@ -1181,7 +1223,7 @@ def setupCordTester(args):
     if radius_ip is None:
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
                         network = test_manifest.docker_network)
-        radius_ip = radius.ip(network = test_manifest.docker_network)
+        radius_ip = radius.ip(network = Radius.NETWORK)
 
     print('Radius server running with IP %s' %radius_ip)
 
@@ -1207,7 +1249,7 @@ def setupCordTester(args):
     #provision the test container
     if not args.dont_provision:
         test_cnt_env = { 'ONOS_CONTROLLER_IP' : ctlr_addr,
-                         'ONOS_AAA_IP' : radius_ip,
+                         'ONOS_AAA_IP' : radius_ip if radius_ip is not None else '',
                          'QUAGGA_IP': ip,
                          'CORD_TEST_HOST' : ip,
                          'CORD_TEST_PORT' : port,
@@ -1241,7 +1283,8 @@ def setupCordTester(args):
                               env = test_cnt_env,
                               rm = False,
                               update = update_map['test'],
-                              network = test_manifest.docker_network)
+                              network = test_manifest.docker_network,
+                              radius = radius)
 
         if test_manifest.start_switch or not test_manifest.olt:
             test_cnt.start_switch(test_manifest)

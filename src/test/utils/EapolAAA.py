@@ -287,3 +287,32 @@ class EapolPacket(object):
            global EAP_RESPONSE
            EAP_RESPONSE = 2
            log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )
+
+def get_radius_macs(num):
+    """Generate radius server mac addresses"""
+    """Scope to generate 256*256*256 mac addresses"""
+    s = (0x00 << 40) | (0x02 << 32) | ( 0x03 << 24) | (1)
+    e = (0x00 << 40) | (0x02 << 32) | ( 0x03 << 24) | (0xff << 16) | (0xff << 8) | (0xff)
+    n_macs = []
+    for v in xrange(s, e):
+        mask = (v & 0xff0000) == 0xff0000 or \
+               (v & 0x00ff00) == 0x00ff00 or \
+               (v & 0x0000ff) == 0x0000ff
+        if mask:
+            continue
+        n_macs.append(v)
+        if len(n_macs) == num:
+            break
+
+    def n_to_mac(n):
+        n_tuple = ( (n >> 40) & 0xff,
+                    (n >> 32) & 0xff,
+                    (n >> 24) & 0xff,
+                    (n >> 16) & 0xff,
+                    (n >> 8)  & 0xff,
+                    n & 0xff,
+        )
+        return '%02x:%02x:%02x:%02x:%02x:%02x' %(n_tuple)
+
+    #convert the number to macs
+    return map(n_to_mac, n_macs)

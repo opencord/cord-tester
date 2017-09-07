@@ -131,17 +131,22 @@ class Container(object):
     def connect_to_network(cls, name, network):
         try:
             cls.dckr.connect_container_to_network(name, network)
-            return True
         except:
-            return False
+            connect_cmd = 'docker network connect %s %s' %(network, name)
+            os.system(connect_cmd)
+        return True
 
     @classmethod
     def create_network(cls, network, subnet = None, gateway = None):
         ipam_config = None
         if subnet is not None and gateway is not None:
-            ipam_pool = dockerutils.create_ipam_pool(subnet = subnet, gateway = gateway)
-            ipam_config = dockerutils.create_ipam_config(pool_configs = [ipam_pool])
-        cls.dckr.create_network(network, driver='bridge', ipam = ipam_config)
+            try:
+                ipam_pool = dockerutils.create_ipam_pool(subnet = subnet, gateway = gateway)
+                ipam_config = dockerutils.create_ipam_config(pool_configs = [ipam_pool])
+                cls.dckr.create_network(network, driver='bridge', ipam = ipam_config)
+            except:
+                create_cmd = 'docker network create %s --subnet %s --gateway %s >/dev/null 2>&1' %(network, subnet, gateway)
+                os.system(create_cmd)
 
     @classmethod
     def cleanup(cls, image):
@@ -185,7 +190,8 @@ class Container(object):
         self.dckr.remove_container(self.name, force=True)
 
     def start(self, rm = True, ports = None, volumes = None, host_config = None,
-              environment = None, tty = False, stdin_open = True):
+              environment = None, tty = False, stdin_open = True,
+              network_disabled = False, network = None):
 
         if rm and self.exists():
             print('Removing container:', self.name)
@@ -195,10 +201,14 @@ class Container(object):
                                          detach=True, name=self.name,
                                          environment = environment,
                                          volumes = volumes,
-                                         host_config = host_config, stdin_open=stdin_open, tty = tty)
+                                         host_config = host_config, stdin_open=stdin_open, tty = tty,
+                                         network_disabled = network_disabled)
         self.dckr.start(container=self.name)
-        if self.quagga_config:
-            self.connect_to_br()
+        if network_disabled is False:
+            if network is not None:
+                self.connect_to_network(self.name, network)
+            if self.quagga_config:
+                self.connect_to_br(index = 1)
         self.id = ctn['Id']
         return ctn
 
@@ -604,6 +614,8 @@ class Onos(Container):
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
     env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
     onos_cord_apps = ( ['cord-config', '1.2-SNAPSHOT', 'org.opencord.config'],
+                       ['sadis-app', '3.0-SNAPSHOT', 'org.opencord.sadis'],
+                       ['olt-app', '1.2-SNAPSHOT', 'org.onosproject.olt'],
                        ['aaa', '1.2-SNAPSHOT', 'org.opencord.aaa'],
                        ['igmp', '1.2-SNAPSHOT', 'org.opencord.igmp'],
                        )
@@ -756,7 +768,8 @@ class Onos(Container):
             if cluster is False or async is False:
                 print('Starting ONOS container %s' %self.name)
                 self.start(ports = self.ports, environment = self.env,
-                           host_config = self.host_config, volumes = self.volumes, tty = True)
+                           host_config = self.host_config, volumes = self.volumes, tty = True,
+                           network = Radius.NETWORK)
                 if not restart:
                     ##wait a bit before fetching IP to regenerate cluster cfg
                     time.sleep(5)
@@ -771,7 +784,8 @@ class Onos(Container):
                             self.remove_container(self.name, force=True)
                             print('Restarting ONOS container %s' %self.name)
                             self.start(ports = self.ports, environment = self.env,
-                                       host_config = self.host_config, volumes = self.volumes, tty = True)
+                                       host_config = self.host_config, volumes = self.volumes, tty = True,
+                                       network = Radius.NETWORK)
                 print('Waiting for ONOS to boot')
                 time.sleep(boot_delay)
                 self.wait_for_onos_start(self.ip())
@@ -957,7 +971,8 @@ class Onos(Container):
                     time.sleep(timeout)
                 print('Restarting ONOS container %s' %onos.name)
                 onos.start(ports = onos.ports, environment = onos.env,
-                           host_config = onos.host_config, volumes = onos.volumes, tty = True)
+                           host_config = onos.host_config, volumes = onos.volumes, tty = True,
+                           network = Radius.NETWORK)
                 onos.ipaddr = onos.ip()
                 onos.wait_for_onos_start(onos.ipaddr)
                 onos.install_cord_apps(onos.ipaddr)
@@ -1004,9 +1019,9 @@ class Onos(Container):
             patch = 0
         app_version = '1.2-SNAPSHOT'
         if major > 1:
-            app_version = '2.0-SNAPSHOT'
+            app_version = '3.0-SNAPSHOT'
         elif major == 1 and minor >= 10:
-            app_version = '2.0-SNAPSHOT'
+            app_version = '3.0-SNAPSHOT'
             if patch < 3:
                 app_version = '1.2-SNAPSHOT'
         for apps in cls.onos_cord_apps:
@@ -1070,9 +1085,20 @@ class Radius(Container):
                        )
     IMAGE = 'cordtest/radius'
     NAME = 'cord-radius'
+    NETWORK = 'cord-radius-test'
+    SUBNET = '11.0.0.0/24'
+    SUBNET_PREFIX = '11.0.0'
+    GATEWAY = '11.0.0.1'
+
+    @classmethod
+    def create_network(cls, name = NETWORK):
+        try:
+            Container.create_network(name, subnet = cls.SUBNET, gateway = cls.GATEWAY)
+        except:
+            pass
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
-                 boot_delay = 10, restart = False, update = False, network = None):
+                 boot_delay = 10, restart = False, update = False, network = None, network_disabled = False):
         super(Radius, self).__init__(name, image, prefix = prefix, tag = tag, command = self.start_command)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
@@ -1087,9 +1113,9 @@ class Radius(Container):
                 volumes.append(g)
             self.start(ports = self.ports, environment = self.env,
                        volumes = volumes,
-                       host_config = host_config, tty = True)
-            if network is not None:
-                Container.connect_to_network(self.name, network)
+                       host_config = host_config, tty = True, network_disabled = network_disabled)
+            if network_disabled is False:
+                Container.connect_to_network(self.name, self.NETWORK)
             time.sleep(boot_delay)
 
     @classmethod

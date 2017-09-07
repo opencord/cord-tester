@@ -107,6 +107,8 @@ class OltConfig:
             relay_ports = num_ports
             port_map['relay_ports'] = []
             port_map['switch_relay_port_list'] = []
+            port_map['radius_ports'] = []
+            port_map['switch_radius_port_list'] = []
             for sw in xrange(nr_switches):
                 port_list = []
                 switch = port_map['switches'][sw]
@@ -117,6 +119,15 @@ class OltConfig:
                     port_map['relay_ports'].append(port_name)
                     port_list.append(port_name)
                 port_map['switch_relay_port_list'].append( (switch, port_list) )
+            for sw in xrange(nr_switches):
+                switch = port_map['switches'][sw]
+                if not switch.startswith('br-int'):
+                    continue
+                port_name = 'veth{}'.format(port_end)
+                port_list = [ port_name ]
+                port_map['switch_radius_port_list'].append( (switch, port_list) )
+                port_map['radius_ports'].append(port_name)
+                port_end += 2
             port_num = 1
             port_map['uplink'] = int(self.olt_conf['uplink'])
             port_map['wan'] = None
@@ -140,6 +151,10 @@ class OltConfig:
                     sw_portnum += 1
             ##build the port and inverse map for relay ports
             for port in port_map['relay_ports']:
+                port_map[port_num] = port
+                port_map[port] = port_num
+                port_num += 1
+            for port in port_map['radius_ports']:
                 port_map[port_num] = port
                 port_map[port] = port_num
                 port_num += 1

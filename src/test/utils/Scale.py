@@ -1007,12 +1007,7 @@ line vty
             restore_method()
 
     def onos_aaa_config(self):
-        log.info('executing onos_aaa_config function 000000000000000000')
-        aaa_dict = {'apps' : { 'org.opencord.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
-                                                      'radiusIp': '172.17.0.2' } } } }
-        radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
-        aaa_dict['apps']['org.opencord.aaa']['AAA']['radiusIp'] = radius_ip
-        self.onos_load_config(aaa_dict)
+        OnosCtrl.aaa_load_config()
 
     def onos_load_config(self, config):
         status, code = OnosCtrl.config(config)
@@ -1020,6 +1015,7 @@ line vty
             log_test.info('Configure request for AAA returned status %d' %code)
             assert_equal(status, True)
             time.sleep(3)
+
     def cliEnter(self):
         retries = 0
         while retries < 3:

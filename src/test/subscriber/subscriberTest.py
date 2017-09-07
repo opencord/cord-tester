@@ -288,11 +288,7 @@ yg==
       def onos_aaa_load(self):
             if self.aaa_loaded:
                   return
-            aaa_dict = {'apps' : { 'org.opencord.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
-                                                                    'radiusIp': '172.17.0.2' } } } }
-            radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
-            aaa_dict['apps']['org.opencord.aaa']['AAA']['radiusIp'] = radius_ip
-            self.onos_load_config('org.opencord.aaa', aaa_dict)
+            OnosCtrl.aaa_load_config()
             self.aaa_loaded = True
 
       def onos_dhcp_table_load(self, config = None):

@@ -1404,4 +1404,3 @@ yg==
             df.callback(0)
         reactor.callLater(0, cordsub_auth_valid_cert, df)
         return df
-
