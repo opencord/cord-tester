@@ -1,5 +1,27 @@
 # LIST OF TESTCASES
 
+Information of the all testcases listed here can be found at [CORD System Test wiki](https://wiki.opencord.org/display/CORD/Functional)
+
+##  XOS Based Tests
+1.  Ch_defaultImagesCheck.txt
+2.  Ch_DefaultServiceCheck.txt
+3.  Ch_DeploymentTest.txt
+4.  Ch_MultiInstanceTest.txt
+5.  Ch_NodeTest.txt
+6.  Ch_SanityFlavors.txt
+7.  Ch_SanityInstance.txt
+8.  Ch_ServiceTest.txt
+9.  Ch_SingleInstanceTest.txt
+10. Ch_SiteTest.txt
+11. Ch_SliceTest.txt
+12. Ch_SubscriberTest.txt
+13. Ch_SubscriberVolt_Delete.txt
+14. Ch_UsersTest.txt
+15. Ch_VoltTenant.txt
+16. CordVTN.txt
+
+## MODULE BASED TESTS
+
 ##  IPERF
 
 1. test_tcp_using_iperf
