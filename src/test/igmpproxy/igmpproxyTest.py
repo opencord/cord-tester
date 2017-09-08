@@ -35,6 +35,7 @@ from nose.twistedtools import reactor, deferred
 from scapy.all import *
 from select import select as socket_select
 import time, monotonic
+import requests
 import os
 import random
 import threading
@@ -46,6 +47,9 @@ from OltConfig import OltConfig
 from Channels import IgmpChannel
 from CordLogger import CordLogger
 from CordTestConfig import setup_module, teardown_module
+from onosclidriver import OnosCliDriver
+from CordTestUtils import get_mac, get_controller
+from portmaps import g_subscriber_port_map
 from CordTestUtils import log_test
 log_test.setLevel('INFO')
 
@@ -92,12 +96,24 @@ class igmpproxy_exchange(CordLogger):
     PORT_TX_DEFAULT = 2
     PORT_RX_DEFAULT = 1
     max_packets = 100
+    MAX_PORTS = 100
     app = 'org.opencord.igmpproxy'
+    cord_config_app = 'org.opencord.config'
+    test_path = os.path.dirname(os.path.realpath(__file__))
+    proxy_device_id = OnosCtrl.get_device_id()
+    controller = get_controller()
+    app_files = [os.path.join(test_path, '..', 'apps/cord-config-3.0-SNAPSHOT.oar'), os.path.join(test_path, '..', 'apps/olt-app-3.0-SNAPSHOT.oar'), os.path.join(test_path, '..', 'apps/mcast-1.3.0-SNAPSHOT.oar'), os.path.join(test_path, '..', 'apps/onos-app-igmpproxy-1.1.0-SNAPSHOT.oar')]
+    proxy_config_file = os.path.join(test_path, '..', 'igmpproxy/igmpproxyconfig.json')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(os.path.dirname(os.path.realpath(__file__)), '../setup/olt_config.json'))
     ROVER_TEST_TIMEOUT = 300 #3600*86
     ROVER_TIMEOUT = (ROVER_TEST_TIMEOUT - 100)
     ROVER_JOIN_TIMEOUT = 60
     VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
+    configs = {}
+    proxy_interfaces_last = ()
+    interface_to_mac_map = {}
+    host_ip_map = {}
+    MAX_PORTS = 100
 
     @classmethod
     def setUpClass(cls):
@@ -107,32 +123,206 @@ class igmpproxy_exchange(CordLogger):
             OnosCtrl.config_device_driver()
             OnosCtrl.cord_olt_config(cls.olt)
         time.sleep(2)
+	cls.uninstall_cord_config_app()
+	cls.install_igmpproxy()
+	cls.igmp_proxy_setup()
 
     @classmethod
     def tearDownClass(cls):
         if cls.VOLTHA_ENABLED is False:
             OnosCtrl.config_device_driver(driver = 'ovs')
+	#cls.igmp_proxy_cleanup()
 
     def setUp(self):
         ''' Activate the igmp proxy app'''
-        super(igmp_exchange, self).setUp()
-        self.onos_ctrl = OnosCtrl(self.app)
-	self.onos_ctrl.activate()
+        super(igmpproxy_exchange, self).setUp()
         self.igmp_channel = IgmpChannel()
 
     def tearDown(self):
-        super(igmp_exchange, self).tearDown()
+	super(igmpproxy_exchange, self).tearDown()
 
-    def onos_load_config(self, config):
-	log_test.info('onos load config is %s'%config)
-        status, code = OnosCtrl.config(config)
+    @classmethod
+    def uninstall_cord_config_app(cls):
+        log_test.info('Uninstalling org.opencord.config 1.2 version app')
+        OnosCtrl(cls.cord_config_app).deactivate()
+        OnosCtrl.uninstall_app(cls.cord_config_app, onos_ip = cls.controller)
+
+    @classmethod
+    def install_igmpproxy(cls):
+        for app in cls.app_files:
+            OnosCtrl.install_app(app, onos_ip = cls.controller)
+	    OnosCtrl(app).activate()
+
+    @classmethod
+    def igmp_proxy_setup(cls):
+        did =  OnosCtrl.get_device_id()
+        cls.proxy_device_id = did
+        cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
+        cls.port_map, _ = cls.olt.olt_port_map()
+        log_test.info('port map is %s'%cls.port_map)
+        if cls.port_map:
+            ##Per subscriber, we use 1 relay port
+            try:
+                proxy_port = cls.port_map[cls.port_map['relay_ports'][0]]
+            except:
+                proxy_port = cls.port_map['uplink']
+            cls.proxy_interface_port = proxy_port
+            cls.proxy_interfaces = (cls.port_map[cls.proxy_interface_port],)
+        else:
+            cls.proxy_interface_port = 100
+            cls.proxy_interfaces = (g_subscriber_port_map[cls.proxy_interface_port],)
+        cls.proxy_interfaces_last = cls.proxy_interfaces
+        if cls.port_map:
+            ##generate a ip/mac client virtual interface config for onos
+            interface_list = []
+            for port in cls.port_map['ports']:
+                port_num = cls.port_map[port]
+                if port_num == cls.port_map['uplink']:
+                    continue
+                ip = cls.get_host_ip(port_num)
+                mac = cls.get_mac(port)
+                interface_list.append((port_num, ip, mac))
+
+            #configure igmp proxy  virtual interface
+            proxy_ip = cls.get_host_ip(interface_list[0][0])
+            proxy_mac = cls.get_mac(cls.port_map[cls.proxy_interface_port])
+            interface_list.append((cls.proxy_interface_port, proxy_ip, proxy_mac))
+            cls.onos_interface_load(interface_list)
+
+    @classmethod
+    def igmp_proxy_cleanup(cls):
+        #reset the ONOS port configuration back to default
+        for config in cls.configs.items():
+            OnosCtrl.delete(config)
+        # if cls.onos_restartable is True:
+        #     log_test.info('Cleaning up dhcp relay config by restarting ONOS with default network cfg')
+        #     return cord_test_onos_restart(config = {})
+
+    @classmethod
+    def onos_load_config(cls, config,json_file=False):
+        log_test.info('onos load config is %s'%config)
+        status, code = OnosCtrl.config(config,json_file=json_file)
         if status is False:
             log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
         time.sleep(2)
 
+    @classmethod
+    def onos_interface_load(cls, interface_list):
+        interface_dict = { 'ports': {} }
+        for port_num, ip, mac in interface_list:
+            port_map = interface_dict['ports']
+            port = '{}/{}'.format(cls.proxy_device_id, port_num)
+            port_map[port] = { 'interfaces': [] }
+            interface_list = port_map[port]['interfaces']
+            interface_map = { 'ips' : [ '{}/{}'.format(ip, 24) ],
+                              'mac' : mac,
+                              'name': 'vir-{}'.format(port_num)
+                            }
+            interface_list.append(interface_map)
+
+        #cls.onos_load_config(interface_dict)
+        cls.configs['interface_config'] = interface_dict
+
+    @classmethod
+    def onos_igmp_proxy_config_load(cls):
+        proxy_connect_point = '{}/{}'.format(cls.proxy_device_id, cls.proxy_interface_port)
+        #log_test.info('\nrelay interface port is %s'%cls.proxy_interface_port)
+        #log_test.info('\nrelay interface is %s'%cls.port_map[cls.proxy_interface_port])
+        #log_test.info('\nconnect point is %s'%proxy_connect_point)
+	#cls.onos_load_config(cls.proxy_config_file,json_file=True)
+	igmpproxy_dict = {'apps':{
+				'org.opencord.igmpproxy':{
+						'igmpproxy':
+                                                        {'globalConnectPointMode': 'true',
+                                                        'globalConnectPoint': proxy_connect_point,
+                                                        'UnsolicitedTimeOut': '2',
+                                                        'MaxResp': '10',
+                                                        'KeepAliveInterval': '120',
+                                                        'KeepAliveCount': '3',
+                                                        'LastQueryInterval': '2',
+                                                        'LastQueryCount': '2',
+                                                        'FastLeave': 'false',
+                                                        'PeriodicQuery': 'true',
+                                                        'IgmpCos': '7',
+                                                        'withRAUpLink': 'true',
+                                                        'withRADownLink': 'true'
+                                                        }
+                                                      },
+				 'org.opencord.mcast':{
+                                           'ingressVlan': '222',
+                                            'egressVlan': '17'
+                                        }
+                                    }
+				}
+	device_dict = {'devices':{
+                           cls.proxy_device_id: {
+                               'basic': {
+                                   'driver': 'default'
+                                },
+                                'accessDevice': {
+                                   'uplink': '2',
+                                   'vlan': '222',
+                                   'defaultVlan': '1'
+                                   }
+                                }
+			    }
+		      }
+	log_test.info('igmp proxy dict is %s'%igmpproxy_dict)
+        cls.onos_load_config(igmpproxy_dict)
+	cls.onos_load_config(device_dict)
+        cls.configs['relay_config'] = igmpproxy_dict
+	cls.configs['device_config'] = device_dict
+
+    @classmethod
+    def get_host_ip(cls, port):
+        if cls.host_ip_map.has_key(port):
+            return cls.host_ip_map[port]
+        cls.host_ip_map[port] = '192.168.1.{}'.format(port)
+        return cls.host_ip_map[port]
+
+    @classmethod
+    def host_load(cls, iface):
+        '''Have ONOS discover the hosts for dhcp-relay responses'''
+        port = g_subscriber_port_map[iface]
+        host = '173.17.1.{}'.format(port)
+        cmds = ( 'ifconfig {} 0'.format(iface),
+                 'ifconfig {0} {1}'.format(iface, host),
+                 'arping -I {0} {1} -c 2'.format(iface, host),)
+                 #'ifconfig {} 0'.format(iface), )
+        for c in cmds:
+	    log_test.info('host load config command %s'%c)
+            os.system(c)
+
+    @classmethod
+    def host_config_load(cls, host_config = None):
+        for host in host_config:
+            status, code = OnosCtrl.host_config(host)
+            if status is False:
+                log_test.info('JSON request returned status %d' %code)
+                assert_equal(status, True)
+
+    @classmethod
+    def generate_host_config(cls,ip,mac):
+        num = 0
+        hosts_dict = {}
+	hosts_list = [(ip,mac),]
+        for host, mac in hosts_list:
+            port = num + 1 if num < cls.MAX_PORTS - 1 else cls.MAX_PORTS - 1
+            hosts_dict[host] = {'mac':mac, 'vlan':'none', 'ipAddresses':[host], 'location':{ 'elementId' : '{}'.format(cls.proxy_device_id), 'port': port}}
+            num += 1
+        return hosts_dict.values()
+
+
+    @classmethod
+    def get_mac(cls, iface):
+        if cls.interface_to_mac_map.has_key(iface):
+            return cls.interface_to_mac_map[iface]
+        mac = get_mac(iface, pad = 0)
+        cls.interface_to_mac_map[iface] = mac
+        return mac
+
     def onos_ssm_table_load(self, groups, src_list = ['1.2.3.4'],flag = False):
-          return
           ssm_dict = {'apps' : { 'org.opencord.igmpproxy' : { 'ssmTranslate' : [] } } }
           ssm_xlate_list = ssm_dict['apps']['org.opencord.igmpproxy']['ssmTranslate']
 	  if flag: #to maintain seperate group-source pair.
@@ -148,6 +338,7 @@ class igmpproxy_exchange(CordLogger):
                       d['source'] = s or '0.0.0.0'
                       d['group'] = g
                       ssm_xlate_list.append(d)
+	  log_test.info('onos ssm table config dictionary is %s'%ssm_dict)
           self.onos_load_config(ssm_dict)
           cord_port_map = {}
           for g in groups:
@@ -235,6 +426,7 @@ class igmpproxy_exchange(CordLogger):
               ip_pkt = self.igmp_eth/self.igmp_ip
         pkt = ip_pkt/igmp
         IGMPv3.fixup(pkt)
+	log_test.info('sending igmp join packet %s'%pkt.show())
         sendp(pkt, iface=iface)
         if delay != 0:
             time.sleep(delay)
@@ -280,10 +472,100 @@ class igmpproxy_exchange(CordLogger):
         if delay != 0:
             time.sleep(delay)
 
+    def test_igmpproxy_app_installation(self):
+	#self.uninstall_cord_config_app()
+        #self.install_igmpproxy()
+	auth = ('karaf','karaf')
+	url = 'http://{}:8181/onos/v1/applications'.format(self.controller)
+	for file in self.app_files:
+            with open(file, 'rb') as payload:
+                 res = requests.post(url,auth=auth,data=payload)
+	         assert_equal(res.ok, True)
+
+    def test_igmpproxy_app_netcfg(self):
+        auth = ('karaf','karaf')
+	net_cfg_url = 'http://{}:8181/onos/v1/network/configuration/'.format(self.controller)
+        with open(self.proxy_config_file, 'rb') as payload:
+             res = requests.post(net_cfg_url,auth=auth,data=payload)
+             assert_equal(res.ok, True)
+
+    def test_igmpproxy_for_first_join(self,iface='veth0'):
+        group = ['224.9.8.7']
+        src = ['10.9.8.7']
+	self.onos_igmp_proxy_config_load()
+        self.onos_ssm_table_load(group,src_list=src)
+        self.success = False
+        def recv_task():
+            def igmp_recv_cb(pkt):
+                log_test.info('igmp packet received on proxy interface')
+                self.success = True
+            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==self.IP_DST, count=1,timeout = 5, iface=self.proxy_interfaces[0])
+        t = threading.Thread(target = recv_task)
+        t.start()
+        self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+        t.join()
+        assert_equal(self.success,True)
+        """
+	#############  Traffic Test
+        def recv_task():
+            def igmp_recv_cb(pkt):
+                log_test.info('igmp data traffic received on proxy interface')
+                self.success = False
+            sniff(prn = igmp_recv_cb,count=1,timeout = 5, iface=self.proxy_interfaces[0])
+        t = threading.Thread(target = recv_task)
+        t.start()
+	data = repr(monotonic.monotonic())
+        pkt2 = Ether(dst='01:00:5e:09:08:07')/IP(src='10.9.8.7',dst='224.9.8.7')/data
+	log_test.info('igmp data traffic packet is %s'%pkt2.show())
+	sendp(pkt2,iface='veth2',count=10)
+        t.join()
+        assert_equal(self.success,False)
+	"""
+
+    def test_igmpproxy_for_two_joins(self,iface='veth0'):
+        groups = ['224.9.8.7','224.9.8.8']
+        src = ['10.9.8.7']
+        self.onos_igmp_proxy_config_load()
+        self.onos_ssm_table_load(groups,src_list=src)
+        def recv_task():
+            def igmp_recv_cb(pkt):
+                log_test.info('igmp packet received on proxy interface')
+                self.success = True
+            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==self.IP_DST, count=1,timeout = 5, iface=self.proxy_interfaces[0])
+	for group in groups:
+	    self.success = False
+            t = threading.Thread(target = recv_task)
+            t.start()
+            self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+            t.join()
+            assert_equal(self.success,True)
+
+    def test_igmpproxy_for_igmp_joins_on_non_proxy_interface(self,iface='veth0',non_proxy_iface='veth2'):
+        group = ['224.9.8.7']
+        src = ['10.9.8.7']
+        self.onos_igmp_proxy_config_load()
+        self.onos_ssm_table_load(group,src_list=src)
+        def recv_task():
+            def igmp_recv_cb(pkt):
+                log_test.info('igmp packet received on non-proxy interface')
+                self.success = True
+            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==self.IP_DST, count=1,timeout = 5, iface=non_proxy_iface)
+        self.success = False
+        t = threading.Thread(target = recv_task)
+        t.start()
+        self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                         iface = iface)
+        t.join()
+        assert_equal(self.success,False)
+
     @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
     def test_igmpproxy_with_join_and_verify_traffic(self):
-        groups = [self.MGROUP1, self.MGROUP1]
-	self.onos_ssm_table_load(groups)
+        #groups = [self.MGROUP1, self.MGROUP1]
+        groups = ["238.2.3.4"]
+	self.onos_igmp_proxy_config_load()
+	#self.onos_ssm_table_load(groups)
         df = defer.Deferred()
         igmpState = IGMPProxyTestState(groups = groups, df = df)
         igmpStateRecv = IGMPProxyTestState(groups = groups, df = df)
