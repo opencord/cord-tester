@@ -44,6 +44,7 @@ from CordTestConfig import setup_module, teardown_module
 from CordLogger import CordLogger
 from portmaps import g_subscriber_port_map
 from CordContainer import Onos
+from VolthaCtrl import VolthaCtrl
 import threading, random
 from threading import current_thread
 log_test.setLevel('INFO')
@@ -51,7 +52,7 @@ log_test.setLevel('INFO')
 class dhcpl2relay_exchange(CordLogger):
 
     VOLTHA_HOST = None
-    VOLTHA_REST_PORT = 8881
+    VOLTHA_REST_PORT = VolthaCtrl.REST_PORT
     VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
     VOLTHA_OLT_TYPE = 'simulated_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'

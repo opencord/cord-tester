@@ -26,7 +26,7 @@ from OltConfig import OltConfig
 
 class VolthaService(object):
     services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
-    standalone_services = ('voltha', 'ofagent', 'vcli',)
+    standalone_services = ('envoy', 'voltha', 'ofagent', 'vcli',)
     compose_file = 'docker-compose-system-test.yml'
     service_map = {}
     PROJECT = 'cordtester'
@@ -211,7 +211,7 @@ class VolthaService(object):
 class VolthaCtrl(object):
     UPLINK_VLAN_START = 333
     UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
-    REST_PORT = 8881
+    REST_PORT = 8882
     HOST = '172.17.0.1'
     ONOS_APPS = ('org.onosproject.dhcp', 'org.onosproject.dhcp-relay', 'org.ciena.cordigmp')
     ADMIN_STATE = 'admin_state'
@@ -225,9 +225,9 @@ class VolthaCtrl(object):
         self.rest_url = 'http://{}:{}/api/v1/local'.format(host, rest_port)
         if rest_port == 8882:
             self.rest_url = 'http://{}:{}/api/v1'.format(host, rest_port)
-            self.ADMIN_STATE = 'adminState'
-            self.OPER_STATUS = 'operStatus'
-            self.CONNECT_STATUS = 'connectStatus'
+            #self.ADMIN_STATE = 'adminState'
+            #self.OPER_STATUS = 'operStatus'
+            #self.CONNECT_STATUS = 'connectStatus'
         self.uplink_vlan_map = uplink_vlan_map
         VolthaCtrl.UPLINK_VLAN_START = uplink_vlan_start
         self.switches = []

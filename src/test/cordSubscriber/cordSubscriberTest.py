@@ -55,6 +55,7 @@ from CordTestUtils import log_test, get_controller
 from CordLogger import CordLogger
 from CordTestConfig import setup_module, teardown_module
 from CordContainer import Onos
+from VolthaCtrl import VolthaCtrl
 
 log_test.setLevel('INFO')
 
@@ -284,7 +285,7 @@ yg==
 
       VOLTHA_HOST = None
       VOLTHA_TEARDOWN = True
-      VOLTHA_REST_PORT = 8881
+      VOLTHA_REST_PORT = VolthaCtrl.REST_PORT
       VOLTHA_UPLINK_VLAN_MAP = { 'of:0001000000000001' : '222' }
       VOLTHA_UPLINK_VLAN_START = 333
       VOLTHA_IGMP_ITERATIONS = 100

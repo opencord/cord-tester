@@ -8,7 +8,7 @@ cat > /tmp/testrun.json <<EOF
     "test" : "tls:eap_auth_exchange.test_eap_tls",
     "config" : {
         "VOLTHA_HOST" : "172.17.0.1",
-        "VOLTHA_REST_PORT" : 8881,
+        "VOLTHA_REST_PORT" : 8882,
         "VOLTHA_OLT_TYPE" : "ponsim_olt",
         "VOLTHA_OLT_MAC" : "00:0c:e2:31:10:00"
     }

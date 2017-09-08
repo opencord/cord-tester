@@ -40,6 +40,7 @@ from OnosCtrl import OnosCtrl
 from CordLogger import CordLogger
 from CordTestUtils import log_test
 from CordTestConfig import setup_module, teardown_module
+from VolthaCtrl import VolthaCtrl
 from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from scapy_ssl_tls.ssl_tls_crypto import *
@@ -51,7 +52,7 @@ class eap_auth_exchange(CordLogger):
     TLS_TIMEOUT = 20
     TEST_TIMEOUT = 3600
     VOLTHA_HOST = None
-    VOLTHA_REST_PORT = 8881
+    VOLTHA_REST_PORT = VolthaCtrl.REST_PORT
     VOLTHA_ENABLED = bool(int(os.getenv('VOLTHA_ENABLED', 0)))
     VOLTHA_OLT_TYPE = 'simulated_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'

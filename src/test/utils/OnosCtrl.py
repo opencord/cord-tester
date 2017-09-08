@@ -330,7 +330,13 @@ class OnosCtrl:
             radius_ip = '{}.{}'.format(radius_subnet, radius_port)
             aaa_cfg['radiusIp'] = radius_ip
             for dev in ovs_devices:
-                connect_point = '{}/{}'.format(dev['id'], radius_port)
+                device_id = dev['id']
+                ports = OnosCtrl.get_ports_device(device_id, controller = controller)
+                radius_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and \
+                                      p['annotations']['portName'].startswith('r'),
+                                      ports)
+                radius_port = radius_ports[0]['port']
+                connect_point = '{}/{}'.format(device_id, radius_port)
                 connect_points.append(connect_point)
             aaa_cfg['radiusServerConnectPoints'] = connect_points
             break

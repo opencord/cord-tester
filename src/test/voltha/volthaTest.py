@@ -213,7 +213,7 @@ class voltha_exchange(unittest.TestCase):
     OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_HOST = VolthaService.DOCKER_HOST_IP
     VOLTHA_PONSIM_HOST = VolthaService.PONSIM_HOST
-    VOLTHA_REST_PORT = 8881
+    VOLTHA_REST_PORT = VolthaCtrl.REST_PORT
     VOLTHA_OLT_TYPE = 'ponsim_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_IGMP_ITERATIONS = 100
