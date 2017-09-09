@@ -540,6 +540,11 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
                     print('Configuring Radius port %s on OVS bridge %s' %(guest_if, host_intf))
                     print('Running pipework command: %s' %(pipework_cmd))
                     res += os.system(pipework_cmd)
+                    rp_filter_disable = 'docker exec {} '\
+                                        'sysctl -w net.ipv4.conf.{}.rp_filter=2'.format(self.radius.name,
+                                                                                        guest_if)
+                    print('Disabling rp filter on radius interface %s' %(guest_if))
+                    res += os.system(rp_filter_disable)
                     brd = '{}.255'.format(prefix)
                     brd_cmd = 'docker exec {} ifconfig {} broadcast {} up'.format(self.radius.name,
                                                                                   guest_if,
