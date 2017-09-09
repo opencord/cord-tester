@@ -2,5 +2,6 @@
     "VOLTHA_OLT_MAC": "00:0c:e2:31:12:00", 
     "VOLTHA_HOST": "172.17.0.1", 
     "VOLTHA_OLT_TYPE": "ponsim_olt", 
-    "VOLTHA_REST_PORT": 8882
+    "VOLTHA_REST_PORT": 8882, 
+    "VOLTHA_TEARDOWN": false
 }

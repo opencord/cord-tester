@@ -30,7 +30,7 @@ from CordContainer import *
 from CordTestServer import cord_test_server_start,cord_test_server_stop,cord_test_server_shutdown,CORD_TEST_HOST,CORD_TEST_PORT
 from TestManifest import TestManifest
 from VolthaCtrl import VolthaService
-from EapolAAA import get_radius_macs
+from EapolAAA import get_radius_macs, get_radius_networks, radius_restore_users, RADIUS_USER_MAC_START, RADIUS_USER_MAC_END
 
 try:
     from docker import APIClient as Client
@@ -448,6 +448,10 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
                 wan = 'ponmgmt'
         vcpe_port_num = port_num
         port_list = self.port_map['switch_port_list'] + self.port_map['switch_relay_port_list']
+        subscribers = self.port_map['num_ports'] * len(self.port_map['switch_port_list'])
+        subscriber_macs = get_radius_macs(subscribers,
+                                          start = RADIUS_USER_MAC_START,
+                                          end = RADIUS_USER_MAC_END)
         print('Provisioning the ports for the test container\n')
         for host_intf, ports in port_list:
             if self.switch_started is False and host_intf.startswith('br-int'):
@@ -480,13 +484,19 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
                         host_intf = '{}_{}'.format(host_intf_base, host_index)
                         host_index += 1
 
+                port_mac = ''
+                if len(subscriber_macs) > 0:
+                    port_mac = subscriber_macs.pop(0)
+
                 ##Use pipeworks to configure container interfaces on host/bridge interfaces
-                pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(host_intf, guest_if,
-                                                                           local_if, self.name, guest_ip)
+                pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4} {5}'.format(host_intf, guest_if,
+                                                                               local_if, self.name, guest_ip,
+                                                                               port_mac)
                 #if the wan interface is specified for uplink, then use it instead
                 if wan and port == self.port_map[uplink]:
-                    pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4}'.format(wan, guest_if,
-                                                                               local_if, self.name, guest_ip)
+                    pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4} {5}'.format(wan, guest_if,
+                                                                                   local_if, self.name, guest_ip,
+                                                                                   port_mac)
                 else:
                     if start_vlan != 0:
                         pipework_cmd += ' @{}'.format(start_vlan)
@@ -502,13 +512,25 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
         if self.switch_started and self.radius:
             radius_macs = get_radius_macs(len(self.port_map['radius_ports']))
             radius_intf_index = 0
-            radius_intf_subnet = Radius.SUBNET_PREFIX
+            radius_networks = get_radius_networks(len(self.port_map['switch_radius_port_list']))
+            index = 0
             for host_intf, ports in self.port_map['switch_radius_port_list']:
+                prefix, subnet, gw = radius_networks[index]
+                mask = subnet.split('/')[-1]
+                #configure the host interface as the gateway
+                cmds = ( #'ip addr add {}/{} dev {}'.format(gw, mask, host_intf),
+                        'ip link set {} up'.format(host_intf),
+                )
+                print('Configuring host interface %s for radius server' %(host_intf))
+                for cmd in cmds:
+                    print('Running command: %s' %(cmd))
+                    res += os.system(cmd)
+                index += 1
                 for port in ports:
                     guest_if = 'eth{}'.format(radius_intf_index+2)
                     port_index = self.port_map[port]
                     local_if = 'r{}'.format(port_index)
-                    guest_ip = '{}.{}/24'.format(radius_intf_subnet, port_index)
+                    guest_ip = '{}.{}/{}'.format(prefix, port_index, mask)
                     mac = radius_macs[radius_intf_index]
                     radius_intf_index += 1
                     port_num += 1
@@ -518,6 +540,12 @@ subnet 192.168.100.0 netmask 255.255.255.0 {
                     print('Configuring Radius port %s on OVS bridge %s' %(guest_if, host_intf))
                     print('Running pipework command: %s' %(pipework_cmd))
                     res += os.system(pipework_cmd)
+                    brd = '{}.255'.format(prefix)
+                    brd_cmd = 'docker exec {} ifconfig {} broadcast {} up'.format(self.radius.name,
+                                                                                  guest_if,
+                                                                                  brd)
+                    print('Setting broadcast address to %s for radius interface %s' %(brd, guest_if))
+                    res += os.system(brd_cmd)
 
         self.setup_vcpes(vcpe_port_num)
         return res, port_num
@@ -938,7 +966,8 @@ def runTest(args):
     if radius_ip is None:
         ##Create Radius container
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
-                        network = test_manifest.docker_network)
+                        network = test_manifest.docker_network,
+                        olt_config = olt_config_file)
         radius_ip = radius.ip(network = Radius.NETWORK)
 
     print('Radius server running with IP %s' %radius_ip)
@@ -1222,7 +1251,8 @@ def setupCordTester(args):
     ##Start Radius container if not started
     if radius_ip is None:
         radius = Radius(prefix = Container.IMAGE_PREFIX, update = update_map['radius'],
-                        network = test_manifest.docker_network)
+                        network = test_manifest.docker_network,
+                        olt_config = olt_config_file)
         radius_ip = radius.ip(network = Radius.NETWORK)
 
     print('Radius server running with IP %s' %radius_ip)
@@ -1351,6 +1381,7 @@ def cleanupTests(args):
     radius_container = '{}{}:candidate'.format(prefix, Radius.IMAGE)
     quagga_container = '{}{}:candidate'.format(prefix, Quagga.IMAGE)
     Container.cleanup(radius_container)
+    radius_restore_users()
     Container.cleanup(quagga_container)
     if args.voltha_loc:
         voltha = VolthaService(args.voltha_loc, args.onos_ip)

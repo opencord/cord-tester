@@ -34,8 +34,10 @@ from scapy.all import *
 from scapy_ssl_tls.ssl_tls import *
 from socket import *
 from struct import *
+import os
 import sys
 import binascii
+import shutil
 from nose.tools import assert_equal, assert_not_equal, assert_raises, assert_true
 from CordTestUtils import log_test
 
@@ -65,6 +67,8 @@ EAP_TYPE_TLS = 13
 cCertMsg = '\x0b\x00\x00\x03\x00\x00\x00'
 TLS_LENGTH_INCLUDED = 0x80
 TLS_MORE_FRAGMENTS = 0x40
+RADIUS_USER_MAC_START = (0x02 << 40) | (0x03 << 32) | (0x04 << 24) | 1
+RADIUS_USER_MAC_END =  (0x02 << 40) | (0x03 << 32) | (0x04 << 24) | (0xff << 16) | ( 0xff << 8 ) | 0xff
 
 class EapolPacket(object):
 
@@ -288,11 +292,15 @@ class EapolPacket(object):
            EAP_RESPONSE = 2
            log_test.info( 'Changing invalid field values in tls auth packets====== version changing' )
 
-def get_radius_macs(num):
+def get_radius_macs(num, start = 0, end = 0):
     """Generate radius server mac addresses"""
     """Scope to generate 256*256*256 mac addresses"""
-    s = (0x00 << 40) | (0x02 << 32) | ( 0x03 << 24) | (1)
-    e = (0x00 << 40) | (0x02 << 32) | ( 0x03 << 24) | (0xff << 16) | (0xff << 8) | (0xff)
+    if start == 0 or end == 0:
+        s = (0x00 << 40) | (0x02 << 32) | ( 0x03 << 24) | (1)
+        e = (0x00 << 40) | (0x02 << 32) | ( 0x03 << 24) | (0xff << 16) | (0xff << 8) | (0xff)
+    else:
+        s = start
+        e = end
     n_macs = []
     for v in xrange(s, e):
         mask = (v & 0xff0000) == 0xff0000 or \
@@ -316,3 +324,64 @@ def get_radius_macs(num):
 
     #convert the number to macs
     return map(n_to_mac, n_macs)
+
+def get_radius_networks(num):
+    PORT_SUBNET_START = '12.0.0.0'
+    PORT_SUBNET_MASK = '/24'
+    PORT_SUBNET_END = '220.0.0.0'
+    port_start_list = map(lambda ip: int(ip), PORT_SUBNET_START.split('.'))
+    port_end_list = map(lambda ip: int(ip), PORT_SUBNET_END.split('.'))
+    port_subnet_start = (port_start_list[0] << 24) | ( port_start_list[1] << 16 ) | ( port_start_list[2] << 8 ) | 0
+    port_subnet_end = (port_end_list[0] << 24) | ( port_end_list[1] << 16 ) | ( port_end_list[2] << 8 ) | 0
+    mask = int(PORT_SUBNET_MASK[1:])
+    net_list = []
+    for n in xrange(port_subnet_start, port_subnet_end, 256):
+        subnet = ((n >> 24) & 0xff, (n >> 16) & 0xff, (n >> 8) & 0xff, 0, mask)
+        prefix = subnet[:3]
+        gw = prefix + (1,)
+        subnet_s = '{}.{}.{}.{}/{}'.format(*subnet)
+        prefix_s = '{}.{}.{}'.format(*prefix)
+        gw_s = '{}.{}.{}.{}'.format(*gw)
+        net_list.append((prefix_s, subnet_s, gw_s))
+        if len(net_list) >= num:
+            break
+
+    return net_list
+
+def get_radius_user_file():
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    radius_authorize = 'setup/radius-config/freeradius/mods-config/files/authorize'
+    radius_user_file = os.path.join(cur_dir, '..', *radius_authorize.split('/'))
+    return radius_user_file
+
+def radius_add_users(num):
+    global RADIUS_USER_MAC_START, RADIUS_USER_MAC_END
+    template = '''
+%s Cleartext-Password := "radpass"
+\tReply-Message := "Hello, %%{User-Name}"
+'''
+    radius_user_file = get_radius_user_file()
+    if not os.access(radius_user_file, os.F_OK):
+        return False
+    mac_start = RADIUS_USER_MAC_START
+    mac_end =   RADIUS_USER_MAC_END
+    macs = get_radius_macs(num, start = mac_start, end = mac_end)
+    save_file = '{}.save'.format(radius_user_file)
+    new_file = '{}.new'.format(radius_user_file)
+    shutil.copy(radius_user_file, save_file)
+    with open(radius_user_file, 'r') as f:
+        lines = f.readlines()
+    for m in macs:
+        lines.append(template %(m))
+    with open(new_file, 'w') as f:
+        f.writelines(lines)
+    os.rename(new_file, radius_user_file)
+    return True
+
+def radius_restore_users():
+    radius_user_file = get_radius_user_file()
+    save_file = '{}.save'.format(radius_user_file)
+    if not os.access(save_file, os.F_OK):
+        return False
+    os.rename(save_file, radius_user_file)
+    return True

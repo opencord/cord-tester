@@ -347,7 +347,7 @@ yg==
           cls.num_ports = cls.port_map['num_ports']
           if cls.num_ports > 1:
                 cls.num_ports -= 1 ##account for the tx port
-          cls.activate_apps(cls.apps + cls.olt_apps, deactivate = True)
+          cls.activate_apps(cls.apps + cls.olt_apps)
 
       @classmethod
       def tearDownClass(cls):

@@ -34,7 +34,7 @@ import requests
 import os,sys,time
 from OltConfig import OltConfig
 from CordTestUtils import get_mac, get_controller, log_test
-from EapolAAA import get_radius_macs
+from EapolAAA import get_radius_macs, get_radius_networks
 
 class OnosCtrl:
 
@@ -304,7 +304,7 @@ class OnosCtrl:
         return device_mac
 
     @classmethod
-    def aaa_load_config(cls, controller = None, olt_conf_file = ''):
+    def aaa_load_config(cls, controller = None, olt_conf_file = '', conn_type = 'socket'):
         ovs_devices = cls.get_devices(controller = controller, mfr = 'Nicira')
         if not ovs_devices:
             log_test.info('No OVS devices found to configure AAA connect points')
@@ -313,21 +313,29 @@ class OnosCtrl:
         port_map, _ = olt.olt_port_map()
         app = 'org.opencord.aaa'
         cfg = { 'apps' : { app : { 'AAA' : {} } } }
-        aaa_cfg = dict(radiusConnectionType = 'port',
+        if conn_type == 'socket':
+            customizer = 'default'
+        else:
+            customizer = 'sample'
+        aaa_cfg = dict(radiusConnectionType = conn_type,
                        radiusSecret = 'radius_password',
                        radiusServerPort = '1812',
-                       packetCustomizer = 'sample',
+                       packetCustomizer = customizer,
                        vlanId = -1)
-        radius_ip = os.getenv('ONOS_AAA_IP') or '11.0.0.3'
-        radius_subnet = '.'.join(radius_ip.split('.')[:-1])
+        radius_networks = get_radius_networks(len(port_map['switch_radius_port_list']))
+        index = 0
         for switch, ports in port_map['switch_radius_port_list']:
             radius_macs = get_radius_macs(len(ports))
+            prefix, _, _ = radius_networks[index]
+            index += 1
             aaa_cfg['nasIp'] = controller or cls.controller
             aaa_cfg['nasMac'] = radius_macs[0]
             aaa_cfg['radiusMac'] = radius_macs[0]
             connect_points = []
             radius_port = port_map[ ports[0] ]
-            radius_ip = '{}.{}'.format(radius_subnet, radius_port)
+            radius_ip = '{}.{}'.format(prefix, radius_port)
+            if conn_type == 'socket':
+                radius_ip = os.getenv('ONOS_AAA_IP')
             aaa_cfg['radiusIp'] = radius_ip
             for dev in ovs_devices:
                 device_id = dev['id']
@@ -382,7 +390,7 @@ class OnosCtrl:
                             'cache' : {
                                 'enabled' : False,
                                 'maxsize' : 50,
-                                'ttl' : 'PT10m',
+                                'ttl' : 'PT0m',
                             },
                         },
                         'entries' : [],
@@ -427,12 +435,19 @@ class OnosCtrl:
         #log_test.info('Sadis cfg: %s' %json.dumps(sadis_cfg, indent=4))
         cls.config(sadis_cfg, controller = controller)
 
-        # cls(sadis_app, controller = controller).deactivate()
-        # time.sleep(2)
-        # cls(sadis_app, controller = controller).activate()
-        # time.sleep(2)
+    @classmethod
+    def config_olt_access(cls, uplink_vlan, controller = None, defaultVlan = '0', olt_conf_file = ''):
+        olt = OltConfig(olt_conf_file = olt_conf_file)
+        port_map, _ = olt.olt_port_map()
+        uplink = str(port_map['uplink'])
+        device_config = { 'devices' : {} }
+        ovs_devices = cls.get_devices(controller = controller, mfr = 'Nicira')
+        for dev in ovs_devices:
+            device_id = dev['id']
+            device_config['devices'][device_id] = {}
+            device_config['devices'][device_id]['basic'] = dict(driver = 'default')
+            device_config['devices'][device_id]['accessDevice'] = dict(uplink = uplink,
+                                                                       vlan = uplink_vlan,
+                                                                       defaultVlan = defaultVlan)
 
-        # cls(aaa_app, controller = controller).deactivate()
-        # time.sleep(2)
-        # cls(aaa_app, controller = controller).activate()
-        # time.sleep(2)
+        cls.config(device_config, controller = controller)

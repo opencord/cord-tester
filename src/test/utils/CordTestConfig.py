@@ -18,6 +18,7 @@ import inspect
 import unittest
 import json
 import os
+import time
 from nose.tools import assert_not_equal
 from nose.plugins import Plugin
 from CordTestUtils import log_test as log
@@ -141,6 +142,12 @@ def setup_module(module):
     #load the sadis and aaa config
     OnosCtrl.sadis_load_config(olt_switch_map = olt_switch_map)
     OnosCtrl.aaa_load_config()
+    #OnosCtrl('org.opencord.aaa').deactivate()
+    #time.sleep(3)
+    #OnosCtrl('org.opencord.aaa').activate()
+    #time.sleep(3)
+    if voltha_enabled is False:
+        OnosCtrl.config_olt_access(VolthaCtrl.UPLINK_VLAN_START)
 
 def teardown_module(module):
     class_test = get_test_class(module)

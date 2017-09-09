@@ -31,7 +31,7 @@
 #
 from CordContainer import Container, Onos, OnosStopWrapper, OnosCord, OnosCordStopWrapper, Quagga, QuaggaStopWrapper, Radius, reinitContainerClients
 from OltConfig import OltConfig
-from EapolAAA import get_radius_macs
+from EapolAAA import get_radius_macs, get_radius_networks
 from nose.tools import nottest
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 from resource import getrlimit, RLIMIT_NOFILE
@@ -144,14 +144,18 @@ class CordTestServer(object):
         port_map, _ = olt.olt_port_map()
         Radius(prefix = Container.IMAGE_PREFIX, restart = True)
         radius_macs = get_radius_macs(len(port_map['radius_ports']))
+        radius_networks = get_radius_networks(len(port_map['switch_radius_port_list']))
         radius_intf_index = 0
-        radius_intf_subnet = Radius.SUBNET_PREFIX
+        index = 0
         for host_intf, ports in port_map['switch_radius_port_list']:
+            prefix, subnet, _ = radius_networks[index]
+            mask = subnet.split('/')[-1]
+            index += 1
             for port in ports:
                 guest_if = 'eth{}'.format(radius_intf_index + 2)
                 port_index = port_map[port]
                 local_if = 'r{}'.format(port_index)
-                guest_ip = '{}.{}/24'.format(radius_intf_subnet, port_index)
+                guest_ip = '{}.{}/{}'.format(prefix, port_index, mask)
                 mac = radius_macs[radius_intf_index]
                 radius_intf_index += 1
                 pipework_cmd = 'pipework {0} -i {1} -l {2} {3} {4} {5}'.format(host_intf, guest_if,

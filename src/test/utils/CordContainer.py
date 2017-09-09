@@ -47,6 +47,8 @@ from docker import utils as dockerutils
 import shutil
 from OnosCtrl import OnosCtrl
 from OnosLog import OnosLog
+from OltConfig import OltConfig
+from EapolAAA import radius_add_users, radius_restore_users
 from onosclidriver import OnosCliDriver
 from threadPool import ThreadPool
 from threading import Lock
@@ -1086,28 +1088,38 @@ class Radius(Container):
     IMAGE = 'cordtest/radius'
     NAME = 'cord-radius'
     NETWORK = 'cord-radius-test'
-    SUBNET = '11.0.0.0/24'
-    SUBNET_PREFIX = '11.0.0'
-    GATEWAY = '11.0.0.1'
+    SOCKET_SUBNET = '11.0.0.0/24'
+    SOCKET_SUBNET_PREFIX = '11.0.0'
+    SOCKET_GATEWAY = '11.0.0.1'
 
     @classmethod
     def create_network(cls, name = NETWORK):
         try:
-            Container.create_network(name, subnet = cls.SUBNET, gateway = cls.GATEWAY)
+            Container.create_network(name, subnet = cls.SOCKET_SUBNET, gateway = cls.SOCKET_GATEWAY)
         except:
             pass
 
     def __init__(self, name = NAME, image = IMAGE, prefix = '', tag = 'candidate',
-                 boot_delay = 10, restart = False, update = False, network = None, network_disabled = False):
+                 boot_delay = 10, restart = False, update = False, network = None,
+                 network_disabled = False, olt_config = ''):
         super(Radius, self).__init__(name, image, prefix = prefix, tag = tag, command = self.start_command)
         if update is True or not self.img_exists():
             self.build_image(self.image_name)
         if restart is True and self.exists():
             self.kill()
+        else:
+            subscribers = 10
+            if olt_config:
+                port_map, _ = OltConfig(olt_config).olt_port_map()
+                if port_map:
+                    subscribers = port_map['num_ports'] * len(port_map['switch_port_list'])
+            radius_restore_users()
+            radius_add_users(subscribers)
         if not self.exists():
             self.remove_container(name, force=True)
             host_config = self.create_host_config(port_list = self.ports,
-                                                  host_guest_map = self.host_guest_map)
+                                                  host_guest_map = self.host_guest_map,
+                                                  privileged = True)
             volumes = []
             for _,g in self.host_guest_map:
                 volumes.append(g)
