@@ -61,12 +61,14 @@ class dhcpl2relay_exchange(CordLogger):
     app = 'org.opencord.dhcpl2relay'
     sadis_app = 'org.opencord.sadis'
     app_dhcp = 'org.onosproject.dhcp'
+    app_olt = 'org.onosproject.olt'
     relay_interfaces_last = ()
     interface_to_mac_map = {}
     host_ip_map = {}
     test_path = os.path.dirname(os.path.realpath(__file__))
     dhcp_data_dir = os.path.join(test_path, '..', 'setup')
     dhcpl2_app_file = os.path.join(test_path, '..', 'apps/dhcpl2relay-1.0.0.oar')
+    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.3.0-SNAPSHOT.oar')
     sadis_app_file = os.path.join(test_path, '..', 'apps/sadis-app-1.0.0-SNAPSHOT.oar')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config_voltha_local.json'))
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
@@ -96,6 +98,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     #just in case we want to reset ONOS to default network cfg after relay tests
     onos_restartable = bool(int(os.getenv('ONOS_RESTART', 0)))
     configs = {}
+    sadis_configs = {}
+    default_onos_netcfg = {}
 
     @classmethod
     def update_apps_version(cls):
@@ -139,33 +143,42 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         #cls.dhcpd_start()
 
     def setUp(self):
+        self.default_onos_netcfg = OnosCtrl.get_config()
         super(dhcpl2relay_exchange, self).setUp()
+        self.dhcp_l2_relay_setup()
+        self.cord_sadis_load()
+        self.cord_l2_relay_load()
 
     def tearDown(self):
         super(dhcpl2relay_exchange, self).tearDown()
         OnosCtrl.uninstall_app(self.dhcpl2_app_file)
         OnosCtrl.uninstall_app(self.sadis_app_file)
+        OnosCtrl.uninstall_app(self.olt_app_file)
 
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the cord dhcpl2relay app'''
-        #try:
-        #    os.unlink('{}/dhcpd.conf'.format(cls.dhcp_data_dir))
-        #    os.unlink('{}/dhcpd.leases'.format(cls.dhcp_data_dir))
-        #except: pass
-        OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
-        OnosCtrl.uninstall_app(cls.sadis_app_file)
+#        OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
+#        OnosCtrl.uninstall_app(cls.sadis_app_file)
         cls.onos_ctrl.deactivate()
-        OnosCtrl(cls.app).deactivate()
-        #cls.dhcpd_stop()
+ #       OnosCtrl(cls.app).deactivate()
+        OnosCtrl(cls.sadis_app).deactivate()
+        OnosCtrl(cls.app_olt).deactivate()
         #cls.dhcp_l2_relay_cleanup()
 
     @classmethod
     def dhcp_l2_relay_setup(cls):
-        did = OnosCtrl.get_device_id()
-        #cls.relay_device_id = did
-        ### Have to change hard coded value in relay device variable on later merges
-        cls.relay_device_id = 'of:000012b722fd4948'
+        did = OnosCtrl.get_device_ids()
+        device_details = OnosCtrl.get_devices()
+        if device_details is not None:
+           for device in device_details:
+             ## Assuming only one OVS is detected on ONOS and its for external DHCP server connect point...
+             if device['available'] is True and device['driver'] == 'ovs':
+                did_ovs = device['id']
+        else:
+           log_test.info('On this DHCPl2relay setup, onos does not have ovs device where external DHCP server is have connect point, so return with false status')
+           return False
+        cls.relay_device_id = did_ovs
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, _ = cls.olt.olt_port_map()
         if cls.port_map:
@@ -202,6 +215,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         ##reset the ONOS port configuration back to default
         for config in cls.configs.items():
             OnosCtrl.delete(config)
+        cls.onos_load_config(cls.default_onos_config)
         # if cls.onos_restartable is True:
         #     log_test.info('Cleaning up dhcp relay config by restarting ONOS with default network cfg')
         #     return cord_test_onos_restart(config = {})
@@ -209,6 +223,14 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     @classmethod
     def onos_load_config(cls, config):
         status, code = OnosCtrl.config(config)
+        if status is False:
+            log_test.info('JSON request returned status %d' %code)
+            assert_equal(status, True)
+        time.sleep(3)
+
+    @classmethod
+    def onos_delete_config(cls, config):
+        status, code = OnosCtrl.delete(config)
         if status is False:
             log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
@@ -232,27 +254,55 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         cls.configs['interface_config'] = interface_dict
 
     @classmethod
-    def cord_l2_relay_load(cls):
+    def cord_l2_relay_load(cls,dhcp_server_connectPoint = None, delete = False):
         OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
         #relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
-        relay_device_map = "{}/12".format(cls.relay_device_id)
+        #### We have to work on later versions by removing these hard coded values
+        relay_device_map = "{}/1".format(cls.relay_device_id)
+        relay_device_map3 = "{}/3".format(cls.relay_device_id)
+        relay_device_map4 = "{}/4".format(cls.relay_device_id)
+        relay_device_map5 = "{}/5".format(cls.relay_device_id)
+        relay_device_map6 = "{}/6".format(cls.relay_device_id)
+        relay_device_map7 = "{}/7".format(cls.relay_device_id)
+        relay_device_map8 = "{}/8".format(cls.relay_device_id)
+        relay_device_map9 = "{}/9".format(cls.relay_device_id)
+        relay_device_map10 = "{}/10".format(cls.relay_device_id)
+        relay_device_map11 = "{}/11".format(cls.relay_device_id)
+        relay_device_map12 = "{}/12".format(cls.relay_device_id)
+        if dhcp_server_connectPoint is None:
+           dhcp_server_connectPoint = [relay_device_map,relay_device_map3,relay_device_map4,relay_device_map5,relay_device_map6,relay_device_map7,relay_device_map8,relay_device_map9,relay_device_map10,relay_device_map11,relay_device_map12]
         print relay_device_map
         dhcp_dict = { "apps" : { "org.opencord.dhcpl2relay" : {"dhcpl2relay" :
-                                   {"dhcpserverConnectPoint":[relay_device_map]}
+                                   {"dhcpserverConnectPoint":dhcp_server_connectPoint}
                                                         }
                             }
                     }
         print "---------------------------------------------"
         print dhcp_dict
         print "---------------------------------------------"
-        OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
+        #OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
         OnosCtrl.install_app(cls.dhcpl2_app_file)
-        cls.onos_load_config(dhcp_dict)
+        if delete == False:
+           cls.onos_load_config(dhcp_dict)
+        else:
+           cls.onos_delete_config(dhcp_dict)
+           cls.onos_load_config(cls.default_onos_config)
         cls.configs['relay_config'] = dhcp_dict
 
     @classmethod
-    def cord_sadis_load(cls):
+    def cord_sadis_load(cls, sadis_info = None):
         relay_device_id = '{}'.format(cls.relay_device_id)
+        device_details = OnosCtrl.get_devices()
+        if device_details is not None:
+           for device in device_details:
+             ## Assuming only one OVS is detected on ONOS and its for external DHCP server connect point...
+             if device['available'] is True and device['driver'] == 'pmc-olt':
+                cls.olt_serial_id = "{}".format(device['serial'])
+             else:
+                cls.olt_serial_id = " "
+        else:
+           log_test.info('On this DHCPl2relay setup, onos does not have Tibit device where DHCP client is connected on UNI point, so return with false status')
+           return False
         sadis_dict =  { "apps": {
                 "org.opencord.sadis": {
                         "sadis": {
@@ -270,7 +320,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                                                 "nasPortId": "uni-254"
                                         },
                                         {
-                                                "id": "67cc7ae085204e3091493db645e8ae63",
+                                                "id": cls.olt_serial_id,
                                                 "hardwareIdentifier": "00:0c:e2:31:05:00",
                                                 "ipAddress": "172.17.0.1",
                                                 "nasId": "B100-NASID"
@@ -280,10 +330,63 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                 }
            }
         }
-        OnosCtrl.uninstall_app(cls.sadis_app_file)
+        #OnosCtrl.uninstall_app(cls.olt_app_file)
+        OnosCtrl.install_app(cls.olt_app_file)
+        time.sleep(5)
+        #OnosCtrl.uninstall_app(cls.sadis_app_file)
         OnosCtrl.install_app(cls.sadis_app_file)
+        if sadis_info:
+           sadis_dict = sadis_info
         cls.onos_load_config(sadis_dict)
-        cls.configs['relay_config'] = sadis_dict
+        cls.sadis_configs['relay_config'] = sadis_dict
+
+    def sadis_info_dict(self, subscriber_port_id =None, c_tag = None, s_tag = None, nas_port_id =None,olt_serial_id =None,olt_mac=None,olt_ip =None,olt_nas_id=None):
+        ### Need to work on these hard coded values on later merges
+        if subscriber_port_id is None:
+           subscriber_port_id = "uni-254"
+        if c_tag is None:
+           c_tag = 202
+        if s_tag is None:
+           s_tag = 222
+        if nas_port_id is None:
+           nas_port_id = "uni-254"
+        if olt_serial_id is None:
+           olt_serial_id = self.olt_serial_id
+        if olt_mac is None:
+           olt_mac = "00:0c:e2:31:05:00"
+        if olt_ip is None:
+           olt_ip = "172.17.0.1"
+        if olt_nas_id is None:
+           olt_nas_id = "B100-NASID"
+        sadis_dict =  { "apps": {
+                "org.opencord.sadis": {
+                        "sadis": {
+                                "integration": {
+                                        "cache": {
+                                                "enabled": "true",
+                                                "maxsize": 50,
+                                                "ttl": "PT1m"
+                                        }
+                                },
+                                "entries": [{
+                                                "id": subscriber_port_id,
+                                                "cTag": c_tag,
+                                                "sTag": s_tag,
+                                                "nasPortId": nas_port_id
+                                        },
+                                        {
+                                                "id": olt_serial_id,
+                                                "hardwareIdentifier": olt_mac,
+                                                "ipAddress": olt_ip,
+                                                "nasId": olt_nas_id
+                                        }
+                                ]
+                        }
+                }
+           }
+        }
+        return sadis_dict
+
 
     @classmethod
     def get_host_ip(cls, port):
@@ -363,7 +466,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         self.send_recv(mac=mac)
 
-    def test_dhcpl2relay_app_install(self):
+    def test_dhcpl2relay_app_install(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         onos_netcfg = OnosCtrl.get_config()
         app_status = False
@@ -376,7 +479,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
            log_test.info('%s app is not being installed'%app_name)
            assert_equal(True, app_status)
 
-    def test_dhcpl2relay_netcfg(self):
+    def test_dhcpl2relay_sadis_app_install(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         onos_netcfg = OnosCtrl.get_config()
         app_status = False
@@ -389,26 +492,25 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
            log_test.info('%s app is not being installed'%app_name)
            assert_equal(True, app_status)
 
-    def test_dhcpl2relay_with_array_of_connect_points_for_dhcp_server(self):
-        pass
-
-    def test_dhcpl2relay_with_subscriber_configured_with_ctag_stag_as_per_sadis(self):
-        pass
-
-    def test_dhcpl2relay_app_activation_and_deactivation_multiple_times(self):
-        iterations = 10
-        for i in range(iterations):
-            cls.onos_ctrl.activate()
-            log_test.info('Dhcpl2relay app is tested activating and deactivating app multiple times  %s '%iterations)
-            mac = self.get_mac(iface)
-            self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-            self.send_recv(mac=mac)
-            cls.onos_ctrl.deactivate()
-            time.sleep(3)
-
-    def test_dhcpl2relay_without_sadis_app(self):
+    def test_dhcpl2relay_netcfg(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
+        onos_netcfg = OnosCtrl.get_config()
+        app_status = False
+        app_name = 'org.opencord.dhcpl2relay'
+        for app in onos_netcfg['apps']:
+            if app == app_name:
+               log_test.info('%s app is being installed'%app)
+               if onos_netcfg['apps'][app_name] == {}:
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
+               else:
+                  log_test.info('The network configuration is shown = %s'%onos_netcfg['apps'][app_name])
+                  app_status = True
+        if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown'%app_name)
+           assert_equal(True, False)
+
+    def test_dhcpl2relay_sadis_netcfg(self, iface = 'veth0'):
+        mac = self.get_mac(iface)
         onos_netcfg = OnosCtrl.get_config()
         app_status = False
         app_name = 'org.opencord.sadis'
@@ -416,52 +518,108 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
-               elif onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'] == dhcp_server_array_connectPoints:
-                  log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
+               else:
+                  log_test.info('The network configuration is shown = %s'%(onos_netcfg['apps'][app_name]))
                   app_status = True
         if app_status is not True:
-           ## Testing dhcpl2relay with out Sadis app in ONOS app_status should be failed
-           assert_equal(False, False)
-        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-        cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
-        assert_equal(cip,None)
+           log_test.info('%s app is not installed or network configuration is not shown'%app_name)
+           assert_equal(True, False)
 
-    def test_dhcpl2relay_delete_and_add_for_sadis_app(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_array_of_connect_points_for_dhcp_server(self, iface = 'veth0'):
+        relay_device_map = '{}/{}'.format(self.relay_device_id, self.relay_interface_port)
+        relay_device_map1 = '{}/1'.format(self.relay_device_id)
+        relay_device_map2 = '{}/9'.format(self.relay_device_id)
+        relay_device_map3 = '{}/6'.format(self.relay_device_id)
+        relay_device_map4 = '{}/7'.format(self.relay_device_id)
+        dhcp_server_array_connectPoints = [relay_device_map,relay_device_map1,relay_device_map2,relay_device_map3,relay_device_map4]
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
+        self.onos_delete_config(self.configs['relay_config'])
+        self.onos_load_config(self.default_onos_netcfg)
+        self.cord_l2_relay_load(dhcp_server_connectPoint = dhcp_server_array_connectPoints, delete = False)
         onos_netcfg = OnosCtrl.get_config()
         app_status = False
-        app_name = 'org.opencord.sadis'
+        app_name = 'org.opencord.dhcpl2relay'
         for app in onos_netcfg['apps']:
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'] == dhcp_server_array_connectPoints:
-                  log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'])
+                  log_test.info('The network configuration is shown = %s'%onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'])
                   app_status = True
         if app_status is not True:
-           ## Testing dhcpl2relay with out Sadis app in ONOS app_statu should be failed
-           assert_equal(False, False)
+           log_test.info('%s app is not installed or network configuration is not shown'%app_name)
+           assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-        cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
-        assert_equal(cip,None)
-        self.onos_load_config(self.sadis_configs['relay_config'])
         self.send_recv(mac=mac)
 
-    def test_dhcpl2relay_with_option_82(self):
-        pass
 
-    def test_dhcpl2relay_without_option_82(self):
-        pass
-
-    def test_dhcl2relay_for_option82_without_configuring_dhcpserver_to_accept_option82(self):
-        pass
-
-    def test_dhcpl2relay_with_uni_port_entry_in_sadis_config(self):
+    def test_dhcpl2relay_with_subscriber_configured_with_ctag_stag_as_per_sadis(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
+        c_tag = 600
+        invalid_sadis_info = self.sadis_info_dict(c_tag = 600,s_tag = 500)
+        self.cord_sadis_load(sadis_info = invalid_sadis_info)
+        onos_netcfg = OnosCtrl.get_config()
+        app_status = False
+        app_name = 'org.opencord.sadis'
+        for app in onos_netcfg['apps']:
+            if app == app_name:
+               log_test.info('%s app is being installed'%app)
+               if onos_netcfg['apps'][app_name] == {}:
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
+               elif onos_netcfg['apps'][app_name]['sadis']['entries'][0]['cTag'] == c_tag:
+                  log_test.info('The S Tag and C Tag info from network configuration are %s and %s respectively '%(onos_netcfg['apps'][app_name]['sadis']['entries'][0]['sTag'],onos_netcfg['apps'][app_name]['sadis']['entries'][0]['cTag']))
+                  app_status = True
+        if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
+           assert_equal(True, False)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
+        assert_equal(cip,None)
+
+    def test_dhcpl2relay_app_activation_and_deactivation_multiple_times(self, iface = 'veth0'):
+        iterations = 15
+        for i in range(iterations):
+            self.onos_ctrl.deactivate()
+            time.sleep(3)
+            self.onos_ctrl.activate()
+        log_test.info('Dhcpl2relay app is activated and deactivated multiple times around %s, now sending DHCP discover'%iterations)
+        mac = self.get_mac(iface)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        self.send_recv(mac=mac)
+
+    def test_dhcpl2relay_without_sadis_app(self, iface = 'veth0'):
+        mac = self.get_mac(iface)
+        OnosCtrl.uninstall_app(self.sadis_app_file)
+        OnosCtrl(self.sadis_app).deactivate()
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
+        assert_equal(cip,None)
+
+    def test_dhcpl2relay_delete_and_add_sadis_app(self, iface = 'veth0'):
+        mac = self.get_mac(iface)
+        OnosCtrl.uninstall_app(self.sadis_app_file)
+        OnosCtrl(self.sadis_app).deactivate()
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
+        assert_equal(cip,None)
+        OnosCtrl.uninstall_app(self.sadis_app_file)
+        OnosCtrl(self.sadis_app).deactivate()
+        #self.onos_load_config(self.sadis_configs['relay_config'])
+        self.send_recv(mac=mac)
+
+    def test_dhcpl2relay_with_option_82(self, iface = 'veth0'):
+        pass
+
+    def test_dhcpl2relay_without_option_82(self, iface = 'veth0'):
+        pass
+
+    def test_dhcl2relay_for_option82_without_configuring_dhcpserver_to_accept_option82(self, iface = 'veth0'):
+        pass
+
+    def test_dhcpl2relay_with_different_uni_port_entry_sadis_config(self, iface = 'veth0'):
+        mac = self.get_mac(iface)
         subscriber_port_id = "uni-200"
         invalid_sadis_info = self.sadis_info_dict(subscriber_port_id = "uni-200")
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
@@ -472,20 +630,21 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][0]['id'] == subscriber_port_id:
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][0]['id'])
+                  log_test.info('The network configuration is shown = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][0]['id']))
                   app_status = True
         if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
+
            assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
 
-    def test_dhcpl2relay_with_different_ctag_options(self):
+    def test_dhcpl2relay_with_different_ctag_options(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
-        c_tag = 600 #Example
+        c_tag = 600
         invalid_sadis_info = self.sadis_info_dict(c_tag = 600)
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
         onos_netcfg = OnosCtrl.get_config()
@@ -495,19 +654,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][0]['cTag'] == c_tag:
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][0]['cTag'])
+                  log_test.info('The C Tag info from network configuration is = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][0]['cTag']))
                   app_status = True
         if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
            assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
 
-    def test_dhcpl2relay_with_different_stag_options(self):
+    def test_dhcpl2relay_with_different_stag_options(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
         s_tag = 600
         invalid_sadis_info = self.sadis_info_dict(s_tag = 600)
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
@@ -518,19 +677,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][0]['sTag'] == s_tag:
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][0]['sTag'])
+                  log_test.info('The S Tag info from the network configuration is = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][0]['sTag']))
                   app_status = True
         if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
            assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
 
-    def test_dhcpl2relay_with_nasportid_option_in_sadis(self):
+    def test_dhcpl2relay_without_nasportid_option_in_sadis(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
         invalid_sadis_info = self.sadis_info_dict(nas_port_id = " ")
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
         onos_netcfg = OnosCtrl.get_config()
@@ -540,19 +699,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][0]['nasPortId'] == " ":
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][0]['nasPortId'])
+                  log_test.info('The nasPortId info from network configuration is shown = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][0]['nasPortId']))
                   app_status = True
         if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
            assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
 
-    def test_dhcpl2relay_with_nasportid_different_from_id(self):
+    def test_dhcpl2relay_with_nasportid_different_from_id(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
         nas_port_id = "uni-509"
         invalid_sadis_info = self.sadis_info_dict(nas_port_id = "uni-509")
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
@@ -563,19 +722,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][0]['nasPortId'] == nas_port_id:
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][0]['nasPortId'])
+                  log_test.info('The nasPortId info from network configuration is shown = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][0]['nasPortId']))
                   app_status = True
         if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
            assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
 
-    def test_dhcpl2relay_with_serial_id_of_olt(self):
+    def test_dhcpl2relay_without_serial_id_of_olt(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
         invalid_sadis_info = self.sadis_info_dict(olt_serial_id = " ")
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
         onos_netcfg = OnosCtrl.get_config()
@@ -585,19 +744,19 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][1]['id'] == " ":
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][1]['id'])
+                  log_test.info('The serial Id info from network configuration is shown = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][1]['id']))
                   app_status = True
         if app_status is not True:
+           log_test.info('%s app is not installed or network configuration is not shown '%app_name)
            assert_equal(True, False)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
 
-    def test_dhcpl2relay_with_wrong_serial_id_of_olt(self):
+    def test_dhcpl2relay_with_wrong_serial_id_of_olt(self, iface = 'veth0'):
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.sadis_configs['relay_config'])
         olt_serial_id = "07f20d06696041febf974ccdhdhhjh37"
         invalid_sadis_info = self.sadis_info_dict(olt_serial_id = "07f20d06696041febf974ccdhdhhjh37")
         self.cord_sadis_load(sadis_info = invalid_sadis_info)
@@ -608,9 +767,9 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             if app == app_name:
                log_test.info('%s app is being installed'%app)
                if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('%s app is being installed but network configuration is not shown'%onos_netcfg['apps'][app_name])
+                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
                elif onos_netcfg['apps'][app_name]['sadis']['entries'][1]['id'] == olt_serial_id:
-                  #log_test.info('%s app is being installed but network configuration is shown = %s'%onos_netcfg['apps'][app_name]['sadis']['entries'][1]['id'])
+                  log_test.info('The serial Id info from network configuration is shown = %s'%(onos_netcfg['apps'][app_name]['sadis']['entries'][1]['id']))
                   app_status = True
         if app_status is not True:
            assert_equal(True, False)
