@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba57610f_c83d8fbd",
+        "filename": "src/test/cord-api/Properties/RestApiProperties.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2017-09-12T16:48:46Z",
+      "side": 1,
+      "message": "I\u0027d suggest you to read this from a local .env file instead of committing them to a repo.",
+      "range": {
+        "startLine": 19,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 35
+      },
+      "revId": "63ea58ac9a810fc58e5c7775ae6d1786e360f0df",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
