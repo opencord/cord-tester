@@ -11,7 +11,7 @@
                         "image_id": 3,
                         "creator_id": 1,
                         "deployment_id": 1,
-                        "slice_id": 1,
+                        "slice_id": 5,
                         "node_id": 1,
                         "flavor_id": 1
                 }
