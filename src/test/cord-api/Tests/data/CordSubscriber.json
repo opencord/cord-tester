@@ -2,7 +2,6 @@
     "CordSubscriberInfo": [
         {
             "backend_status": "0 - Provisioning in progress",
-            "kind": "CordSubscriberRoot",
             "name": "Test-House-1",
             "service_specific_id": "1",
             "firewall_rules": "accept all anywhere anywhere",
