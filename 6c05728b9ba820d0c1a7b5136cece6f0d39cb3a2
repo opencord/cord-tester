@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "9a5c5d37_276d7a05",
+        "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1000020
+      },
+      "writtenOn": "2017-09-13T01:23:25Z",
+      "side": 1,
+      "message": "Please get rid of all trailing spaces in file.",
+      "parentUuid": "9a5c5d37_e7af622a",
+      "revId": "6c05728b9ba820d0c1a7b5136cece6f0d39cb3a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_c7ac5e38",
         "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
         "patchSetId": 2
