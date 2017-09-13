@@ -71,11 +71,11 @@ Execute Command on CIAB Server in Specific VM
     [Return]    ${output}
 
 Execute Command on Compute Node in CIAB
-    [Arguments]    ${system}    ${hostname}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True
+    [Arguments]    ${system}    ${node}    ${hostname}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True
     [Documentation]    SSHs into ${HOST} where CIAB is running and executes a command in the Prod Vagrant VM where all the containers are running
     ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=${prompt}    timeout=300s
     Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}    ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/${SSH_KEY}    any
-    SSHLibrary.Write    ssh prod
+    SSHLibrary.Write    ssh ${node}
     SSHLibrary.Read Until Prompt
     SSHLibrary.Write    ssh root@${hostname}
     SSHLibrary.Read Until    \#
@@ -92,7 +92,7 @@ Execute Command Locally
 Get Docker Container ID
     [Arguments]    ${system}    ${container_name}    ${user}=${USER}    ${password}=${PASSWD}
     [Documentation]    Retrieves the id of the requested docker container running inside given ${HOST}
-    ${container_id}=    Execute Command on CIAB Server in Specific VM    ${system}    prod    docker ps | grep ${container_name} | awk '{print $1}'    ${user}    ${password}
+    ${container_id}=    Execute Command on CIAB Server in Specific VM    ${system}    head1    docker ps | grep ${container_name} | awk '{print $1}'    ${user}    ${password}
     Log    ${container_id}
     [Return]    ${container_id}
 
@@ -103,7 +103,7 @@ Get Docker Logs
     ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=$    timeout=300s
     SSHLibrary.Login With Public Key    ${USER}    %{HOME}/.ssh/${SSH_KEY}    any
     #SSHLibrary.Login    ${HOST_USER}    ${HOST_PASSWORD}
-    SSHLibrary.Write    ssh prod
+    SSHLibrary.Write    ssh head1
     SSHLibrary.Read Until    ${prompt}
     SSHLibrary.Write    docker logs -t ${container_id}
     ${container_logs}=    SSHLibrary.Read Until    ${prompt}

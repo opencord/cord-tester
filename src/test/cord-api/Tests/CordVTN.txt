@@ -17,6 +17,7 @@ Resource           ../Framework/utils/utils.robot
 *** Variables ***
 ${VM_USER}                         admin
 ${VM_PASS}                         admin
+${head_node}                       head1
 ${SSH_KEY}                         id_rsa.pub
 ${ONOS_CORDVTN_API}                http://onos-cord:8182/onos/cordvtn
 ${CORE_SERVICE_PATHFILE}           ${CURDIR}/data/Service.json
@@ -47,7 +48,7 @@ Validate Current VTN Service Networks and Ports
 Validate Default Subscriber
     [Documentation]    Validates the default subscriber set up in CIAB (My House)
     [Tags]    vsg
-    ${resp}=    CORD GET    ${SERVER_IP}    ${VOLT_SUBSCRIBER}/1
+    ${resp}=    CORD GET    ${SERVER_IP}    ${VOLT_SUBSCRIBER}/5
     Should Be Equal As Strings    ${resp.status_code}    200
     Log    ${resp.content}
     ${name}=    Get Json Value    ${resp.content}    /name
@@ -96,6 +97,7 @@ Create New Slice with New Test Service
     [Documentation]    Makes a POST Request to XOS to create a new slice and adds new generic test service to that slice
     [Tags]    vtn    pod
     ${updatedCsList}=    utils.setFieldValueInDict    ${cslist[0]}    service_id    ${generic_service_id}
+    #${updatedCsList}=    utils.setFieldValueInDict    ${cslist[0]}    service_id    12
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SLICES}    ${updatedCsList}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -114,32 +116,39 @@ Add Networks to New Test Network Slice
     [Documentation]    Creates a new network slice for the new slice and adds mgmt and new network to it
     [Tags]    vsg    pod
     ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${network_id}
+    #${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    5
     ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
+    #${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    5
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORK_SLICES}    ${updatedCsList}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${s_id}=    Get Json Value    ${resp.content}    /slice_id
     ${n_id}=    Get Json Value    ${resp.content}    /network_id
+    #Should Be Equal As Strings    ${s_id}    5
     Should Be Equal As Strings    ${s_id}    ${new_slice_id}
     Should Be Equal As Strings    ${n_id}    ${network_id}
     ##Add mgmt network to this network slice
     ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${mgmt_network_id}
     ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
+    #${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    5
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORK_SLICES}    ${updatedCsList}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${s_id}=    Get Json Value    ${resp.content}    /slice_id
     ${n_id}=    Get Json Value    ${resp.content}    /network_id
     Should Be Equal As Strings    ${s_id}    ${new_slice_id}
+    #Should Be Equal As Strings    ${s_id}    5
     Should Be Equal As Strings    ${n_id}    ${mgmt_network_id}
 
 Create New Test Instance
     [Documentation]    Creates a new instance for the test service
     [Tags]    vsg    pod
     ${updatedCiList}=    utils.setFieldValueInDict    ${cilist[0]}    slice_id    ${new_slice_id}
+    #${updatedCiList}=    utils.setFieldValueInDict    ${cilist[0]}    slice_id    5
     ${updatedCiList}=    utils.setFieldValueInDict    ${updatedCiList}    image_id    ${image_id}
     Log    ${updatedCiList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${updatedCiList}
+    #${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${cilist[0]}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${new_instance_id}=    Get Json Value    ${resp.content}    /id
     ${slice_id}=    Get Json Value    ${resp.content}    /slice_id
@@ -148,12 +157,12 @@ Create New Test Instance
     ${name}=    Get Json Value    ${resp.content}    /name
     ${instance_name}=    Get Json Value    ${resp.content}    /instance_name
     Should Be Equal As Strings    ${slice_id}    ${new_slice_id}
+    #Should Be Equal As Strings    ${slice_id}    5
     Should Be Equal As Strings    ${i_id}    ${image_id}
     Should Be Equal As Strings    ${node_id}    1
     Should Be Equal As Strings    ${name}    "mysite_testservice"
     Should Be Equal As Strings    ${instance_name}    "mysite_testservice-1"
     Set Suite Variable    ${new_instance_id}
-    FATAL ERROR
 
 Validate New OVS Flow Count
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
@@ -164,15 +173,18 @@ Validate Creation of Openstack Resources
     [Documentation]    Retrieves openstack compute node state and validates the new network and instance has been created properly
     [Tags]    openstack    pod
     Wait Until Keyword Succeeds    300s    5s    Validate Openstack Network    test-network    2.2.2.0/24
-    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    mysite_testservice-1*    test-network
+    Sleep    300
+    ${test_instance_name}=    Get New Instance
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    ${test_instance_name}    test-network
+    Set Suite Variable    ${test_instance_name}
 
 Validate New Flows Pushed to OVS
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flows added
     [Tags]    ovsflows
-    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l"
+    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${head_node}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l"
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    2
-    ${flows_added}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int"
+    ${flows_added}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${head_node}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int"
     ${flows_added}=    Get Lines Containing String    ${flows_added}    cookie=
     Log    ${flows_added}
     ## Match src/dst (bi-directional) rules on new flows added
@@ -189,14 +201,12 @@ Create New Cord Subscriber
     ${resp}=    Cord POST    ${SERVER_IP}    ${VOLT_SUBSCRIBER}    ${updatedcsList}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${subscriber_root_id}=    Get Json Value    ${resp.content}    /id
-    ${kind}=    Get Json Value    ${resp.content}    /kind
     ${enable_uverse}=    Get Json Value    ${resp.content}    /enable_uverse
     ${uplink_speed}=    Get Json Value    ${resp.content}    /uplink_speed
     ${downlink_speed}=    Get Json Value    ${resp.content}    /downlink_speed
     ${status}=    Get Json Value    ${resp.content}    /status
     ${is_demo_user}=    Get Json Value    ${resp.content}    /is_demo_user
     ${service_specific_id}=    Get Json Value    ${resp.content}    /service_specific_id
-    Should Be Equal As Strings    ${kind}    "CordSubscriberRoot"
     Should Be Equal As Strings    ${enable_uverse}    true
     Should Be Equal As Strings    ${uplink_speed}    1000000011
     Should Be Equal As Strings    ${downlink_speed}    1000000011
@@ -216,34 +226,36 @@ Create New Volt Tenant for New Cord Subscriber
     ${c_tag}=    Generate Random Number from Blacklist    ${blacklist_tags}    1    4096    True
     Append To List    ${blacklist_tags}    ${c_tag}
     Log    ${blacklist_tags}
-    ${updatedvtList}=    utils.setFieldValueInDict    ${vtList[0]}    provider_service_id    ${volt_service_id}
-    ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    subscriber_root_id    ${subscriber_root_id}
+    ${updatedvtList}=    utils.setFieldValueInDict    ${vtList[0]}    service_specific_id    ${subscriber_root_id}
+    #${updatedvtList}=    utils.setFieldValueInDict    ${vtList[0]}    subscriber_root_id    ${subscriber_root_id}
     ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    s_tag    ${s_tag}
     ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    c_tag    ${c_tag}
     Log    ${updatedvtList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${VOLT_TENANT}    ${vtList[0]}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${volt_tenant_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${volt_tenant_id}
     ${stag}=    Get Json Value    ${resp.content}    /s_tag
     ${ctag}=    Get Json Value    ${resp.content}    /c_tag
-    ${kind}=    Get Json Value    ${resp.content}    /kind
-    ${prov_service_id}=    Get Json Value    ${resp.content}    /provider_service_id
+    ${ssid}=    Get Json Value    ${resp.content}    /service_specific_id
     Should Be Equal As Strings    ${stag}    ${s_tag}
     Should Be Equal As Strings    ${ctag}    ${c_tag}
-    Should Be Equal As Strings    ${kind}    "vOLT"
-    Should Be Equal As Strings    ${prov_service_id}    ${volt_service_id}
-    Set Suite Variable    ${volt_tenant_id}
+    Should Be Equal As Strings   ${ssid}    "${subscriber_root_id}"
 
 Validate Creation of New Subscriber Instance
     [Documentation]    Validates instance (vm) for new subscriber is created in the vsg slice
     [Tags]    openstack
-    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    mysite_vsg-*    mysite_vsg-access
+    Sleep    300
+    ${new_vsg_instance}=    Get New Instance
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    ${new_vsg_instance}    mysite_vsg-access
+    Set Suite Variable    ${new_vsg_instance}
 
 Delete Volt Tenant
     [Documentation]    Deletes new volt tenant
     [Tags]    delete
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${VOLT_TENANT}    ${volt_tenant_id}
     Should Be Equal As Strings    ${resp.status_code}    200
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    ${new_vsg_instance}    mysite_vsg-access    destroyed=True
 
 Delete Cord Subscriber
     [Documentation]    Deletes new cord subscriber
@@ -254,9 +266,9 @@ Delete Cord Subscriber
 Delete Test Instance
     [Documentation]    Deletes the test instance created previously
     [Tags]    delete    pod
-    Sleep    300
     ${resp}=    Cord DELETE    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${new_instance_id}
     Should Be Equal As Strings    ${resp.status_code}    200
+    Wait Until Keyword Succeeds    300s    5s    Validate Openstack Nova Instance    ${test_instance_name}    test-network    destroyed=True
 
 Delete Test Slice
     [Documentation]    Deletes the test slice created previously
@@ -282,15 +294,15 @@ Delete Test Service
 Validate OVS Flow Count Back to Default
     [Documentation]    Logs into the compute-node where OVS is running and validates the new flow count (new flow rules for new volt tenant instance)
     [Tags]    ovsflows
-    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    ${final_flow_count}
+    Wait Until Keyword Succeeds    60s    5s    Validate Flow Count    ${default_flow_count}
 
 Validate New Flows Removed From OVS
     [Documentation]    Validates that the flow rules added by ONOS from the network creation has been removed
     [Tags]    ovsflows
-    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l"
+    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${head_node}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | grep 2.2.2.0 | wc -l"
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    0
-    ${flows_added}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int"
+    ${flows_added}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${head_node}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int"
     ${flows_added}=    Get Lines Containing String    ${flows_added}    cookie=
     Log    ${flows_added}
     ## Validate flow rules arent in the flows table
@@ -315,10 +327,11 @@ Suite Setup
     ${image_id}=    Get ID    ${CH_CORE_IMAGES}    name    trusty-server-multi-nic
     Set Suite Variable    ${image_id}
     ##Get compute node information
-    ${compute_node_hostname}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $2}'    ELSE    Execute Command Locally    cord prov list | grep node | awk '{print $2}'
-    ${compute_node_ip}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    cord prov list | grep node | awk '{print $4}'    ELSE    Execute Command Locally    cord prov list | grep node | awk '{print $4}'
+    ${compute_node_hostname}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    ${head_node}    cord prov list | grep node | awk '{print $2}'    ELSE    Execute Command Locally    cord prov list | grep node | awk '{print $2}'
+    ${compute_node_ip}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    ${head_node}    cord prov list | grep node | awk '{print $4}'    ELSE    Execute Command Locally    cord prov list | grep node | awk '{print $4}'
     Set Suite Variable    ${compute_node_hostname}
-    set suite variable    ${compute_node_ip}
+    Set Suite Variable    ${compute_node_ip}
+    Get List of Instances
 
 Suite Teardown
     Delete All Sessions
@@ -449,7 +462,7 @@ Get ID
 Validate Flow Count
     [Documentation]    Gets the count of the flows pushed to an ovs switch and validates that against expected count
     [Arguments]    ${count}
-    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | wc -l"
+    ${ovs_flow_count}=    Run Keyword If    '${ciab_local}' == 'False'        Execute Command on Compute Node in CIAB    ${SERVER_IP}    ${head_node}    ${compute_node_hostname}    ovs-ofctl dump-flows br-int | wc -l    ELSE    Execute Command Locally    ssh -q root@${compute_node_hostname} "ovs-ofctl dump-flows br-int | wc -l"
     ${ovs_flow_count}=    Get Line    ${ovs_flow_count}    0
     Should Be Equal As Integers    ${ovs_flow_count}    ${count}
 
@@ -480,15 +493,15 @@ Get Tags in Use
    [Return]    @{tag_blacklist}
 
 Get Openstack Info
-    [Documentation]    Executes a command in the prod vm in a CIAB environment where openstack is running
+    [Documentation]    Executes a command in the headnode vm in a CIAB environment where openstack is running
     [Arguments]    ${cmd}
-    ${output}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    prod    source /home/vagrant/admin-openrc.sh; ${cmd}    strip_line=False    ELSE    Execute Command Locally    . %{HOME}/admin-openrc.sh; ${cmd}
+    ${output}=    Run Keyword If    '${ciab_local}' == 'False'    Execute Command on CIAB Server in Specific VM    ${SERVER_IP}    ${head_node}    source /opt/cord_profile/admin-openrc.sh; ${cmd}    strip_line=False    ELSE    Execute Command Locally    . /opt/cord_profile/admin-openrc.sh; ${cmd}
     Log    ${output}
     [Return]    ${output}
 
 Validate Openstack Network
     [Documentation]    Validates that a particular network/subnet exists
-    [Arguments]    ${network_name}    ${subnet}
+    [Arguments]    ${network_name}    ${subnet}    ${destroyed}=False
     ${netlist}=    Get Openstack Info    neutron net-list
     Log    ${netlist}
     ${NET_DICT}=    openstackUtils.Get Neutron Lists    ${netlist}
@@ -496,11 +509,45 @@ Validate Openstack Network
     ${test-net}=    Get From Dictionary    ${NET_DICT}    ${network_name}
     Should Contain    ${test-net}    ${subnet}
 
+
 Validate Openstack Nova Instance
     [Documentation]    Validates that a particular nova instance/tenant exists
     [Arguments]    ${instance_name}    ${network}    ${destroyed}=False
     ${novalist}=    Get Openstack Info    nova list --all-tenants
     Log    ${novalist}
+    Run Keyword If    '${destroyed}' == 'True'    Should Not Contain    ${novalist}    ${instance_name}
+    ${INSTANCE_STATUS}=    openstackUtils.Get Instance Status    ${novalist}    ${instance_name}
+    Run Keyword If    '${destroyed}' == 'False'    Should Contain    ${INSTANCE_STATUS}    ACTIVE
     ${NOVA_DICT}=    openstackUtils.Get Nova Lists    ${novalist}    ${instance_name}
-    Log    ${NOVA_DICT}
-    Should Contain    ${NOVA_DICT}    ${network}
+    Run Keyword If    '${destroyed}' == 'False'    Should Contain    ${NOVA_DICT}    ${network}
+
+Get List of Instances
+    ${instances}=    Create List
+    Set Suite Variable    ${instances}
+    ${resp}=    Cord GET    ${SERVER_IP}    ${CH_CORE_INSTANCES}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${jsondata}=    To Json    ${resp.content}
+    Log    ${jsondata}
+    ${instance_length}=    Get Length    ${jsondata['items']}
+    : FOR    ${INDEX}    IN RANGE    0    ${instance_length}
+    \    ${item}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${name}=    Get From Dictionary    ${item}    instance_name
+    \    Append To List    ${instances}    ${name}
+    Log    ${instances}
+    Set Suite Variable    ${instance_length}
+
+Get New Instance
+    ${new_instance}=    Set Variable    null
+    ${resp}=    Cord GET    ${SERVER_IP}    ${CH_CORE_INSTANCES}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${jsondata}=    To Json    ${resp.content}
+    Log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
+    \    ${item}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${name}=    Get From Dictionary    ${item}    instance_name
+    \    ${passed}=    Run Keyword And Return Status    List Should Contain Value    ${instances}    ${name}
+    \    ${new_instance}=    Set Variable If    '${passed}' == 'False'    ${name}    ${new_instance}
+    Log    ${new_instance}
+    Append To List    ${instances}    ${new_instance}
+    [Return]    ${new_instance}
