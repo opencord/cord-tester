@@ -1,0 +1,89 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_e7af622a",
+        "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1000020
+      },
+      "writtenOn": "2017-09-13T01:21:57Z",
+      "side": 1,
+      "message": "Please get rid of trailing spaces.",
+      "revId": "6c05728b9ba820d0c1a7b5136cece6f0d39cb3a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_c7ac5e38",
+        "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 260,
+      "author": {
+        "id": 1000020
+      },
+      "writtenOn": "2017-09-13T01:21:57Z",
+      "side": 1,
+      "message": "We may need to change this function with more generic version instead of hard coded values.",
+      "revId": "6c05728b9ba820d0c1a7b5136cece6f0d39cb3a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_a7a96a26",
+        "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 303,
+      "author": {
+        "id": 1000020
+      },
+      "writtenOn": "2017-09-13T01:21:57Z",
+      "side": 1,
+      "message": "Please remove log message specific to vendor. Remove trailing spaces also.",
+      "revId": "6c05728b9ba820d0c1a7b5136cece6f0d39cb3a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_87a66652",
+        "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 341,
+      "author": {
+        "id": 1000020
+      },
+      "writtenOn": "2017-09-13T01:21:57Z",
+      "side": 1,
+      "message": "Get rid of hardcoded values.",
+      "revId": "6c05728b9ba820d0c1a7b5136cece6f0d39cb3a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_6763721b",
+        "filename": "src/test/dhcpl2relay/dhcpl2relayTest.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 526,
+      "author": {
+        "id": 1000020
+      },
+      "writtenOn": "2017-09-13T01:21:57Z",
+      "side": 1,
+      "message": "Please get rid of trailing spaces and hard coded values for port ids.",
+      "revId": "6c05728b9ba820d0c1a7b5136cece6f0d39cb3a2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
