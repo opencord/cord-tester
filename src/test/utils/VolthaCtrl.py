@@ -447,12 +447,12 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
         if driver_configured:
             device_id, status = voltha_device_ids[0], True
         else:
-            if olt_type.startswith('maple'):
+            if olt_type.startswith('maple') or olt_ip:
                 if olt_ip:
                     log.info('Enabling %s' %olt_type)
                     device_id, status = voltha.enable_device(olt_type, address = olt_ip)
                 else:
-                    log.info('OLT IP needs to be specified for maple olt')
+                    log.info('OLT IP needs to be specified for %s' %olt_type)
             else:
                 log.info('Enabling OLT instance for %s with mac %s' %(olt_type, olt_mac))
                 device_id, status = voltha.enable_device(olt_type, olt_mac)
