@@ -73,7 +73,7 @@ Execute Command on CIAB Server in Specific VM
 Execute Command on Compute Node in CIAB
     [Arguments]    ${system}    ${node}    ${hostname}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True
     [Documentation]    SSHs into ${HOST} where CIAB is running and executes a command in the Prod Vagrant VM where all the containers are running
-    ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=${prompt}    timeout=300s
+    ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=onos>    timeout=300s
     Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}    ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/${SSH_KEY}    any
     SSHLibrary.Write    ssh ${node}
     SSHLibrary.Read Until Prompt
@@ -89,10 +89,18 @@ Execute Command Locally
     ${output}=    Run    ${cmd}
     [Return]    ${output}
 
+Execute ONOS Command
+    [Arguments]    ${onos}    ${port}    ${cmd}    ${user}=karaf    ${pass}=karaf
+    ${conn_id}=    SSHLibrary.Open Connection    ${onos}    port=${port}    prompt=onos>    timeout=300s
+    SSHLibrary.Login    ${user}    ${pass}
+    ${output}=    SSHLibrary.Execute Command    ${cmd}
+    SSHLibrary.Close Connection
+    [Return]    ${output}
+
 Get Docker Container ID
-    [Arguments]    ${system}    ${container_name}    ${user}=${USER}    ${password}=${PASSWD}
-    [Documentation]    Retrieves the id of the requested docker container running inside given ${HOST}
-    ${container_id}=    Execute Command on CIAB Server in Specific VM    ${system}    head1    docker ps | grep ${container_name} | awk '{print $1}'    ${user}    ${password}
+    [Arguments]    ${container_name}
+    [Documentation]    Retrieves the id of the requested docker container running inside headnode
+    ${container_id}=     Run    docker ps | grep ${container_name} | awk '{print $1}'
     Log    ${container_id}
     [Return]    ${container_id}
 
@@ -119,3 +127,10 @@ Remove Value From List
     \    ${value}=    Get Dictionary Values    ${list[${INDEX}]}
     \    Log    ${value[0]}
     \    Run Keyword If    '${value[0]}' == '${val}'    Remove From List    ${list}    ${INDEX}
+
+Test Ping
+    [Arguments]    ${interface}    ${host}
+    [Documentation]    Ping hosts to check connectivity
+    ${result}=   Run    ping -I ${interface} -c 5 ${host}
+    Should Contain    ${result}    64 bytes
+    Should Not Contain    ${result}    Destination Host Unreachable
