@@ -90,9 +90,9 @@ Execute Command Locally
     [Return]    ${output}
 
 Get Docker Container ID
-    [Arguments]    ${system}    ${container_name}    ${user}=${USER}    ${password}=${PASSWD}
-    [Documentation]    Retrieves the id of the requested docker container running inside given ${HOST}
-    ${container_id}=    Execute Command on CIAB Server in Specific VM    ${system}    head1    docker ps | grep ${container_name} | awk '{print $1}'    ${user}    ${password}
+    [Arguments]    ${container_name}
+    [Documentation]    Retrieves the id of the requested docker container running inside headnode
+    ${container_id}=     Run    docker ps | grep ${container_name} | awk '{print $1}'
     Log    ${container_id}
     [Return]    ${container_id}
 
@@ -119,3 +119,10 @@ Remove Value From List
     \    ${value}=    Get Dictionary Values    ${list[${INDEX}]}
     \    Log    ${value[0]}
     \    Run Keyword If    '${value[0]}' == '${val}'    Remove From List    ${list}    ${INDEX}
+
+Test Ping
+    [Arguments]    ${interface}    ${host}
+    [Documentation]    Ping hosts to check connectivity
+    ${result}=   Run Command    ping -I ${interface} -c 5 ${host}
+    Should Contain    ${result}    64 bytes
+    Should Not Contain    ${result}    Destination Host Unreachable
