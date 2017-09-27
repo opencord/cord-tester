@@ -89,10 +89,18 @@ Execute Command Locally
     ${output}=    Run    ${cmd}
     [Return]    ${output}
 
+Execute ONOS Command
+    [Arguments]    ${onos}    ${port}    ${cmd}    ${user}=karaf    ${pass}=karaf
+    ${conn_id}=    SSHLibrary.Open Connection    ${onos}    port=${port}    prompt=onos>    timeout=300s
+    SSHLibrary.Login    ${user}    ${pass}
+    ${output}=    SSHLibrary.Execute Command    ${cmd}
+    SSHLibrary.Close Connection
+    [Return]    ${output}
+
 Get Docker Container ID
-    [Arguments]    ${system}    ${container_name}    ${user}=${USER}    ${password}=${PASSWD}
-    [Documentation]    Retrieves the id of the requested docker container running inside given ${HOST}
-    ${container_id}=    Execute Command on CIAB Server in Specific VM    ${system}    head1    docker ps | grep ${container_name} | awk '{print $1}'    ${user}    ${password}
+    [Arguments]    ${container_name}
+    [Documentation]    Retrieves the id of the requested docker container running inside headnode
+    ${container_id}=     Run    docker ps | grep ${container_name} | awk '{print $1}'
     Log    ${container_id}
     [Return]    ${container_id}
 
@@ -114,8 +122,16 @@ Get Docker Logs
 Remove Value From List
     [Arguments]    ${list}    ${val}
     ${length}=    Get Length    ${list}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}-1
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
     \    Log    ${list[${INDEX}]}
     \    ${value}=    Get Dictionary Values    ${list[${INDEX}]}
     \    Log    ${value[0]}
     \    Run Keyword If    '${value[0]}' == '${val}'    Remove From List    ${list}    ${INDEX}
+    \    Run Keyword If    '${value[0]}' == '${val}'    Exit For Loop
+
+Test Ping
+    [Arguments]    ${interface}    ${host}
+    [Documentation]    Ping hosts to check connectivity
+    ${result}=   Run    ping -I ${interface} -c 5 ${host}
+    Should Contain    ${result}    64 bytes
+    Should Not Contain    ${result}    Destination Host Unreachable
