@@ -41,17 +41,41 @@ Resource      ../cord-api/Framework/utils/utils.robot
 @{JUJU_SERVICE_STATUS}    active           is ready
 @{LXD_CONTAINER_STATUS}   RUNNING
 @{BOOT_RESOURCES_OUTPUT}  ubuntu/trusty
-${FABRIC_SWITCH_PROMPT}    #
+${FABRIC_SWITCH_PROMPT}    \#
 ${FABRIC_SWITCH_USER}     root
 ${FABRIC_SWITCH_PASSWD}    onl
 @{FABRIC_SERVICE_STATUS}    is running
 ${IP_PATTERN}     (\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)
+${public_iface}               eth2
+${num_of_switches}         4
 
 *** Test Cases ***
-Verify headnode interfaces detected
-    Verify HeadNode Interfaces
+Verify Headnode Interfaces
+    Verify HeadNode Interfaces Detected
+    ##TODO: Verify fabricmip addresses on headnode ?
+    Test Ping    ${public_iface}    8.8.8.8
 
-Verify the state MAAS service
+Verify Compute Nodes Pingability
+    [Documentation]    Verifies that the two compute nodes can ping each other and the headnode
+    [Tags]    pod1
+    ##Get compute node information
+    ${compute_node1_hostname}=    Run    cord prov list | grep node | awk '{print $2}' | sed -n 1p
+    ${compute_node2_hostname}=    Run    cord prov list | grep node | awk '{print $2}' | sed -n 2p
+    ${compute_node1_ip}=    Run    cord prov list | grep node | awk '{print $4}' | sed -n 1p
+    ${compute_node2_ip}=    Run    cord prov list | grep node | awk '{print $4}' | sed -n 2p
+    ${result1}=    Run    ssh -A ubuntu@${compute_node1_hostname} "ping -c 5 ${compute_node2_hostname}"
+    ${result2}=    Run    ssh -A ubuntu@${compute_node2_hostname} "ping -c 5 ${compute_node1_hostname}"
+    Should Contain    ${result1}    64 bytes
+    Should Not Contain    ${result1}    Destination Host Unreachable
+    Should Contain    ${result2}    64 bytes
+    Should Not Contain    ${result2}    Destination Host Unreachable
+
+Verify CordVTN Nodes
+    [Documentation]    Verifies that the cordvtn app running in onos identifies the nodes?
+    [Tags]    notready
+    Log    Checking nodes/ports in onos
+
+Verify MAAS Service State
     [Template]     Verify MAAS Service
     maas-dhcpd
     maas-regiond
@@ -59,16 +83,16 @@ Verify the state MAAS service
     maas-proxy
     bind9
 
-Verify the state of MAAS Containers
+Verify MAAS Containers State
     [Template]      Verify Containers   
-    cord-maas-automation    
-    cord-maas-switchq    
-    cord-provisioner    
-    cord-ip-allocator    
-    cord-dhcp-harvester
-    config-generator    
+    maas-automation
+    maas-switchq
+    maas-provisioner
+    maas-allocator
+    maas-harvester
+    maas-generator
 
-Verify the state of XOS Containers
+Verify XOS Containers State
     [Template]      Verify Containers   
     xos-gui    
     xos-ws    
@@ -78,27 +102,24 @@ Verify the state of XOS Containers
     vrouter-synchronizer
     exampleservice-synchronizer
     vsg-synchronizer    
-    gui-extension-rcord
-    gui-extension-vtr
     vtn-synchronizer
     vtr-synchronizer
     fabric-synchronizer
     openstack-synchronizer
     xos-postgres
 
-Verify the state of ONOS Containers
+Verify ONOS Containers State
     [Template]      Verify Containers   
     onosproject/onos
     xos/onos
  
-Verify the state of other Containers
+Verify Other Containers State
     [Template]      Verify Containers   
     redis 
     mavenrepo
     registry-mirror
-    registry
 
-Verify the state of juju services
+Verify Juju Services State
     [Template]    Verify JUJU Service
     ceilometer
     ceilometer-agent
@@ -106,14 +127,14 @@ Verify the state of juju services
     keystone
     mongodb
     nagios
-    neturon-api
+    neutron-api
     nova-cloud-controller
     nova-compute
     openstack-dashboard
     percona-cluster
     rabbitmq-server
 
-Verify the state of openstack lxd containers
+Verify Openstack LXD Containers State
     [Template]    Verify Openstack LXD Containers 
     ceilometer
     glance
@@ -130,7 +151,7 @@ Verify the state of openstack lxd containers
 Verify MAAS CLI commands
     Login MAAS Server
     Verify MAAS CLI Commands   boot-resources read | jq 'map(select(.type == "Synced"))'    ubuntu/trusty
-    Verify MAAS CLI Commands   devices list | jq '.' | jq '.[]'.hostname | wc -l     3 
+    Verify MAAS CLI Commands   devices list | jq '.' | jq '.[]'.hostname | wc -l     ${num_of_switches}
     #Verify MAAS CLI Commands   events query | jq '.' | jq .events[].id | wc -l    100 
     Verify MAAS CLI Commands   fabrics read | jq '.' | jq .[].name | wc -l    4
     Verify MAAS CLI Commands   networks read | jq '.' | jq .[].name | wc -l    4
@@ -141,7 +162,7 @@ Verify MAAS CLI commands
     Logout MAAS Server
 
 Verify Fabric Switch Service
-    ${fabric_ip}=    Discover FABRIC IP    ${FABRIC_SWITCH_MAC}   
+    ${fabric_ip}=    Discover FABRIC IP
     Verify Fabric Switch Service    ${fabric_ip}    faultd
     Verify Fabric Switch Service    ${fabric_ip}    netplug 
     Verify Fabric Switch Service    ${fabric_ip}    ofdpa
@@ -157,7 +178,7 @@ Verify Fabric Switch Service
 
 
 *** Keywords ***
-Verify HeadNode Interfaces
+Verify HeadNode Interfaces Detected
     ${cmd}=    Catenate    SEPARATOR=|   sudo ethtool mgmtbr    grep 'Link detected:'    awk '{ print $3 }'
     ${output}=    Run     ${cmd} 
     Should Contain    ${output}    yes    msg= mgmtbr is not detected !!!. Reason:
@@ -165,16 +186,15 @@ Verify HeadNode Interfaces
     ${output}=    Run     ${cmd} 
     Should Contain    ${output}    yes    msg= fabric interface is not detected !!!. Reason:
 
-
 Verify Containers 
-    [Arguments]    ${name} 
-    ${cmd}=    Catenate    SEPARATOR=|   docker ps -a  grep -v grep  grep ${name}    awk '{print $7,$8,$9,$10,$11}'     
-    ${output}=    Run     ${cmd} 
-    Should Contain    ${output}    Up    msg= ${name} is not running !!!. Reason:
+    [Arguments]    ${name}
+    ${container_id}=    Get Docker Container ID    ${name}
+    ${output}=    Run     docker inspect --format="{{ .State.Running }}" ${container_id}
+    Should Contain    ${output}    true    msg=${name} is not running !!!. Reason:
 
 Verify MAAS Service
     [Arguments]    ${name}
-    ${cmd}=    Catenate   sudo service    ${name}   status 
+    ${cmd}=    Catenate   sudo service ${name} status
     ${output}=    Run     ${cmd} 
     Should Contain Any    ${output}    @{MAAS_SERVICE_STATUS}    msg= ${name} is not running !!!. Reason:
 
@@ -207,8 +227,7 @@ Logout MAAS Server
     ${output}=    Run     ${cmd} 
 
 Discover FABRIC IP
-    [Arguments]    ${fabric_mac}
-    ${cmd}   Catenate    SEPARATOR=|  cord switch list   grep -v IP   awk '{ print $3 }' 
+    ${cmd}   Catenate    SEPARATOR=|  cord switch list   grep -v IP   awk '{ print $3 }'
     ${output}=    Run     ${cmd} 
     ${ret}=    Should Match Regexp    ${output}    ${IP_PATTERN}    msg="unable to get ip"   
     [Return]   ${ret[0]} 
