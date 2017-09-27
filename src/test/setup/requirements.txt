@@ -12,11 +12,12 @@ robotframework
 robotframework-requests
 robotframework-sshlibrary
 robotframework-httplibrary
-paramiko==1.10.1
+paramiko==2.3.1
 twisted
 pexpect
 apiclient
 pyyaml
+pyopenssl
 #python-libmaas
 #maasclient
 #maasutil
