@@ -29,6 +29,7 @@ Read InputFile
     ##need to remove openstack and onos from xos_services list in each manifest as these services arent treated as typical xos synchronizers
     utils.Remove Value From List    ${dynamicServiceList}    openstack
     utils.Remove Value From List    ${dynamicServiceList}    onos
+    utils.Remove Value From List    ${dynamicServiceList}    exampleservice
     Log    ${dynamicServiceList}
 
 Verify Service Sanity
