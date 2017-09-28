@@ -97,7 +97,8 @@ class igmpproxy_exchange(CordLogger):
     PORT_RX_DEFAULT = 1
     max_packets = 100
     MAX_PORTS = 100
-    app = 'org.opencord.igmpproxy'
+    proxy_app = 'org.opencord.igmpproxy'
+    mcast_app = 'org.opencord.mcast'
     cord_config_app = 'org.opencord.config'
     test_path = os.path.dirname(os.path.realpath(__file__))
     proxy_device_id = OnosCtrl.get_device_id()
@@ -124,6 +125,7 @@ class igmpproxy_exchange(CordLogger):
             OnosCtrl.cord_olt_config(cls.olt)
         time.sleep(2)
 	cls.uninstall_cord_config_app()
+	time.sleep(2)
 	cls.install_igmpproxy()
 	cls.igmp_proxy_setup()
 
@@ -159,7 +161,7 @@ class igmpproxy_exchange(CordLogger):
         cls.proxy_device_id = did
         cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
         cls.port_map, _ = cls.olt.olt_port_map()
-        log_test.info('port map is %s'%cls.port_map)
+        #log_test.info('port map is %s'%cls.port_map)
         if cls.port_map:
             ##Per subscriber, we use 1 relay port
             try:
@@ -191,7 +193,7 @@ class igmpproxy_exchange(CordLogger):
 
     @classmethod
     def igmp_proxy_cleanup(cls):
-        #reset the ONOS port configuration back to default
+        ##reset the ONOS port configuration back to default
         for config in cls.configs.items():
             OnosCtrl.delete(config)
         # if cls.onos_restartable is True:
@@ -199,9 +201,9 @@ class igmpproxy_exchange(CordLogger):
         #     return cord_test_onos_restart(config = {})
 
     @classmethod
-    def onos_load_config(cls, config,json_file=False):
-        log_test.info('onos load config is %s'%config)
-        status, code = OnosCtrl.config(config,json_file=json_file)
+    def onos_load_config(cls, config):
+        #log_test.info('onos load config is %s'%config)
+        status, code = OnosCtrl.config(config)
         if status is False:
             log_test.info('JSON request returned status %d' %code)
             assert_equal(status, True)
@@ -225,13 +227,47 @@ class igmpproxy_exchange(CordLogger):
         cls.configs['interface_config'] = interface_dict
 
     @classmethod
-    def onos_igmp_proxy_config_load(cls):
+    def onos_igmp_proxy_config_load(cls, FastLeave = "false"):
+	#cls.proxy_interface_port = 12
         proxy_connect_point = '{}/{}'.format(cls.proxy_device_id, cls.proxy_interface_port)
-        #log_test.info('\nrelay interface port is %s'%cls.proxy_interface_port)
-        #log_test.info('\nrelay interface is %s'%cls.port_map[cls.proxy_interface_port])
-        #log_test.info('\nconnect point is %s'%proxy_connect_point)
-	#cls.onos_load_config(cls.proxy_config_file,json_file=True)
-	igmpproxy_dict = {'apps':{
+        log_test.info('\nRelay interface port is %s'%cls.proxy_interface_port)
+        log_test.info('\nRelay interface is %s'%cls.port_map[cls.proxy_interface_port])
+        log_test.info('\nConnect point is %s'%proxy_connect_point)
+	cls.onos_load_config(cls.proxy_config_file,json_file=True)
+        igmpproxy_dict = { "apps": {
+                "org.onosproject.provider.lldp": {
+                        "suppression": {
+                                "deviceTypes": ["ROADM"],
+                                "annotation": "{\"no-lldp\":null}"
+                        }
+                },
+                "org.opencord.igmpproxy": {
+                        "igmpproxy": {
+                                "globalConnectPointMode": "true",
+                                "globalConnectPoint": proxy_connect_point,
+                                "UnsolicitedTimeOut": "2",
+                                "MaxResp": "10",
+                                "KeepAliveInterval": "120",
+                                "KeepAliveCount": "3",
+                                "LastQueryInterval": "2",
+                                "LastQueryCount": "2",
+                                "FastLeave": FastLeave,
+                                "PeriodicQuery": "true",
+                                "IgmpCos": "7",
+                                "withRAUpLink": "true",
+                                "withRADownLink": "true"
+                        }
+                },
+                "org.opencord.mcast": {
+                        "multicast": {
+                                "ingressVlan": "222",
+                                "egressVlan": "17"
+                        }
+                }
+           }
+	}
+
+	"""igmpproxy_dict = {'apps':{
 				'org.opencord.igmpproxy':{
 						'igmpproxy':
                                                         {'globalConnectPointMode': 'true',
@@ -252,9 +288,9 @@ class igmpproxy_exchange(CordLogger):
 				 'org.opencord.mcast':{
                                            'ingressVlan': '222',
                                             'egressVlan': '17'
-                                        }
+                                        },
                                     }
-				}
+				}"""
 	device_dict = {'devices':{
                            cls.proxy_device_id: {
                                'basic': {
@@ -268,7 +304,7 @@ class igmpproxy_exchange(CordLogger):
                                 }
 			    }
 		      }
-	log_test.info('igmp proxy dict is %s'%igmpproxy_dict)
+	log_test.info('Igmp proxy dict is %s'%igmpproxy_dict)
         cls.onos_load_config(igmpproxy_dict)
 	cls.onos_load_config(device_dict)
         cls.configs['relay_config'] = igmpproxy_dict
@@ -291,7 +327,7 @@ class igmpproxy_exchange(CordLogger):
                  'arping -I {0} {1} -c 2'.format(iface, host),)
                  #'ifconfig {} 0'.format(iface), )
         for c in cmds:
-	    log_test.info('host load config command %s'%c)
+	    log_test.info('Host load config command %s'%c)
             os.system(c)
 
     @classmethod
@@ -338,13 +374,44 @@ class igmpproxy_exchange(CordLogger):
                       d['source'] = s or '0.0.0.0'
                       d['group'] = g
                       ssm_xlate_list.append(d)
-	  log_test.info('onos ssm table config dictionary is %s'%ssm_dict)
+	  log_test.info('ONOS ssm table config dictionary is %s'%ssm_dict)
           self.onos_load_config(ssm_dict)
           cord_port_map = {}
           for g in groups:
                 cord_port_map[g] = (self.PORT_TX_DEFAULT, self.PORT_RX_DEFAULT)
           self.igmp_channel.cord_port_table_load(cord_port_map)
           time.sleep(2)
+
+    def random_mcast_ip(self,start_ip = '224.1.1.1', end_ip = '224.1.254.254'):
+        start = list(map(int, start_ip.split(".")))
+        end = list(map(int, end_ip.split(".")))
+        temp = start
+        ip_range = []
+        ip_range.append(start_ip)
+        while temp != end:
+            start[3] += 1
+            for i in (3, 2, 1):
+                if temp[i] == 255:
+                    temp[i] = 0
+                    temp[i-1] += 1
+            ip_range.append(".".join(map(str, temp)))
+        return random.choice(ip_range)
+
+    def randomsourceip(self,start_ip = '10.10.0.1', end_ip = '10.10.0.100'):
+        start = list(map(int, start_ip.split(".")))
+        end = list(map(int, end_ip.split(".")))
+        temp = start
+        ip_range = []
+        ip_range.append(start_ip)
+        while temp != end:
+            start[3] += 1
+            for i in (3, 2, 1):
+                if temp[i] == 255:
+                    temp[i] = 0
+                    temp[i-1] += 1
+            ip_range.append(".".join(map(str, temp)))
+        return random.choice(ip_range)
+
 
     def get_igmp_intf(self):
         inst = os.getenv('TEST_INSTANCE', None)
@@ -426,7 +493,7 @@ class igmpproxy_exchange(CordLogger):
               ip_pkt = self.igmp_eth/self.igmp_ip
         pkt = ip_pkt/igmp
         IGMPv3.fixup(pkt)
-	log_test.info('sending igmp join packet %s'%pkt.show())
+	#log_test.info('sending igmp join packet %s'%pkt.show())
         sendp(pkt, iface=iface)
         if delay != 0:
             time.sleep(delay)
@@ -456,123 +523,401 @@ class igmpproxy_exchange(CordLogger):
         if delay != 0:
             time.sleep(delay)
 
-    def send_igmp_leave(self, groups, src_list = ['1.2.3.4'], ip_pkt = None, iface = 'veth0', delay = 2):
+    def send_igmp_leave(self, groups, src_list = [], ip_pkt = None, iface = 'veth0', delay = 2):
 	log_test.info('entering into igmp leave function')
         igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                       gaddr=self.IP_DST)
         for g in groups:
-              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+              #gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_EXCLUDE, mcaddr=g)
+              gr = IGMPv3gr(rtype=IGMP_V3_GR_TYPE_CHANGE_TO_INCLUDE, mcaddr=g)
               gr.sources = src_list
               igmp.grps.append(gr)
         if ip_pkt is None:
               ip_pkt = self.igmp_eth/self.igmp_ip
         pkt = ip_pkt/igmp
+	log_test.info('igmp leave packet is %s'%pkt.show())
         IGMPv3.fixup(pkt)
         sendp(pkt, iface = iface)
         if delay != 0:
             time.sleep(delay)
 
+    def verify_igmp_packets_on_proxy_interface(self,ip_dst=None,iface=None,count=1,positive_test = True):
+	log_test.info('positive test variable inside verify_igmp_packets_on_proxy_interface function is %s'%positive_test)
+	if not iface:
+		iface = self.proxy_interfaces[0]
+	if not ip_dst:
+		ip_dst = self.IP_DST
+        self.status = False if positive_test is True else True
+	#log_test.info('self.status is %s'%self.status)
+	try:
+	    def igmp_recv_cb(pkt):
+                log_test.info('igmp packet received on proxy interface %s'%pkt.show())
+                #log_test.info('igmp packet received on proxy interface %s'%pkt[Raw].show())
+                self.status = True if positive_test is True else False
+            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==ip_dst, count=count, timeout = 5, iface=iface)
+	    log_test.info('self.status is %s'%self.status)
+            #assert_equal(self.status, True)
+	except Exception as error:
+	    log_test.info('Got Unexpected error %s'%error)
+	    raise
+        #assert_equal(self.status, True)
+
+    @deferred(30)
     def test_igmpproxy_app_installation(self):
-	#self.uninstall_cord_config_app()
-        #self.install_igmpproxy()
-	auth = ('karaf','karaf')
-	url = 'http://{}:8181/onos/v1/applications'.format(self.controller)
-	for file in self.app_files:
-            with open(file, 'rb') as payload:
-                 res = requests.post(url,auth=auth,data=payload)
-	         assert_equal(res.ok, True)
-
-    def test_igmpproxy_app_netcfg(self):
-        auth = ('karaf','karaf')
-	net_cfg_url = 'http://{}:8181/onos/v1/network/configuration/'.format(self.controller)
-        with open(self.proxy_config_file, 'rb') as payload:
-             res = requests.post(net_cfg_url,auth=auth,data=payload)
-             assert_equal(res.ok, True)
-
-    def test_igmpproxy_for_first_join(self,iface='veth0'):
-        group = ['224.9.8.7']
-        src = ['10.9.8.7']
-	self.onos_igmp_proxy_config_load()
-        self.onos_ssm_table_load(group,src_list=src)
-        self.success = False
-        def recv_task():
-            def igmp_recv_cb(pkt):
-                log_test.info('igmp packet received on proxy interface')
-                self.success = True
-            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==self.IP_DST, count=1,timeout = 5, iface=self.proxy_interfaces[0])
-        t = threading.Thread(target = recv_task)
-        t.start()
-        self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
-                             iface = iface)
-        t.join()
-        assert_equal(self.success,True)
-        """
-	#############  Traffic Test
-        def recv_task():
-            def igmp_recv_cb(pkt):
-                log_test.info('igmp data traffic received on proxy interface')
-                self.success = False
-            sniff(prn = igmp_recv_cb,count=1,timeout = 5, iface=self.proxy_interfaces[0])
-        t = threading.Thread(target = recv_task)
-        t.start()
-	data = repr(monotonic.monotonic())
-        pkt2 = Ether(dst='01:00:5e:09:08:07')/IP(src='10.9.8.7',dst='224.9.8.7')/data
-	log_test.info('igmp data traffic packet is %s'%pkt2.show())
-	sendp(pkt2,iface='veth2',count=10)
-        t.join()
-        assert_equal(self.success,False)
-	"""
-
-    def test_igmpproxy_for_two_joins(self,iface='veth0'):
-        groups = ['224.9.8.7','224.9.8.8']
-        src = ['10.9.8.7']
-        self.onos_igmp_proxy_config_load()
-        self.onos_ssm_table_load(groups,src_list=src)
-        def recv_task():
-            def igmp_recv_cb(pkt):
-                log_test.info('igmp packet received on proxy interface')
-                self.success = True
-            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==self.IP_DST, count=1,timeout = 5, iface=self.proxy_interfaces[0])
-	for group in groups:
-	    self.success = False
-            t = threading.Thread(target = recv_task)
-            t.start()
-            self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
-                             iface = iface)
-            t.join()
-            assert_equal(self.success,True)
-
-    def test_igmpproxy_for_igmp_joins_on_non_proxy_interface(self,iface='veth0',non_proxy_iface='veth2'):
-        group = ['224.9.8.7']
-        src = ['10.9.8.7']
-        self.onos_igmp_proxy_config_load()
-        self.onos_ssm_table_load(group,src_list=src)
-        def recv_task():
-            def igmp_recv_cb(pkt):
-                log_test.info('igmp packet received on non-proxy interface')
-                self.success = True
-            sniff(prn = igmp_recv_cb,lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst==self.IP_DST, count=1,timeout = 5, iface=non_proxy_iface)
-        self.success = False
-        t = threading.Thread(target = recv_task)
-        t.start()
-        self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
-                         iface = iface)
-        t.join()
-        assert_equal(self.success,False)
-
-    @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+10)
-    def test_igmpproxy_with_join_and_verify_traffic(self):
-        #groups = [self.MGROUP1, self.MGROUP1]
-        groups = ["238.2.3.4"]
-	self.onos_igmp_proxy_config_load()
-	#self.onos_ssm_table_load(groups)
         df = defer.Deferred()
-        igmpState = IGMPProxyTestState(groups = groups, df = df)
-        igmpStateRecv = IGMPProxyTestState(groups = groups, df = df)
+        def proxy_app_install(df):
+            self.uninstall_cord_config_app()
+	    auth = ('karaf','karaf')
+	    url = 'http://%s:8181/onos/v1/applications'.format(self.controller)
+	    for file in self.app_files:
+                with open(file, 'rb') as payload:
+                     res = requests.post(url,auth=auth,data=payload)
+                     assert_equal(res.ok, True)
+	    df.callback(0)
+        reactor.callLater(0, proxy_app_install, df)
+        return df
+
+    @deferred(30)
+    def test_igmpproxy_app_netcfg(self):
+        df = defer.Deferred()
+        def proxy_net_config(df):
+            auth = ('karaf','karaf')
+            net_cfg_url = 'http://172.17.0.2:8181/onos/v1/network/configuration/'.format(self.controller)
+            with open(self.proxy_config_file, 'rb') as payload:
+                 res = requests.post(net_cfg_url,auth=auth,data=payload)
+                 ssert_equal(res.ok, True)
+            df.callback(0)
+        reactor.callLater(0, proxy_net_config, df)
+        return df
+
+    @deferred(15)
+    def test_igmpproxy_for_first_join(self,iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+   	    self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+	    try:
+                t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                t.start()
+	        self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                t.join()
+	        assert_equal(self.status, True)
+	    except Exception as error:
+		log_test.info('Igmp packet sent from subscriber interface, not received on proxy interface %s'%error)
+		raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(20)
+    def test_igmpproxy_for_two_joins_with_different_igmp_groups(self,iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+    	    for group in groups:
+	        try:
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                    t.join()
+		    assert_equal(self.status, True)
+		except Exception as error:
+                    log_test.info('Igmp packet sent from subscriber interface, not received on proxy interface %s'%error)
+                    raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(30)
+    def test_igmpproxy_for_igmp_join_with_proxy_app_deactivation(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+	    try:
+		for group in groups:
+		    positive_test = True if group is groups[0] else False
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface,kwargs = {'positive_test':positive_test})
+                    t.start()
+                    self.send_igmp_join(groups = [groups[0]], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                    t.join()
+		    assert_equal(self.status, True)
+		    OnosCtrl(self.proxy_app).deactivate()
+		    time.sleep(1)
+            except Exception as error:
+                log_test.info('Igmp packet sent from subscriber interface, not received on proxy interface %s'%error)
+                raise
+	    OnosCtrl(self.proxy_app).activate()
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(30)
+    def test_igmpproxy_for_igmp_join_with_mcast_app_deactivation(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+            try:
+                for group in groups:
+                    positive_test = True if group is groups[0] else False
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface,kwargs = {'positive_test':positive_test})
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                    t.join()
+		    assert_equal(self.status, True)
+                    OnosCtrl(self.mcast_app).deactivate()
+                    time.sleep(1)
+            except Exception as error:
+                log_test.info('Igmp packet sent from subscriber interface, not received on proxy interface %s'%error)
+                raise
+	    OnosCtrl(self.mcast_app).activate()
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(20)
+    def test_igmpproxy_for_igmp_joins_on_non_proxy_interface(self, iface='veth0', non_proxy_iface='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+	    try:
+                t1 = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                t2 = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface,kwargs = {'iface':non_proxy_iface,'positive_test':False})
+                t1.start()
+                t2.start()
+                self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                         iface = iface)
+                t1.join()
+		assert_equal(self.status, True)
+                t2.join()
+		assert_equal(self.status, True)
+            except Exception as error:
+                log_test.info('Igmp packet sent from subscriber interface, not received on proxy interface %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(25)
+    def test_igmpproxy_sending_group_specific_query_receiving_igmp_leave(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+	    try:
+                self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                     iface = iface)
+		time.sleep(1)
+		t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'ip_dst':group[0], 'iface':iface})
+	        t.start()
+	        self.send_igmp_leave(group, src_list= [], delay=10, iface = iface)
+	        t.join()
+		assert_equal(self.status, True)
+            except Exception as error:
+                log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(40)
+    def test_igmpproxy_verifying_group_specific_query_when_two_subscribers_leave_same_multicast_group_one_after_other(self,iface1='veth0',iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+            try:
+                self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                          delay=1,iface = iface1)
+                self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                         delay=1,iface = iface2)
+                for iface in [iface1, iface2]:
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'ip_dst':group[0], 'iface':iface})
+                    t.start()
+                    time.sleep(1)
+                    self.send_igmp_leave(group, src_list= [], delay=10, iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+            except Exception as error:
+                log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(60)
+    def test_igmpproxy_verifying_group_specific_query_sent_for_all_the_groups_after_subscriber_leaves(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip(), self.random_mcast_ip(), self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+            try:
+		self.send_igmp_join(groups = groups, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                          delay=1,iface = iface)
+		threads = []
+		for group in groups:
+                    threads.append(threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'ip_dst':group, 'iface':iface, 'count':len(groups)}))
+                for thread in threads:
+		    thread.start()
+                time.sleep(1)
+                self.send_igmp_leave(groups, src_list= [], delay=11, iface = iface)
+		for thread in threads:
+                    thread.join()
+                    assert_equal(self.status, True)
+            except Exception as error:
+                log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(25)
+    def test_igmpproxy_fast_leave(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load(FastLeave='true')
+            self.onos_ssm_table_load(group,src_list=src)
+            try:
+                self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                     iface = iface)
+                time.sleep(1)
+                t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'positive_test':False, 'ip_dst':group[0], 'iface':iface})
+                t.start()
+                self.send_igmp_leave(group, src_list= [], delay=10, iface = iface)
+                t.join()
+                assert_equal(self.status, True)
+            except Exception as error:
+                log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(30)
+    def test_igmpproxy_for_igmp_join_for_same_group_with_different_source(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            sources = [self.randomsourceip(),self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=sources)
+	    try:
+                for source in sources:
+                    positive_test = True if source is sources[0] else False
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface,kwargs = {'positive_test':positive_test})
+                    t.start()
+                    self.send_igmp_join(groups = group, src_list = source, record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+                    time.sleep(1)
+            except:
+		log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(20)
+    def test_igmpproxy_after_proxy_interface_toggles(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = self.random_mcast_ip()
+	    group2 = self.random_mcast_ip()
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load([group,group2],src_list=src)
+            for toggle in ['Up','Down']:
+                if toggle == 'Down':
+                    log_test.info('Toggling proxy interface ')
+                    os.system('ifconfig {} down'.format(self.proxy_interfaces[0]))
+		    time.sleep(1)
+                    os.system('ifconfig {} up'.format(self.proxy_interfaces[0]))
+		    time.sleep(1)
+		    group = group2
+		try:
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                    t.join()
+		    assert_equal(self.status, True)
+		except:
+		    log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+		    raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(20)
+    def test_igmpproxy_after_subscriber_interface_toggles(self,iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = self.random_mcast_ip()
+            group2 = self.random_mcast_ip()
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load([group,group2],src_list=src)
+            for toggle in ['Up','Down']:
+                if toggle == 'Down':
+                    log_test.info('Toggling subscriber interface ')
+                    os.system('ifconfig {} down'.format(iface))
+                    time.sleep(1)
+                    os.system('ifconfig {} up'.format(iface))
+                    time.sleep(1)
+                    group = group2
+                try:
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                             iface = iface)
+                    t.join()
+		    assert_equal(self.status, True)
+                except:
+		    log_test.info('Igmp query not received on subscriber interface in response to leave sent %s'%error)
+                    raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(20)
+    def test_igmpproxy_with_join_and_verify_traffic(self):
+        group = [self.random_mcast_ip()]
+        src = [self.randomsourceip()]
+        self.onos_igmp_proxy_config_load()
+        self.onos_ssm_table_load(group,src_list=src)
+        df = defer.Deferred()
+        igmpState = IGMPProxyTestState(groups = group, df = df)
+        igmpStateRecv = IGMPProxyTestState(groups = group, df = df)
         igmpStateList = (igmpState, igmpStateRecv)
         tx_intf = self.port_map[self.PORT_TX_DEFAULT]
         rx_intf = self.port_map[self.PORT_RX_DEFAULT]
-        mcastTraffic = McastTraffic(groups, iface= tx_intf, cb = self.send_mcast_cb, arg = igmpState)
+        mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb, arg = igmpState)
         self.df = df
         self.mcastTraffic = mcastTraffic
         self.recv_socket = L3PacketSocket(iface = rx_intf, type = ETH_P_IP)
@@ -585,22 +930,122 @@ class igmpproxy_exchange(CordLogger):
             else:
                 self.mcastTraffic.stop()
                 #log_test.info('Sending IGMP leave for groups: %s' %groups)
-                self.send_igmp_leave(groups, iface = rx_intf, delay = 2)
+                self.send_igmp_leave(group , iface = rx_intf, delay = 2)
                 self.recv_socket.close()
                 self.igmp_verify_join(stateList)
                 self.df.callback(0)
-
-        self.send_igmp_join(groups, iface = rx_intf)
+        self.send_igmp_join(group, iface = rx_intf)
         mcastTraffic.start()
         self.test_timer = reactor.callLater(self.MCAST_TRAFFIC_TIMEOUT, self.mcast_traffic_timer)
         reactor.callLater(0, igmp_srp_task, igmpStateList)
         return df
 
-    @deferred(timeout=MCAST_TRAFFIC_TIMEOUT+40)
+    @deferred(50)
+    def test_igmpproxy_with_two_subscribers_joining_same_igmp_group_verifying_traffic(self, iface1='veth0', iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+            igmpState = IGMPProxyTestState(groups = group, df = df)
+            IGMPProxyTestState(groups = group, df = df)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb,
+                                   arg = igmpState)
+            mcastTraffic.start()
+            time.sleep(1)
+            join_state = IGMPProxyTestState(groups = group)
+	    try:
+		for iface in [iface1, iface2]:
+		    positive_test = True if iface is iface1 else False
+	            log_test.info('iface is %s'%iface)
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'positive_test':positive_test})
+                    t.start()
+                    self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              iface = iface)
+                    t.join()
+		    assert_equal(self.status, True)
+                    status = self.igmp_recv_task(iface, group, join_state)
+            except Exception as error:
+		log_test.info('Got some unexpected error %s'%error)
+                raise
+	    mcastTraffic.stop()
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(30)
+    def test_igmpproxy_with_two_subscribers_joining_different_igmp_group_verifying_traffic(self, iface1='veth0', iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+	    try:
+		for group in groups:
+                    igmpState = IGMPProxyTestState(groups = [group], df = df)
+                    IGMPProxyTestState(groups = [group], df = df)
+                    mcastTraffic = McastTraffic([group], iface= tx_intf, cb = self.send_mcast_cb,
+                                   arg = igmpState)
+                    mcastTraffic.start()
+                    time.sleep(1)
+                    join_state = IGMPProxyTestState(groups = [group])
+		    iface = iface1 if group is groups[0] else iface2
+		    log_test.info('iface is %s and group is %s'%(iface,group))
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+		    status = self.igmp_recv_task(iface, [group], join_state)
+		    mcastTraffic.stop()
+            except:
+		log_test.info('Got some unexpected error %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(30)
     def test_igmpproxy_with_leave_and_verify_traffic(self):
-        groups = [self.MGROUP1]
-        leave_groups = [self.MGROUP1]
-	self.onos_ssm_table_load(groups)
+        group = [self.random_mcast_ip()]
+	self.onos_igmp_proxy_config_load()
+	self.onos_ssm_table_load(group)
+        df = defer.Deferred()
+        igmpState = IGMPProxyTestState(groups = group, df = df)
+        IGMPProxyTestState(groups = group, df = df)
+        tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+        rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+        mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb,
+                                    arg = igmpState)
+	mcastTraffic.start()
+        t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+        t.start()
+	self.send_igmp_join(group, iface = rx_intf,delay=1)
+        t.join()
+        assert_equal(self.status, True)
+        join_state = IGMPProxyTestState(groups = group)
+        status = self.igmp_recv_task(rx_intf, group, join_state)
+	self.send_igmp_leave(group, delay = 10, iface = rx_intf)
+	join_state = IGMPProxyTestState(groups = group)
+	status = self.igmp_not_recv_task(rx_intf, group, join_state)
+	log_test.info('verified status for igmp recv task %s'%status)
+	assert status == 1 , 'EXPECTED RESULT'
+	df.callback(0)
+        return df
+
+    @deferred(30)
+    def test_igmpproxy_data_traffic_for_non_joined_group(self):
+        groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+        src = [self.randomsourceip()]
+        self.onos_igmp_proxy_config_load()
+        self.onos_ssm_table_load(groups,src_list=src)
         df = defer.Deferred()
         igmpState = IGMPProxyTestState(groups = groups, df = df)
         IGMPProxyTestState(groups = groups, df = df)
@@ -608,58 +1053,69 @@ class igmpproxy_exchange(CordLogger):
         rx_intf = self.port_map[self.PORT_RX_DEFAULT]
         mcastTraffic = McastTraffic(groups, iface= tx_intf, cb = self.send_mcast_cb,
                                     arg = igmpState)
-        self.df = df
-        self.mcastTraffic = mcastTraffic
-        self.recv_socket = L3PacketSocket(iface = rx_intf, type = ETH_P_IP)
-
-	mcastTraffic.start()
-	self.send_igmp_join(groups, iface = rx_intf)
-        time.sleep(5)
-	self.send_igmp_leave(leave_groups, delay = 3, iface = rx_intf)
-        time.sleep(10)
-	join_state = IGMPProxyTestState(groups = leave_groups)
-	status = self.igmp_not_recv_task(rx_intf, leave_groups, join_state)
-	log_test.info('verified status for igmp recv task %s'%status)
-	assert status == 1 , 'EXPECTED RESULT'
-	self.df.callback(0)
+        mcastTraffic.start()
+        t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+        t.start()
+        self.send_igmp_join([groups[0]],src_list= src, iface = rx_intf,delay=1)
+        t.join()
+        assert_equal(self.status, True)
+        join_state = IGMPProxyTestState(groups = [groups[0]])
+        status = self.igmp_recv_task(rx_intf, [groups[0]], join_state)
+        join_state = IGMPProxyTestState(groups = [groups[1]])
+        status = self.igmp_not_recv_task(rx_intf, [groups[1]], join_state)
+        log_test.info('verified status for igmp recv task %s'%status)
+	mcastTraffic.stop()
+        assert status == 1 , 'EXPECTED RESULT'
+        df.callback(0)
         return df
 
-    @deferred(timeout=100)
+    #fail
+    @deferred(timeout=60)
     def test_igmpproxy_with_leave_and_join_loop(self):
         self.groups = ['226.0.1.1', '227.0.0.1', '228.0.0.1', '229.0.0.1', '230.0.0.1' ]
         self.src_list = ['3.4.5.6', '7.8.9.10']
+	self.onos_igmp_proxy_config_load()
 	self.onos_ssm_table_load(self.groups,src_list=self.src_list)
         df = defer.Deferred()
-        self.df = df
+        #self.df = df
         self.iterations = 0
         self.num_groups = len(self.groups)
-        self.MAX_TEST_ITERATIONS = 10
+        self.MAX_TEST_ITERATIONS = 3
         rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+	self.send_igmp_leave(self.groups,src_list = [], iface=rx_intf,delay=5)
 
         def igmp_srp_task(v):
               if self.iterations < self.MAX_TEST_ITERATIONS:
                     if v == 1:
                           ##join test
                           self.num_groups = random.randint(0, len(self.groups))
-                          self.send_igmp_join(self.groups[:self.num_groups],
-                                              src_list = self.src_list,
-                                              iface = rx_intf, delay = 0)
+			  log_test.info('self.num_groups var is %s'%self.num_groups)
+			  try:
+			      for group in self.groups[:self.num_groups]:
+                                  t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                                  t.start()
+                                  self.send_igmp_join(group,src_list = self.src_list,
+                                              iface = rx_intf, delay = 1)
+			          t.join()
+				  assert_equal(self.status, True)
+			  except:
+				log_test.info('Got some unexpected error %s'%error)
+			        raise
                     else:
                           self.send_igmp_leave(self.groups[:self.num_groups],
-                                               src_list = self.src_list,
-                                               iface = rx_intf, delay = 0)
+                                               src_list = [],
+                                               iface = rx_intf, delay = 10)
                     self.iterations += 1
                     v ^= 1
                     reactor.callLater(1.0 + 0.5*self.num_groups,
                                       igmp_srp_task, v)
               else:
-                    self.df.callback(0)
-
+                    df.callback(0)
         reactor.callLater(0, igmp_srp_task, 1)
         return df
 
     def igmp_join_task(self, intf, groups, state, src_list = ['1.2.3.4']):
-          #self.onos_ssm_table_load(groups, src_list)
+          self.onos_ssm_table_load(groups, src_list)
           igmp = IGMPv3(type = IGMP_TYPE_V3_MEMBERSHIP_REPORT, max_resp_code=30,
                         gaddr=self.IP_DST)
           for g in groups:
@@ -681,7 +1137,7 @@ class igmpproxy_exchange(CordLogger):
           for g in groups:
                 group_map[g] = [0,0]
 
-          log_test.info('Verifying join interface should receive multicast data')
+          log_test.info('Verifying join interface %s should receive multicast data'%intf)
           while True:
                 p = recv_socket.recv()
                 if p.dst in groups and group_map[p.dst][0] == 0:
@@ -721,7 +1177,7 @@ class igmpproxy_exchange(CordLogger):
 
     def group_latency_check(self, groups):
           tasks = []
-          self.send_igmp_leave(groups = groups)
+          self.send_igmp_leave(groups = groups,delay=10)
           join_state = IGMPProxyTestState(groups = groups)
           tasks.append(threading.Thread(target=self.igmp_join_task, args = ('veth0', groups, join_state,)))
           traffic_state = IGMPProxyTestState(groups = groups)
@@ -740,7 +1196,7 @@ class igmpproxy_exchange(CordLogger):
 
     @deferred(timeout=IGMP_QUERY_TIMEOUT + 10)
     def test_igmpproxy_with_1group_join_latency(self):
-        groups = ['239.0.1.1']
+        groups = [self.random_mcast_ip()]
         df = defer.Deferred()
         def igmp_1group_join_latency():
               self.group_latency_check(groups)
@@ -758,7 +1214,7 @@ class igmpproxy_exchange(CordLogger):
         reactor.callLater(0, igmp_2group_join_latency)
         return df
 
-    @deferred(timeout=IGMP_QUERY_TIMEOUT + 10)
+    @deferred(timeout=IGMP_QUERY_TIMEOUT + 100)
     def test_igmpproxy_with_Ngroup_join_latency(self):
         groups = ['239.0.1.1', '240.0.1.1', '241.0.1.1', '242.0.1.1']
         df = defer.Deferred()
@@ -768,14 +1224,27 @@ class igmpproxy_exchange(CordLogger):
         reactor.callLater(0, igmp_Ngroup_join_latency)
         return df
 
-    def test_igmpproxy_with_join_rover_all(self):
-          s = (224 << 24) | 1
-          #e = (225 << 24) | (255 << 16) | (255 << 16) | 255
-          e = (224 << 24) | 10
-          for i in xrange(s, e+1):
-                if i&0xff:
-                      ip = '%d.%d.%d.%d'%((i>>24)&0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
-                self.send_igmp_join([ip], delay = 0)
+    @deferred(70)
+    def test_igmpproxy_with_join_rover_all(self,iface='veth0'):
+	self.onos_igmp_proxy_config_load()
+	df = defer.Deferred()
+	def igmp_proxy_join_rover():
+              s = (224 << 16) | 1
+              #e = (225 << 24) | (255 << 16) | (255 << 16) | 255
+              e = (224 << 16) | 10
+              for i in xrange(s, e+1):
+                  if i&0xff:
+                      ip = '%d.%d.%d.%d'%((i>>16)&0xff, (i>>16)&0xff, (i>>8)&0xff, i&0xff)
+		  try:
+                      t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                      t.start()
+                      self.send_igmp_join(groups = [ip], ssm_load=True, iface = iface, delay=1)
+                      t.join()
+		  except:
+		      raise
+              df.callback(0)
+        reactor.callLater(0, igmp_proxy_join_rover)
+        return df
 
     @deferred(timeout=ROVER_TEST_TIMEOUT)
     def test_igmpproxy_with_join_rover(self):
@@ -814,24 +1283,343 @@ class igmpproxy_exchange(CordLogger):
           reactor.callLater(0, igmp_join_rover, self)
           return df
 
-    @deferred(timeout=IGMP_QUERY_TIMEOUT + 10)
-    def test_igmpproxy_with_query(self):
-        groups = ['224.0.0.1'] ##igmp query group
+    #fail
+    @deferred(timeout=IGMP_QUERY_TIMEOUT + 30)
+    def test_igmpproxy_sends_periodic_general_query_on_subscriber_connected_segment(self,iface='veth0'):
+	groups = [self.random_mcast_ip()]
+	self.onos_igmp_proxy_config_load()
 	self.onos_ssm_table_load(groups)
+	self.send_igmp_join(groups)
+	self.success = False
         df = defer.Deferred()
-        self.df = df
-        self.recv_socket = L2Socket(iface = 'veth0', type = ETH_P_IP)
-
         def igmp_query_timeout():
               def igmp_query_cb(pkt):
 		    log_test.info('received igmp query packet is %s'%pkt.show())
-                    log_test.info('Got IGMP query packet from %s for %s' %(pkt[IP].src, pkt[IP].dst))
-                    assert_equal(pkt[IP].dst, '224.0.0.1')
-              sniff(prn = igmp_query_cb, count=1, lfilter = lambda p: IP in p and p[IP].dst in groups,
-                    opened_socket = self.recv_socket)
-              self.recv_socket.close()
-              self.df.callback(0)
+		    self.success = True
+              sniff(prn = igmp_query_cb, count=1, lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst == '224.0.0.1',
+	                               timeout = self.IGMP_QUERY_TIMEOUT+2, iface = iface)
+              df.callback(0)
+        self.send_igmp_join(groups)
+        self.test_timer = reactor.callLater(0,igmp_query_timeout)
+	assert_equal(self.success, True)
+        return df
 
-        #self.send_igmp_join(groups)
-        self.test_timer = reactor.callLater(self.IGMP_QUERY_TIMEOUT, igmp_query_timeout)
+
+    @deferred(timeout=IGMP_QUERY_TIMEOUT + 30)
+    def test_igmpproxy_with_not_sending_periodic_general_query_on_proxy_connected_interface(self):
+        groups = [self.random_mcast_ip()]
+        self.onos_igmp_proxy_config_load()
+        self.onos_ssm_table_load(groups)
+        self.send_igmp_join(groups)
+	self.success = False
+        df = defer.Deferred()
+        def igmp_query_timeout():
+              def igmp_query_cb(pkt):
+                    log_test.info('received igmp query packet on proxy connected interface %s'%pkt.show())
+		    self.success = True
+              sniff(prn = igmp_query_cb, count=1, lfilter = lambda p: IP in p and p[IP].proto == 2 and p[IP].dst == '224.0.0.1',
+                                       timeout = self.IGMP_QUERY_TIMEOUT+2, iface = self.proxy_interfaces[0])
+              df.callback(0)
+        self.send_igmp_join(groups)
+        self.test_timer = reactor.callLater(0,igmp_query_timeout)
+	assert_equal(self.success, False)
+        return df
+
+    @deferred(50)
+    def test_igmpproxy_two_joins_one_leave_from_same_subscriber_and_verify_traffic(self,iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            try:
+                for group in groups:
+                    igmpState = IGMPProxyTestState(groups = [group], df = df)
+                    IGMPProxyTestState(groups = [group], df = df)
+                    mcastTraffic = McastTraffic([group], iface= tx_intf, cb = self.send_mcast_cb,
+                                   arg = igmpState)
+                    mcastTraffic.start()
+                    time.sleep(1)
+                    join_state = IGMPProxyTestState(groups = [group])
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+                    status = self.igmp_recv_task(iface, [group], join_state)
+                    if group is groups[1]:
+                        log_test.info('sending leave for group %s'%group)
+                        self.send_igmp_leave([group], delay = 11, iface = iface)
+                        join_state = IGMPProxyTestState(groups = [group])
+                        status = self.igmp_not_recv_task(rx_intf, [group], join_state)
+                        log_test.info('verified status for igmp recv task %s'%status)
+                        assert status == 1 , 'EXPECTED RESULT'
+                        log_test.info('verifying subscriber receives igmp traffic for group %s'%groups[0])
+			join_state = IGMPProxyTestState(groups = [groups[0]])
+			status = self.igmp_recv_task(iface, [groups[0]], join_state)
+		mcastTraffic.stop()
+            except:
+                log_test.info('Got some unexpected error %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    #fail
+    @deferred(50)
+    def test_igmpproxy_two_subscribers_joins_igmp_group_one_subscriber_goes_down_and_verify_traffic(self,iface1='veth0',iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            try:
+                igmpState = IGMPProxyTestState(groups = group, df = df)
+                IGMPProxyTestState(groups = group, df = df)
+                mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb,
+                                arg = igmpState)
+                mcastTraffic.start()
+                time.sleep(1)
+                join_state = IGMPProxyTestState(groups = group)
+		for iface in [iface1, iface2]:
+		    positive_test = True if iface is iface1 else False
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'positive_test':positive_test})
+                    t.start()
+                    self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+                    status = self.igmp_recv_task(iface, group, join_state)
+                    if iface is iface2:
+                        log_test.info('bringning donw iface %s'%iface)
+                        os.system('ifconfig {} down'.format(iface))
+                        time.sleep(1)
+                        os.system('ifconfig {} up'.format(iface))
+                        time.sleep(1)
+                        status = self.igmp_not_recv_task(iface, group, join_state)
+                        log_test.info('verified status for igmp recv task %s'%status)
+                        assert status == 1 , 'EXPECTED RESULT'
+                        log_test.info('verifying subscriber %s receives igmp traffic'%iface1)
+                        status = self.igmp_recv_task(iface1, group, join_state)
+                mcastTraffic.stop()
+            except:
+                log_test.info('Got some unexpected error %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    @deferred(50)
+    def test_igmpproxy_two_subscribers_join_different_igmp_groups_one_subscriber_leaves_and_verifying_traffic(self, iface1='veth0', iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(),self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            try:
+                for group in groups:
+                    igmpState = IGMPProxyTestState(groups = [group], df = df)
+                    IGMPProxyTestState(groups = [group], df = df)
+                    mcastTraffic = McastTraffic([group], iface= tx_intf, cb = self.send_mcast_cb,
+                                   arg = igmpState)
+                    mcastTraffic.start()
+                    time.sleep(1)
+                    join_state = IGMPProxyTestState(groups = [group])
+		    iface = iface1 if group is groups[0] else iface2
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                    t.start()
+                    self.send_igmp_join(groups = [group], src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              delay=1,iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+                    status = self.igmp_recv_task(iface, [group], join_state)
+                    if group is groups[1]:
+                        log_test.info('sending leave for group %s'%group)
+			time.sleep(3)
+                        t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                        t.start()
+                        self.send_igmp_leave([group], delay = 15, iface = iface)
+                        t.join()
+                        assert_equal(self.status, True)
+                        join_state = IGMPProxyTestState(groups = [group])
+                        status = self.igmp_not_recv_task(iface, [group], join_state)
+                        log_test.info('verified status for igmp recv task %s'%status)
+                        assert status == 1 , 'EXPECTED RESULT'
+                        log_test.info('verifying subscriber receives igmp traffic for group %s'%groups[0])
+                        join_state = IGMPProxyTestState(groups = [groups[0]])
+                        status = self.igmp_recv_task(iface1, [groups[0]], join_state)
+                mcastTraffic.stop()
+            except:
+                log_test.info('Got some unexpected error %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+	return df
+
+    @deferred(50)
+    def test_igmpproxy_with_two_subscriber_joining_same_igmp_group_one_subscriber_doing_fast_leave_verifying_traffic(self, iface1='veth0', iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load(FastLeave='true')
+            self.onos_ssm_table_load(group,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            try:
+                for iface in [iface1, iface2]:
+                    igmpState = IGMPProxyTestState(groups = group, df = df)
+                    IGMPProxyTestState(groups = group, df = df)
+                    mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb,
+                                   arg = igmpState)
+                    mcastTraffic.start()
+                    time.sleep(1)
+                    join_state = IGMPProxyTestState(groups = group)
+		    positive_test = True if iface is iface1 else False
+                    t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface, kwargs = {'positive_test':positive_test})
+                    t.start()
+                    self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              delay=1,iface = iface)
+                    t.join()
+                    assert_equal(self.status, True)
+                    status = self.igmp_recv_task(iface, group, join_state)
+                    if iface is iface2:
+                        log_test.info('sending leave for group %s'%group)
+                        time.sleep(10)
+                        self.send_igmp_leave(group, delay = 1, iface = iface)
+                        join_state = IGMPProxyTestState(groups = group)
+                        status = self.igmp_not_recv_task(iface, group, join_state)
+                        log_test.info('verified status for igmp recv task %s'%status)
+                        assert status == 1 , 'EXPECTED RESULT'
+                        log_test.info('verifying subscriber receives igmp traffic for group %s'%group)
+                        join_state = IGMPProxyTestState(groups = group)
+                        status = self.igmp_recv_task(iface1, group, join_state)
+                mcastTraffic.stop()
+            except:
+                log_test.info('Got some unexpected error %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    #fail
+    @deferred(20)
+    def test_igmpproxy_with_multicast_source_connected_on_proxy_interface(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            igmpState = IGMPProxyTestState(groups = group, df = df)
+            IGMPProxyTestState(groups = group, df = df)
+            mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb,
+                                  arg = igmpState)
+            mcastTraffic.start()
+            time.sleep(1)
+            join_state = IGMPProxyTestState(groups = group)
+	    try:
+                t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                t.start()
+                self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_INCLUDE,
+                              delay=1,iface = iface)
+                t.join()
+                assert_equal(self.status, True)
+                status = self.igmp_recv_task(iface, group, join_state)
+                mcastTraffic.stop()
+            except:
+                log_test.info('Got some unexpected error %s'%error)
+                raise
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+        return df
+
+    #fail
+    @deferred(20)
+    def test_igmpproxy_which_drops_multicast_traffic_for_exclude_record_type_group(self, iface='veth0'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            group = [self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(group,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            try:
+               igmpState = IGMPProxyTestState(groups = group, df = df)
+               IGMPProxyTestState(groups = group, df = df)
+               mcastTraffic = McastTraffic(group, iface= tx_intf, cb = self.send_mcast_cb,
+                                 arg = igmpState)
+               mcastTraffic.start()
+               time.sleep(1)
+               join_state = IGMPProxyTestState(groups = group)
+               t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+               t.start()
+               self.send_igmp_join(groups = group, src_list = src,record_type = IGMP_V3_GR_TYPE_EXCLUDE,
+                              iface = iface)
+               t.join()
+               assert_equal(self.status, True)
+               status = self.igmp_not_recv_task(iface, group, join_state)
+               log_test.info('verified status for igmp recv task %s'%status)
+               assert status == 1 , 'EXPECTED RESULT'
+            except:
+               log_test.info('Got some unexpected error %s'%error)
+               raise
+	    mcastTraffic.stop()
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
+	return df
+
+    #fail : exclude record type igmp join not forwarded to proxy interface
+    @deferred(40)
+    def test_igmpproxy_with_two_subscriber_joins_set_with_include_and_exclude_mode_record_types_verifying_traffic(self, iface1='veth0', iface2='veth4'):
+        df = defer.Deferred()
+        def igmp_proxy_test(df):
+            groups = [self.random_mcast_ip(), self.random_mcast_ip()]
+            src = [self.randomsourceip()]
+            self.onos_igmp_proxy_config_load()
+            self.onos_ssm_table_load(groups,src_list=src)
+            tx_intf = self.port_map[self.PORT_TX_DEFAULT]
+            rx_intf = self.port_map[self.PORT_RX_DEFAULT]
+            try:
+	       for group in groups:
+	           iface = iface1 if group is groups[0] else iface2
+		   r_type = IGMP_V3_GR_TYPE_INCLUDE if group is groups[0] else IGMP_V3_GR_TYPE_EXCLUDE
+                   igmpState = IGMPProxyTestState(groups = [group], df = df)
+                   IGMPProxyTestState(groups = [group], df = df)
+                   mcastTraffic = McastTraffic([group], iface= tx_intf, cb = self.send_mcast_cb,
+                                 arg = igmpState)
+                   mcastTraffic.start()
+                   time.sleep(1)
+                   join_state = IGMPProxyTestState(groups = [group])
+                   t = threading.Thread(target = self.verify_igmp_packets_on_proxy_interface)
+                   t.start()
+                   self.send_igmp_join(groups = [group], src_list = src,record_type = r_type,
+                              delay=1,iface = iface)
+                   t.join()
+                   assert_equal(self.status, True)
+		   if group is groups[0]:
+		       status = self.igmp_recv_task(iface, [group], join_state)
+		   else:
+                       status = self.igmp_not_recv_task(iface, [group], join_state)
+                       log_test.info('verified status for igmp recv task %s'%status)
+                       assert status == 1 , 'EXPECTED RESULT'
+            except:
+               log_test.info('Got some unexpected error %s'%error)
+               raise
+            mcastTraffic.stop()
+            df.callback(0)
+        reactor.callLater(0, igmp_proxy_test, df)
         return df
