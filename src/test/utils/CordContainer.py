@@ -1042,6 +1042,8 @@ class Onos(Container):
             print('ONOS app %s, version %s %s' %(app, version, 'installed' if ok else 'failed to install'))
             time.sleep(2)
 
+        OnosCtrl.config_olt_component(controller = onos_ip)
+
     @classmethod
     def activate_apps(cls, apps, onos_ip = None, deactivate = False):
         for app in apps:

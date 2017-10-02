@@ -476,6 +476,7 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
         OnosCtrl.install_app(olt_app)
         olt_installed = True
         time.sleep(5)
+        OnosCtrl.config_olt_component()
         return voltha, device_id, switch_map, driver_configured
     except:
         voltha.disable_device(device_id)

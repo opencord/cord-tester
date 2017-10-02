@@ -451,3 +451,13 @@ class OnosCtrl:
                                                                        defaultVlan = defaultVlan)
 
         cls.config(device_config, controller = controller)
+
+    @classmethod
+    def config_olt_component(cls, controller = None, enableDhcpIgmpOnProvisioning = True, defaultVlan = 0):
+        if controller is None:
+            controller = cls.controller
+        olt_property_url = 'configuration/org.opencord.olt.impl.Olt'
+        property_url = 'http://{}:8181/onos/v1/{}'.format(controller, olt_property_url)
+        cfg = dict(enableDhcpIgmpOnProvisioning = enableDhcpIgmpOnProvisioning, defaultVlan = defaultVlan)
+        resp = requests.post(property_url, auth = cls.auth, data = json.dumps(cfg))
+        return resp.ok, resp.status_code
