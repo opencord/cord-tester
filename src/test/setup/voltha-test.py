@@ -175,7 +175,7 @@ def run_test(args):
     return status
 
 if __name__ == '__main__':
-    parser = ArgumentParser(description = 'Olt tester')
+    parser = ArgumentParser(description = 'VOLTHA tester')
     parser.add_argument('-test-type', '--test-type', default = 'tls:eap_auth_exchange.test_eap_tls', help = 'Test type to run')
     parser.add_argument('-manifest', '--manifest', default='manifest-voltha.json', help = 'Manifest file to use')
     parser.add_argument('-voltha-host', '--voltha-host', default='172.17.0.1', help = 'VOLTHA host ip')
