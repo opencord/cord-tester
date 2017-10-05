@@ -390,7 +390,9 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
         #### We have to work on later versions by removing these hard coded values
         if dhcp_server_connectPoint is None:
-           connect_points.add(relay_device_map)
+            relay_device_present = filter(lambda cp: cp.split('/')[0] == cls.relay_device_id, connect_points)
+            if not relay_device_present:
+                connect_points.add(relay_device_map)
         else:
             cps_unused = map(lambda cp: connect_points.add(cp), dhcp_server_connectPoint)
         connect_points = list(connect_points)
