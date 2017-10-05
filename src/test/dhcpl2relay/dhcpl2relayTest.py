@@ -158,10 +158,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         setup_for_relay = cls.dhcp_l2_relay_setup()
         cls.cord_l2_relay_load()
         cls.voltha_setup()
-        dhcp_start_status = cls.dhcpd_start()
-        if setup_for_relay and dhcp_start_status:
-            return True
-        return False
+        return True
+
+        # dhcp_start_status = cls.dhcpd_start()
+        # if setup_for_relay and dhcp_start_status:
+        #     return True
+        # return False
 
     @classmethod
     def config_olt(cls, switch_map):
@@ -583,8 +585,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         return cip,sip
 
     def test_dhcpl2relay_initialize(self):
-        '''Setup and configure the DHCP L2 relay app'''
-        pass
+        '''Configure the DHCP L2 relay app and start dhcpd'''
+        self.dhcpd_start()
 
     def test_dhcpl2relay_with_one_request(self, iface = 'veth0'):
         mac = self.get_mac(iface)
