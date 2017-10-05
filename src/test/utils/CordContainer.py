@@ -614,7 +614,7 @@ class Onos(Container):
     JAVA_OPTS_FORMAT = '-Xms{} -Xmx{} -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode'
     JAVA_OPTS_DEFAULT = JAVA_OPTS_FORMAT.format(*SYSTEM_MEMORY) #-XX:+PrintGCDetails -XX:+PrintGCTimeStamps'
     JAVA_OPTS_CLUSTER_DEFAULT = JAVA_OPTS_FORMAT.format(*INSTANCE_MEMORY)
-    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
+    env = { 'ONOS_APPS' : 'drivers,openflow,proxyarp,vrouter,hostprovider', 'JAVA_OPTS' : JAVA_OPTS_DEFAULT }
     onos_cord_apps = ( ['cord-config', '1.2-SNAPSHOT', 'org.opencord.config'],
                        ['sadis-app', '3.0-SNAPSHOT', 'org.opencord.sadis'],
                        ['olt-app', '1.2-SNAPSHOT', 'org.onosproject.olt'],

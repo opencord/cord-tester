@@ -213,7 +213,7 @@ class VolthaCtrl(object):
     UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
     REST_PORT = 8882
     HOST = '172.17.0.1'
-    ONOS_APPS = ('org.onosproject.dhcp', 'org.onosproject.dhcp-relay', 'org.ciena.cordigmp')
+    ONOS_APPS = ('org.onosproject.hostprovider', 'org.onosproject.dhcp', 'org.onosproject.dhcp-relay', 'org.ciena.cordigmp')
     ADMIN_STATE = 'admin_state'
     OPER_STATUS = 'oper_status'
     CONNECT_STATUS = 'connect_status'
