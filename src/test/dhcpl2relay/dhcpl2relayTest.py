@@ -58,7 +58,7 @@ class dhcpl2relay_exchange(CordLogger):
     VOLTHA_OLT_TYPE = 'simulated_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
-
+    TAGGED_TRAFFIC = false
     app = 'org.opencord.dhcpl2relay'
     sadis_app = 'org.opencord.sadis'
     app_dhcp = 'org.onosproject.dhcp'
@@ -255,8 +255,16 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         if os.access(lease_file, os.F_OK) is False:
             with open(lease_file, 'w') as fd: pass
 
+        lease_file_tagged = '{}/dhcpd-tagged.leases'.format(cls.dhcp_data_dir)
+        if os.access(lease_file_tagged, os.F_OK) is False:
+            with open(lease_file_tagged, 'w') as fd: pass
+
         conf_file = '{}/dhcpd.conf'.format(cls.dhcp_data_dir)
         with open(conf_file, 'w') as fd:
+            fd.write(dhcp_conf)
+
+        conf_file_tagged = '{}/dhcpd-tagged.conf'.format(cls.dhcp_data_dir)
+        with open(conf_file_tagged, 'w') as fd:
             fd.write(dhcp_conf)
 
         #now configure the dhcpd interfaces for various subnets
@@ -283,7 +291,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         print('Starting DHCPD server with command: %s' %dhcpd_cmd)
         status = os.system(dhcpd_cmd)
         vlan_intf_str = ','.join(vlan_intf_list)
-        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd.conf','/root/test/src/test/setup/dhcpd.leases', vlan_intf_str)
+        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd-tagged.conf','/root/test/src/test/setup/dhcpd-tagged.leases', vlan_intf_str)
         print('Starting DHCPD server with command: %s' %dhcpd_cmd)
         status = os.system(dhcpd_cmd)
         if status > 255:

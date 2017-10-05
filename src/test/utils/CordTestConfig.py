@@ -112,6 +112,10 @@ def setup_module(module):
     if hasattr(class_test, 'VOLTHA_AUTO_CONFIGURE'):
         voltha_configure = getattr(class_test, 'VOLTHA_AUTO_CONFIGURE')
 
+    tagged_traffic = False
+    if hasattr(class_test, 'TAGGED_TRAFFIC'):
+        tagged_traffic = getattr(class_test, 'TAGGED_TRAFFIC')
+
     if hasattr(class_test, 'VOLTHA_HOST'):
         #update the voltha host ip based on chameleon IP for rest interface
         rest_interface = VolthaService.get_ip('chameleon')
@@ -140,7 +144,7 @@ def setup_module(module):
                 setattr(class_test, 'VOLTHA_TEARDOWN', False)
 
     #load the sadis and aaa config
-    OnosCtrl.sadis_load_config(olt_switch_map = olt_switch_map)
+    OnosCtrl.sadis_load_config(olt_switch_map = olt_switch_map, tagged_traffic = tagged_traffic)
     OnosCtrl.aaa_load_config()
     #OnosCtrl('org.opencord.aaa').deactivate()
     #time.sleep(3)

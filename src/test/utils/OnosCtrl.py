@@ -379,7 +379,7 @@ class OnosCtrl:
         return switch_map
 
     @classmethod
-    def sadis_load_config(cls, controller = None, olt_switch_map = {}, olt_conf_file = ''):
+    def sadis_load_config(cls, controller = None, olt_switch_map = {}, olt_conf_file = '', tagged_traffic = False):
         sadis_app = 'org.opencord.sadis'
         aaa_app = 'org.opencord.aaa'
         sadis_cfg = {
@@ -417,8 +417,8 @@ class OnosCtrl:
                 sadis_entry = dict(nasId = nasId, nasPortId = nasPortId, slot = 1)
                 sadis_entry['id'] = uni_port_names[p]
                 sadis_entry['hardwareIdentifier'] = uni_port_macs[p]
-                sadis_entry['cTag'] = uni_ports[p]
-                sadis_entry['sTag'] = s_tag
+                sadis_entry['cTag'] = uni_ports[p] if tagged_traffic else -1
+                sadis_entry['sTag'] = s_tag if tagged_traffic else -1
                 sadis_entry['port'] = uni_ports[p]
                 sadis_entry['ipAddress'] = controller or cls.controller
                 sadis_entries.append(sadis_entry)
@@ -426,8 +426,8 @@ class OnosCtrl:
                 sadis_entry = dict(nasId = nasId, nasPortId = nasPortId, slot = 1)
                 sadis_entry['id']  = serial
                 sadis_entry['hardwareIdentifier'] = cls.device_id_to_mac(device)
-                sadis_entry['cTag'] = uni_ports[p]
-                sadis_entry['sTag'] = s_tag
+                sadis_entry['cTag'] = uni_ports[p] if tagged_traffic else -1
+                sadis_entry['sTag'] = s_tag if tagged_traffic else -1
                 sadis_entry['port'] = uni_ports[p]
                 sadis_entry['ipAddress'] = controller or cls.controller
                 sadis_entries.append(sadis_entry)
