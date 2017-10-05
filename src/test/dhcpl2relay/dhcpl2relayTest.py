@@ -58,7 +58,7 @@ class dhcpl2relay_exchange(CordLogger):
     VOLTHA_OLT_TYPE = 'simulated_olt'
     VOLTHA_OLT_MAC = '00:0c:e2:31:12:00'
     VOLTHA_UPLINK_VLAN_MAP = { 'of:0000000000000001' : '222' }
-    TAGGED_TRAFFIC = false
+    TAGGED_TRAFFIC = False
     app = 'org.opencord.dhcpl2relay'
     sadis_app = 'org.opencord.sadis'
     app_dhcp = 'org.onosproject.dhcp'
