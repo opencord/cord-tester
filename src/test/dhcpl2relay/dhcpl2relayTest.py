@@ -378,13 +378,24 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     @classmethod
     def cord_l2_relay_load(cls, dhcp_server_connectPoint = None, delete = False):
+        ##read the current config
+        current_netcfg = OnosCtrl.get_config()
+        connect_points = set([])
+        try:
+            connect_points = set(current_netcfg['apps']['org.opencord.dhcpl2relay']['dhcpl2relay']['dhcpServerConnectPoints'])
+        except KeyError, e:
+            pass
+
         OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
         relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
         #### We have to work on later versions by removing these hard coded values
         if dhcp_server_connectPoint is None:
-           dhcp_server_connectPoint = [relay_device_map]
+           connect_points.add(relay_device_map)
+        else:
+            cps_unused = map(lambda cp: connect_points.add(cp), dhcp_server_connectPoint)
+        connect_points = list(connect_points)
         dhcp_dict = { "apps" : { "org.opencord.dhcpl2relay" : {"dhcpl2relay" :
-                                   {"dhcpServerConnectPoints":dhcp_server_connectPoint}
+                                   {"dhcpServerConnectPoints": connect_points}
                                                         }
                             }
                     }
