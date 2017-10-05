@@ -461,3 +461,13 @@ class OnosCtrl:
         cfg = dict(enableDhcpIgmpOnProvisioning = enableDhcpIgmpOnProvisioning, defaultVlan = defaultVlan)
         resp = requests.post(property_url, auth = cls.auth, data = json.dumps(cfg))
         return resp.ok, resp.status_code
+
+    @classmethod
+    def config_extraneous_flows(cls, controller = None, enable = True):
+        if controller is None:
+            controller = cls.controller
+        flow_property_url = 'configuration/org.onosproject.net.flow.impl.FlowRuleManager'
+        property_url = 'http://{}:8181/onos/v1/{}'.format(controller, flow_property_url)
+        cfg = dict(allowExtraneousRules = enable)
+        resp = requests.post(property_url, auth = cls.auth, data = json.dumps(cfg))
+        return resp.ok, resp.status_code

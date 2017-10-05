@@ -240,6 +240,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         self.switch_started = True
 
     def setup_dhcpd(self,  manifest, boot_delay = 5):
+        return False
         if not self.olt or not manifest.start_switch:
             return False
         if self.service_running("/usr/sbin/dhcpd"):

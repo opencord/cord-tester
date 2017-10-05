@@ -36,10 +36,10 @@ from twisted.internet import defer
 import time
 import os, sys
 from DHCP import DHCPTest
-from CordTestUtils import get_mac, log_test
+from CordTestUtils import get_mac, log_test, getstatusoutput, get_controller
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
-from CordTestServer import cord_test_onos_restart
+from CordTestServer import cord_test_onos_restart, cord_test_ovs_flow_add
 from CordTestConfig import setup_module, teardown_module
 from CordLogger import CordLogger
 from portmaps import g_subscriber_port_map
@@ -47,6 +47,7 @@ from CordContainer import Onos
 from VolthaCtrl import VolthaCtrl
 import threading, random
 from threading import current_thread
+import requests
 log_test.setLevel('INFO')
 
 class dhcpl2relay_exchange(CordLogger):
@@ -62,13 +63,15 @@ class dhcpl2relay_exchange(CordLogger):
     sadis_app = 'org.opencord.sadis'
     app_dhcp = 'org.onosproject.dhcp'
     app_olt = 'org.onosproject.olt'
+    relay_interfaces = ()
     relay_interfaces_last = ()
     interface_to_mac_map = {}
+    relay_vlan_map = {}
     host_ip_map = {}
     test_path = os.path.dirname(os.path.realpath(__file__))
     dhcp_data_dir = os.path.join(test_path, '..', 'setup')
     dhcpl2_app_file = os.path.join(test_path, '..', 'apps/dhcpl2relay-1.0.0.oar')
-    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.3.0-SNAPSHOT.oar')
+    olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-3.0-SNAPSHOT.oar')
     sadis_app_file = os.path.join(test_path, '..', 'apps/sadis-app-1.0.0-SNAPSHOT.oar')
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config_voltha_local.json'))
     default_config = { 'default-lease-time' : 600, 'max-lease-time' : 7200, }
@@ -100,6 +103,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     configs = {}
     sadis_configs = {}
     default_onos_netcfg = {}
+    voltha_switch_map = None
 
     @classmethod
     def update_apps_version(cls):
@@ -107,20 +111,9 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         major = int(version.split('.')[0])
         minor = int(version.split('.')[1])
         dhcpl2_app_version = '1.0.0'
-        sadis_app_version = '1.0.0-SNAPSHOT'
-#        sadis-app-1.0.0-SNAPSHOT.oar
-#        if major > 1:
-#            cordigmp_app_version = '3.0-SNAPSHOT'
-#            olt_app_version = '2.0-SNAPSHOT'
-#        elif major == 1:
-#            if minor > 10:
-#                cordigmp_app_version = '3.0-SNAPSHOT'
-#                olt_app_version = '2.0-SNAPSHOT'
-#            elif minor <= 8:
-#                olt_app_version = '1.1-SNAPSHOT'
+        sadis_app_version = '3.0-SNAPSHOT'
         cls.dhcpl2_app_file = os.path.join(cls.test_path, '..', 'apps/dhcpl2relay-{}.oar'.format(dhcpl2_app_version))
         cls.sadis_app_file = os.path.join(cls.test_path, '..', 'apps/sadis-app-{}.oar'.format(sadis_app_version))
-
 
     @classmethod
     def setUpClass(cls):
@@ -132,49 +125,179 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         status, _ = cls.onos_ctrl.activate()
         #assert_equal(status, True)
         time.sleep(3)
-        cls.onos_ctrl = OnosCtrl(cls.sadis_app)
-        status, _ = cls.onos_ctrl.activate()
+        status, _ = OnosCtrl(cls.sadis_app).activate()
         #assert_equal(status, True)
         time.sleep(3)
-        cls.dhcp_l2_relay_setup()
-        cls.cord_sadis_load()
-        cls.cord_l2_relay_load()
-        ##start dhcpd initially with default config
-        #cls.dhcpd_start()
+        cls.setup_dhcpd()
 
     def setUp(self):
         self.default_onos_netcfg = OnosCtrl.get_config()
         super(dhcpl2relay_exchange, self).setUp()
-        self.dhcp_l2_relay_setup()
-        self.cord_sadis_load()
-        self.cord_l2_relay_load()
+        #self.dhcp_l2_relay_setup()
+        #self.cord_sadis_load()
+        #self.cord_l2_relay_load()
 
     def tearDown(self):
         super(dhcpl2relay_exchange, self).tearDown()
-        OnosCtrl.uninstall_app(self.dhcpl2_app_file)
-        OnosCtrl.uninstall_app(self.sadis_app_file)
-        OnosCtrl.uninstall_app(self.olt_app_file)
+        #OnosCtrl.uninstall_app(self.dhcpl2_app_file)
+        #OnosCtrl.uninstall_app(self.sadis_app_file)
+        #OnosCtrl.uninstall_app(self.olt_app_file)
 
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the cord dhcpl2relay app'''
-#        OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
-#        OnosCtrl.uninstall_app(cls.sadis_app_file)
-        cls.onos_ctrl.deactivate()
- #       OnosCtrl(cls.app).deactivate()
-        OnosCtrl(cls.sadis_app).deactivate()
-        OnosCtrl(cls.app_olt).deactivate()
-        #cls.dhcp_l2_relay_cleanup()
+        #cls.onos_ctrl.deactivate()
+        #OnosCtrl(cls.sadis_app).deactivate()
+        #OnosCtrl(cls.app_olt).deactivate()
+
+    @classmethod
+    def setup_dhcpd(cls, boot_delay = 5):
+        if cls.service_running("/usr/sbin/dhcpd"):
+            print('DHCPD already running in container')
+            return True
+        setup_for_relay = cls.dhcp_l2_relay_setup()
+        cls.cord_l2_relay_load()
+        cls.voltha_setup()
+        dhcp_start_status = cls.dhcpd_start()
+        if setup_for_relay and dhcp_start_status:
+            return True
+        return False
+
+    @classmethod
+    def config_olt(cls, switch_map):
+        controller = get_controller()
+        auth = ('karaf', 'karaf')
+        #configure subscriber for every port on all the voltha devices
+        for device, device_map in switch_map.iteritems():
+            uni_ports = device_map['ports']
+            uplink_vlan = device_map['uplink_vlan']
+            for port in uni_ports:
+                vlan = port
+                rest_url = 'http://{}:8181/onos/olt/oltapp/{}/{}/{}'.format(controller,
+                                                                            device,
+                                                                            port,
+                                                                            vlan)
+                requests.post(rest_url, auth = auth)
+
+    @classmethod
+    def voltha_setup(cls):
+        s_tag_map = {}
+        #configure olt app to provision dhcp flows
+        cls.config_olt(cls.voltha_switch_map)
+        for switch, switch_map in cls.voltha_switch_map.iteritems():
+            s_tag_map[int(switch_map['uplink_vlan'])] = map(lambda p: int(p), switch_map['ports'])
+
+        cmd_list = []
+        relay_interface = cls.relay_interfaces[0]
+        cls.relay_vlan_map[relay_interface] = []
+        for s_tag, ports in s_tag_map.iteritems():
+            vlan_stag_intf = '{}.{}'.format(relay_interface, s_tag)
+            cmd = 'ip link add link %s name %s type vlan id %d' %(relay_interface, vlan_stag_intf, s_tag)
+            cmd_list.append(cmd)
+            cmd = 'ip link set %s up' %(vlan_stag_intf)
+            cmd_list.append(cmd)
+            for port in ports:
+                vlan_ctag_intf = '{}.{}.{}'.format(relay_interface, s_tag, port)
+                cmd = 'ip link add link %s name %s type vlan id %d' %(vlan_stag_intf, vlan_ctag_intf, port)
+                cmd_list.append(cmd)
+                cmd = 'ip link set %s up' %(vlan_ctag_intf)
+                cmd_list.append(cmd)
+                cls.relay_vlan_map[relay_interface].append(vlan_ctag_intf)
+            cls.relay_vlan_map[relay_interface].append(vlan_stag_intf)
+
+        for cmd in cmd_list:
+            log_test.info('Running command: %s' %cmd)
+            os.system(cmd)
+
+        cord_test_ovs_flow_add(cls.relay_interface_port)
+        for s_tag in s_tag_map.keys():
+            log_test.info('Configuring OVS flow for port %d, s_tag %d' %(cls.relay_interface_port, s_tag))
+            cord_test_ovs_flow_add(cls.relay_interface_port, s_tag)
+
+    @classmethod
+    def service_running(cls, pattern):
+        st, _ = getstatusoutput('pgrep -f "{}"'.format(pattern))
+        return True if st == 0 else False
+
+    @classmethod
+    def dhcpd_conf_generate(cls, config = default_config, options = default_options,
+                            subnet = default_subnet_config):
+        conf = ''
+        for k, v in config.items():
+            conf += '{} {};\n'.format(k, v)
+
+        opts = ''
+        for k, v in options:
+            opts += 'option {} {};\n'.format(k, v)
+
+        subnet_config = ''
+        for _, v in subnet:
+            subnet_config += '{}\n'.format(v)
+
+        return '{}{}{}'.format(conf, opts, subnet_config)
+
+    @classmethod
+    def dhcpd_start(cls, intf_list = None,
+                    config = default_config, options = default_options,
+                    subnet = default_subnet_config):
+        '''Start the dhcpd server by generating the conf file'''
+        if intf_list is None:
+            intf_list = cls.relay_interfaces
+        intf_list = list(intf_list)
+        ##stop dhcpd if already running
+        #cls.dhcpd_stop()
+        dhcp_conf = cls.dhcpd_conf_generate(config = config, options = options,
+                                            subnet = subnet)
+        ##first touch dhcpd.leases if it doesn't exist
+        lease_file = '{}/dhcpd.leases'.format(cls.dhcp_data_dir)
+        if os.access(lease_file, os.F_OK) is False:
+            with open(lease_file, 'w') as fd: pass
+
+        conf_file = '{}/dhcpd.conf'.format(cls.dhcp_data_dir)
+        with open(conf_file, 'w') as fd:
+            fd.write(dhcp_conf)
+
+        #now configure the dhcpd interfaces for various subnets
+        index = 0
+        intf_info = []
+        vlan_intf_list = []
+        for ip,_ in subnet:
+            vlan_intf = None
+            intf = intf_list[index]
+            if intf in cls.relay_vlan_map:
+                vlan_intf = cls.relay_vlan_map[intf][0]
+                vlan_intf_list.append(vlan_intf)
+            mac = cls.get_mac(intf)
+            intf_info.append((ip, mac))
+            index += 1
+            cmd = 'ifconfig {} {}'.format(intf, ip)
+            status = os.system(cmd)
+            if vlan_intf:
+                cmd = 'ifconfig {} {}'.format(vlan_intf, ip)
+                os.system(cmd)
+
+        intf_str = ','.join(intf_list)
+        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd.conf','/root/test/src/test/setup/dhcpd.leases', intf_str)
+        print('Starting DHCPD server with command: %s' %dhcpd_cmd)
+        status = os.system(dhcpd_cmd)
+        vlan_intf_str = ','.join(vlan_intf_list)
+        dhcpd_cmd = '/usr/sbin/dhcpd -4 --no-pid -cf {0} -lf {1} {2}'.format('/root/test/src/test/setup/dhcpd.conf','/root/test/src/test/setup/dhcpd.leases', vlan_intf_str)
+        print('Starting DHCPD server with command: %s' %dhcpd_cmd)
+        status = os.system(dhcpd_cmd)
+        if status > 255:
+           status = 1
+        else:
+           return False
+        time.sleep(3)
+        cls.relay_interfaces_last = cls.relay_interfaces
+        cls.relay_interfaces = intf_list
+        return True
 
     @classmethod
     def dhcp_l2_relay_setup(cls):
-        did = OnosCtrl.get_device_ids()
-        device_details = OnosCtrl.get_devices()
+        device_details = OnosCtrl.get_devices(mfr = 'Nicira')
         if device_details is not None:
-           for device in device_details:
-             ## Assuming only one OVS is detected on ONOS and its for external DHCP server connect point...
-             if device['available'] is True and device['driver'] == 'ovs':
-                did_ovs = device['id']
+            did_ovs = device_details[0]['id']
         else:
            log_test.info('On this DHCPl2relay setup, onos does not have ovs device where external DHCP server is have connect point, so return with false status')
            return False
@@ -208,7 +331,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             relay_ip = cls.get_host_ip(interface_list[0][0])
             relay_mac = cls.get_mac(cls.port_map[cls.relay_interface_port])
             interface_list.append((cls.relay_interface_port, relay_ip, relay_mac))
-            #cls.onos_interface_load(interface_list)
+            cls.onos_interface_load(interface_list)
 
     @classmethod
     def dhcp_l2_relay_cleanup(cls):
@@ -254,32 +377,17 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         cls.configs['interface_config'] = interface_dict
 
     @classmethod
-    def cord_l2_relay_load(cls,dhcp_server_connectPoint = None, delete = False):
+    def cord_l2_relay_load(cls, dhcp_server_connectPoint = None, delete = False):
         OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
-        #relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
+        relay_device_map = '{}/{}'.format(cls.relay_device_id, cls.relay_interface_port)
         #### We have to work on later versions by removing these hard coded values
-        relay_device_map = "{}/1".format(cls.relay_device_id)
-        relay_device_map3 = "{}/3".format(cls.relay_device_id)
-        relay_device_map4 = "{}/4".format(cls.relay_device_id)
-        relay_device_map5 = "{}/5".format(cls.relay_device_id)
-        relay_device_map6 = "{}/6".format(cls.relay_device_id)
-        relay_device_map7 = "{}/7".format(cls.relay_device_id)
-        relay_device_map8 = "{}/8".format(cls.relay_device_id)
-        relay_device_map9 = "{}/9".format(cls.relay_device_id)
-        relay_device_map10 = "{}/10".format(cls.relay_device_id)
-        relay_device_map11 = "{}/11".format(cls.relay_device_id)
-        relay_device_map12 = "{}/12".format(cls.relay_device_id)
         if dhcp_server_connectPoint is None:
-           dhcp_server_connectPoint = [relay_device_map,relay_device_map3,relay_device_map4,relay_device_map5,relay_device_map6,relay_device_map7,relay_device_map8,relay_device_map9,relay_device_map10,relay_device_map11,relay_device_map12]
-        print relay_device_map
+           dhcp_server_connectPoint = [relay_device_map]
         dhcp_dict = { "apps" : { "org.opencord.dhcpl2relay" : {"dhcpl2relay" :
-                                   {"dhcpserverConnectPoint":dhcp_server_connectPoint}
+                                   {"dhcpServerConnectPoints":dhcp_server_connectPoint}
                                                         }
                             }
                     }
-        print "---------------------------------------------"
-        print dhcp_dict
-        print "---------------------------------------------"
         #OnosCtrl.uninstall_app(cls.dhcpl2_app_file)
         OnosCtrl.install_app(cls.dhcpl2_app_file)
         if delete == False:
@@ -460,6 +568,10 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         log_test.info('Got dhcp client IP %s from server %s for mac %s' %
                 (cip, sip, self.dhcp.get_mac(cip)[0]))
         return cip,sip
+
+    def test_dhcpl2relay_initialize(self):
+        '''Setup and configure the DHCP L2 relay app'''
+        pass
 
     def test_dhcpl2relay_with_one_request(self, iface = 'veth0'):
         mac = self.get_mac(iface)

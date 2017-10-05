@@ -31,6 +31,8 @@
 #
 from CordContainer import Container, Onos, OnosStopWrapper, OnosCord, OnosCordStopWrapper, Quagga, QuaggaStopWrapper, Radius, reinitContainerClients
 from OltConfig import OltConfig
+from OnosCtrl import OnosCtrl
+from CordTestUtils import get_controller
 from EapolAAA import get_radius_macs, get_radius_networks
 from nose.tools import nottest
 from SimpleXMLRPCServer import SimpleXMLRPCServer
@@ -52,6 +54,17 @@ CORD_TEST_PORT = 25000
 class CordTestServer(object):
 
     onos_cord = None
+
+    def __ovs_flow_add(self, in_port = 1, dl_vlan = 0):
+        if dl_vlan:
+            cmd = 'ovs-ofctl -O OpenFlow13 add-flow br-int in_port=%d,dl_vlan=%d,actions=CONTROLLER:65535' %(in_port, dl_vlan)
+        else:
+            cmd = 'ovs-ofctl -O OpenFlow13 add-flow br-int in_port=%d,actions=CONTROLLER:65535' %(in_port)
+        os.system(cmd)
+        return 'DONE'
+
+    def ovs_flow_add(self, kwargs):
+        return self.__ovs_flow_add(**kwargs)
 
     def __restart_onos(self, node = None, config = None, timeout = 10):
         if self.onos_cord:
@@ -235,9 +248,10 @@ def get_cord_test_loc():
     port = int(os.getenv('CORD_TEST_PORT', CORD_TEST_PORT))
     return host, port
 
-def rpc_server_instance():
+def rpc_server_instance(host = None, port = None):
     '''Stateless'''
-    host, port = get_cord_test_loc()
+    if host is None or port is None:
+        host, port = get_cord_test_loc()
     rpc_server = 'http://{}:{}'.format(host, port)
     return xmlrpclib.Server(rpc_server, allow_none = True)
 
@@ -357,3 +371,26 @@ def cord_test_server_shutdown(host, port):
     except: pass
 
     return True
+
+@nottest
+def __cord_test_ovs_flow_add(**kwargs):
+    controller = get_controller()
+    OnosCtrl.config_extraneous_flows(controller = controller)
+    try:
+        return rpc_server_instance(host = controller, port = CORD_TEST_PORT).ovs_flow_add(kwargs)
+    except:
+        pass
+
+    try:
+        return rpc_server_instance().ovs_flow_add(kwargs)
+    except:
+        pass
+
+    return 'FAIL'
+
+@nottest
+def cord_test_ovs_flow_add(in_port, dl_vlan = 0):
+    data = __cord_test_ovs_flow_add(in_port = in_port, dl_vlan = dl_vlan)
+    if data == 'DONE':
+        return True
+    return False
