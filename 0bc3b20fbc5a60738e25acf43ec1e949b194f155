@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_c819f97a",
+        "filename": "src/test/robot/SanityPhyPOD.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2017-10-06T23:53:07Z",
+      "side": 1,
+      "message": "Sometimes \"cord prov list\" gives wrong IP addresses for compute nodes (see CORD-969). \"cord harvest list\" is more accurate.",
+      "range": {
+        "startLine": 63,
+        "startChar": 35,
+        "endLine": 63,
+        "endChar": 49
+      },
+      "revId": "0bc3b20fbc5a60738e25acf43ec1e949b194f155",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
