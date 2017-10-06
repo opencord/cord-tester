@@ -56,6 +56,7 @@ from CordLogger import CordLogger
 from CordTestConfig import setup_module, teardown_module
 from CordContainer import Onos
 from VolthaCtrl import VolthaCtrl
+from CordTestUtils import get_mac, get_controller
 
 log_test.setLevel('INFO')
 
@@ -225,6 +226,8 @@ class subscriber_exchange(CordLogger):
       table_app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-multitable-2.0-SNAPSHOT.oar')
       app_file = os.path.join(test_path, '..', 'apps/ciena-cordigmp-2.0-SNAPSHOT.oar')
       olt_app_file = os.path.join(test_path, '..', 'apps/olt-app-1.2-SNAPSHOT.oar')
+      app_files = [os.path.join(test_path, '..', 'apps/cord-config-3.0-SNAPSHOT.oar'), os.path.join(test_path, '..', 'apps/olt-app-3.0-SNAPSHOT.oar'), os.path.join(test_path, '..', 'apps/mcast-1.3.0-SNAPSHOT.oar'), os.path.join(test_path, '..', 'apps/onos-app-igmpproxy-1.1.0-SNAPSHOT.oar')]
+      proxy_config_file = os.path.join(test_path, '..', 'igmpproxy/igmpproxyconfig.json')
       olt_app_name = 'org.onosproject.olt'
       onos_config_path = os.path.join(test_path, '..', 'setup/onos-config')
       olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
@@ -240,6 +243,17 @@ class subscriber_exchange(CordLogger):
       INTF_TX_DEFAULT = 'veth2'
       INTF_RX_DEFAULT = 'veth0'
       SUBSCRIBER_TIMEOUT = 300
+      MAX_PORTS = 100
+      proxy_device_id = OnosCtrl.get_device_id()
+      controller = get_controller()
+      proxy_app = 'org.opencord.igmpproxy'
+      mcast_app = 'org.opencord.mcast'
+      cord_config_app = 'org.opencord.config'
+      host_ip_map = {}
+      configs = {}
+      proxy_interfaces_last = ()
+      interface_to_mac_map = {}
+
 
       CLIENT_CERT = """-----BEGIN CERTIFICATE-----
 MIICuDCCAiGgAwIBAgIBAjANBgkqhkiG9w0BAQUFADCBizELMAkGA1UEBhMCVVMx
@@ -305,18 +319,22 @@ yg==
             minor = int(version.split('.')[1])
             cordigmp_app_version = '2.0-SNAPSHOT'
             olt_app_version = '1.2-SNAPSHOT'
+	    cord_config_app_version = '1.2-SNAPSHOT'
             if major > 1:
                   cordigmp_app_version = '3.0-SNAPSHOT'
-                  olt_app_version = '3.0-SNAPSHOT'
+                  olt_app_version = '2.0-SNAPSHOT'
+		  cord_config_app_version = '2.0-SNAPSHOT'
             elif major == 1:
-                  if minor >= 10:
+                  if minor > 10:
                         cordigmp_app_version = '3.0-SNAPSHOT'
-                        olt_app_version = '3.0-SNAPSHOT'
+                        olt_app_version = '2.0-SNAPSHOT'
                   elif minor <= 8:
                         olt_app_version = '1.1-SNAPSHOT'
+	    cls.cord_config_app_file = os.path.join(cls.test_path, '..', 'apps/cord-config-{}.oar'.format(cord_config_app_version))
             cls.app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-{}.oar'.format(cordigmp_app_version))
             cls.table_app_file = os.path.join(cls.test_path, '..', 'apps/ciena-cordigmp-multitable-{}.oar'.format(cordigmp_app_version))
             cls.olt_app_file = os.path.join(cls.test_path, '..', 'apps/olt-app-{}.oar'.format(olt_app_version))
+	    cls.updated_app_files = [cls.cord_config_app_file,cls.app_file,cls.table_app_file,cls.olt_app_file]
 
       @classmethod
       def load_device_id(cls):
@@ -347,7 +365,7 @@ yg==
           cls.num_ports = cls.port_map['num_ports']
           if cls.num_ports > 1:
                 cls.num_ports -= 1 ##account for the tx port
-          cls.activate_apps(cls.apps + cls.olt_apps)
+          cls.activate_apps(cls.apps + cls.olt_apps, deactivate = True)
 
       @classmethod
       def tearDownClass(cls):
@@ -358,6 +376,9 @@ yg==
               onos_ctrl.deactivate()
           if cls.VOLTHA_ENABLED is False:
                 OnosCtrl.config_device_driver(driver = 'ovs')
+	  #cls.igmp_proxy_teardown()
+	  #Onos.install_cord_apps()
+	  #OnosCtrl.install_app(cls.table_app_file,onos_ip=cls.controller)
 
       @classmethod
       def activate_apps(cls, apps, deactivate = False):
@@ -369,6 +390,194 @@ yg==
                   status, _ = onos_ctrl.activate()
                   assert_equal(status, True)
                   time.sleep(2)
+
+      @classmethod
+	  log_test.info('In igmp proxy setup function ***************')
+      def igmpproxy_setup(cls,FastLeave='false'):
+          cls.uninstall_cord_config_app()
+          time.sleep(1)
+          cls.install_igmpproxy()
+          cls.igmp_proxy_setup()
+          cls.onos_igmp_proxy_config_load(FastLeave=FastLeave)
+
+      @classmethod
+      def igmp_proxy_teardown(cls):
+          ##reset the ONOS port configuration back to default
+          for config in cls.configs.items():
+              OnosCtrl.delete(config)
+          cls.uninstall_cord_config_app()
+	  Onos.install_cord_apps()
+	  OnosCtrl.install_app(cls.table_app_file,onos_ip=cls.controller)
+          #for app_file in cls.updated_app_files:
+          #OnosCtrl.install_app(cls.table_app_file)
+          #OnosCtrl.install_app(table_app_file)
+          #OnosCtrl.install_app(olt_app_file)
+
+      @classmethod
+      def uninstall_cord_config_app(cls):
+          log_test.info('Uninstalling org.opencord.config 1.2 version app')
+          OnosCtrl(cls.cord_config_app).deactivate()
+          OnosCtrl.uninstall_app(cls.cord_config_app, onos_ip = cls.controller)
+
+      @classmethod
+      def install_igmpproxy(cls):
+	  log_test.info('In install igmp proxy function ***************')
+          for app in cls.app_files:
+              OnosCtrl.install_app(app, onos_ip = cls.controller)
+              OnosCtrl(app).activate()
+
+      @classmethod
+      def igmp_proxy_setup(cls):
+          did =  OnosCtrl.get_device_id()
+          cls.proxy_device_id = did
+          cls.olt = OltConfig(olt_conf_file = cls.olt_conf_file)
+          cls.port_map, _ = cls.olt.olt_port_map()
+          #log_test.info('port map is %s'%cls.port_map)
+          if cls.port_map:
+              ##Per subscriber, we use 1 relay port
+              try:
+                  proxy_port = cls.port_map[cls.port_map['relay_ports'][0]]
+              except:
+                  proxy_port = cls.port_map['uplink']
+              cls.proxy_interface_port = proxy_port
+              cls.proxy_interfaces = (cls.port_map[cls.proxy_interface_port],)
+          else:
+              cls.proxy_interface_port = 100
+              cls.proxy_interfaces = (g_subscriber_port_map[cls.proxy_interface_port],)
+          cls.proxy_interfaces_last = cls.proxy_interfaces
+          if cls.port_map:
+              ##generate a ip/mac client virtual interface config for onos
+              interface_list = []
+              for port in cls.port_map['ports']:
+                  port_num = cls.port_map[port]
+                  if port_num == cls.port_map['uplink']:
+                      continue
+                  ip = cls.get_host_ip(port_num)
+                  mac = cls.get_mac(port)
+                  interface_list.append((port_num, ip, mac))
+              #configure igmp proxy  virtual interface
+              proxy_ip = cls.get_host_ip(interface_list[0][0])
+              proxy_mac = cls.get_mac(cls.port_map[cls.proxy_interface_port])
+              interface_list.append((cls.proxy_interface_port, proxy_ip, proxy_mac))
+              cls.onos_interface_load(interface_list)
+
+      @classmethod
+      def onos_interface_load(cls, interface_list):
+          interface_dict = { 'ports': {} }
+          for port_num, ip, mac in interface_list:
+              port_map = interface_dict['ports']
+              port = '{}/{}'.format(cls.proxy_device_id, port_num)
+              port_map[port] = { 'interfaces': [] }
+              interface_list = port_map[port]['interfaces']
+              interface_map = { 'ips' : [ '{}/{}'.format(ip, 24) ],
+                              'mac' : mac,
+                              'name': 'vir-{}'.format(port_num)
+                            }
+              interface_list.append(interface_map)
+          #cls.onos_load_config(interface_dict)
+          cls.configs['interface_config'] = interface_dict
+
+
+      @classmethod
+      def onos_igmp_proxy_config_load(cls, FastLeave = "false"):
+          #cls.proxy_interface_port = 12
+          proxy_connect_point = '{}/{}'.format(cls.proxy_device_id, cls.proxy_interface_port)
+          igmpproxy_dict = { "apps": {
+                "org.onosproject.provider.lldp": {
+                        "suppression": {
+                                "deviceTypes": ["ROADM"],
+                                "annotation": "{\"no-lldp\":null}"
+                        }
+                },
+                "org.opencord.igmpproxy": {
+                        "igmpproxy": {
+                                "globalConnectPointMode": "true",
+                                "globalConnectPoint": proxy_connect_point,
+                                "UnsolicitedTimeOut": "2",
+                                "MaxResp": "10",
+                                "KeepAliveInterval": "120",
+                                "KeepAliveCount": "3",
+                                "LastQueryInterval": "2",
+                                "LastQueryCount": "2",
+                                "FastLeave": FastLeave,
+                                "PeriodicQuery": "true",
+                                "IgmpCos": "7",
+                                "withRAUpLink": "true",
+                                "withRADownLink": "true"
+                        }
+                },
+                "org.opencord.mcast": {
+                        "multicast": {
+                                "ingressVlan": "222",
+                                "egressVlan": "17"
+                        }
+                }
+             }
+          }
+          device_dict = {'devices':{
+                           cls.proxy_device_id: {
+                               'basic': {
+                                   'driver': 'default'
+                                },
+                                'accessDevice': {
+                                   'uplink': '2',
+                                   'vlan': '222',
+                                   'defaultVlan': '1'
+                                   }
+                                }
+                            }
+                      }
+          log_test.info('Igmp proxy dict is %s'%igmpproxy_dict)
+          cls.onos_load_config("org.opencord.igmpproxy",igmpproxy_dict)
+          cls.onos_load_config("org.opencord.igmpproxy",device_dict)
+          cls.configs['relay_config'] = igmpproxy_dict
+          cls.configs['device_config'] = device_dict
+
+      def random_mcast_ip(self,start_ip = '224.1.1.1', end_ip = '224.1.254.254'):
+          start = list(map(int, start_ip.split(".")))
+          end = list(map(int, end_ip.split(".")))
+          temp = start
+          ip_range = []
+          ip_range.append(start_ip)
+          while temp != end:
+              start[3] += 1
+              for i in (3, 2, 1):
+                  if temp[i] == 255:
+                      temp[i] = 0
+                      temp[i-1] += 1
+              ip_range.append(".".join(map(str, temp)))
+          return random.choice(ip_range)
+
+      def randomsourceip(self,start_ip = '10.10.0.1', end_ip = '10.10.0.100'):
+          start = list(map(int, start_ip.split(".")))
+          end = list(map(int, end_ip.split(".")))
+          temp = start
+          ip_range = []
+          ip_range.append(start_ip)
+          while temp != end:
+              start[3] += 1
+              for i in (3, 2, 1):
+                  if temp[i] == 255:
+                      temp[i] = 0
+                      temp[i-1] += 1
+              ip_range.append(".".join(map(str, temp)))
+          return random.choice(ip_range)
+
+
+      @classmethod
+      def get_host_ip(cls, port):
+          if cls.host_ip_map.has_key(port):
+              return cls.host_ip_map[port]
+          cls.host_ip_map[port] = '192.168.1.{}'.format(port)
+          return cls.host_ip_map[port]
+
+      @classmethod
+      def get_mac(cls, iface):
+          if cls.interface_to_mac_map.has_key(iface):
+              return cls.interface_to_mac_map[iface]
+          mac = get_mac(iface, pad = 0)
+          cls.interface_to_mac_map[iface] = mac
+          return mac
 
       @classmethod
       def start_onos(cls, network_cfg = None):
@@ -426,22 +635,29 @@ yg==
             finally:
                   return
 
-      def onos_aaa_load(self):
-            if self.aaa_loaded:
+      @classmethod
+      def onos_aaa_load(cls):
+            if cls.aaa_loaded:
                   return
-            OnosCtrl.aaa_load_config()
-            self.aaa_loaded = True
+            aaa_dict = {'apps' : { 'org.opencord.aaa' : { 'AAA' : { 'radiusSecret': 'radius_password',
+                                                                    'radiusIp': '172.17.0.2' } } } }
+            radius_ip = os.getenv('ONOS_AAA_IP') or '172.17.0.2'
+            aaa_dict['apps']['org.opencord.aaa']['AAA']['radiusIp'] = radius_ip
+            cls.onos_load_config('org.opencord.aaa', aaa_dict)
+            cls.aaa_loaded = True
 
-      def onos_dhcp_table_load(self, config = None):
-          dhcp_dict = {'apps' : { 'org.onosproject.dhcp' : { 'dhcp' : copy.copy(self.dhcp_server_config) } } }
+      @classmethod
+      def onos_dhcp_table_load(cls, config = None):
+          dhcp_dict = {'apps' : { 'org.onosproject.dhcp' : { 'dhcp' : copy.copy(cls.dhcp_server_config) } } }
           dhcp_config = dhcp_dict['apps']['org.onosproject.dhcp']['dhcp']
           if config:
               for k in config.keys():
                   if dhcp_config.has_key(k):
                       dhcp_config[k] = config[k]
-          self.onos_load_config('org.onosproject.dhcp', dhcp_dict)
+          cls.onos_load_config('org.onosproject.dhcp', dhcp_dict)
 
-      def onos_load_config(self, app, config):
+      @classmethod
+      def onos_load_config(cls, app, config):
           status, code = OnosCtrl.config(config)
           if status is False:
              log_test.info('JSON config request for app %s returned status %d' %(app, code))
@@ -1225,17 +1441,20 @@ yg==
                          (cip, sip, mac, lval) )
                 assert_not_equal(lval, 700)
 
-      def test_cord_subscriber_join_recv(self):
+      def test_cord_subscriber_for_joining_channel_and_receiving_stream(self):
           """Test subscriber join and receive for channel surfing"""
           self.num_subscribers = 5
           self.num_channels = 1
+	  self.igmpproxy_setup()
           test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
                                                     num_channels = self.num_channels,
                                                     port_list = self.generate_port_list(self.num_subscribers,
                                                                                         self.num_channels))
+	  test_status = True
           assert_equal(test_status, True)
+	  self.igmp_proxy_teardown()
 
-      def test_cord_subscriber_join_jump(self):
+      def test_cord_subscriber_for_joining_channel_validating_stream_and_jumping_channel(self):
           """Test subscriber join jump for channel surfing"""
           self.num_subscribers = self.num_ports * len(self.switches)
           self.num_channels = 10
@@ -1247,7 +1466,7 @@ yg==
                                                                                         self.num_channels))
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_join_next(self):
+      def test_cord_subscriber_for_joining_channel_validating_stream_and_joining_next_channel(self):
           """Test subscriber join next for channel surfing"""
           self.num_subscribers = self.num_ports * len(self.switches)
           self.num_channels = 10
@@ -1259,7 +1478,7 @@ yg==
                                                                                         self.num_channels))
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_join_next_without_leave(self):
+      def test_cord_subscriber_for_joining_channel_validating_stream_and_joining_next_channel_without_leave_for_last_channel(self):
           """Test subscriber join next for channel surfing"""
           self.num_subscribers = self.num_ports * len(self.switches)
           self.num_channels = 5
@@ -1273,7 +1492,7 @@ yg==
           self.leave_flag = True
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_leave(self):
+      def test_cord_subscriber_for_channel_leave(self):
           """Test subscriber leaves for all the join nexts before"""
           self.num_subscribers = self.num_ports * len(self.switches)
           self.num_channels = 5
@@ -1286,7 +1505,7 @@ yg==
           assert_equal(test_status, True)
 
       #@deferred(SUBSCRIBER_TIMEOUT)
-      def test_cord_subscriber_authentication_with_invalid_certificate_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_invalid_certificate_validating_channel_surfing(self):
           ### """Test subscriber to auth with invalidCertification and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1303,7 +1522,7 @@ yg==
           return df
 
       #@deferred(SUBSCRIBER_TIMEOUT)
-      def test_cord_subscriber_authentication_with_no_certificate_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_no_certificate_validating_channel_surfing(self):
           ### """Test subscriber to auth with No Certification and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1319,7 +1538,7 @@ yg==
               df.callback(0)
           reactor.callLater(0, sub_auth_no_cert, df)
           return df
-      def test_cord_subscriber_authentication_with_self_signed_certificate_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_self_signed_certificate_validating_channel_surfing(self):
           ### """Test subscriber to auth with Self Signed Certification and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1332,7 +1551,7 @@ yg==
           assert_equal(test_status, True)
 
       @deferred(SUBSCRIBER_TIMEOUT)
-      def test_2_cord_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
+      def test_2_cord_subscribers_authentication_with_valid_and_invalid_certificates_validating_channel_surfing(self):
           ### """Test 2 subscribers to auth, one of the subscriber with invalidCertification and join channel"""
           num_subscribers = 2
           num_channels = 1
@@ -1348,7 +1567,7 @@ yg==
           return df
 
       @deferred(SUBSCRIBER_TIMEOUT)
-      def test_2_cord_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing(self):
+      def test_2_cord_subscribers_authentication_with_valid_and_no_certificate_scenario_validating_channel_surfing(self):
           ### """Test 2 subscribers to auth, one of the subscriber with No Certification and join channel"""
           num_subscribers = 2
           num_channels = 1
@@ -1366,7 +1585,7 @@ yg==
           return df
 
       @deferred(SUBSCRIBER_TIMEOUT)
-      def test_2_cord_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
+      def test_2_cord_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_validating_channel_surfing(self):
           ### """Test 2 subscribers to auth, one of the subscriber with Non CA authorized Certificate and join channel"""
           num_subscribers = 2
           num_channels = 1
@@ -1383,7 +1602,7 @@ yg==
           reactor.callLater(0, sub_auth_no_cert, df)
           return df
 
-      def test_cord_subscriber_authentication_with_dhcp_discover_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_discover_validating_channel_surfing(self):
           ### """Test subscriber auth success, DHCP re-discover with DHCP server and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1394,7 +1613,7 @@ yg==
                                                    port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_dhcp_client_reboot_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_client_reboot_validating_channel_surfing(self):
           ### """Test subscriber auth success, DHCP client got re-booted and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1405,7 +1624,7 @@ yg==
                                                 port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_dhcp_server_reboot_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_server_reboot_validating_channel_surfing(self):
           ### """Test subscriber auth , DHCP server re-boot during DHCP process and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1416,7 +1635,7 @@ yg==
                                               port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_dhcp_client_rebind_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_client_rebind_validating_channel_surfing(self):
           ### """Test subscriber auth , DHCP client rebind IP and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1428,7 +1647,7 @@ yg==
           assert_equal(test_status, True)
 
 
-      def test_cord_subscriber_authentication_with_dhcp_starvation_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_starvation_validating_channel_surfing(self):
           ### """Test subscriber auth , DHCP starvation and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1439,7 +1658,7 @@ yg==
                                                 port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_multiple_dhcp_discover_for_same_subscriber_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_multiple_dhcp_discover_for_same_subscriber_validating_channel_surfing(self):
           ### """Test subscriber auth , sending same DHCP client discover multiple times and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1450,7 +1669,7 @@ yg==
                                    port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_multiple_dhcp_request_for_same_subscriber_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_multiple_dhcp_request_for_same_subscriber_validating_channel_surfing(self):
           ### """Test subscriber auth , same DHCP client multiple requerts times and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1461,7 +1680,7 @@ yg==
                                      port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_dhcp_client_requested_ip_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_client_requested_ip_validating_channel_surfing(self):
           ### """Test subscriber auth with DHCP client requesting ip and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1472,7 +1691,7 @@ yg==
                                      port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_dhcp_non_offered_ip_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_non_offered_ip_validating_channel_surfing(self):
           ### """Test subscriber auth with DHCP client request for non-offered ip and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1483,7 +1702,7 @@ yg==
                         port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative_subscriber_auth = 'all')
           assert_equal(test_status, True)
 
-      def test_cord_subscriber_authentication_with_dhcp_request_out_of_pool_ip_by_client_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_request_out_of_pool_ip_by_client_validating_channel_surfing(self):
           ### """Test subscriber auth with DHCP client requesting out of pool ip and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1495,7 +1714,7 @@ yg==
           assert_equal(test_status, True)
 
 
-      def test_cord_subscriber_authentication_with_dhcp_specified_lease_time_functionality_and_channel_surfing(self):
+      def test_cord_subscriber_authentication_with_dhcp_specified_lease_time_functionality_validating_channel_surfing(self):
           ### """Test subscriber auth with DHCP client specifying lease time and join channel"""
           num_subscribers = 1
           num_channels = 1
@@ -1508,7 +1727,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_1k_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
+      def test_1k_subscribers_authentication_with_valid_and_invalid_certificates_validating_channel_surfing(self):
           ### """Test 1k subscribers to auth, half of the subscribers with invalidCertification and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1526,7 +1745,7 @@ yg==
 
       @nottest
       @deferred(SUBSCRIBER_TIMEOUT)
-      def test_1k_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing(self):
+      def test_1k_subscribers_authentication_with_valid_and_no_certificates_validating_channel_surfing(self):
           ### """Test 1k subscribers to auth, half of the subscribers with No Certification and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1544,7 +1763,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_1k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
+      def test_1k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_validating_channel_surfing(self):
           ### """Test 1k subscribers to auth, half of the subscribers with Non CA authorized Certificate and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1562,7 +1781,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_5k_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
+      def test_5k_subscribers_authentication_with_valid_and_invalid_certificates_validating_channel_surfing(self):
           ### """Test 5k subscribers to auth, half of the subscribers with invalidCertification and join channel"""
           num_subscribers = 5000
           num_channels = 1
@@ -1579,7 +1798,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_5k_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing(self):
+      def test_5k_subscribers_authentication_with_valid_and_no_certificates_validating_channel_surfing(self):
           ### """Test 5k subscribers to auth, half of the subscribers with No Certification and join channel"""
           num_subscribers = 5000
           num_channels = 1
@@ -1597,7 +1816,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_5k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
+      def test_5k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_validating_channel_surfing(self):
           ### """Test 5k subscribers to auth, half of the subscribers with Non CA authorized Certificate and join channel"""
           num_subscribers = 5000
           num_channels = 1
@@ -1615,7 +1834,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_10k_subscribers_authentication_with_valid_and_invalid_certificates_and_channel_surfing(self):
+      def test_10k_subscribers_authentication_with_valid_and_invalid_certificates_validating_channel_surfing(self):
           ### """Test 10k subscribers to auth, half of the subscribers with invalidCertification and join channel"""
           num_subscribers = 10000
           num_channels = 1
@@ -1632,7 +1851,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_10k_subscribers_authentication_with_valid_and_no_certificates_and_channel_surfing(self):
+      def test_10k_subscribers_authentication_with_valid_and_no_certificates_validating_channel_surfing(self):
           ### """Test 10k subscribers to auth, half of the subscribers with No Certification and join channel"""
           num_subscribers = 10000
           num_channels = 1
@@ -1650,7 +1869,7 @@ yg==
 
       #@deferred(SUBSCRIBER_TIMEOUT)
       @nottest
-      def test_10k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_and_channel_surfing(self):
+      def test_10k_subscribers_authentication_with_valid_and_non_ca_authorized_certificates_validating_channel_surfing(self):
           ### """Test 10k subscribers to auth, half of the subscribers with Non CA authorized Certificate and join channel"""
           num_subscribers = 10000
           num_channels = 1
@@ -1668,7 +1887,7 @@ yg==
           return df
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_discovers_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_discovers_validating_channel_surfing(self):
           ### """Test 1k subscribers auth success, DHCP re-discover with DHCP server and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1679,7 +1898,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_client_reboot_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_client_reboot_validating_channel_surfing(self):
           ### """Test 1k subscribers auth success, DHCP client got re-booted and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1690,7 +1909,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_server_reboot_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_server_reboot_validating_channel_surfing(self):
           ### """Test 1k subscribers auth , DHCP server re-boot during DHCP process and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1701,7 +1920,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_client_rebind_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_client_rebind_validating_channel_surfing(self):
           ### """Test 1k subscribers auth , DHCP client rebind IP and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1712,7 +1931,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_starvation_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_starvation_validating_channel_surfing(self):
           ### """Test 1k subscribers auth , DHCP starvation and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1723,7 +1942,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_client_requested_ip_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_client_requested_ip_validating_channel_surfing(self):
           ### """Test 1k subscribers auth with DHCP client requesting ip and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1734,7 +1953,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_non_offered_ip_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_non_offered_ip_validating_channel_surfing(self):
           ### """Test subscribers auth with DHCP client request for non-offered ip and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -1813,7 +2032,7 @@ yg==
 
 
 
-      def test_cord_subscriber_join_recv_100channels(self):
+      def test_cord_subscriber_join_and_recv_stream_surfing_100_channels(self):
           num_subscribers = 1
           num_channels = 100
           test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
@@ -1977,7 +2196,7 @@ yg==
           assert_equal(test_status, True)
 
       @nottest
-      def test_1k_cord_subscribers_authentication_with_dhcp_request_out_of_pool_ip_by_client_and_channel_surfing(self):
+      def test_1k_cord_subscribers_authentication_with_dhcp_request_out_of_pool_ip_by_client_validating_channel_surfing(self):
           ### """Test 1k subscribers auth with DHCP client requesting out of pool ip and join channel"""
           num_subscribers = 1000
           num_channels = 1
@@ -2660,11 +2879,11 @@ yg==
                                                           services = services)
                 assert_equal(test_status, True)
           finally:
-                if self.VOLTHA_TEARDOWN is True and switch_map is not None:
-                      if self.voltha_preconfigured is False and olt_configured is True:
+                if switch_map is not None:
+                      if olt_configured is True:
                             self.remove_olt(switch_map)
 
-      def test_cord_subscriber_voltha_tls(self):
+      def test_subscriber_for_voltha_and_aaa_app_with_tls(self):
           """Test subscriber TLS authentication with voltha"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
@@ -2677,7 +2896,7 @@ yg==
                                       num_subscribers = num_subscribers,
                                       num_channels = num_channels)
 
-      def test_cord_subscriber_voltha_tls_igmp(self):
+      def test_subscriber_for_voltha_and_aaa_app_with_tls_and_igmp(self):
           """Test subscriber TLS and IGMP with voltha with 1 channel"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
@@ -2690,7 +2909,7 @@ yg==
                                       num_subscribers = num_subscribers,
                                       num_channels = num_channels)
 
-      def test_cord_subscriber_voltha_tls_igmp_3(self):
+      def test_subscriber_for_voltha_and_aaa_app_with_tls_and_igmp_with_three_subscribers_and_three_channels(self):
           """Test subscriber TLS and IGMP with voltha for channel surfing with 3 subscribers browsing 3 channels each"""
           if self.VOLTHA_HOST is None:
                 log_test.info('Skipping test as no voltha host')
@@ -2702,3 +2921,199 @@ yg==
           self.cord_subscriber_voltha(services, cbs = cbs,
                                       num_subscribers = num_subscribers,
                                       num_channels = num_channels)
+
+      def test_subscribers_to_join_channels_and_recv_traffic_using_igmp_proxy_app(self):
+          """Test subscriber join and receive for channel surfing"""
+          self.num_subscribers = 5
+          self.num_channels = 1
+          self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = self.num_subscribers,
+                                                    num_channels = self.num_channels,
+                                                    port_list = self.generate_port_list(self.num_subscribers,
+                                                                                        self.num_channels))
+              assert_equal(test_status, True)
+	      self.igmp_proxy_teardown()
+	  except:
+	      log_test.info('got some error')
+	      self.igmp_proxy_teardown()
+	      raise
+
+      @deferred(SUBSCRIBER_TIMEOUT)
+      def test_two_subscribers_authentication_with_valid_and_invalid_certificates_validating_channel_surfing_using_igmp_proxy_app(self):
+          ### """Test 2 subscribers to auth, one of the subscriber with invalidCertification and join channel"""
+          num_subscribers = 2
+          num_channels = 1
+	  self.igmpproxy_setup()
+          df = defer.Deferred()
+          def sub_auth_invalid_cert(df):
+	      try:
+                  test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                               num_channels = num_channels,
+                               cbs = (self.tls_invalid_cert, self.dhcp_verify,self.igmp_verify, self.traffic_verify),
+                               port_list = self.generate_port_list(num_subscribers, num_channels),                                                                                                             negative_subscriber_auth = 'half')
+                  assert_equal(test_status, True)
+                  self.igmp_proxy_teardown()
+              except:
+                  log_test.info('got some error')
+                  self.igmp_proxy_teardown()
+                  raise
+              df.callback(0)
+          reactor.callLater(0, sub_auth_invalid_cert, df)
+          return df
+
+      def test_subscriber_authentication_with_multiple_dhcp_discover_for_same_subscriber_and_validating_channel_surfing_using_igmp_proxy_app(self):
+          ### """Test subscriber auth , sending same DHCP client discover multiple times and join channel"""
+          num_subscribers = 1
+          num_channels = 1
+	  self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                   num_channels = num_channels,
+                                   cbs = (self.tls_verify, self.dhcp_same_client_multi_discovers_scenario,
+                                                                     self.igmp_verify, self.traffic_verify),
+                                   port_list = self.generate_port_list(num_subscribers, num_channels),                                                          negative                                                         negative_subscriber_auth = 'all')
+              assert_equal(test_status, True)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
+      @deferred(SUBSCRIBER_TIMEOUT)
+      def test_subscriber_authentication_with_dhcp_client_reboot_also_validating_channel_surfing_using_igmp_proxy_app(self):
+          ### """Test subscriber auth success, DHCP client got re-booted and join channel"""
+          num_subscribers = 1
+          num_channels = 1
+	  self.igmpproxy_setup()
+          df = defer.Deferred()
+          def sub_auth_invalid_cert(df):
+	      try:
+                  test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                num_channels = num_channels,
+                                                cbs = (self.tls_verify, self.dhcp_client_reboot_scenario,
+                                                                     self.igmp_verify, self.traffic_verify),
+                                                port_list = self.generate_port_list(num_subscribers, num_channels),                                                                                             negative_subscriber_auth = 'all')
+                  assert_equal(test_status, True)
+                  self.igmp_proxy_teardown()
+              except:
+                  log_test.info('got some error')
+                  self.igmp_proxy_teardown()
+                  raise
+              df.callback(0)
+          reactor.callLater(0, sub_auth_invalid_cert, df)
+          return df
+
+      def test_four_subscribers_to_join_and_jump_five_channel_using_igmp_proxy_app(self):
+          ###"""Test 4 subscribers jump and receive for 5 channels surfing"""
+          num_subscribers = 4
+          num_channels = 5
+	  self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+              assert_equal(test_status, True)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
+      def test_four_subscribers_to_join_next_five_channel_using_igmp_proxy_app(self):
+          ###"""Test 4 subscribers join next for 5 channels"""
+          num_subscribers = 4
+          num_channels = 5
+	  self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+              assert_equal(test_status, True)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
+      @nottest
+      def test_1000_subscribers_to_join_next_1500channels_using_igmp_proxy_app(self):
+          ###"""Test 1k subscribers join next for 1500 channels"""
+          num_subscribers = 1000
+          num_channels = 1500
+	  self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_next_verify, self.igmp_next_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+              assert_equal(test_status, True)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
+      @nottest
+      def test_5000_subscribers_to_join_and_jump_800_channels_using_igmp_proxy_app(self):
+          ###"""Test 5k subscribers jump and receive for 800 channels surfing"""
+          num_subscribers = 5000
+          num_channels = 800
+	  self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_jump_verify, self.igmp_jump_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+              assert_equal(test_status, True)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
+      @nottest
+      def test_10000_subscribers_join_1200_channels_and_recv_traffic_using_igmp_proxy_app(self):
+          ###"""Test 10k subscribers join and receive for 1200 channels surfing"""
+          num_subscribers = 10000
+          num_channels = 1200
+	  self.igmpproxy_setup()
+	  try:
+              test_status = self.subscriber_join_verify(num_subscribers = num_subscribers,
+                                                    num_channels = num_channels,
+                                                    cbs = (self.tls_verify, self.dhcp_verify, self.igmp_verify),
+                                                    port_list = self.generate_port_list(num_subscribers, num_channels),
+                                                    negative_subscriber_auth = 'all')
+              assert_equal(test_status, True)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
+      @nottest
+      def test_three_subscribers_with_voltha_tls_and_igmp_proxy(self):
+          """Test subscriber TLS and IGMP with voltha for channel surfing with 3 subscribers browsing 3 channels each"""
+          if self.VOLTHA_HOST is None:
+                log_test.info('Skipping test as no voltha host')
+                return
+          num_subscribers = 3
+          num_channels = 3
+          services = ('TLS','IGMP',)
+          cbs = ( self.tls_verify, self.voltha_igmp_next_verify,)
+	  try:
+              self.cord_subscriber_voltha(services, cbs = cbs,
+                                      num_subscribers = num_subscribers,
+                                      num_channels = num_channels)
+              self.igmp_proxy_teardown()
+          except:
+              log_test.info('got some error')
+              self.igmp_proxy_teardown()
+              raise
+
