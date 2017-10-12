@@ -34,9 +34,10 @@ from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 import time
-import os, sys
+import os, sys, re
 from DHCP import DHCPTest
 from CordTestUtils import get_mac, log_test, getstatusoutput, get_controller
+from SSHTestAgent import SSHTestAgent
 from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 from CordTestServer import cord_test_onos_restart, cord_test_ovs_flow_add
@@ -104,6 +105,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     sadis_configs = {}
     default_onos_netcfg = {}
     voltha_switch_map = None
+    remote_dhcpd_cmd = []
 
     @classmethod
     def update_apps_version(cls):
@@ -129,6 +131,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         #assert_equal(status, True)
         time.sleep(3)
         cls.setup_dhcpd()
+        cls.default_onos_netcfg = OnosCtrl.get_config()
+
 
     def setUp(self):
         self.default_onos_netcfg = OnosCtrl.get_config()
@@ -146,6 +150,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     @classmethod
     def tearDownClass(cls):
         '''Deactivate the cord dhcpl2relay app'''
+        cls.onos_load_config(cls.default_onos_netcfg)
         #cls.onos_ctrl.deactivate()
         #OnosCtrl(cls.sadis_app).deactivate()
         #OnosCtrl(cls.app_olt).deactivate()
@@ -218,7 +223,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     @classmethod
     def service_running(cls, pattern):
-        st, _ = getstatusoutput('pgrep -f "{}"'.format(pattern))
+        st, output = getstatusoutput('pgrep -f "{}"'.format(pattern))
         return True if st == 0 else False
 
     @classmethod
@@ -302,6 +307,52 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         cls.relay_interfaces_last = cls.relay_interfaces
         cls.relay_interfaces = intf_list
         return True
+
+    @classmethod
+    def get_dhcpd_process(cls):
+        docker_cmd = 'docker exec cord-tester1'
+        cmd = '{} ps -eaf | grep dhcpd'.format(docker_cmd)
+        dhcpd_server_ip = get_controller()
+        server_user = 'ubuntu'
+        server_pass = 'ubuntu'
+        ssh_agent = SSHTestAgent(host = dhcpd_server_ip, user = server_user, password = server_user)
+        status, output = ssh_agent.run_cmd(cmd)
+        assert_equal(status, True)
+        if output:
+           cls.remote_dhcpd_cmd = re.findall('(?<=/)\w+.*', output)
+        log_test.info('DHCP server running on remote host and list of service commands are \n %s'%cls.remote_dhcpd_cmd)
+        assert_equal(status, True)
+        return cls.remote_dhcpd_cmd
+
+    def dhcpd_stop(self, remote_controller = False, dhcpd = None):
+        if remote_controller is not True:
+           if cls.service_running("/usr/sbin/dhcpd"):
+              cmd = 'pkill -9 dhcpd'
+              st, _ = getstatusoutput(cmd)
+              return True if st == 0 else False
+        else:
+           docker_cmd = 'docker exec cord-tester1'
+           dhcpd_server_ip = get_controller()
+           server_user = 'ubuntu'
+           server_pass = 'ubuntu'
+           service_satatus = True
+           ssh_agent = SSHTestAgent(host = dhcpd_server_ip, user = server_user, password = server_user)
+           if dhcpd == 'stop':
+              status, output = ssh_agent.run_cmd('{} pkill -9 dhcpd'.format(docker_cmd))
+              service_satatus = status and True
+           elif dhcpd == 'start':
+              for cmd in self.remote_dhcpd_cmd:
+                 dhcpd_cmd = ' {0} /{1}'.format(docker_cmd,cmd)
+                 status, output = ssh_agent.run_cmd(dhcpd_cmd)
+                 service_satatus = status and True
+           elif dhcpd == 'restart':
+              status, output = ssh_agent.run_cmd('{} pkill -9 dhcpd'.format(docker_cmd))
+              service_satatus = status and True
+              for cmd in self.remote_dhcpd_cmd:
+                 dhcpd_cmd = ' {0} /{1}'.format(docker_cmd,cmd)
+                 status, output = ssh_agent.run_cmd(dhcpd_cmd)
+                 service_satatus = status and True
+           return service_satatus
 
     @classmethod
     def dhcp_l2_relay_setup(cls):
@@ -662,27 +713,36 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
            assert_equal(True, False)
 
     def test_dhcpl2relay_with_array_of_connect_points_for_dhcp_server(self, iface = 'veth0'):
-        relay_device_map = '{}/{}'.format(self.relay_device_id, self.relay_interface_port)
-        relay_device_map1 = '{}/1'.format(self.relay_device_id)
-        relay_device_map2 = '{}/9'.format(self.relay_device_id)
-        relay_device_map3 = '{}/6'.format(self.relay_device_id)
-        relay_device_map4 = '{}/7'.format(self.relay_device_id)
-        dhcp_server_array_connectPoints = [relay_device_map,relay_device_map1,relay_device_map2,relay_device_map3,relay_device_map4]
+        connect_point = self.default_onos_netcfg['apps']['org.opencord.dhcpl2relay']['dhcpl2relay']['dhcpServerConnectPoints']
+        log_test.info('Existing connect point of dhcp server is %s'%connect_point)
+        relay_device_map1 = '{}/{}'.format(self.relay_device_id, random.randrange(1,5, 1))
+        relay_device_map2 = '{}/{}'.format(self.relay_device_id, random.randrange(6,10, 1))
+        relay_device_map3 = '{}/{}'.format(self.relay_device_id, random.randrange(10,16, 1))
+        relay_device_map4 = '{}/{}'.format(self.relay_device_id, random.randrange(17,23, 1))
+        dhcp_server_array_connectPoints = [connect_point[0],relay_device_map1,relay_device_map2,relay_device_map3,relay_device_map4]
+        log_test.info('Added array of connect points of dhcp server is %s'%dhcp_server_array_connectPoints)
+
         mac = self.get_mac(iface)
         self.onos_delete_config(self.configs['relay_config'])
         self.onos_load_config(self.default_onos_netcfg)
-        self.cord_l2_relay_load(dhcp_server_connectPoint = dhcp_server_array_connectPoints, delete = False)
+        dhcp_dict = { "apps" : { "org.opencord.dhcpl2relay" : {"dhcpl2relay" :
+                                   {"dhcpServerConnectPoints": dhcp_server_array_connectPoints}
+                                                        }
+                            }
+                    }
+        self.onos_load_config(dhcp_dict)
         onos_netcfg = OnosCtrl.get_config()
         app_status = False
         app_name = 'org.opencord.dhcpl2relay'
         for app in onos_netcfg['apps']:
-            if app == app_name:
+            if app == app_name and onos_netcfg['apps'][app] != {}:
                log_test.info('%s app is being installed'%app)
-               if onos_netcfg['apps'][app_name] == {}:
-                  log_test.info('The network configuration is not shown'%onos_netcfg['apps'][app_name])
-               elif onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'] == dhcp_server_array_connectPoints:
-                  log_test.info('The network configuration is shown = %s'%onos_netcfg['apps'][app_name]['dhcpServerConnectPoints'])
+               log_test.info('The network configuration is shown %s'%onos_netcfg['apps'][app])
+               x = set(onos_netcfg['apps'][app_name]['dhcpl2relay']['dhcpServerConnectPoints']) & set(dhcp_server_array_connectPoints)
+               if len(x) == len(dhcp_server_array_connectPoints):
+                  log_test.info('The loaded onos network configuration is = %s'%dhcp_server_array_connectPoints)
                   app_status = True
+               break
         if app_status is not True:
            log_test.info('%s app is not installed or network configuration is not shown'%app_name)
            assert_equal(True, False)
@@ -734,13 +794,16 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     def test_dhcpl2relay_delete_and_add_sadis_app(self, iface = 'veth0'):
         mac = self.get_mac(iface)
+        log_test.info('Uninstall the sadis app from onos ,app version = %s '%self.sadis_app_file)
         OnosCtrl.uninstall_app(self.sadis_app_file)
         OnosCtrl(self.sadis_app).deactivate()
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
 	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
         assert_equal(cip,None)
-        OnosCtrl.uninstall_app(self.sadis_app_file)
-        OnosCtrl(self.sadis_app).deactivate()
+        log_test.info('Installing the sadis app in onos again, app version = %s '%self.sadis_app_file)
+        OnosCtrl.install_app(self.sadis_app_file)
+        OnosCtrl(self.sadis_app).activate()
+        OnosCtrl(self.app).activate()
         #self.onos_load_config(self.sadis_configs['relay_config'])
         self.send_recv(mac=mac)
 
@@ -933,14 +996,15 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         assert_equal(cip,None)
         log_test.info('dhcp server rejected client discover with invalid source mac, as expected')
 
+        ### We can't test this on single uni port setup, hence its not to test
     def test_dhcpl2relay_with_N_requests(self, iface = 'veth0',requests=10):
         mac = self.get_mac(iface)
-        self.dhcp = DHCPTest(seed_ip = '192.169.100.1', iface = iface)
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
         ip_map = {}
         for i in range(requests):
             #mac = RandMAC()._fix()
 	    #log_test.info('mac is %s'%mac)
-            cip, sip = self.send_recv(update_seed = True)
+            cip, sip = self.send_recv(mac=mac, update_seed = True)
             if ip_map.has_key(cip):
                 log_test.info('IP %s given out multiple times' %cip)
                 assert_equal(False, ip_map.has_key(cip))
@@ -995,7 +1059,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	count = 0
         while True:
             #mac = RandMAC()._fix()
-            cip, sip = self.send_recv(update_seed = True,validate = False)
+            cip, sip = self.send_recv(mac=mac,update_seed = True,validate = False)
 	    if cip is None:
 		break
 	    else:
@@ -1009,12 +1073,12 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_with_same_client_and_multiple_discovers(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s . Not going to send DHCPREQUEST.' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip, None)
 	log_test.info('Triggering DHCP discover again.')
-	new_cip, new_sip, new_mac, _ = self.dhcp.only_discover()
+	new_cip, new_sip, new_mac, _ = self.dhcp.only_discover(mac=mac)
 	assert_equal(new_cip, cip)
 	log_test.info('got same ip to smae the client when sent discover again, as expected')
 
@@ -1032,15 +1096,15 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_with_clients_desired_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '192.168.1.31', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac,desired = True)
 	assert_equal(cip,self.dhcp.seed_ip)
 	log_test.info('Got dhcp client desired IP %s from server %s for mac %s as expected' %
 		  (cip, sip, mac) )
 
-    def test_dhcpl2relay_with_clients_desired_address_in_out_of_pool(self, iface = 'veth0'):
+    def test_dhcpl2relay_with_clients_desired_address_out_of_pool(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.35', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover(desired = True)
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac,desired = True)
 	assert_not_equal(cip,None)
 	assert_not_equal(cip,self.dhcp.seed_ip)
 	log_test.info('server offered IP from its pool when requested out of pool IP, as expected')
@@ -1048,7 +1112,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_nak_packet(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip, None)
@@ -1056,18 +1120,18 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(new_cip, None)
 	log_test.info('server sent NAK packet when requested other IP than that server offered')
 
-    def test_dhcpl2relay_with_client_requests_with_specific_lease_time_in_discover_message(self, iface = 'veth0',lease_time=700):
+    def test_dhcpl2relay_client_requests_with_specific_lease_time_in_discover_message(self, iface = 'veth0',lease_time=700):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.70', iface = iface)
 	self.dhcp.return_option = 'lease'
-	cip, sip, mac, lval = self.dhcp.only_discover(lease_time=True,lease_value=lease_time)
+	cip, sip, mac, lval = self.dhcp.only_discover(mac=mac,lease_time=True,lease_value=lease_time)
 	assert_equal(lval, lease_time)
 	log_test.info('dhcp server offered IP address with client requested lease time')
 
     def test_dhcpl2relay_with_client_request_after_reboot(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip, None)
@@ -1080,40 +1144,93 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(new_cip2, cip)
 	log_test.info('client got same IP after reboot, as expected')
 
-
-    def test_dhcpl2relay_after_server_reboot(self, iface = 'veth0'):
+    def test_dhcpl2relay_after_server_shutting_down(self, iface = 'veth0'):
+        self.get_dhcpd_process()
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip, None)
 	new_cip, new_sip = self.dhcp.only_request(cip, mac)
 	log_test.info('server rebooting...')
-	self.tearDownClass()
-	new_cip, new_sip = self.dhcp.only_request(cip, mac)
-	assert_equal(new_cip,None)
-	self.setUpClass()
-	new_cip, new_sip = self.dhcp.only_request(cip, mac)
-	assert_equal(new_cip, cip)
-	log_test.info('client got same IP after server rebooted, as expected')
+        try:
+         if self.dhcpd_stop(remote_controller = True, dhcpd = 'stop'):
+           time.sleep(5)
+	   log_test.info('DHCP server is stopped ')
+	   new_cip, new_sip = self.dhcp.only_request(cip, mac)
+           assert_equal(new_cip,None)
+         else:
+	   log_test.info('DHCP server is not stopped' )
+           assert_equal(new_cip,None)
+        finally:
+          self.dhcpd_stop(remote_controller = True, dhcpd = 'restart')
 
-    def test_dhcpl2relay_specific_lease_time_only_in_discover_but_not_in_request_packet(self, iface = 'veth0',lease_time=700):
+    def test_dhcpl2relay_after_server_reboot(self, iface = 'veth0'):
+        self.get_dhcpd_process()
+        mac = self.get_mac(iface)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+        cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
+        log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
+                  (cip, sip, mac) )
+        assert_not_equal(cip, None)
+        new_cip, new_sip = self.dhcp.only_request(cip, mac)
+        log_test.info('server rebooting...')
+        try:
+         if self.dhcpd_stop(remote_controller = True, dhcpd = 'restart'):
+           time.sleep(5)
+           log_test.info('DHCP server is rebooted')
+           new_cip, new_sip = self.dhcp.only_request(cip, mac)
+           assert_equal(new_cip,cip)
+         else:
+           log_test.info('DHCP server is not stopped' )
+           assert_equal(new_cip,None)
+        finally:
+          self.dhcpd_stop(remote_controller = True, dhcpd = 'restart')
+
+    def test_dhcpl2relay_after_server_restart(self, iface = 'veth0'):
+        self.get_dhcpd_process()
+        mac = self.get_mac(iface)
+        self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
+        cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
+        log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
+                  (cip, sip, mac) )
+        assert_not_equal(cip, None)
+        new_cip, new_sip = self.dhcp.only_request(cip, mac)
+        log_test.info('server rebooting...')
+        try:
+         if self.dhcpd_stop(remote_controller = True, dhcpd = 'stop'):
+           time.sleep(5)
+           log_test.info('DHCP server is stopped ')
+           new_cip, new_sip = self.dhcp.only_request(cip, mac)
+           assert_equal(new_cip,None)
+         else:
+           log_test.info('DHCP server is not stoppped' )
+           assert_equal(new_cip,None)
+         self.dhcpd_stop(remote_controller = True, dhcpd = 'start')
+         log_test.info('DHCP server is started ')
+         new_cip, new_sip = self.dhcp.only_request(cip, mac)
+         assert_equal(new_cip, cip)
+         log_test.info('client got same IP after server rebooted, as expected')
+        finally:
+          self.dhcpd_stop(remote_controller = True, dhcpd = 'restart')
+
+    def test_dhcpl2relay_with_specific_lease_time_in_discover_and_without_in_request_packet(self, iface = 'veth0',lease_time=700):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 	self.dhcp.return_option = 'lease'
 	log_test.info('Sending DHCP discover with lease time of 700')
-	cip, sip, mac, lval = self.dhcp.only_discover(lease_time = True, lease_value=lease_time)
+	cip, sip, mac, lval = self.dhcp.only_discover(mac=mac,lease_time = True, lease_value=lease_time)
 	assert_equal(lval,lease_time)
 	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True)
 	assert_equal(new_cip,cip)
 	assert_not_equal(lval, lease_time) #Negative Test Case
 	log_test.info('client requested lease time in discover packer is not seen in server ACK packet as expected')
 
-    def test_dhcpl2relay_specific_lease_time_only_in_request_but_not_in_discover_packet(self, iface = 'veth0',lease_time=800):
+    def test_dhcpl2relay_with_specific_lease_time_in_request_and_without_in_discover_packet(self, iface = 'veth0',lease_time=800):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, lease_time = True,lease_value=lease_time)
 	assert_equal(new_cip,cip)
 	assert_equal(lval, lease_time)
@@ -1122,7 +1239,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_with_client_renew_time(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)
@@ -1136,7 +1253,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     def test_dhcpl2relay_with_client_rebind_time(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)
@@ -1153,7 +1270,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	expected_subnet = '255.255.255.0'
 	self.dhcp.return_option = 'subnet'
 
-	cip, sip, mac, subnet_mask = self.dhcp.only_discover()
+	cip, sip, mac, subnet_mask = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_equal(subnet_mask,expected_subnet)
@@ -1163,7 +1280,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)
@@ -1178,17 +1295,17 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	expected_router_address = '20.20.20.1'
 	self.dhcp.return_option = 'router'
 
-	cip, sip, mac, router_address_value = self.dhcp.only_discover()
+	cip, sip, mac, router_address_value = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_equal(expected_router_address, router_address_value)
 	log_test.info('router address in server offer packet is same as configured router address in dhcp server')
 
-    def test_dhcpl2relay_with_client_sends_dhcp_request_with_wrong_router_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_by_client_sending_dhcp_request_with_wrong_router_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)
@@ -1203,17 +1320,17 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	expected_broadcast_address = '192.168.1.255'
 	self.dhcp.return_option = 'broadcast_address'
 
-	cip, sip, mac, broadcast_address_value = self.dhcp.only_discover()
+	cip, sip, mac, broadcast_address_value = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_equal(expected_broadcast_address, broadcast_address_value)
 	log_test.info('broadcast address in server offer packet is same as configured broadcast address in dhcp server')
 
-    def test_dhcpl2relay_with_client_sends_dhcp_request_with_wrong_broadcast_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_by_client_sending_dhcp_request_with_wrong_broadcast_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)
@@ -1228,17 +1345,17 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	expected_dns_address = '192.168.1.1'
 	self.dhcp.return_option = 'dns'
 
-	cip, sip, mac, dns_address_value = self.dhcp.only_discover()
+	cip, sip, mac, dns_address_value = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_equal(expected_dns_address, dns_address_value)
 	log_test.info('dns address in server offer packet is same as configured dns address in dhcp server')
 
-    def test_dhcpl2relay_with_client_sends_request_with_wrong_dns_address(self, iface = 'veth0'):
+    def test_dhcpl2relay_by_client_sending_request_with_wrong_dns_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
-	cip, sip, mac, _ = self.dhcp.only_discover()
+	cip, sip, mac, _ = self.dhcp.only_discover(mac=mac)
 	log_test.info('Got dhcp client IP %s from server %s for mac %s .' %
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)

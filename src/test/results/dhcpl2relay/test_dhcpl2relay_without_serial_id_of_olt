@@ -1,0 +1,220 @@
+ubuntu@olt-tester:~/cord-tester/src/test/setup$
+ubuntu@olt-tester:~/cord-tester/src/test/setup$ ./voltha-test.py --test-type=dhcpl2relay:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt --manifest=manifest-olt-voltha-local.json --voltha-host=10.70.47.64 --olt-type=tibit-olt --olt-arg=00:0c:e2:31:05:00 --disable-cleanup --disable-teardown
+Starting CordTester Web Server
+ * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 718-316-938
+WARNING: No route found for IPv6 destination :: (no default route?)
+Cleaning up existing cluster volumes
+Onos IP 10.70.47.64
+Installing ONOS cord apps
+# Host [10.70.47.64]:8101 found: line 5
+/root/.ssh/known_hosts updated.
+Original contents retained as /root/.ssh/known_hosts.old
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 10.70.47.64 closed.
+
+result.ok, result.status_code are False and 409
+ONOS app cord-config, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app sadis-app, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app olt-app, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app aaa, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app igmp, version 3.0-SNAPSHOT installed
+Installing cord tester ONOS app /home/ubuntu/cord-tester/src/test/apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar
+result.ok, result.status_code are False and 409
+Radius server running with IP 11.0.0.3
+Provisioning the ports for the test container
+
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth0 -l l1 cord-tester1 192.168.100.1/24 02:03:04:00:00:01
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth2 -l l2 cord-tester1 192.168.100.2/24 02:03:04:00:00:02
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth4 -l l3 cord-tester1 192.168.100.3/24 02:03:04:00:00:03
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth6 -l l4 cord-tester1 192.168.100.4/24 02:03:04:00:00:04
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth8 -l l5 cord-tester1 192.168.100.5/24 02:03:04:00:00:05
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth10 -l l6 cord-tester1 192.168.100.6/24 02:03:04:00:00:06
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth12 -l l7 cord-tester1 192.168.100.7/24 02:03:04:00:00:07
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth14 -l l8 cord-tester1 192.168.100.8/24 02:03:04:00:00:08
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth16 -l l9 cord-tester1 192.168.100.9/24 02:03:04:00:00:09
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth18 -l l10 cord-tester1 192.168.100.10/24 02:03:04:00:00:0a
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth20 -l l11 cord-tester1 192.168.100.11/24 02:03:04:00:00:0b
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth22 -l l12 cord-tester1 192.168.100.12/24 02:03:04:00:00:0c
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth24 -l l13 cord-tester1 192.168.100.13/24 02:03:04:00:00:0d
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth26 -l l14 cord-tester1 192.168.100.14/24 02:03:04:00:00:0e
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth28 -l l15 cord-tester1 192.168.100.15/24 02:03:04:00:00:0f
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth30 -l l16 cord-tester1 192.168.100.16/24 02:03:04:00:00:10
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth32 -l l17 cord-tester1 192.168.100.17/24 02:03:04:00:00:11
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth34 -l l18 cord-tester1 192.168.100.18/24 02:03:04:00:00:12
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth36 -l l19 cord-tester1 192.168.100.19/24 02:03:04:00:00:13
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth38 -l l20 cord-tester1 192.168.100.20/24 02:03:04:00:00:14
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth40 -l l21 cord-tester1 192.168.100.21/24 02:03:04:00:00:15
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth42 -l l22 cord-tester1 192.168.100.22/24 02:03:04:00:00:16
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth44 -l l23 cord-tester1 192.168.100.23/24 02:03:04:00:00:17
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth46 -l l24 cord-tester1 192.168.100.24/24 02:03:04:00:00:18
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth48 -l l25 cord-tester1 192.168.100.25/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth50 -l l26 cord-tester1 192.168.100.26/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth52 -l l27 cord-tester1 192.168.100.27/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth54 -l l28 cord-tester1 192.168.100.28/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth56 -l l29 cord-tester1 192.168.100.29/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth58 -l l30 cord-tester1 192.168.100.30/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth60 -l l31 cord-tester1 192.168.100.31/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth62 -l l32 cord-tester1 192.168.100.32/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth64 -l l33 cord-tester1 192.168.100.33/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth66 -l l34 cord-tester1 192.168.100.34/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth68 -l l35 cord-tester1 192.168.100.35/24
+RTNETLINK answers: File exists
+Running PIPEWORK cmd: pipework enp1s0f0 -i veth70 -l l36 cord-tester1 192.168.100.36/24
+RTNETLINK answers: File exists
+Provisioning guest port vcpe0 for cord-tester1 with host port: enp1s0f0, s_tag: 222, c_tag: 111
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe1 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 304
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe2 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 305
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe3 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 306
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe4 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 307
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe5 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 308
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe6 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 309
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe7 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 310
+
+RTNETLINK answers: File exists
+Provisioning guest port vcpe8 for cord-tester1 with host port: enp1s0f0, s_tag: 304, c_tag: 311
+
+RTNETLINK answers: File exists
+Test container cord-tester1 started and provisioned to run tests using nosetests
+127.0.0.1 - - [11/Oct/2017 02:16:07] "POST /start HTTP/1.1" 200 -
+Running test case dhcpl2relay:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt
+WARNING: No route found for IPv6 destination :: (no default route?)
+Controller IP [u'10.70.47.64'], Test type dhcpl2relay:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt
+Installing ONOS cord apps
+# Host [10.70.47.64]:8101 found: line 5
+/root/.ssh/known_hosts updated.
+Original contents retained as /root/.ssh/known_hosts.old
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 10.70.47.64 closed.
+
+result.ok, result.status_code are False and 409
+ONOS app cord-config, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app sadis-app, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app olt-app, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app aaa, version 3.0-SNAPSHOT installed
+result.ok, result.status_code are False and 409
+ONOS app igmp, version 3.0-SNAPSHOT installed
+Installing cord tester ONOS app /home/ubuntu/cord-tester/src/test/apps/ciena-cordigmp-multitable-3.0-SNAPSHOT.oar
+result.ok, result.status_code are False and 409
+Radius server running with IP 11.0.0.3
+Running ['dhcpl2relay:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt'] tests across 1 containers in parallel
+Modifying scapy tool files before running a test: ['dhcpl2relay:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt']
+Running tests: ['dhcpl2relay:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt']
+Connecting to controller at 10.70.47.64
+onoscli: Trying to connect to 10.70.47.64
+Spawning pexpect for ip 10.70.47.64
+ssh connection asked for password, gave password
+Command 'summary -j' sent to onoscli.
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 10.70.47.64 closed.
+
+Voltha device of:0001000000000001 not in map. Using uplink vlan 333
+Installing OLT app /root/test/src/test/utils/../apps/olt-app-3.0-SNAPSHOT.oar
+Connecting to controller at 10.70.47.64
+onoscli: Trying to connect to 10.70.47.64
+# Host [10.70.47.64]:8101 found: line 1 type RSA
+Spawning pexpect for ip 10.70.47.64
+ssh connection asked for password, gave password
+Command 'summary -j' sent to onoscli.
+onoscli: eof exception found
+onoscli:     logout
+
+Connection to 10.70.47.64 closed.
+
+Running command: ip link add link veth48 name veth48.333 type vlan id 333
+RTNETLINK answers: File exists
+Running command: ip link set veth48.333 up
+Running command: ip link add link veth48.333 name veth48.333.254 type vlan id 254
+RTNETLINK answers: File exists
+Running command: ip link set veth48.333.254 up
+Configuring OVS flow for port 37, s_tag 333
+test_dhcpl2relay_without_serial_id_of_olt (dhcpl2relay.dhcpl2relayTest.dhcpl2relay_exchange) ... # Host [10.70.47.64]:8101 found: line 1 type RSA
+org.opencord.sadis app is being installed
+The serial Id info from network configuration is shown =
+
+Test test_dhcpl2relay_without_serial_id_of_olt has errors and warnings
+
+2017-10-11 09:16:51,460 | WARN  |  I/O worker #340 | IgmpSnoop                        | 203 - org.opencord.igmp - 1.3.0.SNAPSHOT | No SSM translate source found for group 224.0.0.251
+2017-10-11 09:16:52,527 | WARN  | f-event-stats-17 | FlowModBuilderVer13              | 194 - org.onosproject.onos-providers-openflow-flow - 1.10.6 | Match type INNER_VLAN_VID not yet implemented.
+2017-10-11 09:16:57,530 | WARN  | f-event-stats-12 | FlowModBuilderVer13              | 194 - org.onosproject.onos-providers-openflow-flow - 1.10.6 | Match type INNER_VLAN_VID not yet implemented.
+2017-10-11 09:16:58,463 | ERROR |  I/O worker #340 | SadisManager                     | 243 - org.opencord.sadis-app - 1.2.0.SNAPSHOT | Data not found for id d9f17c736cb04df3b583ea54ef58e9ad
+2017-10-11 09:16:58,463 | WARN  |  I/O worker #340 | DhcpL2Relay                      | 244 - org.opencord.dhcpl2relay - 1.2.0.SNAPSHOT | Device not found for of:0001000000000001/254
+2017-10-11 09:16:58,463 | WARN  |  I/O worker #340 | DhcpL2Relay                      | 244 - org.opencord.dhcpl2relay - 1.2.0.SNAPSHOT | RelayAgent MAC not found
+2017-10-11 09:17:02,530 | WARN  | f-event-stats-16 | FlowModBuilderVer13              | 194 - org.onosproject.onos-providers-openflow-flow - 1.10.6 | Match type INNER_VLAN_VID not yet implemented.
+2017-10-11 09:17:07,525 | WARN  | f-event-stats-27 | FlowModBuilderVer13              | 194 - org.onosproject.onos-providers-openflow-flow - 1.10.6 | Match type INNER_VLAN_VID not yet implemented.
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 52.344s
+
+OK
+Test dhcpl2relayTest.py:dhcpl2relay_exchange.test_dhcpl2relay_without_serial_id_of_olt Success
+Done running tests
+127.0.0.1 - - [11/Oct/2017 02:17:12] "POST /test HTTP/1.1" 200 -
+ubuntu@olt-tester:~/cord-tester/src/test/setup$
+ubuntu@olt-tester:~/cord-tester/src/test/setup$
+ubuntu@olt-tester:~/cord-tester/src/test/setup$
+
