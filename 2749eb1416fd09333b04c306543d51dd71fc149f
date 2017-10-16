@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9a5c5d37_98b0eade",
+        "filename": "src/test/robot/SanityPhyPOD.robot",
+        "patchSetId": 10
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2017-10-16T20:04:51Z",
+      "side": 1,
+      "message": "We probably need to read the config file for different PODs to get these variables (also the number of compute nodes)",
+      "range": {
+        "startLine": 46,
+        "startChar": 30,
+        "endLine": 46,
+        "endChar": 34
+      },
+      "revId": "2749eb1416fd09333b04c306543d51dd71fc149f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
