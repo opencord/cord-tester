@@ -343,6 +343,8 @@ class OnosCtrl:
                 radius_ports = filter(lambda p: p['isEnabled'] and 'annotations' in p and \
                                       p['annotations']['portName'].startswith('r'),
                                       ports)
+                if not radius_ports:
+                    continue
                 radius_port = radius_ports[0]['port']
                 connect_point = '{}/{}'.format(device_id, radius_port)
                 connect_points.append(connect_point)

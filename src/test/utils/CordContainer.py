@@ -336,8 +336,8 @@ class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
     onos_config_dir_guest = '/root/onos/config'
     synchronizer_map = { 'vtn' : { 'install':
-                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.2-SNAPSHOT/cord-config-1.2-SNAPSHOT.oar',
-                       'http://mavenrepo:8080/repository/org/opencord/vtn/1.2-SNAPSHOT/vtn-1.2-SNAPSHOT.oar',),
+                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.4.0-SNAPSHOT/cord-config-1.4.0-SNAPSHOT.oar',
+                       'http://mavenrepo:8080/repository/org/opencord/vtn/1.4.0-SNAPSHOT/vtn-1.4.0-SNAPSHOT.oar',),
                                    'activate':
                                    ('org.onosproject.ovsdb-base', 'org.onosproject.drivers.ovsdb',
                                     'org.onosproject.dhcp', 'org.onosproject.optical-model',
@@ -351,8 +351,8 @@ class OnosCord(Container):
                                        'org.onosproject.segmentrouting', 'org.onosproject.proxyarp'),
                                       }
                          }
-    tester_apps = ('http://mavenrepo:8080/repository/org/opencord/aaa/1.2-SNAPSHOT/aaa-1.2-SNAPSHOT.oar',
-                   'http://mavenrepo:8080/repository/org/opencord/igmp/1.2-SNAPSHOT/igmp-1.2-SNAPSHOT.oar',)
+    tester_apps = ('http://mavenrepo:8080/repository/org/opencord/aaa/1.4.0-SNAPSHOT/aaa-1.4.0-SNAPSHOT.oar',
+                   'http://mavenrepo:8080/repository/org/opencord/igmp/1.4.0-SNAPSHOT/igmp-1.4.0-SNAPSHOT.oar',)
 
     old_service_profile = '/opt/cord/orchestration/service-profile/cord-pod'
     cord_profile = '/opt/cord_profile'
