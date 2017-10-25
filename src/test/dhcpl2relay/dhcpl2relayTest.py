@@ -34,13 +34,14 @@ from nose.tools import *
 from nose.twistedtools import reactor, deferred
 from twisted.internet import defer
 import time
-import os, sys, re
+import os, sys, re, json
 from DHCP import DHCPTest
 from CordTestUtils import get_mac, log_test, getstatusoutput, get_controller
 from SSHTestAgent import SSHTestAgent
 from OnosCtrl import OnosCtrl
+from onosclidriver import OnosCliDriver
 from OltConfig import OltConfig
-from CordTestServer import cord_test_onos_restart, cord_test_ovs_flow_add
+from CordTestServer import cord_test_onos_restart, cord_test_ovs_flow_add,cord_test_onos_shutdown
 from CordTestConfig import setup_module, teardown_module
 from CordLogger import CordLogger
 from portmaps import g_subscriber_port_map
@@ -106,6 +107,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
     default_onos_netcfg = {}
     voltha_switch_map = None
     remote_dhcpd_cmd = []
+    ONOS_INSTANCES = 3
+    relay_device_id = None
 
     @classmethod
     def update_apps_version(cls):
@@ -135,7 +138,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
 
     def setUp(self):
-        self.default_onos_netcfg = OnosCtrl.get_config()
         super(dhcpl2relay_exchange, self).setUp()
         #self.dhcp_l2_relay_setup()
         #self.cord_sadis_load()
@@ -157,6 +159,25 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 
     @classmethod
     def setup_dhcpd(cls, boot_delay = 5):
+        device_details = OnosCtrl.get_devices(mfr = 'Nicira')
+           ## Assuming only one OVS is detected on ONOS and its for external DHCP server connect point...
+        if device_details is not None:
+           did_ovs = device_details[0]['id']
+        else:
+           log_test.info('On this DHCPl2relay setup, onos does not have ovs device where external DHCP server is have connect point, so return with false status')
+           return False
+        cls.relay_device_id = did_ovs
+        device_details = OnosCtrl.get_devices()
+        if device_details is not None:
+           for device in device_details:
+               if device['available'] is True and device['driver'] == 'pmc-olt':
+                  cls.olt_serial_id = "{}".format(device['serial'])
+                  break
+               else:
+                  cls.olt_serial_id = " "
+        else:
+            log_test.info('On this DHCPl2relay setup, onos does not have ovs device where external DHCP server is have connect point, so return with false status')
+            return False
         if cls.service_running("/usr/sbin/dhcpd"):
             print('DHCPD already running in container')
             return True
@@ -643,6 +664,288 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
                 (cip, sip, self.dhcp.get_mac(cip)[0]))
         return cip,sip
 
+    def cliEnter(self, controller = None):
+        retries = 0
+        while retries < 30:
+            self.cli = OnosCliDriver(controller = controller, connect = True)
+            if self.cli.handle:
+                break
+            else:
+                retries += 1
+                time.sleep(2)
+
+    def cliExit(self):
+        self.cli.disconnect()
+
+
+    def verify_cluster_status(self,controller = None,onos_instances=ONOS_INSTANCES,verify=False):
+        tries = 0
+        try:
+            self.cliEnter(controller = controller)
+            while tries <= 10:
+                cluster_summary = json.loads(self.cli.summary(jsonFormat = True))
+                if cluster_summary:
+                    log_test.info("cluster 'summary' command output is %s"%cluster_summary)
+                    nodes = cluster_summary['nodes']
+                    if verify:
+                        if nodes == onos_instances:
+                            self.cliExit()
+                            return True
+                        else:
+                            tries += 1
+                            time.sleep(1)
+                    else:
+                        if nodes >= onos_instances:
+                            self.cliExit()
+                            return True
+                        else:
+                            tries += 1
+                            time.sleep(1)
+                else:
+                    tries += 1
+                    time.sleep(1)
+            self.cliExit()
+            return False
+        except:
+            raise Exception('Failed to get cluster members')
+            return False
+
+
+    def get_cluster_current_member_ips(self, controller = None, nodes_filter = None):
+        tries = 0
+        cluster_ips = []
+        try:
+            self.cliEnter(controller = controller)
+            while tries <= 10:
+                cluster_nodes = json.loads(self.cli.nodes(jsonFormat = True))
+                if cluster_nodes:
+                    log_test.info("cluster 'nodes' output is %s"%cluster_nodes)
+                    if nodes_filter:
+                        cluster_nodes = nodes_filter(cluster_nodes)
+                    cluster_ips = map(lambda c: c['id'], cluster_nodes)
+                    self.cliExit()
+                    cluster_ips.sort(lambda i1,i2: int(i1.split('.')[-1]) - int(i2.split('.')[-1]))
+                    return cluster_ips
+                else:
+                    tries += 1
+            self.cliExit()
+            return cluster_ips
+        except:
+            raise Exception('Failed to get cluster members')
+            return cluster_ips
+
+    def get_cluster_container_names_ips(self,controller=None):
+        onos_names_ips = {}
+        controllers = get_controllers()
+        i = 0
+        for controller in controllers:
+            if i == 0:
+                name = Onos.NAME
+            else:
+                name = '{}-{}'.format(Onos.NAME, i+1)
+            onos_names_ips[controller] = name
+            onos_names_ips[name] = controller
+            i += 1
+        return onos_names_ips
+
+    def get_cluster_current_master_standbys(self,controller=None,device_id=relay_device_id):
+        master = None
+        standbys = []
+        tries = 0
+        try:
+            cli = self.cliEnter(controller = controller)
+            while tries <= 10:
+                roles = json.loads(self.cli.roles(jsonFormat = True))
+                log_test.info("cluster 'roles' command output is %s"%roles)
+                if roles:
+                    for device in roles:
+                        log_test.info('Verifying device info in line %s'%device)
+                        if device['id'] == device_id:
+                            master = str(device['master'])
+                            standbys = map(lambda d: str(d), device['standbys'])
+                            log_test.info('Master and standbys for device %s are %s and %s'%(device_id, master, standbys))
+                            self.cliExit()
+                            return master, standbys
+                            break
+                    self.cliExit()
+                    return master, standbys
+                else:
+                    tries += 1
+                    time.sleep(1)
+            self.cliExit()
+            return master,standbys
+        except:
+            raise Exception('Failed to get cluster members')
+            return master,standbys
+
+    def get_cluster_current_master_standbys_of_connected_devices(self,controller=None):
+        ''' returns master and standbys of all the connected devices to ONOS cluster instance'''
+        device_dict = {}
+        tries = 0
+        try:
+            cli = self.cliEnter(controller = controller)
+            while tries <= 10:
+                device_dict = {}
+                roles = json.loads(self.cli.roles(jsonFormat = True))
+                log_test.info("cluster 'roles' command output is %s"%roles)
+                if roles:
+                    for device in roles:
+                        device_dict[str(device['id'])]= {'master':str(device['master']),'standbys':device['standbys']}
+                        for i in range(len(device_dict[device['id']]['standbys'])):
+                            device_dict[device['id']]['standbys'][i] = str(device_dict[device['id']]['standbys'][i])
+                        log_test.info('master and standbys for device %s are %s and %s'%(device['id'],device_dict[device['id']]['master'],device_dict[device['id']]['standbys']))
+                    self.cliExit()
+                    return device_dict
+                else:
+                    tries += 1
+                    time.sleep(1)
+            self.cliExit()
+            return device_dict
+        except:
+            raise Exception('Failed to get cluster members')
+            return device_dict
+
+    def get_number_of_devices_of_master(self,controller=None):
+        '''returns master-device pairs, which master having what devices'''
+        master_count = {}
+        try:
+            cli = self.cliEnter(controller = controller)
+            masters = json.loads(self.cli.masters(jsonFormat = True))
+            if masters:
+                for master in masters:
+                    master_count[str(master['id'])] = {'size':int(master['size']),'devices':master['devices']}
+                return master_count
+            else:
+                return master_count
+        except:
+            raise Exception('Failed to get cluster members')
+            return master_count
+
+    def change_master_current_cluster(self,new_master=None,device_id=relay_device_id,controller=None):
+        if new_master is None: return False
+        self.cliEnter(controller=controller)
+        cmd = 'device-role' + ' ' + device_id + ' ' + new_master + ' ' + 'master'
+        command = self.cli.command(cmd = cmd, jsonFormat = False)
+        self.cliExit()
+        time.sleep(60)
+        master, standbys = self.get_cluster_current_master_standbys(controller=controller,device_id=device_id)
+        assert_equal(master,new_master)
+        log_test.info('Cluster master changed to %s successfully'%new_master)
+
+    def withdraw_cluster_current_mastership(self,master_ip=None,device_id=relay_device_id,controller=None):
+        '''current master looses its mastership and hence new master will be elected'''
+        self.cliEnter(controller=controller)
+        cmd = 'device-role' + ' ' + device_id + ' ' + master_ip + ' ' + 'none'
+        command = self.cli.command(cmd = cmd, jsonFormat = False)
+        self.cliExit()
+        time.sleep(60)
+        new_master_ip, standbys = self.get_cluster_current_master_standbys(controller=controller,device_id=device_id)
+        assert_not_equal(new_master_ip,master_ip)
+        log_test.info('Device-role of device %s successfully changed to none for controller %s'%(device_id,master_ip))
+        log_test.info('Cluster new master is %s'%new_master_ip)
+        return True
+    def cluster_controller_restarts(self, graceful = False):
+        controllers = get_controllers()
+        ctlr_len = len(controllers)
+        if ctlr_len <= 1:
+            log_test.info('ONOS is not running in cluster mode. This test only works for cluster mode')
+            assert_greater(ctlr_len, 1)
+
+        #this call would verify the cluster for once
+        onos_map = self.get_cluster_container_names_ips()
+
+        def check_exception(iteration, controller = None):
+            adjacent_controller = None
+            adjacent_controllers = None
+            if controller:
+                adjacent_controllers = list(set(controllers) - set([controller]))
+                adjacent_controller = adjacent_controllers[0]
+            for node in controllers:
+                onosLog = OnosLog(host = node)
+                ##check the logs for storage exception
+                _, output = onosLog.get_log(('ERROR', 'Exception',))
+                if output and output.find('StorageException$Timeout') >= 0:
+                    log_test.info('\nStorage Exception Timeout found on node: %s\n' %node)
+                    log_test.info('Dumping the ERROR and Exception logs for node: %s\n' %node)
+                    log_test.info('\n' + '-' * 50 + '\n')
+                    log_test.info('%s' %output)
+                    log_test.info('\n' + '-' * 50 + '\n')
+                    failed = self.verify_leaders(controllers)
+                    if failed:
+                        log_test.info('Leaders command failed on nodes: %s' %failed)
+                        log_test.error('Test failed on ITERATION %d' %iteration)
+                        CordLogger.archive_results(self._testMethodName,
+                                                   controllers = controllers,
+                                                   iteration = 'FAILED',
+                                                   archive_partition = self.ARCHIVE_PARTITION)
+                        assert_equal(len(failed), 0)
+                    return controller
+
+            try:
+                ips = self.get_cluster_current_member_ips(controller = adjacent_controller)
+                log_test.info('ONOS cluster formed with controllers: %s' %ips)
+                st = True
+            except:
+                st = False
+
+            failed = self.verify_leaders(controllers)
+            if failed:
+                log_test.error('Test failed on ITERATION %d' %iteration)
+                CordLogger.archive_results(self._testMethodName,
+                                           controllers = controllers,
+                                           iteration = 'FAILED',
+                                           archive_partition = self.ARCHIVE_PARTITION)
+            assert_equal(len(failed), 0)
+            if st is False:
+                log_test.info('No storage exception and ONOS cluster was not formed successfully')
+            else:
+                controller = None
+
+            return controller
+
+        next_controller = None
+        tries = self.ITERATIONS
+        for num in range(tries):
+            index = num % ctlr_len
+            #index = random.randrange(0, ctlr_len)
+            controller_name = onos_map[controllers[index]] if next_controller is None else onos_map[next_controller]
+            controller = onos_map[controller_name]
+            log_test.info('ITERATION: %d. Restarting Controller %s' %(num + 1, controller_name))
+            try:
+                #enable debug log for the other controllers before restarting this controller
+                adjacent_controllers = list( set(controllers) - set([controller]) )
+                self.log_set(controllers = adjacent_controllers)
+                self.log_set(app = 'io.atomix', controllers = adjacent_controllers)
+                if graceful is True:
+                    log_test.info('Gracefully shutting down controller: %s' %controller)
+                    self.onos_shutdown(controller)
+                cord_test_onos_restart(node = controller, timeout = 0)
+                self.log_set(controllers = controller)
+                self.log_set(app = 'io.atomix', controllers = controller)
+                time.sleep(60)
+            except:
+                time.sleep(5)
+                continue
+
+            #first archive the test case logs for this run
+            CordLogger.archive_results(self._testMethodName,
+                                       controllers = controllers,
+                                       iteration = 'iteration_{}'.format(num+1),
+                                       archive_partition = self.ARCHIVE_PARTITION)
+            next_controller = check_exception(num, controller = controller)
+
+    def onos_shutdown(self, controller = None):
+        status = True
+        self.cliEnter(controller = controller)
+        try:
+            self.cli.shutdown(timeout = 10)
+        except:
+            log_test.info('Graceful shutdown of ONOS failed for controller: %s' %controller)
+            status = False
+
+        self.cliExit()
+        return status
+
     def test_dhcpl2relay_initialize(self):
         '''Configure the DHCP L2 relay app and start dhcpd'''
         self.dhcpd_start()
@@ -723,7 +1026,6 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         log_test.info('Added array of connect points of dhcp server is %s'%dhcp_server_array_connectPoints)
 
         mac = self.get_mac(iface)
-        self.onos_delete_config(self.configs['relay_config'])
         self.onos_load_config(self.default_onos_netcfg)
         dhcp_dict = { "apps" : { "org.opencord.dhcpl2relay" : {"dhcpl2relay" :
                                    {"dhcpServerConnectPoints": dhcp_server_array_connectPoints}
@@ -997,6 +1299,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         log_test.info('dhcp server rejected client discover with invalid source mac, as expected')
 
         ### We can't test this on single uni port setup, hence its not to test
+    @nottest
     def test_dhcpl2relay_with_N_requests(self, iface = 'veth0',requests=10):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
@@ -1024,6 +1327,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
         assert_equal(self.dhcp.release(cip2), True)
 
+    @nottest
     def test_dhcpl2relay_with_Nreleases(self, iface = 'veth0'):
         mac = None
         self.dhcp = DHCPTest(seed_ip = '192.170.1.10', iface = iface)
@@ -1052,6 +1356,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
             log_test.info('Map after release %s' %ip_map2)
         assert_equal(ip_map, ip_map2)
 
+    @nottest
     def test_dhcpl2relay_starvation(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '182.17.0.1', iface = iface)
@@ -1188,7 +1493,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         finally:
           self.dhcpd_stop(remote_controller = True, dhcpd = 'restart')
 
-    def test_dhcpl2relay_after_server_restart(self, iface = 'veth0'):
+    def test_dhcpl2relay_after_server_stop_start(self, iface = 'veth0'):
         self.get_dhcpd_process()
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
@@ -1236,6 +1541,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(lval, lease_time)
 	log_test.info('client requested lease time in request packet seen in servre replied ACK packet as expected')
 
+    @nottest
     def test_dhcpl2relay_with_client_renew_time(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
@@ -1244,12 +1550,13 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 		  (cip, sip, mac) )
 	assert_not_equal(cip,None)
 	new_cip, new_sip, lval = self.dhcp.only_request(cip, mac, renew_time = True)
-	log_test.info('waiting for  renew  time..')
+	log_test.info('waiting for  renew  time.. a= %s b= %s c= %s'%(new_cip,new_sip,lval))
 	time.sleep(lval)
 	latest_cip, latest_sip = self.dhcp.only_request(new_cip, mac, unicast = True)
 	assert_equal(latest_cip, cip)
 	log_test.info('server renewed client IP when client sends request after renew time, as expected')
 
+    @nottest
     def test_dhcpl2relay_with_client_rebind_time(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
@@ -1289,6 +1596,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(new_cip, cip)
 	log_test.info("Got DHCP Ack despite of specifying wrong Subnet Mask in DHCP Request.")
 
+    @nottest
     def test_dhcpl2relay_with_client_expected_router_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
@@ -1301,7 +1609,8 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	assert_equal(expected_router_address, router_address_value)
 	log_test.info('router address in server offer packet is same as configured router address in dhcp server')
 
-    def test_dhcpl2relay_by_client_sending_dhcp_request_with_wrong_router_address(self, iface = 'veth0'):
+    @nottest
+    def test_dhcpl2relay_with_client_sends_dhcp_request_with_wrong_router_address(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.dhcp = DHCPTest(seed_ip = '20.20.20.45', iface = iface)
 
@@ -1530,6 +1839,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	log_test.info("Average no. of transactions per second: %d", round(self.transactions/self.running_time,0))
 	log_test.info("----------------------------------------------------------------------------------")
 
+    @nottest
     def test_dhcpl2relay_concurrent_consecutive_successes_per_second(self, iface = 'veth0'):
 	failure_dir = {}
 
@@ -1616,6 +1926,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	log_test.info("Average no. of consecutive successful transactions per second: %d", round(self.total_success/self.running_time,2))
 	log_test.info("----------------------------------------------------------------------------------")
 
+    @nottest
     def test_dhcpl2relay_for_concurrent_clients_per_second(self, iface = 'veth0'):
 	for key in (key for key in g_subscriber_port_map if key < 100):
 		self.host_load(g_subscriber_port_map[key])
@@ -1691,6 +2002,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 		round(self.transactions/self.running_time,0))
 	log_test.info("----------------------------------------------------------------------------------")
 
+    @nottest
     def test_dhcpl2relay_with_client_conflict(self, iface = 'veth0'):
         mac = self.get_mac(iface)
         self.host_load(iface)
@@ -1713,3 +2025,376 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
 	   log_test.info('Got dhcp client IP %s from server %s for mac %s.Which is not expected behavior as IP %s is already consumed.'
 		    %(new_cip, new_sip, new_mac, new_cip) )
 	   assert_equal(new_cip, None)
+
+    ##### All cluster scenarios on dhcpl2relay has to validate on voltha-setup from client server.
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_cluster_master_change(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        self.change_master_current_cluster(device_id = self.relay_device_id,new_master=standbys[0])
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_cluster_master_withdraw_membership(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_member_ips(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        self.withdraw_cluster_current_mastership(device_id = self.relay_device_id,master_ip=master)
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_restart_cluster(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Restarting cluster whose master cluster= %s standby = %s'%(master, standbys))
+        self.cord_test_onos_restart()
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_cluster_master_down(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Restarting cluster whose master cluster= %s standby = %s'%(master, standbys))
+        cord_test_onos_shutdown(node = master)
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_cluster_standby_down(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        cord_test_onos_shutdown(node = standbys[0])
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_adding_two_members_to_cluster(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        cord_test_onos_shutdown(node = standbys[0])
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_releasing_dhcp_ip_after_restart_cluster_for_10_times(self, iface = 'veth0',onos_instances=ONOS_INSTANCES):
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Restarting cluster whose master cluster= %s standby = %s'%(master, standbys))
+        for i in range(10):
+            self.cord_test_onos_restart()
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+
+    @nottest
+    def test_dhcpl2relay_on_cluster_with_master_controller_only_restarts(self, iface = 'veth0'):
+        pass
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Restarting cluster whose master cluster= %s standby = %s'%(master, standbys))
+        self.cord_test_onos_restart(node = master)
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_on_cluster_with_standby_controller_only_restarts(self, iface = 'veth0'):
+        pass
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_master_standbys(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Restarting cluster whose master cluster= %s standby = %s'%(master, standbys))
+        self.cord_test_onos_restart(node = standbys[0])
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+
+    @nottest
+    def test_dhcpl2relay_by_removing_master_onos_instance(self, iface = 'veth0'):
+        pass
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_member_ips(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        self.withdraw_cluster_current_mastership(device_id = self.relay_device_id,master_ip=master)
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_by_removing_onos_instance_member(self, iface = 'veth0'):
+
+        pass
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_member_ips(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        self.withdraw_cluster_current_mastership(device_id = self.relay_device_id,master_ip=standbys[0])
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+    @nottest
+    def test_dhcpl2relay_by_toggle_master_onos_instance_membership(self, iface = 'veth0'):
+        pass
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_member_ips(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        self.withdraw_cluster_current_mastership(device_id = self.relay_device_id,master_ip=master)
+        self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+
+    @nottest
+    def test_dhcpl2relay_by_toggle_standby_onos_instance_membership(self, iface = 'veth0'):
+        pass
+        status = self.verify_cluster_status(onos_instances=onos_instances)
+        assert_equal(status, True)
+        master,standbys = self.get_cluster_current_member_ips(device_id=self.relay_device_id)
+        assert_equal(len(standbys),(onos_instances-1))
+        mac = self.get_mac(iface)
+        self.cord_l2_relay_load
+        self.dhcp = DHCPTest(seed_ip = '10.10.10.1', iface = iface)
+        cip, sip = self.send_recv(mac=mac)
+        log_test.info('Changing cluster current master from %s to %s'%(master, standbys[0]))
+        self.withdraw_cluster_current_mastership(device_id = self.relay_device_id,master_ip=master)
+        self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+        self.cord_l2_relay_load
+        log_test.info('Releasing ip %s to server %s' %(cip, sip))
+        assert_equal(self.dhcprelay.dhcp.release(cip), True)
+        try:
+           assert_equal(self.dhcp.release(cip), True)
+           log_test.info('Triggering DHCP discover again after release')
+           self.cord_l2_relay_load
+           cip2, sip2 = self.send_recv(mac=mac)
+           log_test.info('Verifying released IP was given back on rediscover')
+           assert_equal(cip, cip2)
+           log_test.info('Test done. Releasing ip %s to server %s' %(cip2, sip2))
+           assert_equal(self.dhcp.release(cip2), True)
+        finally:
+           self.change_master_current_cluster(device_id = self.relay_device_id,new_master=master)
+
+
+    @nottest
+    def test_dhcpl2relay_by_adding_onos_instance_member(self, iface = 'veth0'):
+        pass
+
+
+
