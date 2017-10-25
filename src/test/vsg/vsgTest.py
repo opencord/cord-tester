@@ -143,7 +143,7 @@ class vsg_exchange(CordLogger):
         cls.dhcp_vcpes_reserved = [ 'vcpe{}.{}.{}'.format(i, cls.vcpes_reserved[i]['s_tag'], cls.vcpes_reserved[i]['c_tag'])
                                     for i in xrange(len(cls.vcpes_reserved)) ]
         cls.untagged_dhcp_vcpes_reserved = [ 'vcpe{}'.format(i) for i in xrange(len(cls.vcpes_reserved)) ]
-        cls.container_vcpes_reserved = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_reserved ]
+        cls.container_vcpes_reserved = [ 'vsg-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_reserved ]
         vcpe_dhcp_reserved = None
         vcpe_container_reserved = None
         if cls.vcpes_reserved:
@@ -158,7 +158,7 @@ class vsg_exchange(CordLogger):
         cls.dhcp_vcpes = [ 'vcpe{}.{}.{}'.format(i+dhcp_vcpe_offset, cls.vcpes_dhcp[i]['s_tag'], cls.vcpes_dhcp[i]['c_tag'])
                            for i in xrange(len(cls.vcpes_dhcp))  ]
         cls.untagged_dhcp_vcpes = [ 'vcpe{}'.format(i+dhcp_vcpe_offset) for i in xrange(len(cls.vcpes_dhcp)) ]
-        cls.container_vcpes = [ 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_dhcp ]
+        cls.container_vcpes = [ 'vsg-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag']) for vcpe in cls.vcpes_dhcp ]
         vcpe_dhcp = None
         vcpe_container = None
         #cache the first dhcp vcpe in the class for quick testing
@@ -227,7 +227,7 @@ class vsg_exchange(CordLogger):
         vcpe_containers = []
         vsg_vcpe = {}
         for vcp in vcpes:
-                vcpe_container = 'vcpe-{}-{}'.format(vcp['s_tag'], vcp['c_tag'])
+                vcpe_container = 'vsg-{}-{}'.format(vcp['s_tag'], vcp['c_tag'])
                 vcpe_containers.append(vcpe_container)
                 vsg = VSGAccess.get_vcpe_vsg(vcpe_container)
                 vsg_vcpe[vcpe_container]=str(vsg.get_ip())
@@ -241,7 +241,7 @@ class vsg_exchange(CordLogger):
 	for vcpe in vcpes:
 		vcpe_intf = 'vcpe{}.{}.{}'.format(count,vcpe['s_tag'],vcpe['c_tag'])
 		vcpe_interfaces.append(vcpe_intf)
-                vcpe_container = 'vcpe-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag'])
+                vcpe_container = 'vsg-{}-{}'.format(vcpe['s_tag'], vcpe['c_tag'])
                 vcpe_containers[vcpe_intf] = vcpe_container
 		count += 1
 	log.info('vcpe interfaces are %s'%vcpe_interfaces)
@@ -2281,7 +2281,7 @@ class vsg_exchange(CordLogger):
             volt_subscriber_info = self.cord_subscriber.volt_subscriber_info[index]
         s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
-        vcpe = 'vcpe-{}-{}'.format(s_tag, c_tag)
+        vcpe = 'vsg-{}-{}'.format(s_tag, c_tag)
         subId = self.cord_subscriber.subscriberCreate(index, subscriber_info, volt_subscriber_info)
         if subId:
             #if the vsg instance was already instantiated, then reduce delay
@@ -2470,7 +2470,7 @@ class vsg_exchange(CordLogger):
             self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
             st,_ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_equal(st, False)
-	    vcpe_name = 'vcpe-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
+	    vcpe_name = 'vsg-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
 	    vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    st, _ = vsg.run_cmd('sudo docker restart {}'.format(vcpe_name))
 	    assert_equal(st, True)
@@ -2494,7 +2494,7 @@ class vsg_exchange(CordLogger):
             self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
             st,_ = getstatusoutput('ping -c 1 {}'.format(host))
             assert_equal(st, False)
-            vcpe_name = 'vcpe-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
+            vcpe_name = 'vsg-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
             st, _ = vsg.run_cmd('sudo docker stop {}'.format(vcpe_name))
             assert_equal(st, True)
@@ -2540,8 +2540,8 @@ class vsg_exchange(CordLogger):
 	    host2 = '4.2.2.2'
             vcpe_intf1 = self.dhcp_vcpes[0]
             vcpe_intf2 = self.dhcp_vcpes[1]
-            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
-            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vcpe_name1 = 'vsg-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vsg-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
             subId1 = self.vsg_xos_subscriber_id(0)
             log.info('already existing subid of index 0 is %s'%subId1)
             if subId1 == '0':
@@ -2604,7 +2604,7 @@ class vsg_exchange(CordLogger):
                 subId = self.vsg_xos_subscriber_create(index)
             assert_not_equal(subId,'0')
             vcpe_intf = self.dhcp_vcpes[0]
-            vcpe_name = 'vcpe-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
+            vcpe_name = 'vsg-{}-{}'.format(vcpe_intf.split('.')[1],vcpe_intf.split('.')[2])
             vsg = VSGAccess.get_vcpe_vsg(vcpe_name)
 	    try:
         	self.add_static_route_via_vcpe_interface([host],vcpe=vcpe_intf)
@@ -2657,8 +2657,8 @@ class vsg_exchange(CordLogger):
                 subId2 = self.vsg_xos_subscriber_create(1)
             vcpe_intf1 = self.dhcp_vcpes[0]
             vcpe_intf2 = self.dhcp_vcpes[1]
-            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
-            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vcpe_name1 = 'vsg-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vsg-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
             vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
             vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
 	    try:
@@ -2724,8 +2724,8 @@ class vsg_exchange(CordLogger):
                 subId2 = self.vsg_xos_subscriber_create(1)
             vcpe_intf1 = self.dhcp_vcpes[0]
             vcpe_intf2 = self.dhcp_vcpes[1]
-            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
-            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vcpe_name1 = 'vsg-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vsg-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
             vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
             vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
             try:
@@ -2785,8 +2785,8 @@ class vsg_exchange(CordLogger):
                 subId2 = self.vsg_xos_subscriber_create(1)
             vcpe_intf1 = self.dhcp_vcpes[0]
             vcpe_intf2 = self.dhcp_vcpes[1]
-            vcpe_name1 = 'vcpe-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
-            vcpe_name2 = 'vcpe-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
+            vcpe_name1 = 'vsg-{}-{}'.format(vcpe_intf1.split('.')[1],vcpe_intf1.split('.')[2])
+            vcpe_name2 = 'vsg-{}-{}'.format(vcpe_intf2.split('.')[1],vcpe_intf2.split('.')[2])
             vsg1 = VSGAccess.get_vcpe_vsg(vcpe_name1)
             vsg2 = VSGAccess.get_vcpe_vsg(vcpe_name2)
             try:
