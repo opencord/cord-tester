@@ -23,7 +23,7 @@ from OnosCtrl import OnosCtrl
 
 class XosUtils(object):
 
-    head_node = os.getenv('HEAD_NODE', 'prod')
+    head_node = os.getenv('HEAD_NODE', 'head1')
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     CONTROLLER_PORT = '9000'
     our_path = os.path.dirname(os.path.realpath(__file__))

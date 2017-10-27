@@ -57,7 +57,7 @@ class vsg_exchange(CordLogger):
     HOST = "10.1.0.1"
     USER = "vagrant"
     PASS = "vagrant"
-    head_node = os.getenv('HEAD_NODE', 'prod')
+    head_node = os.getenv('HEAD_NODE', 'head1')
     HEAD_NODE = head_node + '.cord.lab' if len(head_node.split('.')) == 1 else head_node
     test_path = os.path.dirname(os.path.realpath(__file__))
     olt_conf_file = os.getenv('OLT_CONFIG_FILE', os.path.join(test_path, '..', 'setup/olt_config.json'))
