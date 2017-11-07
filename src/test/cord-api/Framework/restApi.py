@@ -77,7 +77,7 @@ class restApi(object):
         subscriberId = 0
         try:
             for jsonData in jsonDataList:
-                if jsonData["identity"]["account_num"] == str(accountNum):
+                if jsonData["service_specific_id"] == str(accountNum):
                     subscriberId = jsonData["id"]
                     break
             return str(subscriberId)
@@ -207,7 +207,7 @@ input_dict3 = {
          }
 #input_dict1 = { "name" : "mysite_Test1", "site" : 1 , "creator" : 1}
 input_dict2 = {
- 
+
             "cdn_enable": "true",
             "uplink_speed": 1000000000,
             "downlink_speed": 1000000000,

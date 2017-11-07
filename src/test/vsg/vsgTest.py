@@ -2312,25 +2312,26 @@ class vsg_exchange(CordLogger):
         if self.on_pod is False:
             return
         tags_reserved = [ (int(vcpe['s_tag']), int(vcpe['c_tag'])) for vcpe in self.vcpes_reserved ]
-        volt_tenants = self.restApiXos.ApiGet('TENANT_VOLT')
-        subscribers = self.restApiXos.ApiGet('TENANT_SUBSCRIBER')
+        volt_tenants = self.restApiXos.ApiGet('VOLT_TENANT')
+        subscribers = self.restApiXos.ApiGet('VOLT_SUBSCRIBER')
         reserved_tenants = filter(lambda tenant: (int(tenant['s_tag']), int(tenant['c_tag'])) in tags_reserved, volt_tenants)
         reserved_config = []
         for tenant in reserved_tenants:
             for subscriber in subscribers:
-                if int(subscriber['id']) == int(tenant['subscriber']):
+                volt_id = self.cord_subscriber.getVoltId(subscriber)
+                provider_id = self.cord_subscriber.getProviderInstance(tenant)
+                if int(volt_id) == int(provider_id):
                     volt_subscriber_info = {}
                     volt_subscriber_info['voltTenant'] = dict(s_tag = tenant['s_tag'],
-                                                              c_tag = tenant['c_tag'],
-                                                              subscriber = tenant['subscriber'])
-                    volt_subscriber_info['volt_id'] = tenant['id']
-                    volt_subscriber_info['account_num'] = subscriber['identity']['account_num']
+                                                              c_tag = tenant['c_tag'])
+                    volt_subscriber_info['volt_id'] = volt_id
+                    volt_subscriber_info['service_specific_id'] = subscriber['service_specific_id']
                     reserved_config.append( (subscriber, volt_subscriber_info) )
                     break
             else:
-                log.info('Subscriber not found for tenant %s, s_tag: %s, c_tag: %s' %(str(tenant['subscriber']),
-                                                                                      str(tenant['s_tag']),
-                                                                                      str(tenant['c_tag'])))
+                log.info('Subscriber not found for tenant. s_tag: %s, c_tag: %s' %(\
+                                                                                   str(tenant['s_tag']),\
+                                                                                   str(tenant['c_tag'])))
 
         for subscriber_info, volt_subscriber_info in reserved_config:
             self.vsg_xos_subscriber_delete(0,

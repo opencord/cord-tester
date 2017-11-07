@@ -74,50 +74,141 @@ class XosUtils(object):
             return None
 
     def __init__(self):
+        from utils import utils
         self.restApi = self.getRestApi()
+        self.utils = utils()
+
+    def getSubscriberId(self, subscriberList, account_num):
+        subscriberId = 0
+        subscriberInfo = None
+        for subscriber in subscriberList:
+            if str(subscriber['service_specific_id']) == str(account_num):
+                subscriberId = self.utils.getFieldValueFromDict(subscriber, 'id')
+                subscriberInfo = subscriber
+                break
+        return subscriberInfo, subscriberId
+
+    def getVoltId(self, result, subInfo):
+        subscribed_link_ids_list = self.utils.getFieldValueFromDict(subInfo,
+                                                                    'subscribed_link_ids')
+        assert_not_equal( len(subscribed_link_ids_list), 0)
+        subscribed_link_ids = subscribed_link_ids_list[0]
+        service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
+                                                    subscribed_link_ids)
+        assert_not_equal(service_link, None)
+        provider_service_instance_id = service_link.get('provider_service_instance_id',
+                                                        None)
+        assert_not_equal(provider_service_instance_id, None)
+        return provider_service_instance_id
+
+    def getProviderInstance(self, info):
+        provided_link_ids_list = self.utils.getFieldValueFromDict(info,
+                                                                  'provided_link_ids')
+        assert_not_equal(provided_link_ids_list, None)
+        assert_not_equal(len(provided_link_ids_list), 0)
+        provided_link_ids = provided_link_ids_list[0]
+        service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
+                                                    provided_link_ids)
+        if service_link is None:
+            return None
+        provider_service_instance_id = service_link.get('provider_service_instance_id',
+                                                        None)
+        assert_not_equal(provider_service_instance_id, None)
+        return provider_service_instance_id
+
+    def linkTenant(self, subId, tenant_info):
+        result = self.restApi.ApiGet('VOLT_TENANT')
+        tenant = None
+        for volt in result:
+            if str(volt['c_tag']) == str(tenant_info['c_tag']):
+                tenant = volt
+                break
+        assert_not_equal(tenant, None)
+        volt_id = self.utils.getFieldValueFromDict(tenant, 'id')
+        provided_links_ids_list = self.utils.getFieldValueFromDict(tenant,
+                                                                   'provided_link_ids')
+        assert_not_equal( len(provided_link_ids_list), 0)
+        provided_link_ids = provided_link_ids_list[0]
+        subscribed_link_ids_list = self.utils.getFieldValueFromDict(tenant,
+                                                                    'subscribed_link_ids')
+        assert_not_equal(len(subscribed_link_ids_list), 0)
+        subscribed_link_ids = subscribed_link_ids_list[0]
+        service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
+                                                    provided_link_ids)
+        assert_not_equal(service_link, None)
+        provider_service_instance_id = service_link.get('provider_service_instance_id',
+                                                        None)
+        assert_not_equal(provider_service_instance_id, None)
+        service_dict = dict(subscriber_service_instance_id = subId)
+        result = self.restApi.ApiChameleonPut('CH_CORE_SERVICELINK',
+                                              service_dict,
+                                              provided_link_ids)
+        assert_equal(result, True)
+        return provider_service_instance_id
+        # service_link_dict = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
+        #                                                  subscribed_link_ids)
+        # assert_not_equal(service_link_dict, None)
+        # vsg_tenant = service_link_dict.get('provider_service_instance_id', None)
+        # assert_not_equal(vsg_tenant, None)
+        # vsg_result = self.restApi.ApiChameleonGet('VSG_TENANT',
+        #                                           vsg_tenant)
+        # assert_not_equal(vsg_result, None)
+        # vsg_instance = vsg_result.get('instance_id', None)
+        # assert_not_equal(vsg_instance, None)
+        # instance_result = self.restApi.ApiChameleonGet('CH_CORE_INSTANCES',
+        #                                                vsg_instance)
+        # assert_equal(instance_result, True)
 
     def subscriberCreate(self, subscriber_info, volt_subscriber_info):
         subId = ''
         try:
-            result = self.restApi.ApiPost('TENANT_SUBSCRIBER', subscriber_info)
+            result = self.restApi.ApiPost('VOLT_SUBSCRIBER', subscriber_info)
             assert_equal(result, True)
-            result = self.restApi.ApiGet('TENANT_SUBSCRIBER')
+            result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
             assert_not_equal(result, None)
-            subId = self.restApi.getSubscriberId(result, volt_subscriber_info['account_num'])
+            _, subId = self.getSubscriberId(result,
+                                            volt_subscriber_info['service_specific_id'])
             assert_not_equal(subId, '0')
-            log.info('Subscriber ID for account num %s = %s' %(str(volt_subscriber_info['account_num']), subId))
+            log.info('Subscriber ID for account num %s = %s' %(str(volt_subscriber_info['service_specific_id']), subId))
             volt_tenant = volt_subscriber_info['voltTenant']
-            #update the subscriber id in the tenant info before making the rest
-            volt_tenant['subscriber'] = subId
-            result = self.restApi.ApiPost('TENANT_VOLT', volt_tenant)
+            result = self.restApi.ApiPost('VOLT_TENANT', volt_tenant)
             assert_equal(result, True)
+            volt_id = self.linkTenant(subId, volt_tenant)
+            log.info('Subscriber create with ctag %s, stag %s, volt id %s' %(str(volt_tenant['c_tag']),
+                                                                             str(volt_tenant['s_tag']),
+                                                                             str(volt_id)))
         finally:
             return subId
 
     def subscriberDelete(self, account_num, subId = '', voltId = ''):
+        result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
+        assert_not_equal(result, None)
         if not subId:
             #get the subscriber id first
-            result = self.restApi.ApiGet('TENANT_SUBSCRIBER')
-            assert_not_equal(result, None)
-            subId = self.restApi.getSubscriberId(result, account_num)
+            subInfo, subId = self.getSubscriberId(result, account_num)
             assert_not_equal(subId, '0')
+        else:
+            subInfo, currentSubId = self.getSubscriberId(result, account_num)
+            assert_not_equal(currentSubId, '0')
+            #assert_equal(subId, currentSubId)
+            subId = self.utils.getFieldValueFromDict(subInfo, 'id')
         if not voltId:
             #get the volt id for the subscriber
-            result = self.restApi.ApiGet('TENANT_VOLT')
+            result = self.restApi.ApiGet('VOLT_TENANT')
             assert_not_equal(result, None)
-            voltId = CordSubscriberUtils.getVoltId(result, subId)
+            voltId = self.getVoltId(result, subInfo)
             assert_not_equal(voltId, None)
-        log.info('Deleting subscriber ID %s for account num %s' %(subId, str(account_num)))
-        status = self.restApi.ApiDelete('TENANT_SUBSCRIBER', subId)
-        assert_equal(status, True)
-        #Delete the tenant
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
-        self.restApi.ApiDelete('TENANT_VOLT', voltId)
+        status = self.restApi.ApiChameleonDelete('VOLT_TENANT', voltId)
+        assert_equal(status, True)
+        log.info('Deleting subscriber ID %s for account num %s' %(subId, str(account_num)))
+        status = self.restApi.ApiChameleonDelete('VOLT_SUBSCRIBER', subId)
+        assert_equal(status, True)
 
     def subscriberId(self, account_num):
-        result = self.restApi.ApiGet('TENANT_SUBSCRIBER')
+        result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
         assert_not_equal(result, None)
-        subId = self.restApi.getSubscriberId(result, account_num)
+        _, subId = self.getSubscriberId(result, account_num)
         return subId
 
 class CordSubscriberUtils(object):
@@ -161,19 +252,19 @@ class CordSubscriberUtils(object):
             'cdn': True,
             'uplink_speed': 1000000000,
             'downlink_speed': 1000000000,
-            'uverse': True,
+            'enable_uverse': True,
             'status': 'enabled'
         }
         subscriber_map = []
         for i in xrange(self.num_subscribers):
             subId = 'sub{}'.format(i)
             account_num, _, _ = self.getCredentials(subId)
-            identity = { 'account_num' : str(account_num),
+            identity = { 'service_specific_id' : str(account_num),
                          'name' : 'My House {}'.format(i)
                          }
-            sub_info = { 'features' : features,
-                         'identity' : identity
-                         }
+            sub_data = [ (k, v) for d in (features, identity) \
+                         for k, v in d.iteritems() ]
+            sub_info = dict(sub_data)
             subscriber_map.append(sub_info)
 
         return subscriber_map
@@ -185,21 +276,17 @@ class CordSubscriberUtils(object):
             account_num, s_tag, c_tag = self.getCredentials(subId)
             voltSubscriberInfo = {}
             voltSubscriberInfo['voltTenant'] = dict(s_tag = str(s_tag),
-                                                    c_tag = str(c_tag),
-                                                    subscriber = '')
-            voltSubscriberInfo['account_num'] = account_num
+                                                    c_tag = str(c_tag))
+            voltSubscriberInfo['service_specific_id'] = account_num
             voltSubscriberMap.append(voltSubscriberInfo)
 
         return voltSubscriberMap
 
-    @classmethod
-    def getVoltId(cls, result, subId):
-        if type(result) is not type([]):
-            return None
-        for tenant in result:
-            if str(tenant['subscriber']) == str(subId):
-                return str(tenant['id'])
-        return None
+    def getVoltId(self, subInfo):
+        return self.xos.getVoltId(None, subInfo)
+
+    def getProviderInstance(self, tenant_info):
+        return self.xos.getProviderInstance(tenant_info)
 
     def subscriberCreate(self, index, subscriber_info = None, volt_subscriber_info = None):
         if subscriber_info is None:
@@ -220,8 +307,8 @@ class CordSubscriberUtils(object):
         s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         log.info('Deleting tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
-        self.xos.subscriberDelete(volt_subscriber_info['account_num'], subId = subId, voltId = voltId)
+        self.xos.subscriberDelete(volt_subscriber_info['service_specific_id'], subId = subId, voltId = voltId)
 
     def subscriberId(self, index):
         volt_subscriber_info = self.volt_subscriber_info[index]
-        return self.xos.subscriberId(volt_subscriber_info['account_num'])
+        return self.xos.subscriberId(volt_subscriber_info['service_specific_id'])
