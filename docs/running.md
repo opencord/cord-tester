@@ -17,9 +17,8 @@ $ cd cord-tester
 $ vagrant up
 $ vagrant ssh cordtest
 $ cd /cord-tester/src/test/setup/
-$ Run prerequisites.sh(It gets you needed dependencies and tools to start)
-* Build all required test container images
-$ sudo ./cord-test.py build all
+$ Run prerequisites.sh which would setup the runtime for cord-tester
+$ sudo ./prerequisites.sh
 $ sudo ./cord-test.py -h
 usage: cord-test.py [-h] {run,setup,xos,list,build,metrics,start,cleanup} ...
 
@@ -81,16 +80,6 @@ optional arguments:
   -i IDENTITY_FILE, --identity-file IDENTITY_FILE
                         ssh identity file to access compute nodes from test
                         container
-$ sudo ./cord-test.py build -h
-usage: cord-test.py build [-h] [-p PREFIX] {quagga,radius,test,all}
-
-positional arguments:
-  {quagga,radius,test,all}
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -p PREFIX, --prefix PREFIX
-                        Provide container image prefix
 $sudo ./cord-test.py list -h
 usage: cord-test.py list [-h] [-t TEST]
 
@@ -101,10 +90,10 @@ optional arguments:
                         tls,dhcp and vrouter test cases. -t all to list all
                         test cases.
 ```
-						
+
 If you want to run `cord-tester` without Vagrant and already have an
-ubuntu 14.04 server installed, do the following:
-						
+ubuntu 14.04 or 16.04 server installed, do the following:
+
 ```
 $ git clone https://github.com/opencord/cord-tester.git
 $ cd cord-tester/src/test/setup/
