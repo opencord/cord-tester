@@ -495,7 +495,7 @@ class VSGWrapper(object):
         cmd = 'ping -c 1 {}'.format(self.ip)
         log.info('Pinging VSG %s at IP %s' %(self.name, self.ip))
         st, _ = self.run_cmd_compute(cmd)
-        log.info('VSG %s at IP %s is %s' %(self.name, self.ip, 'reachable' if st == True else 'unreachable'))
+        log.info('VSG %s at IP %s is %s through compute node %s' %(self.name, self.ip, 'reachable' if st == True else 'unreachable', self.compute_node))
         return st
 
     '''
