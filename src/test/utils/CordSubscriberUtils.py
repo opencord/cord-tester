@@ -74,23 +74,89 @@ class XosUtils(object):
             return None
 
     def __init__(self):
-        from utils import utils
         self.restApi = self.getRestApi()
-        self.utils = utils()
+
+    '''
+    @method search_dictionary
+    @Description: Searches for a key in the provided nested dictionary
+    @params: input_dict = dictionary to be searched
+             search_key = name of the key to be searched for
+    returns two values: search_key value and status of the search.
+             True if found (False when not found)
+
+    '''
+    def search_dictionary(self, input_dict, search_key):
+        input_keys = input_dict.keys()
+        key_value = ''
+        found = False
+        for key in input_keys:
+            if key == search_key:
+               key_value = input_dict[key]
+               found = True
+               break
+            elif type(input_dict[key]) == dict:
+                 key_value, found = self.search_dictionary(input_dict[key],search_key)
+                 if found == True:
+                    break
+            elif type(input_dict[key]) == list:
+                 if not input_dict[key]:
+                    found = False
+                    break
+                 for item in input_dict[key]:
+                     if isinstance(item, dict):
+                        key_value, found = self.search_dictionary(item, search_key)
+                        if found == True:
+                           break
+        return key_value,found
+
+    '''
+    @method getFieldValueFromDict
+    @params : search_dict - Dictionary to be searched
+             field - Key to be searched for (ex: account_num)
+    @Returns: Returns the value of the Key that was provided
+    '''
+    def getFieldValueFromDict(self,search_dict, field):
+        results = ''
+        found = False
+        input_keys = search_dict.keys()
+        for key in input_keys:
+            print "key...", key
+            if key == field:
+               results = search_dict[key]
+               if not results:
+                  found = True
+                  break
+            elif type(search_dict[key]) == dict:
+                 results, found = self.search_dictionary(search_dict[key],field)
+                 if found == True:
+                    break
+            elif type(search_dict[key]) == list:
+                 if not search_dict[key]:
+                    found = False
+                    continue
+                 for item in search_dict[key]:
+                     if isinstance(item, dict):
+                        results, found = self.search_dictionary(item, field)
+                        if found == True:
+                           break
+            if results:
+               break
+
+        return results
 
     def getSubscriberId(self, subscriberList, account_num):
         subscriberId = 0
         subscriberInfo = None
         for subscriber in subscriberList:
             if str(subscriber['service_specific_id']) == str(account_num):
-                subscriberId = self.utils.getFieldValueFromDict(subscriber, 'id')
+                subscriberId = self.getFieldValueFromDict(subscriber, 'id')
                 subscriberInfo = subscriber
                 break
         return subscriberInfo, subscriberId
 
     def getVoltId(self, result, subInfo):
-        subscribed_link_ids_list = self.utils.getFieldValueFromDict(subInfo,
-                                                                    'subscribed_link_ids')
+        subscribed_link_ids_list = self.getFieldValueFromDict(subInfo,
+                                                              'subscribed_link_ids')
         assert_not_equal( len(subscribed_link_ids_list), 0)
         subscribed_link_ids = subscribed_link_ids_list[0]
         service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
@@ -102,8 +168,8 @@ class XosUtils(object):
         return provider_service_instance_id
 
     def getProviderInstance(self, info):
-        provided_link_ids_list = self.utils.getFieldValueFromDict(info,
-                                                                  'provided_link_ids')
+        provided_link_ids_list = self.getFieldValueFromDict(info,
+                                                            'provided_link_ids')
         assert_not_equal(provided_link_ids_list, None)
         assert_not_equal(len(provided_link_ids_list), 0)
         provided_link_ids = provided_link_ids_list[0]
@@ -124,13 +190,13 @@ class XosUtils(object):
                 tenant = volt
                 break
         assert_not_equal(tenant, None)
-        volt_id = self.utils.getFieldValueFromDict(tenant, 'id')
-        provided_links_ids_list = self.utils.getFieldValueFromDict(tenant,
-                                                                   'provided_link_ids')
+        volt_id = self.getFieldValueFromDict(tenant, 'id')
+        provided_links_ids_list = self.getFieldValueFromDict(tenant,
+                                                             'provided_link_ids')
         assert_not_equal( len(provided_link_ids_list), 0)
         provided_link_ids = provided_link_ids_list[0]
-        subscribed_link_ids_list = self.utils.getFieldValueFromDict(tenant,
-                                                                    'subscribed_link_ids')
+        subscribed_link_ids_list = self.getFieldValueFromDict(tenant,
+                                                              'subscribed_link_ids')
         assert_not_equal(len(subscribed_link_ids_list), 0)
         subscribed_link_ids = subscribed_link_ids_list[0]
         service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
@@ -191,7 +257,7 @@ class XosUtils(object):
             subInfo, currentSubId = self.getSubscriberId(result, account_num)
             assert_not_equal(currentSubId, '0')
             #assert_equal(subId, currentSubId)
-            subId = self.utils.getFieldValueFromDict(subInfo, 'id')
+            subId = self.getFieldValueFromDict(subInfo, 'id')
         if not voltId:
             #get the volt id for the subscriber
             result = self.restApi.ApiGet('VOLT_TENANT')
