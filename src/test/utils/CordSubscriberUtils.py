@@ -47,8 +47,8 @@ class XosUtils(object):
             user = xos_cfg['user']
             password = xos_cfg['password']
             xos_endpoints = endpoint.split(':')
-            xos_host = xos_endpoints[1][len('//'):]
-            xos_port = xos_endpoints[2][:-1]
+            xos_host = xos_endpoints[0]
+            xos_port = xos_endpoints[1]
             #log.info('xos_host: %s, port: %s, user: %s, password: %s' %(xos_host, xos_port, user, password))
             return dict(host = xos_host, port = xos_port, user = user, password = password)
 
@@ -315,7 +315,7 @@ class CordSubscriberUtils(object):
 
     def getConfig(self):
         features =  {
-            'cdn': True,
+            'cdn_enable': True,
             'uplink_speed': 1000000000,
             'downlink_speed': 1000000000,
             'enable_uverse': True,
