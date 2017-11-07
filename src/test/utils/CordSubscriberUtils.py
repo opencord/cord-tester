@@ -154,20 +154,36 @@ class XosUtils(object):
                 break
         return subscriberInfo, subscriberId
 
-    def getVoltId(self, result, subInfo):
+    def getVoltId(self, result, subInfo, s_tag = None, c_tag = None):
         subscribed_link_ids_list = self.getFieldValueFromDict(subInfo,
                                                               'subscribed_links_ids')
-        assert_not_equal( len(subscribed_link_ids_list), 0)
-        subscribed_link_ids = subscribed_link_ids_list[0]
-        service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
-                                                    subscribed_link_ids)
-        assert_not_equal(service_link, None)
-        provider_service_instance_id = service_link.get('provider_service_instance_id',
-                                                        None)
-        assert_not_equal(provider_service_instance_id, None)
-        return provider_service_instance_id
+        if len(subscribed_link_ids_list) > 0:
+            subscribed_link_ids = subscribed_link_ids_list[0]
+            service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
+                                                        subscribed_link_ids)
+            assert_not_equal(service_link, None)
+            provider_service_instance_id = service_link.get('provider_service_instance_id',
+                                                            None)
+            assert_not_equal(provider_service_instance_id, None)
+            return provider_service_instance_id
+
+        #find the tenant for the s_tag/c_tag
+        if s_tag is None or c_tag is None:
+            return None
+
+        if result is None:
+            result = self.restApi.ApiGet('VOLT_TENANT')
+            result = result['items']
+
+        tenant = filter(lambda t: int(t['s_tag']) == int(s_tag) and \
+                        int(t['c_tag']) == int(c_tag), result)
+        if not tenant:
+            return None
+
+        return tenant[0]['id']
 
     def getProviderInstance(self, info):
+        return info['id']
         provided_link_ids_list = self.getFieldValueFromDict(info,
                                                             'provided_links_ids')
         assert_not_equal(provided_link_ids_list, None)
@@ -247,7 +263,7 @@ class XosUtils(object):
         finally:
             return subId
 
-    def subscriberDelete(self, account_num, subId = '', voltId = ''):
+    def subscriberDelete(self, account_num, s_tag = None, c_tag = None, subId = '', voltId = ''):
         result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
         assert_not_equal(result, None)
         result = result['items']
@@ -265,7 +281,7 @@ class XosUtils(object):
             result = self.restApi.ApiGet('VOLT_TENANT')
             assert_not_equal(result, None)
             result = result['items']
-            voltId = self.getVoltId(result, subInfo)
+            voltId = self.getVoltId(result, subInfo, s_tag = s_tag, c_tag = c_tag)
             assert_not_equal(voltId, None)
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
         status = self.restApi.ApiChameleonDelete('VOLT_TENANT', voltId)
@@ -300,6 +316,7 @@ class CordSubscriberUtils(object):
         self.c_tag = c_tag
         self.subscribers_per_s_tag = subscribers_per_s_tag
         self.subscriber_map = {}
+        self.tenant_map = {}
         self.subscriber_info = self.getConfig()
         self.volt_subscriber_info = self.getVoltConfig()
         self.xos = XosUtils()
@@ -315,6 +332,7 @@ class CordSubscriberUtils(object):
         if self.c_tag % self.subscribers_per_s_tag == 0:
             self.s_tag += 1
         self.subscriber_map[subId] = account_num, s_tag, c_tag
+        self.tenant_map[account_num] = (s_tag, c_tag)
         return self.subscriber_map[subId]
 
     def getConfig(self):
@@ -339,6 +357,12 @@ class CordSubscriberUtils(object):
 
         return subscriber_map
 
+    def getVoltInfo(self, account_num):
+        num = int(account_num)
+        if num in self.tenant_map:
+            return self.tenant_map[num]
+        return None, None
+
     def getVoltConfig(self):
         voltSubscriberMap = []
         for i in xrange(self.num_subscribers):
@@ -353,7 +377,8 @@ class CordSubscriberUtils(object):
         return voltSubscriberMap
 
     def getVoltId(self, subInfo):
-        return self.xos.getVoltId(None, subInfo)
+        s_tag, c_tag = self.getVoltInfo(subInfo['service_specific_id'])
+        return self.xos.getVoltId(None, subInfo, s_tag = s_tag, c_tag = c_tag)
 
     def getProviderInstance(self, tenant_info):
         return self.xos.getProviderInstance(tenant_info)
@@ -377,7 +402,7 @@ class CordSubscriberUtils(object):
         s_tag = int(volt_subscriber_info['voltTenant']['s_tag'])
         c_tag = int(volt_subscriber_info['voltTenant']['c_tag'])
         log.info('Deleting tenant with s_tag: %d, c_tag: %d' %(s_tag, c_tag))
-        self.xos.subscriberDelete(volt_subscriber_info['service_specific_id'], subId = subId, voltId = voltId)
+        self.xos.subscriberDelete(volt_subscriber_info['service_specific_id'], s_tag = s_tag, c_tag = c_tag, subId = subId, voltId = voltId)
 
     def subscriberId(self, index):
         volt_subscriber_info = self.volt_subscriber_info[index]

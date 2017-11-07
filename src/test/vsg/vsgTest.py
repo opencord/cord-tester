@@ -2371,6 +2371,44 @@ class vsg_exchange(CordLogger):
     def test_vsg_xos_subscriber_delete_all(self):
         self.vsg_delete(len(self.cord_subscriber.subscriber_info))
 
+    def __vsg_xos_subscriber_create(self, index):
+        subId = self.vsg_xos_subscriber_create(index)
+        assert_not_equal(subId, '')
+        assert_not_equal(subId, '0')
+
+    def __vsg_xos_subscriber_delete(self, index):
+        self.vsg_xos_subscriber_delete(index)
+
+    def test_vsg_xos_subscriber_create(self):
+        self.__vsg_xos_subscriber_create(0)
+
+    def test_vsg_xos_subscriber_create_2(self):
+        self.__vsg_xos_subscriber_create(1)
+
+    def test_vsg_xos_subscriber_create_3(self):
+        self.__vsg_xos_subscriber_create(2)
+
+    def test_vsg_xos_subscriber_create_4(self):
+        self.__vsg_xos_subscriber_create(3)
+
+    def test_vsg_xos_subscriber_create_5(self):
+        self.__vsg_xos_subscriber_create(4)
+
+    def test_vsg_xos_subscriber_delete(self):
+        self.__vsg_xos_subscriber_delete(0)
+
+    def test_vsg_xos_subscriber_delete_2(self):
+        self.__vsg_xos_subscriber_delete(1)
+
+    def test_vsg_xos_subscriber_delete_3(self):
+        self.__vsg_xos_subscriber_delete(2)
+
+    def test_vsg_xos_subscriber_delete_4(self):
+        self.__vsg_xos_subscriber_delete(3)
+
+    def test_vsg_xos_subscriber_delete_5(self):
+        self.__vsg_xos_subscriber_delete(4)
+
     def test_vsg_xos_subscriber_create_and_delete(self):
         subId = self.vsg_xos_subscriber_create(0)
         if subId and subId != '0':
