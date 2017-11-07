@@ -156,7 +156,7 @@ class XosUtils(object):
 
     def getVoltId(self, result, subInfo):
         subscribed_link_ids_list = self.getFieldValueFromDict(subInfo,
-                                                              'subscribed_link_ids')
+                                                              'subscribed_links_ids')
         assert_not_equal( len(subscribed_link_ids_list), 0)
         subscribed_link_ids = subscribed_link_ids_list[0]
         service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
@@ -169,7 +169,7 @@ class XosUtils(object):
 
     def getProviderInstance(self, info):
         provided_link_ids_list = self.getFieldValueFromDict(info,
-                                                            'provided_link_ids')
+                                                            'provided_links_ids')
         assert_not_equal(provided_link_ids_list, None)
         assert_not_equal(len(provided_link_ids_list), 0)
         provided_link_ids = provided_link_ids_list[0]
@@ -183,7 +183,7 @@ class XosUtils(object):
         return provider_service_instance_id
 
     def linkTenant(self, subId, tenant_info):
-        result = self.restApi.ApiGet('VOLT_TENANT')
+        result = self.restApi.ApiGet('VOLT_TENANT')['items']
         tenant = None
         for volt in result:
             if str(volt['c_tag']) == str(tenant_info['c_tag']):
@@ -192,11 +192,11 @@ class XosUtils(object):
         assert_not_equal(tenant, None)
         volt_id = self.getFieldValueFromDict(tenant, 'id')
         provided_links_ids_list = self.getFieldValueFromDict(tenant,
-                                                             'provided_link_ids')
+                                                             'provided_links_ids')
         assert_not_equal( len(provided_link_ids_list), 0)
         provided_link_ids = provided_link_ids_list[0]
         subscribed_link_ids_list = self.getFieldValueFromDict(tenant,
-                                                              'subscribed_link_ids')
+                                                              'subscribed_links_ids')
         assert_not_equal(len(subscribed_link_ids_list), 0)
         subscribed_link_ids = subscribed_link_ids_list[0]
         service_link = self.restApi.ApiChameleonGet('CH_CORE_SERVICELINK',
@@ -232,6 +232,7 @@ class XosUtils(object):
             assert_equal(result, True)
             result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
             assert_not_equal(result, None)
+            result = result['items']
             _, subId = self.getSubscriberId(result,
                                             volt_subscriber_info['service_specific_id'])
             assert_not_equal(subId, '0')
@@ -249,6 +250,7 @@ class XosUtils(object):
     def subscriberDelete(self, account_num, subId = '', voltId = ''):
         result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
         assert_not_equal(result, None)
+        result = result['items']
         if not subId:
             #get the subscriber id first
             subInfo, subId = self.getSubscriberId(result, account_num)
@@ -262,6 +264,7 @@ class XosUtils(object):
             #get the volt id for the subscriber
             result = self.restApi.ApiGet('VOLT_TENANT')
             assert_not_equal(result, None)
+            result = result['items']
             voltId = self.getVoltId(result, subInfo)
             assert_not_equal(voltId, None)
         log.info('Deleting VOLT Tenant ID %s for subscriber %s' %(voltId, subId))
@@ -274,6 +277,7 @@ class XosUtils(object):
     def subscriberId(self, account_num):
         result = self.restApi.ApiGet('VOLT_SUBSCRIBER')
         assert_not_equal(result, None)
+        result = result['items']
         _, subId = self.getSubscriberId(result, account_num)
         return subId
 
