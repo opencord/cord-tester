@@ -2,6 +2,52 @@
   "comments": [
     {
       "key": {
+        "uuid": "9a5c5d37_716d3f32",
+        "filename": "src/test/robot/SanityPhyPOD.robot",
+        "patchSetId": 14
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2017-11-14T23:16:18Z",
+      "side": 1,
+      "message": "It seems we are not using this. Can we remove this?",
+      "range": {
+        "startLine": 46,
+        "startChar": 2,
+        "endLine": 46,
+        "endChar": 11
+      },
+      "revId": "dfee05857f47cadd808cac84fac97951e305f5ae",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9a5c5d37_516a3b1b",
+        "filename": "src/test/robot/SanityPhyPOD.robot",
+        "patchSetId": 14
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2017-11-14T23:16:18Z",
+      "side": 1,
+      "message": "We might also want to ping the fabric ip addresses. Otherwise it\u0027s pinging through the management network.",
+      "range": {
+        "startLine": 82,
+        "startChar": 78,
+        "endLine": 82,
+        "endChar": 102
+      },
+      "revId": "dfee05857f47cadd808cac84fac97951e305f5ae",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "9a5c5d37_f1880f24",
         "filename": "src/test/robot/SanityPhyPOD.robot",
         "patchSetId": 14
