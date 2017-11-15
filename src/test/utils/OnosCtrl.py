@@ -306,7 +306,7 @@ class OnosCtrl:
     @classmethod
     def aaa_load_config(cls, controller = None, olt_conf_file = '', conn_type = 'socket'):
         ovs_devices = cls.get_devices(controller = controller, mfr = 'Nicira')
-        if not ovs_devices:
+        if not ovs_devices and conn_type != 'socket':
             log_test.info('No OVS devices found to configure AAA connect points')
             return
         olt = OltConfig(olt_conf_file = olt_conf_file)
