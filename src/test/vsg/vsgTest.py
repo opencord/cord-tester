@@ -187,7 +187,12 @@ class vsg_exchange(CordLogger):
 
     @classmethod
     def tearDownClass(cls):
+        self.config_restore()
         cls.vsgTeardown()
+
+    def tearDown(self):
+        self.config_restore()
+        super(vsg_exchange, self).tearDown()
 
     def onos_shutdown(self, controller = None):
         status = True
@@ -219,7 +224,8 @@ class vsg_exchange(CordLogger):
     @classmethod
     def config_restore(cls):
         """Restore the vsg test configuration on test case failures"""
-        for restore_method in cls.restore_methods:
+        while cls.restore_methods:
+            restore_method = cls.restore_methods.pop()
             restore_method()
 
     def get_vsg_vcpe_pair(self):
@@ -300,12 +306,13 @@ class vsg_exchange(CordLogger):
         host = '8.8.8.8'
         self.success = False
         assert_not_equal(vcpe, None)
-        vcpe_ip = VSGAccess.vcpe_get_dhcp(vcpe, mgmt = mgmt)
+        vcpe_ip = self.get_dhcp(vcpe, mgmt = mgmt)
         assert_not_equal(vcpe_ip, None)
         log.info('Got DHCP IP %s for %s' %(vcpe_ip, vcpe))
         log.info('Sending icmp echo requests to external network 8.8.8.8')
         st, _ = getstatusoutput('ping -c 3 8.8.8.8')
         VSGAccess.restore_interface_config(mgmt, vcpe = vcpe)
+        self.restore_methods.pop()
         assert_equal(st, 0)
 
     def get_vsg_health_check(self, vsg_name=None):
