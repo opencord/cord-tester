@@ -336,7 +336,8 @@ class OnosCord(Container):
     """Use this when running the cord tester agent on the onos compute node"""
     onos_config_dir_guest = '/root/onos/config'
     synchronizer_map = { 'vtn' : { 'install':
-                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.4.0-SNAPSHOT/cord-config-1.4.0-SNAPSHOT.oar',
+                      ('http://mavenrepo:8080/repository/org/opencord/cord-config/1.3.0-SNAPSHOT/cord-config-1.3.0-SNAPSHOT.oar',
+                       'http://mavenrepo:8080/repository/org/opencord/cord-config/1.4.0-SNAPSHOT/cord-config-1.4.0-SNAPSHOT.oar',
                        'http://mavenrepo:8080/repository/org/opencord/vtn/1.3.0/vtn-1.3.0.oar',
                        'http://mavenrepo:8080/repository/org/opencord/vtn/1.4.0-SNAPSHOT/vtn-1.4.0-SNAPSHOT.oar',),
                                    'activate':
