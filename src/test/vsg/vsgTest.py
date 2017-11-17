@@ -187,7 +187,7 @@ class vsg_exchange(CordLogger):
 
     @classmethod
     def tearDownClass(cls):
-        self.config_restore()
+        cls.config_restore()
         cls.vsgTeardown()
 
     def tearDown(self):
