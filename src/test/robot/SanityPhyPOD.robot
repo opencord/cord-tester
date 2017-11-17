@@ -1,17 +1,3 @@
-# Copyright 2017-present Open Networking Foundation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # Copyright 2017-present Radisys Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +17,7 @@
 Documentation     Test suite for checking default maas,xos and onos containers and fabric switch default services and maas cli commands
 Library           OperatingSystem
 Library           ../cord-api/Framework/utils/onosUtils.py
+Library           ../cord-api/Framework/utils/utils.py
 Resource          ../cord-api/Framework/utils/utils.robot
 
 *** Variables ***
@@ -43,15 +30,17 @@ ${FABRIC_SWITCH_USER}         root
 ${FABRIC_SWITCH_PASSWD}       onl
 @{FABRIC_SERVICE_STATUS}      is running
 ${IP_PATTERN}                 (\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)
-${public_iface}               eth2
-${num_nodes} 		          2
-${num_of_switches}            4
+${PUBLIC_IFACE}               eth2
+${NUM_OF_SWITCHES}            4
+${CORD_PROFILE}               rcord
+${DOCKER_CONTAINERS_FILE}     ${CURDIR}/../diag/dockerContainers.json
 
 *** Test Cases ***
 Verify Headnode Interfaces
+    [Tags]    fabric
     [Documentation]    Verifies the headnode interface is up and has external connectivity
     Verify HeadNode Interfaces Detected
-    Test Ping    ${public_iface}    www.opennetworking.org
+    Test Ping    ${PUBLIC_IFACE}    www.opennetworking.org
 
 Get Compute Node and Fabric Info
     [Documentation]    Get all information pretaining to the compute nodes and fabric
@@ -88,30 +77,19 @@ Get Compute Node and Fabric Info
     Set Suite Variable    ${node_ips}
     Set Suite Variable    ${node_data_ips}
 
-Verify Compute Nodes Pingability
-    [Documentation]    Verifies that the two compute nodes can ping each other
+Verify Compute Nodes Pingability Through Fabric
+    [Documentation]    Verifies that the two compute nodes can ping each other through the fabric
     [Tags]    fabric
     ##Verify pingablilty across compute nodes
-    : FOR    ${i}    IN    @{node_data_ips}
-    \    ${result}=    Run    ssh -A ubuntu@${i} "ping -c 3 ${node_data_ips[0]}"
-    \    Should Contain    ${result}    64 bytes
-    \    Should Not Contain    ${result}    Destination Host Unreachable
-    \    ${result}=    Run    ssh -A ubuntu@${i} "ping -c 3 ${node_data_ips[1]}"
-    \    Should Contain    ${result}    64 bytes
-    \    Should Not Contain    ${result}    Destination Host Unreachable
+    : FOR    ${src}    IN    @{hostname_prefixes}
+    \    Ping All Compute Nodes Through Fabric    ${src}
 
 Verify Compute Nodes to Fabric Pingability
     [Documentation]    Verifies that the two compute nodes can ping the switches
     [Tags]    fabric
     ##Verify pingability from compute nodes to fabric
-    ${switch_len}=    Get Length    ${switch_ips}
-    : FOR    ${INDEX}    IN RANGE    0    ${switch_len}
-    \    ${result}=    Run    ssh -A ubuntu@${node_data_ips[0]} "ping -c 3 ${switch_ips[${INDEX}]}"
-    \    Should Contain    ${result}    64 bytes
-    \    Should Not Contain    ${result}    Destination Host Unreachable
-    \    ${result}=    Run    ssh -A ubuntu@${node_data_ips[1]} "ping -c 3 ${switch_ips[${INDEX}]}"
-    \    Should Contain    ${result}    64 bytes
-    \    Should Not Contain    ${result}    Destination Host Unreachable
+    : FOR    ${src}    IN    @{hostname_prefixes}
+    \    Ping All Fabric Switches    ${src}
 
 Verify CordVTN Nodes
     [Documentation]    Verifies that the cordvtn app running in onos identifies the nodes and devices (fabric)
@@ -134,41 +112,10 @@ Verify MAAS Service State
     maas-proxy
     bind9
 
-Verify MAAS Containers State
-    [Template]      Verify Containers
-    maas-automation
-    maas-switchq
-    maas-provisioner
-    maas-allocator
-    maas-harvester
-    maas-generator
-
-Verify XOS Containers State
-    [Template]      Verify Containers
-    xos-gui
-    xos-ws
-    chameleon
-    xos-ui
-    onos-synchronizer
-    vrouter-synchronizer
-    exampleservice-synchronizer
-    vsg-synchronizer
-    vtn-synchronizer
-    vtr-synchronizer
-    fabric-synchronizer
-    openstack-synchronizer
-    xos-postgres
-
-Verify ONOS Containers State
-    [Template]      Verify Containers
-    onosproject/onos
-    xos/onos
-
-Verify Other Containers State
-    [Template]      Verify Containers
-    redis
-    mavenrepo
-    registry-mirror
+Verify Docker Containers State
+    ${dockerContainers}    utils.jsonToList    ${DOCKER_CONTAINERS_FILE}    docker-containers-${CORD_PROFILE}
+    : FOR    ${container}    IN    @{dockerContainers}
+    \    Verify Containers    ${container}
 
 Verify Juju Services State
     [Template]    Verify JUJU Service
@@ -202,7 +149,7 @@ Verify MAAS CLI commands
     [Tags]    notready
     Login MAAS Server
     Verify MAAS CLI Commands   boot-resources read | jq 'map(select(.type == "Synced"))'    ubuntu/trusty
-    Verify MAAS CLI Commands   devices list | jq '.' | jq '.[]'.hostname | wc -l     ${num_of_switches}
+    Verify MAAS CLI Commands   devices list | jq '.' | jq '.[]'.hostname | wc -l     ${NUM_OF_SWITCHES}
     #Verify MAAS CLI Commands   events query | jq '.' | jq .events[].id | wc -l    100
     Verify MAAS CLI Commands   fabrics read | jq '.' | jq .[].name | wc -l    4
     Verify MAAS CLI Commands   networks read | jq '.' | jq .[].name | wc -l    4
@@ -284,3 +231,19 @@ Verify Fabric Switch Service
     ${cmd}=    Catenate    service   ${name}   status
     ${output}=    Run Command On Remote System    ${ip}    ${cmd}   ${FABRIC_SWITCH_USER}   ${FABRIC_SWITCH_PASSWD}    ${FABRIC_SWITCH_PROMPT}   60s   False
     Should Contain Any    ${output}    @{FABRIC_SERVICE_STATUS}    msg= ${name} is not running !!!. Reason:
+
+Ping All Compute Nodes Through Fabric
+    [Arguments]    ${src_ip}
+    : FOR    ${dst_ip}    IN    @{node_data_ips}
+    \    Verify Ping    ubuntu    ${src_ip}    ${dst_ip}
+
+Ping All Fabric Switches
+    [Arguments]    ${src_ip}
+    : FOR    ${dst_ip}    IN    @{switch_ips}
+    \    Verify Ping    ubuntu    ${src_ip}    ${dst_ip}
+
+Verify Ping
+    [Arguments]    ${srcName}    ${srcIP}    ${dst}
+    ${result}=    Run    ssh ${srcName}@${srcIP} "ping -c 3 ${dst}"
+    Should Contain    ${result}    64 bytes
+    Should Not Contain    ${result}    Destination Host Unreachable
