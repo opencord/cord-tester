@@ -26,6 +26,7 @@ import uuid
 import random
 import re
 import yaml
+import glob
 
 class utils(object):
 
@@ -40,6 +41,19 @@ class utils(object):
         #print "data...",data
         dataList = data[strListName]
         return dataList
+
+    def readFile(self, path, single=True):
+        dataDict = {}
+        for fileName in glob.glob(path):
+            print "Reading ", fileName
+            data = open(fileName).read()
+            dataDict[fileName] = data
+            if bool(single):
+                return data
+        return dataDict
+
+    def readFiles(self, path):
+        return self.readFile(path, single=False)
 
     '''
     @method compare_dict
@@ -260,37 +274,3 @@ class utils(object):
             names['name']=i
             dnames.append(names.copy())
         return dnames
-
-'''
-#Test
-dict_list = {
- "humanReadableName": "cordSubscriber-17",
-        "id": 17,
-        "features": {
-            "uplink_speed": 1000000000,
-            "downlink_speed": 1000000000,
-            "status": "enabled"
-        },
-        "identity": {
-            "account_num": "20",
-            "name": "My House"
-        },
-        "related": {}
-    }
-input_dict = {
- "s_tag" : "111",
- "c_tag" : "222",
- "subscriber" : ""
- }
-new_value = 3
-test = utils()
-#data=test.jsonToList("Subscribers.json","SubscriberInfo")
-#print  test.jsonToList("Subscribers.json","SubscriberInfo")
-#print "index 1...",test.listToDict(data,1)
-#result = test.getDictFromListOfDict(dict_list,"email",21)
-#result = test.getFieldValueFromDict(dict_list,"id")
-#result = test.getDictFromListOfDict(dict_list,"account_num",21)
-#result = test.setFieldValueInDict(input_dict,"subscriber",new_value)
-result = test.getAllFieldValues(list1,"instance_name")
-print "finalllllll result....", result
-'''
