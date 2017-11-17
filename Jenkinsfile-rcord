@@ -1,0 +1,129 @@
+// Copyright 2017-present Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pod_config = null
+deployment_config = null
+
+node ('master') {
+    stage ("Parse configuration file") {
+        sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
+        sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
+        deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
+        pod_config = readYaml file: "${configRepoBaseDir}${deployment_config.pod_config.file_name}"
+    }
+}
+
+node ("${deployment_config.dev_node.name}") {
+    stage('Prerequisites') {
+        runHeadNodeCmd("""
+        cd /opt/cord/test/cord-tester/src/test/setup
+        sudo ./prerequisites.sh --cord
+        """)
+    }
+    stage('Verify Collect Diag') {
+        timeout(10) {
+            try {
+                runHeadNodeCmd("""
+                rm -rf ~/diag-*
+                cd /opt/cord/build; make collect-diag
+                cd /opt/cord/test/cord-tester/src/test/diag/
+                rm -r Log/ || true
+                pybot -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T verifyCollectDiag.robot
+                """)
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('Sanity Test') {
+        timeout(10) {
+            try {
+                runHeadNodeCmd("""
+                cd /opt/cord/test/cord-tester/src/test/robot/
+                rm -r Log/ || true
+                """)
+                if (deployment_config.fabric_switches != null) {
+                    runHeadNodeCmd("""
+                    cd /opt/cord/test/cord-tester/src/test/robot/
+                    pybot --exclude notready -v FABRIC:on -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
+                    """)
+                }
+                else {
+                    // Exclude fabric related tests
+                    runHeadNodeCmd("""
+                    cd /opt/cord/test/cord-tester/src/test/robot/
+                    pybot --exclude notready --exclude fabric -v FABRIC:off -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
+                    """)
+                }
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('XOS API Tests') {
+        timeout(10) {
+            try {
+                runHeadNodeCmd("""
+                cd /opt/cord/test/cord-tester/src/test/cord-api/Properties/
+                sed -i s/^SERVER_IP\\ =\\ .*/SERVER_IP\\ =\\ \\'localhost\\'/ RestApiProperties.py
+                sed -i s/^SERVER_PORT\\ =\\ .*/SERVER_PORT\\ =\\ \\'9101\\'/ RestApiProperties.py
+                sed -i s/^PASSWD\\ =\\ .*/PASSWD\\ =\\ \\'\\\$(cat /opt/credentials/xosadmin@opencord.org)\\'/ RestApiProperties.py
+                all_passed=true
+                cd /opt/cord/test/cord-tester/src/test/cord-api/
+                rm -r Log/ || true
+                pybot -d Log -T Tests/Ch_defaultImagesCheck.txt || all_passed=false
+                pybot -d Log -T -v PROFILE:${pod_config.cord_profile} Tests/Ch_DefaultServiceCheck.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_SubscriberTest.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_VoltTenant.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_ServiceTest.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_UsersTest.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_DeploymentTest.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_NodeTest.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_SliceTest.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_SanityInstance.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_SanityFlavors.txt || all_passed=false
+                pybot -d Log -T Tests/Ch_SiteTest.txt || all_passed=false
+                if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                """)
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('Publish') {
+        try {
+            sh """
+            if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/Log/* ./RobotLogs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
+            """
+            step([$class: 'RobotPublisher',
+                disableArchiveOutput: false,
+                logFileName: 'RobotLogs/log*.html',
+                otherFiles: '',
+                outputFileName: 'RobotLogs/output*.xml',
+                outputPath: '.',
+                passThreshold: 100,
+                reportFileName: 'RobotLogs/report*.html',
+                unstableThreshold: 0])
+        } catch(error) {}
+    }
+    step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+}
+
+/**
+ * Runs a command on the head node.
+ *
+ * @param command the command to run
+ * @param sshArgs arguments for the ssh command
+ * @return the output of the command
+ */
+def runHeadNodeCmd(command, sshArgs="") {
+    return sh(returnStdout: true, script: "sshpass -p ${deployment_config.head.pass} ssh ${sshArgs} -oStrictHostKeyChecking=no -l ${deployment_config.head.user} ${deployment_config.head.ip} \"${command}\"")
+}
