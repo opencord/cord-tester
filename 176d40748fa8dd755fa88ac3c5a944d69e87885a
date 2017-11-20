@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6b77a3c1_c24cf08f",
+        "filename": "src/test/robot/SanityPhyPOD.robot",
+        "patchSetId": 3
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2017-11-20T17:39:07Z",
+      "side": 1,
+      "message": "This file has not been checked in",
+      "revId": "176d40748fa8dd755fa88ac3c5a944d69e87885a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
