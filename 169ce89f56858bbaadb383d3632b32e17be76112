@@ -16,6 +16,24 @@
       "revId": "169ce89f56858bbaadb383d3632b32e17be76112",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "229e4d09_61f967ff",
+        "filename": "src/test/diag/verifyCollectDiag.robot",
+        "patchSetId": 3
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2017-11-20T18:06:47Z",
+      "side": 1,
+      "message": "Yes.. https://gerrit.opencord.org/#/c/7037/ needs to be merged first",
+      "parentUuid": "2b56fdd1_d36278de",
+      "revId": "169ce89f56858bbaadb383d3632b32e17be76112",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
