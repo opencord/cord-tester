@@ -42,15 +42,22 @@ Verify Synchronizer Logs
 
 Verify ONOS
     [Documentation]    Verify ONOS status, applications and logs
-    Run Keyword If    '${CORD_PROFILE}' != 'ecord-global'   Run Keywords
-        Verify ONOS Status    onos-fabric
-        Verify ONOS Applications    onos-fabric    ${CORD_PROFILE}
-        Verify ONOS Logs    onos-fabric
-    Verify ONOS Status    onos-cord
-    Verify ONOS Applications    onos-cord   ${CORD_PROFILE}
-    Verify ONOS Logs    onos-cord
+    Run Keyword If    '${CORD_PROFILE}' != 'ecord-global'   Verify ONOS-Fabric    ${CORD_PROFILE}
+    Verify ONOS-CORD    ${CORD_PROFILE}
 
 *** Keywords ***
+Verify ONOS-Fabric
+    [Arguments]    ${cord_profile}
+    Verify ONOS Status    onos-fabric
+    AND Verify ONOS Applications    onos-fabric    ${cord_profile}
+    AND Verify ONOS Logs    onos-fabric
+
+Verify ONOS-CORD
+    [Arguments]    ${cord_profile}
+    Verify ONOS Status    onos-cord
+    AND Verify ONOS Applications    onos-cord    ${cord_profile}
+    AND Verify ONOS Logs    onos-cord
+
 Verify ONOS Status
     [Arguments]    ${onosName}
     ${onosStatus}    utils.readFile    /home/cord/diag-*/${onosName}/nodes
