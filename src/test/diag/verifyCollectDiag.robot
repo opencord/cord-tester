@@ -31,14 +31,17 @@ Verify Docker Containers
     [Documentation]    Verify expected containers are up and running
     ${dockerContainersExpected}    utils.jsonToList    ${DOCKER_CONTAINERS_FILE}    docker-containers-${CORD_PROFILE}
     : FOR    ${container}    IN    @{dockerContainersExpected}
-    \    OperatingSystem.File Should Exist    /home/cord/diag-*/docker/${container}
+    \    Run Keyword And Continue On Failure    Verify Docker Container    ${container}
 
 Verify Synchronizer Logs
     [Documentation]    Verify synchronizer logs are correct
     ${synchronizerLogs}    utils.readFiles    /home/cord/diag-*/docker/*synchronizer*
     : FOR    ${key}    IN    @{synchronizerLogs.keys()}
-    \    ${value}=    Get From Dictionary    ${synchronizerLogs}    ${key}
-    \    Should Contain    ${value}    Waiting for event or timeout
+    \    @{nameWithSuffix}=    Split String    ${key}    cord_
+    \    @{name}=    Split String    @{nameWithSuffix}[1]    -synchronizer
+    \    ${synchronizerConfig}    utils.readFile    /opt/cord/orchestration/xos_services/*/xos/synchronizer/@{name}[0]_config.yaml
+    \    ${synchronizerLog}=    Get From Dictionary    ${synchronizerLogs}    ${key}
+    \    Run Keyword And Continue On Failure    Verify Synchronizer Log    ${synchronizerConfig}    ${synchronizerLog}
 
 Verify ONOS
     [Documentation]    Verify ONOS status, applications and logs
@@ -46,17 +49,26 @@ Verify ONOS
     Verify ONOS-CORD    ${CORD_PROFILE}
 
 *** Keywords ***
+Verify Docker Container
+    [Arguments]    ${container}
+    OperatingSystem.File Should Exist    /home/cord/diag-*/docker/${container}
+
+Verify Synchronizer Log
+    [Arguments]    ${config}    ${log}
+    Run Keyword If    'steps_dir' in '''${config}'''    Should Contain    ${log}    Waiting for event or timeout
+    Run Keyword If    'model_policies_dir' in '''${config}'''    Should Contain    ${log}    Loaded model policies
+
 Verify ONOS-Fabric
     [Arguments]    ${cord_profile}
-    Verify ONOS Status    onos-fabric
-    AND Verify ONOS Applications    onos-fabric    ${cord_profile}
-    AND Verify ONOS Logs    onos-fabric
+    Run Keyword And Continue On Failure    Verify ONOS Status    onos-fabric
+    Run Keyword And Continue On Failure    Verify ONOS Applications    onos-fabric    ${cord_profile}
+    Run Keyword And Continue On Failure    Verify ONOS Log    onos-fabric
 
 Verify ONOS-CORD
     [Arguments]    ${cord_profile}
-    Verify ONOS Status    onos-cord
-    AND Verify ONOS Applications    onos-cord    ${cord_profile}
-    AND Verify ONOS Logs    onos-cord
+    Run Keyword And Continue On Failure    Verify ONOS Status    onos-cord
+    Run Keyword And Continue On Failure    Verify ONOS Applications    onos-cord    ${cord_profile}
+    Run Keyword And Continue On Failure    Verify ONOS Log    onos-cord
 
 Verify ONOS Status
     [Arguments]    ${onosName}
@@ -70,7 +82,7 @@ Verify ONOS Applications
     : FOR    ${app}    IN    @{onosAppsExpected}
     \    Should Contain    ${onosApps}    ${app}
 
-Verify ONOS Logs
+Verify ONOS Log
     [Arguments]    ${onosName}
     ${onosLog}    utils.readFile    /home/cord/diag-*/${onosName}/log_display
     Should Not Contain    ${onosLog}    ERROR

@@ -93,6 +93,7 @@ Verify Compute Nodes to Fabric Pingability
 
 Verify CordVTN Nodes
     [Documentation]    Verifies that the cordvtn app running in onos identifies the nodes and devices (fabric)
+    [Tags]    fabric
     ${nodes}=    Execute ONOS Command    onos-cord    8102    cordvtn-nodes
     : FOR    ${i}    IN    @{node_ips}
     \    ${node_1}=    Get Lines Containing String    ${nodes}    ${i}
