@@ -33,6 +33,7 @@ ${IP_PATTERN}                 (\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)
 ${PUBLIC_IFACE}               eth2
 ${NUM_OF_SWITCHES}            4
 ${CORD_PROFILE}               rcord
+${FABRIC}                     on
 ${DOCKER_CONTAINERS_FILE}     ${CURDIR}/../diag/dockerContainers.json
 
 *** Test Cases ***
@@ -96,8 +97,8 @@ Verify CordVTN Nodes
     ${nodes}=    Execute ONOS Command    onos-cord    8102    cordvtn-nodes
     : FOR    ${i}    IN    @{node_ips}
     \    ${node_1}=    Get Lines Containing String    ${nodes}    ${i}
-    \    Should Contain    ${node_1}    COMPLETE
-    \    Should Contain    ${node_1}    ${i}
+    \    Run Keyword If    "${FABRIC}" == "on"    Verify CordVTN Node    ${node_1}    COMPLETE    ${i}
+    \    Run Keyword If    "${FABRIC}" == "off"    Verify CordVTN Node    ${node_1}    DEVICE_CREATED    ${i}
     ${ports}=    Execute ONOS Command    onos-cord    8102    cordvtn-ports
     ${devices}=    Execute ONOS Command    onos-fabric    8101    devices
     @{switch_ips}=    Discover FABRIC IPs
@@ -181,6 +182,11 @@ Verify HeadNode Interfaces Detected
     ${cmd}=    Catenate    SEPARATOR=|   sudo ethtool fabric    grep 'Link detected:'    awk '{ print $3 }'
     ${output}=    Run     ${cmd}
     Should Contain    ${output}    yes    msg= fabric interface is not detected !!!. Reason:
+
+Verify CordVTN Node
+    [Arguments]    ${node}    ${status}    ${ip}
+    Should Contain    ${node}    ${status}
+    Should Contain    ${node}    ${ip}
 
 Verify Containers
     [Arguments]    ${name}
