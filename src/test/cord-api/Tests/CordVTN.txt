@@ -42,7 +42,7 @@ Validate Default OVS Flow Count
 
 Validate Current VTN Service Networks and Ports
     [Documentation]    Makes rest calls to XOS to validate the default VTN Service Networks + Ports (public,management,exampleservice_network,mysite_vsg-access)
-    [Tags]    vtn    pod
+    [Tags]    vtn
     Validate Default CIAB Service Networks and Ports via XOS
 
 Validate Default Subscriber
