@@ -37,9 +37,9 @@ Verify Synchronizer Logs
     [Documentation]    Verify synchronizer logs are correct
     ${synchronizerLogs}    utils.readFiles    /home/cord/diag-*/docker/*synchronizer*
     : FOR    ${key}    IN    @{synchronizerLogs.keys()}
-    \    @{nameWithSuffix}=    Split String    ${key}    cord_
-    \    @{name}=    Split String    @{nameWithSuffix}[1]    -synchronizer
-    \    ${synchronizerConfig}    utils.readFile    /opt/cord/orchestration/xos_services/*/xos/synchronizer/@{name}[0]_config.yaml
+    \    @{name}=    Split String    ${key}    -synchronizer
+    \    @{name}=    Split String From Right   @{name}[0]    _    1
+    \    ${synchronizerConfig}    utils.readFile    /opt/cord/orchestration/xos_services/*/xos/synchronizer/@{name}[1]_config.yaml
     \    ${synchronizerLog}=    Get From Dictionary    ${synchronizerLogs}    ${key}
     \    Run Keyword And Continue On Failure    Verify Synchronizer Log    ${synchronizerConfig}    ${synchronizerLog}
 
