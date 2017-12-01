@@ -109,7 +109,7 @@ class vsg_exchange(CordLogger):
         minor = int(version.split('.')[1])
         if major > 1:
             app_version = '2.0-SNAPSHOT'
-        elif major == 1 and minor > 10:
+        elif major == 1 and minor >= 10:
             app_version = '2.0-SNAPSHOT'
         cls.APP_FILE = os.path.join(cls.test_path, '..', 'apps/xconnect-{}.oar'.format(app_version))
         OnosCtrl.install_app(cls.APP_FILE, onos_ip = cls.HEAD_NODE)
