@@ -84,8 +84,35 @@
     ],
     "docker-containers-mcord":
     [
+        "allocator",
+        "generator",
+        "automation",
+        "provisioner",
+        "registry",
+        "harvester",
+        "registry-mirror",
+        "storage",
+        "switchq",
         "mavenrepo",
-        "onosfabric_xos-onos_1",
-        "onoscord_xos-onos_1"
+        "mcordng40_xos_ws_1",
+        "mcordng40_xos_gui_1",
+        "mcordng40_xos_chameleon_1",
+	"mcordng40_xos_tosca_1",
+	"mcordng40_xos_ui_1",
+	"mcordng40_xos_core_1",
+	"mcordng40_openstack-synchronizer_1",
+	"mcordng40_vepc-synchronizer_1",
+	"mcordng40_vtn-synchronizer_1",
+	"mcordng40_vspgwc-synchronizer_1",
+	"mcordng40_fabric-synchronizer_1",
+	"mcordng40_venb-synchronizer_1",
+	"mcordng40_onos-synchronizer_1",
+	"mcordng40_vspgwu-synchronizer_1",
+	"mcordng40_xos_redis_1",
+	"mcordng40_xos_db_1",
+	"mcordng40_registrator_1",
+	"mcordng40_consul_1",
+	"onosfabric_xos-onos_1",
+	"onoscord_xos-onos_1"
     ]
 }
