@@ -39,9 +39,8 @@ Verify Synchronizer Logs
     : FOR    ${key}    IN    @{synchronizerLogs.keys()}
     \    @{name}=    Split String    ${key}    -synchronizer
     \    @{name}=    Split String From Right   @{name}[0]    _    1
-    \    ${synchronizerConfig}    utils.readFile    /opt/cord/orchestration/xos_services/*/xos/synchronizer/@{name}[1]_config.yaml
     \    ${synchronizerLog}=    Get From Dictionary    ${synchronizerLogs}    ${key}
-    \    Run Keyword And Continue On Failure    Verify Synchronizer Log    ${synchronizerConfig}    ${synchronizerLog}
+    \    Run Keyword And Continue On Failure    Verify Synchronizer Log    ${name}    ${synchronizerLog}
 
 Verify ONOS
     [Documentation]    Verify ONOS status, applications and logs
@@ -54,9 +53,10 @@ Verify Docker Container
     OperatingSystem.File Should Exist    /home/cord/diag-*/docker/${container}
 
 Verify Synchronizer Log
-    [Arguments]    ${config}    ${log}
-    Run Keyword If    'steps_dir' in '''${config}'''    Should Contain    ${log}    Waiting for event or timeout
-    Run Keyword If    'model_policies_dir' in '''${config}'''    Should Contain    ${log}    Loaded model policies
+    [Arguments]    ${name}    ${log}
+    ${config}    utils.readFile    /opt/cord/orchestration/xos_services/*/xos/synchronizer/@{name}[1]_config.yaml
+    Run Keyword If    'steps_dir' in '''${config}'''    Should Contain    ${log}    Waiting for event or timeout    msg= "Waiting for event or timeout" not found in @{name}[1] synchronizer log
+    ...    ELSE IF    'model_policies_dir' in '''${config}'''    Should Contain    ${log}    Loaded model policies    msg= "Loaded model policies" not found in @{name}[1] synchronizer log
 
 Verify ONOS-Fabric
     [Arguments]    ${cord_profile}
