@@ -69,7 +69,7 @@
         "org.opencord.config",
         "org.opencord.vtn"
     ],
-    "onos-fabric-mcord":
+    "onos-fabric-mcord-ng40":
     [
         "org.onosproject.drivers",
         "org.onosproject.optical-model",
@@ -79,7 +79,7 @@
         "org.onosproject.lldpprovider",
         "org.onosproject.openflow"
     ],
-    "onos-cord-mcord":
+    "onos-cord-mcord-ng40":
     [
         "org.onosproject.drivers",
         "org.onosproject.optical-model",
