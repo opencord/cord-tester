@@ -82,7 +82,7 @@
         "onoscord_xos-onos_1",
         "onosfabric_xos-onos_1"
     ],
-    "docker-containers-mcord":
+    "docker-containers-mcord-ng40":
     [
         "allocator",
         "generator",
