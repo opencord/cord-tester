@@ -38,7 +38,7 @@ ${DOCKER_CONTAINERS_FILE}     ${CURDIR}/../diag/dockerContainers.json
 
 *** Test Cases ***
 Verify Headnode Interfaces
-    [Tags]    fabric
+    [Tags]    fabric    notready
     [Documentation]    Verifies the headnode interface is up and has external connectivity
     Verify HeadNode Interfaces Detected
     Test Ping    ${PUBLIC_IFACE}    www.opennetworking.org
