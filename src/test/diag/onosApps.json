@@ -7,9 +7,6 @@
         "org.onosproject.fpm",
         "org.onosproject.hostprovider",
         "org.onosproject.lldpprovider",
-        "org.onosproject.fibinstaller",
-        "org.onosproject.cpr",
-        "org.onosproject.vrouter",
         "org.onosproject.netcfghostprovider",
         "org.onosproject.openflow-base",
         "org.onosproject.openflow"
