@@ -24,8 +24,8 @@ class restApi(object):
     '''
     Functions for testing CORD API with POST, GET, PUT, DELETE method
     '''
-    def __init__(self):
-        self.rp = readProperties(os.path.abspath(os.path.dirname(__file__))+"/../Properties/RestApiProperties.py")
+    def __init__(self, propertyFile="RestApiProperties.py"):
+        self.rp = readProperties(os.path.abspath(os.path.dirname(__file__))+"/../Properties/"+ propertyFile)
         self.controllerIP = self.getValueFromProperties("SERVER_IP")
         self.controllerPort = self.getValueFromProperties("SERVER_PORT")
         self.user = self.getValueFromProperties("USER")
@@ -164,70 +164,7 @@ class restApi(object):
 
 #test
 '''
-if __name__ == '__main__':
-    test = RestApi()
-    key = "TENANT_SUBSCRIBER"
-    account_num = 5
-    result = test.ApiPost(key, {"identity":{"account_num":str(account_num)}})
-    time.sleep(5)
-    result = test.ApiGet(key)
-    subId = test.getSubscriberIdFromAccountNum(result, account_num)
-    urlSuffix = str(subId) + "/"
-    time.sleep(5)
-    result = test.ApiPut(key, {"identity":{"name":"My House 2"}}, urlSuffix)
-    time.sleep(5)
-    result = test.ApiDelete(key, urlSuffix)
-'''
-'''
-test = restApi()
-#key = "UTILS_SYNCHRONIZER"
-#key = "CORE_USERS"
-#key2 = "UTILS_LOGIN"
-#key = "TENANT_SUBSCRIBER"
-#jsonGetData = test.ApiGet(key)
-#jsonResponse = test.ApiPost(key,{"identity":{"name":"My House 22"}})
-#jsonResponse = test.ApiPost(key,{"firstname":"Test002","lastname":"User002","email":"test002@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"})
-key = "VOLT_TENANT"
-key2 = "VOLT_SUBSCRIBER"
-#jsonResponse = test.ApiDelete(key,204)
-#jsonResponse = test.ApiPut(key,{"firstname":"Test002","lastname":"User002","email":"test002update@onlab.us","password":"TestUser002","site": "http://localhost:8000/api/core/sites/1/"},14)
-#jsonResponse = test.ApiPost(key2,{"username":"test002update@onlab.us","password":"TestUser002"})
-#jsonResponse = test.ApiPost(key2,{"username":"padmin@vicci.org","password":"letmein"})
-#jsonResponse = test.ApiPut(key,{"username":"testuser","password":"TestUser001"},"9")
-#key = "CORE_INSTANCES"
-key1 = "CH_CORE_SERVICELINK"
-#key2 = "CORE_SLICES"
-#input_dict = { "s_tag" : "111", "c_tag" : "222", "subscriber" : 23}
-input_dict = {
-         "s_tag" : 117,
-         "c_tag" : 227,
-        }
-input_dict3 = {
-         "subscriber_service_instance_id" : 5
-         }
-#input_dict1 = { "name" : "mysite_Test1", "site" : 1 , "creator" : 1}
-input_dict2 = {
+test = restApi("MCORD_RestApiProperties.py")
+print test.getURL("CORE_INSTANCES")
 
-            "cdn_enable": "true",
-            "uplink_speed": 1000000000,
-            "downlink_speed": 1000000000,
-            "enable_uverse": "true",
-            "status": "enabled",
-            "service_specific_id": "100",
-            "name": "My House"
-    }
-#jsonResponse = test.ApiPost(key,input_dict)
-#jsonResponse = test.ApiChameleonPut(key,input_dict,12)
-#jsonGetData = test.ApiGet(key1)
-#jsonResponse = test.ApiChameleonPut(key1,input_dict3,6)
-#jsonGetData = test.ApiGet(key1)
-#print "========="
-#print jsonGetData
-#jsonEdit = test.ApiPut(key,{"c_tag" : "666","s_tag" : "123"},"30")
-jsonO = test.ApiChameleonDelete(key2,"50")
-jsonO = test.ApiChameleonDelete(key,"51")
-#jsonResponse = test.ApiPut(key,{"identity":{"name":"My House 22"}},"71")
-#jsonResponse = test.ApiPost(key,input_dict)
-#jsonResponse = test.ApiPut(key,{"name":"test1-changed"},"9")
-print "========="
 '''

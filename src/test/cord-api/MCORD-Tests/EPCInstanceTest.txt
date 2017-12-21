@@ -8,7 +8,7 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           ../Framework/restApi.py    MCORD_RestApiProperties.py
 
 *** Variables ***
 ${USER}           admin
@@ -18,17 +18,19 @@ ${PATHFILE}       ${CURDIR}/data/EPCInstance.json
 *** Test Cases ***    TYPE                 LISTINDEX
 Test Create EPC       EPC_CREATE           0
 
-Test Instance creation validation
+Test Instance Validation
                       INSTANCE_VALIDATE    0
 
 *** Keywords ***
 Read InputFile
-    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    EPCInfo
-    Set Suite Variable    ${slist}    ${subscriberList}
+    ${EPCList} =    utils.jsonToList    ${PATHFILE}    EPCInfo
+    Set Suite Variable    ${elist}    ${EPCList}
+    @{vepc_instanceList}=    Create List    mysite_venb    mysite_vspgwc    mysite_vspgwu
     @{instanceList}=    Create List
     Set Suite Variable    @{instanceList}
+    Set Suite Variable    @{vepc_instanceList}
 
-Verify Single Instance functionality
+Verify EPC Instance functionality
     [Arguments]    ${type}    ${listIndex}
     Run Keyword If    "${type}" == "EPC_CREATE"    Test Post EPC Create    ${listIndex}
     Run Keyword If    "${type}" == "INSTANCE_VALIDATE"    Test Instance Validation    ${listIndex}
@@ -38,25 +40,23 @@ Test Post EPC Create
     ${EPCList} =    Get Variable Value    ${elist}
     ${InputDict}=    utils.listToDict    ${EPCList}    ${listIndex}
     ${api_result}=    restApi.ApiPost    EPC_INSTANCES    ${InputDict}
-    ${service_specific_id}=    utils.getFieldValueFromDict    ${InputDict}    site_id
+    ${site_id}=    utils.getFieldValueFromDict    ${InputDict}    site_id
     ${json_result}=    restApi.ApiGet    EPC_INSTANCES
     Log    ${json_result}
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    site_id    ${site_id}
     ${result}=    utils.compare_dict    ${InputDict}    ${getJsonDict}
     Should Be True    ${result}
-    ${instanceList}    Create List
+    Sleep    30s
 
 Test Instance Validation
     [Arguments]    ${listIndex}
     ${get_result}=    restApi.ApiGet    CORE_INSTANCES
     Should Be True    ${get_result}
     ${get_result_List}=    Get From Dictionary    ${get_result}    items
-    ${instanceFinalList}=    Remove Duplicates    ${instanceList}
-    Log    ${instanceFinalList}
-    ${instanceCount}=    Get Length    ${instanceFinalList}
-    Log    ${instanceCount}
-    Should Be True    ${instanceCount} == 1
-    ${instance_id}=    Get From List    ${instanceFinalList}    0
-    ${get_CoreInstanceresult}=    restApi.ApiChameleonGet    CORE_INSTANCES    ${instance_id}
-    Should Be True    ${get_CoreInstanceresult}
+    : FOR    ${Item}    IN    @{get_result_List}
+    \    ${instance_name}=    Get From Dictionary    ${Item}    name
+    \    Append To List    ${instanceList}    ${instance_name}
+    Log    ${instanceList}
+    Sort List    ${instanceList}
+    Lists Should Be Equal    ${instanceList}    ${vepc_instanceList}
