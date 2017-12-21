@@ -17,7 +17,7 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = 'c220g2-011013.wisc.cloudlab.us'
+SERVER_IP = 'clnode103.clemson.cloudlab.us'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
 PASSWD = ''
