@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "28d438a1_4b72d273",
+        "filename": "src/test/cord-api/MCORD-Tests/EPCInstanceTest.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2017-12-21T23:43:08Z",
+      "side": 1,
+      "message": "For timing purposes, we should wrap this in a wait loop like this:\n\n\"Run Keyword If    \"${type}\" \u003d\u003d \"INSTANCE_VALIDATE\"    Wait For Keyword To Succeed .   300s    5s    Test Instance Validation    ${listIndex}\"",
+      "revId": "410a7d91cc47ca081639708579fc786ab6ddeafe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6e914732_0ee4a5c7",
+        "filename": "src/test/cord-api/MCORD-Tests/EPCInstanceTest.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2017-12-21T23:43:08Z",
+      "side": 1,
+      "message": "Is this supposed to be \"${slist}",
+      "revId": "410a7d91cc47ca081639708579fc786ab6ddeafe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f8492ca8_e728c953",
+        "filename": "src/test/cord-api/MCORD-Tests/EPCInstanceTest.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2017-12-21T23:43:08Z",
+      "side": 1,
+      "message": "is ${site_id} supposed to be ${service_specific_id} ?",
+      "revId": "410a7d91cc47ca081639708579fc786ab6ddeafe",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
