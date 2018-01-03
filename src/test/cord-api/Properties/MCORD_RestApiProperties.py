@@ -17,9 +17,9 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = 'c220g2-011013.wisc.cloudlab.us'
+SERVER_IP = 'clnode103.clemson.cloudlab.us'
 SERVER_PORT = '8080'
 USER = 'xosadmin@opencord.org'
-PASSWD = ''
+PASSWD = 'ENpKyPfvEsS9lODZnrZk'
 EPC_INSTANCES = '/xosapi/v1/vepc/vepcserviceinstances'
 CORE_INSTANCES = '/xosapi/v1/core/instances'
