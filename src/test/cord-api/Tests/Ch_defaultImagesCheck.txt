@@ -14,7 +14,7 @@ Library           ../Framework/restApi.py
 ${USER}           admin
 ${PASSWORD}       admin
 ${PROFILE}        mock-rcord
-${PROFILE_FILE}   ${CURDIR}/../../../../../../build/platform-install/profile_manifests/${PROFILE}.yml
+${PROFILE_FILE}   ${CURDIR}/../../../../../../orchestration/profiles/${PROFILE}/${PROFILE}.yml
 ${PATHFILE}       ${CURDIR}/data/defaultImages.json
 
 *** Test Cases ***    TYPE
