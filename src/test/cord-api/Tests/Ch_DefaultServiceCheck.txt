@@ -15,7 +15,7 @@ Resource          ../Framework/utils/utils.robot
 ${USER}           admin
 ${PASSWORD}       admin
 ${PROFILE}        mock-rcord
-${PROFILE_FILE}   ${CURDIR}/../../../../../../build/platform-install/profile_manifests/${PROFILE}.yml
+${PROFILE_FILE}   ${CURDIR}/../../../../../../orchestration/profiles/${PROFILE}/${PROFILE}.yml
 
 *** Test Cases ***    TYPE
 Test Service Sanity
