@@ -1,0 +1,10 @@
+{
+    "mcord-ng4t-tests":
+    [
+        "verify_quick.sh",
+        "verify_short.sh",
+        "verify_long.sh",
+        "verify_attach.sh",
+        "verify_attach_data.sh"
+    ]
+}
