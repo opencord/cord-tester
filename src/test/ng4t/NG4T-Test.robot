@@ -24,14 +24,15 @@ Resource          ../cord-api/Framework/utils/utils.robot
 ${compute_node_user}    ubuntu
 ${instance_user}        ng4t
 ${instance_pass}        ng4t
-${NG4T_TESTS_FILE}       ${CURDIR}/ng4t-tests.json
+${NG4T_TESTS_FILE}      ${CURDIR}/ng4t-tests.json
+${PUBLIC_KEY}		/home/vagrant/.ssh/cord_rsa
 
 *** Test Cases ***
 Execute Tests
     [Documentation]    SSHs into venb instance inside the compute node and executes tests
     : FOR    ${test}    IN    @{ng4t_tests}
     \     ${conn_id}=    SSHLibrary.Open Connection    ${compute_hostname}    prompt=~$    timeout=300s
-    \    SSHLibrary.Login With Public Key    ubuntu    /home/cord/.ssh/cord_rsa
+    \    SSHLibrary.Login With Public Key    ubuntu    ${PUBLIC_KEY}
     \    SSHLibrary.Read
     \    SSHLibrary.Write    ssh -q ng40@${mgmt_ip} "./${test}"
     \    SSHLibrary.Read Until    password:
