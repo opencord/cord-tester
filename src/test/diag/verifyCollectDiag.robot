@@ -35,7 +35,7 @@ Verify Docker Containers
 
 Verify Synchronizer Logs
     [Documentation]    Verify synchronizer logs are correct
-    ${synchronizerLogs}    utils.readFiles    /home/cord/diag-*/docker/*synchronizer*
+    ${synchronizerLogs}    utils.readFiles    /home/cord/diag-*/docker/*synchronizer*.logs
     : FOR    ${key}    IN    @{synchronizerLogs.keys()}
     \    @{name}=    Split String    ${key}    -synchronizer
     \    @{name}=    Split String From Right   @{name}[0]    _    1
@@ -50,7 +50,7 @@ Verify ONOS
 *** Keywords ***
 Verify Docker Container
     [Arguments]    ${container}
-    OperatingSystem.File Should Exist    /home/cord/diag-*/docker/${container}
+    OperatingSystem.File Should Exist    /home/cord/diag-*/docker/${container}.logs
 
 Verify Synchronizer Log
     [Arguments]    ${name}    ${log}
