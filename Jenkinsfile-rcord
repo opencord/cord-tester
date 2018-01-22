@@ -31,6 +31,41 @@ node ("${deployment_config.dev_node.name}") {
         sudo ./prerequisites.sh --cord
         """)
     }
+    stage('Configure Fabric for E2E testing') {
+        //FIXME: this only works for PODs with 2 leaf switches
+        fabricIpPrefix = pod_config.fabric_ip.split(/\.\d+\.\d+\/24/)[0]
+        runHeadNodeCmd("sudo ip route add ${fabricIpPrefix}.2.0/24 via ${fabricIpPrefix}.1.254 || echo route already exists")
+        runHeadNodeCmd("sudo route add -net 10.7.1.0/24 gw 10.6.1.254 || echo route already exists")
+        runHeadNodeCmd("sudo route add -net 10.8.1.0/24 gw 10.6.1.254 || echo route already exists")
+        runHeadNodeCmd("ping -c 1 ${fabricIpPrefix}.1.254", "-qftn")
+        runOnosCliCmd("onos-fabric", "8101", "onos", "rocks", "route-add 0.0.0.0/0 ${fabricIpPrefix}.1.1")
+        // Verify ONOS has recognized the hosts
+        timeout(time: 5) {
+            waitUntil {
+                try {
+                    num = runHeadNodeCmd("\"sshpass -p rocks ssh -q -oStrictHostKeyChecking=no -l onos -p 8101 onos-fabric hosts | grep id= | wc -l\"").trim()
+                    return num.toInteger() == deployment_config.compute_nodes.size() + 1
+                } catch (exception) {
+                    return false
+                }
+            }
+        }
+        // Generate network configuration
+        runHeadNodeCmd("""
+                       cd /opt/cord_profile/
+                       cp fabric-network-cfg.json fabric-network-cfg.json.\$(date +%Y%m%d-%H%M%S)
+                       cord generate > fabric-network-cfg.json
+                       """)
+        // Delete old ONOS netcfg
+        runHeadNodeCmd("http -a onos:rocks DELETE http://onos-fabric:8181/onos/v1/network/configuration/")
+        // Load new configuration
+        runHeadNodeCmd("http -a onos:rocks POST http://onos-fabric:8181/onos/v1/network/configuration/ < /opt/cord_profile/fabric-network-cfg.json")
+        // Restart ONOS apps
+        runHeadNodeCmd("""
+                       http -a onos:rocks DELETE http://onos-fabric:8181/onos/v1/applications/org.onosproject.segmentrouting/active; sleep 5
+                       http -a onos:rocks POST http://onos-fabric:8181/onos/v1/applications/org.onosproject.segmentrouting/active; sleep 5
+                       """)
+    }
     stage('Verify Collect Diag') {
         timeout(10) {
             try {
@@ -126,4 +161,18 @@ node ("${deployment_config.dev_node.name}") {
  */
 def runHeadNodeCmd(command, sshArgs="") {
     return sh(returnStdout: true, script: "sshpass -p ${deployment_config.head.pass} ssh ${sshArgs} -oStrictHostKeyChecking=no -l ${deployment_config.head.user} ${deployment_config.head.ip} \"${command}\"")
+}
+
+/**
+ * Runs an ONOS CLI command
+ *
+ * @param name    the onos node name, reachable from the head node
+ * @param port    the port used to login to ONOS CLI
+ * @param user    the user name to login to ONOS CLI
+ * @param pass    the password to login to ONOS CLI
+ * @param command the command to run in ONOS CLI
+ * @return the output of the command
+ */
+def runOnosCliCmd(name, port, user, pass, command) {
+    return sh(returnStdout: true, script: "sshpass -p ${deployment_config.head.pass} ssh -oStrictHostKeyChecking=no -l ${deployment_config.head.user} ${deployment_config.head.ip} \"sshpass -p ${pass} ssh -oStrictHostKeyChecking=no -l ${user} -p ${port} ${name} ${command}\"")
 }
