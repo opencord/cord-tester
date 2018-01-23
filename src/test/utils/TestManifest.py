@@ -71,6 +71,7 @@ class TestManifest(object):
             self.voltha_enable = args.voltha_enable
             self.voltha_container_mode = args.voltha_container_mode
             self.expose_port = args.expose_port
+            self.skip_onos_restart = args.skip_onos_restart
         else:
             with open(self.manifest, 'r') as fd:
                 data = json.load(fd)
@@ -107,3 +108,4 @@ class TestManifest(object):
             self.expose_port = data.get('expose_port', False)
             if self.voltha_enable and self.voltha_container_mode:
                 self.expose_port = True
+            self.skip_onos_restart = data.get('skip_onos_restart', False)

@@ -345,65 +345,66 @@ class OnosCord(Container):
     old_service_profile = '/opt/cord/orchestration/service-profile/cord-pod'
     cord_profile = '/opt/cord_profile'
 
-    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 5):
-        if not os.access(conf, os.F_OK):
-            raise Exception('ONOS cord configuration location %s is invalid' %conf)
-        self.old_cord = False
-        if os.access(self.old_service_profile, os.F_OK):
-            self.old_cord = True
-        self.onos_ip = onos_ip
-        self.onos_cord_dir = conf
-        self.boot_delay = boot_delay
-        self.synchronizer = synchronizer
-        self.service_profile = service_profile
-        self.docker_yaml = os.path.join(conf, 'docker-compose.yml')
-        self.docker_yaml_saved = os.path.join(conf, 'docker-compose.yml.saved')
-        self.onos_config_dir = os.path.join(conf, 'config')
-        self.onos_cfg_save_loc = os.path.join(conf, 'network-cfg.json.saved')
-        instance_active = False
-        #if we have a wrapper onos instance already active, back out
-        if os.access(self.onos_config_dir, os.F_OK) or os.access(self.docker_yaml_saved, os.F_OK):
-            instance_active = True
-        else:
-            if start is True:
-                os.mkdir(self.onos_config_dir)
-                shutil.copy(self.docker_yaml, self.docker_yaml_saved)
+    def __init__(self, onos_ip, conf, service_profile, synchronizer, start = True, boot_delay = 5, skip = False):
+        if not skip:
+            if not os.access(conf, os.F_OK):
+                raise Exception('ONOS cord configuration location %s is invalid' %conf)
+            self.old_cord = False
+            if os.access(self.old_service_profile, os.F_OK):
+                self.old_cord = True
+            self.onos_ip = onos_ip
+            self.onos_cord_dir = conf
+            self.boot_delay = boot_delay
+            self.synchronizer = synchronizer
+            self.service_profile = service_profile
+            self.docker_yaml = os.path.join(conf, 'docker-compose.yml')
+            self.docker_yaml_saved = os.path.join(conf, 'docker-compose.yml.saved')
+            self.onos_config_dir = os.path.join(conf, 'config')
+            self.onos_cfg_save_loc = os.path.join(conf, 'network-cfg.json.saved')
+            instance_active = False
+            #if we have a wrapper onos instance already active, back out
+            if os.access(self.onos_config_dir, os.F_OK) or os.access(self.docker_yaml_saved, os.F_OK):
+                instance_active = True
+            else:
+                if start is True:
+                    os.mkdir(self.onos_config_dir)
+                    shutil.copy(self.docker_yaml, self.docker_yaml_saved)
 
-        self.start_wrapper = instance_active is False and start is True
-        ##update the docker yaml with the config volume
-        with open(self.docker_yaml, 'r') as f:
-            yaml_config = yaml.load(f)
-            image = yaml_config['services'].keys()[0]
-            cord_conf_dir_basename = os.path.basename(self.onos_cord_dir.replace('-', '').replace('_', ''))
-            xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
-            if not yaml_config['services'][image].has_key('volumes'):
-                yaml_config['services'][image]['volumes'] = []
-            volumes = yaml_config['services'][image]['volumes']
-            config_volumes = filter(lambda e: e.find(self.onos_config_dir_guest) >= 0, volumes)
-            if not config_volumes:
-                config_volume = '{}:{}'.format(self.onos_config_dir, self.onos_config_dir_guest)
-                volumes.append(config_volume)
-                if self.start_wrapper:
-                    docker_yaml_changed = '{}-changed'.format(self.docker_yaml)
-                    with open(docker_yaml_changed, 'w') as wf:
-                        yaml.dump(yaml_config, wf)
-                    os.rename(docker_yaml_changed, self.docker_yaml)
-            self.volumes = volumes
+            self.start_wrapper = instance_active is False and start is True
+            ##update the docker yaml with the config volume
+            with open(self.docker_yaml, 'r') as f:
+                yaml_config = yaml.load(f)
+                image = yaml_config['services'].keys()[0]
+                cord_conf_dir_basename = os.path.basename(self.onos_cord_dir.replace('-', '').replace('_', ''))
+                xos_onos_name = '{}_{}_1'.format(cord_conf_dir_basename, image)
+                if not yaml_config['services'][image].has_key('volumes'):
+                    yaml_config['services'][image]['volumes'] = []
+                volumes = yaml_config['services'][image]['volumes']
+                config_volumes = filter(lambda e: e.find(self.onos_config_dir_guest) >= 0, volumes)
+                if not config_volumes:
+                    config_volume = '{}:{}'.format(self.onos_config_dir, self.onos_config_dir_guest)
+                    volumes.append(config_volume)
+                    if self.start_wrapper:
+                        docker_yaml_changed = '{}-changed'.format(self.docker_yaml)
+                        with open(docker_yaml_changed, 'w') as wf:
+                            yaml.dump(yaml_config, wf)
+                        os.rename(docker_yaml_changed, self.docker_yaml)
+                self.volumes = volumes
 
-        ##Create an container instance of xos onos
-        super(OnosCord, self).__init__(xos_onos_name, image, tag = '', quagga_config = Onos.QUAGGA_CONFIG)
-        self.last_cfg = None
-        if self.start_wrapper:
-            #fetch the current config of onos cord instance and save it
-            try:
-                self.last_cfg = OnosCtrl.get_config(controller = onos_ip)
-                json_data = json.dumps(self.last_cfg, indent=4)
-                with open(self.onos_cfg_save_loc, 'w') as f:
-                    f.write(json_data)
-            except:
-                pass
-            #start the container back with the shared onos config volume
-            self.start()
+            ##Create an container instance of xos onos
+            super(OnosCord, self).__init__(xos_onos_name, image, tag = '', quagga_config = Onos.QUAGGA_CONFIG)
+            self.last_cfg = None
+            if self.start_wrapper:
+                #fetch the current config of onos cord instance and save it
+                try:
+                    self.last_cfg = OnosCtrl.get_config(controller = onos_ip)
+                    json_data = json.dumps(self.last_cfg, indent=4)
+                    with open(self.onos_cfg_save_loc, 'w') as f:
+                        f.write(json_data)
+                except:
+                    pass
+                #start the container back with the shared onos config volume
+                self.start()
 
     def cliEnter(self):
         retries = 0

@@ -623,7 +623,7 @@ def runTest(args):
         if not synchronizer:
             print('Specify synchronizer to use for the ONOS cord instance. Eg: vtn, fabric, cord')
             sys.exit(1)
-        onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer)
+        onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer, skip = test_manifest.skip_onos_restart)
 
     try:
         test_server = cord_test_server_start(daemonize = False, cord_test_host = test_host, cord_test_port = test_port,
@@ -914,7 +914,7 @@ def setupCordTester(args):
         if not synchronizer:
             print('Specify synchronizer to use for the ONOS cord instance. Eg: vtn, fabric, cord')
             sys.exit(1)
-        onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer)
+        onos_cord = OnosCord(onos_ip, onos_cord_loc, service_profile, synchronizer, skip = test_manifest.skip_onos_restart)
 
     Container.IMAGE_PREFIX = test_manifest.image_prefix
     #don't spawn onos if the user had started it externally
@@ -982,17 +982,18 @@ def setupCordTester(args):
 
     ctlr_addr = ','.join(onos_ips)
     print('Onos IP %s' %ctlr_addr)
-    if onos_ip is not None:
-        print('Installing ONOS cord apps')
-        try:
-            Onos.install_cord_apps(onos_ip = onos_ip)
-        except: pass
+    if not test_manifest.skip_onos_restart:
+        if onos_ip is not None:
+            print('Installing ONOS cord apps')
+            try:
+                Onos.install_cord_apps(onos_ip = onos_ip)
+            except: pass
 
-    print('Installing cord tester ONOS app %s' %args.app)
-    try:
-        for ip in onos_ips:
-            OnosCtrl.install_app(args.app, onos_ip = ip)
-    except: pass
+        print('Installing cord tester ONOS app %s' %args.app)
+        try:
+            for ip in onos_ips:
+                OnosCtrl.install_app(args.app, onos_ip = ip)
+        except: pass
 
     if voltha_loc:
         #start voltha
@@ -1137,7 +1138,7 @@ def cleanupTests(args):
     if args.onos_cord:
         #try restoring the onos cord instance
         try:
-            onos_cord = OnosCord(args.onos_ip, args.onos_cord, args.service_profile, args.synchronizer, start = False)
+            onos_cord = OnosCord(args.onos_ip, args.onos_cord, args.service_profile, args.synchronizer, start = False, skip = test_manifest.skip_onos_restart)
             onos_cord.restore(force = True)
         except Exception as e:
             print(e)
@@ -1368,6 +1369,8 @@ if __name__ == '__main__':
     parser_run.add_argument('-expose-port', '--expose-port', action='store_true',
                             help='Start ONOS by exposing the controller ports to the host.'
                             'Add +1 for every other onos/cluster instance when running more than 1 ONOS instances')
+    parser_run.add_argument('-skip-onos-restart', '--skip-onos-restart', action='store_true',
+                            help = 'Skips restarting/configuring of onoscord')
     parser_run.set_defaults(func=runTest)
 
     parser_setup = subparser.add_parser('setup', help='Setup cord tester environment')
@@ -1422,6 +1425,8 @@ if __name__ == '__main__':
     parser_setup.add_argument('-expose-port', '--expose-port', action='store_true',
                               help='Start ONOS by exposing the controller ports to the host.'
                               'Add +1 for every other onos/cluster instance when running more than 1 ONOS instances')
+    parser_setup.add_argument('-skip-onos-restart', '--skip-onos-restart', action='store_true',
+                            help = 'Skips restarting/configuring of onoscord')
     parser_setup.set_defaults(func=setupCordTester)
 
     parser_xos = subparser.add_parser('xos', help='Building xos into cord tester environment')
@@ -1475,6 +1480,8 @@ if __name__ == '__main__':
     parser_cleanup.add_argument('-m', '--manifest', default='', type=str, help='Provide test manifest')
     parser_cleanup.add_argument('-voltha-loc', '--voltha-loc', default='', type=str,
                                 help='Specify the voltha location')
+    parser_cleanup.add_argument('-skip-onos-restart', '--skip-onos-restart', action='store_true',
+                            help = 'Skips restarting/configuring of onoscord')
     parser_cleanup.set_defaults(func=cleanupTests)
 
     c = Client(**(kwargs_from_env()))
