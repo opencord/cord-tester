@@ -51,6 +51,9 @@ class utils(object):
             dataDict[fileName] = data
             if bool(single):
                 return data
+        if not dataDict:
+            print "Failed to find the file!"
+            return None
         return dataDict
 
     def readFiles(self, path):
