@@ -31,6 +31,12 @@ node ("${deployment_config.dev_node.name}") {
         sudo ./prerequisites.sh --cord
         """)
     }
+    stage('Bring up Cord-Test Container') {
+        runHeadNodeCmd("""
+        cd /opt/cord/test/cord-tester/src/test/setup
+        sudo ./cord-test.py setup -m manifest-onf-cord.json
+        """)
+    }
     stage('Configure Fabric for E2E testing') {
         //FIXME: this only works for PODs with 2 leaf switches
         fabricIpPrefix = pod_config.fabric_ip.split(/\.\d+\.\d+\/24/)[0]
@@ -130,6 +136,19 @@ node ("${deployment_config.dev_node.name}") {
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
     }
+    stage('Dataplane Test') {
+        timeout(10) {
+            try {
+                runHeadNodeCmd("""
+                cd /opt/cord/test/cord-tester/src/test/vsg/
+                rm -r Log/ || true
+                ssh-agent bash
+                ssh-add
+                pybot -L TRACE -d Log -T vsg_dataplane_test.robot
+                """)
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
     stage('Publish') {
         try {
             sh """
@@ -137,6 +156,7 @@ node ("${deployment_config.dev_node.name}") {
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/vsg/Log/* ./RobotLogs || true
             """
             step([$class: 'RobotPublisher',
                 disableArchiveOutput: false,
