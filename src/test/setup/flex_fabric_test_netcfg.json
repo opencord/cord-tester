@@ -1,0 +1,100 @@
+{
+    "devices": {
+        "of:0000cc37ab5b6da8": {
+            "segmentrouting": {
+                "name": "device-cc37ab5b6da8",
+                "ipv4NodeSid": 100,
+                "ipv4Loopback": "10.6.0.104",
+                "routerMac": "cc:37:ab:5b:6d:a8",
+                "isEdgeRouter": false,
+                "adjacencySids": []
+            }
+        },
+        "of:0000cc37abd93769": {
+            "segmentrouting": {
+                "name": "device-cc37abd93769",
+                "ipv4NodeSid": 101,
+                "ipv4Loopback": "10.6.0.103",
+                "routerMac": "cc:37:ab:d9:37:69",
+                "isEdgeRouter": true,
+                "adjacencySids": []
+            }
+        },
+        "of:0000cc37abb6b564": {
+            "segmentrouting": {
+                "name": "device-cc37abb6b564",
+                "ipv4NodeSid": 102,
+                "ipv4Loopback": "10.6.0.102",
+                "routerMac": "cc:37:ab:b6:b5:64",
+                "isEdgeRouter": true,
+                "adjacencySids": []
+            }
+        },
+        "of:0000cc37abd9386d": {
+            "segmentrouting": {
+                "name": "device-cc37abd9386d",
+                "ipv4NodeSid": 103,
+                "ipv4Loopback": "10.6.0.101",
+                "routerMac": "cc:37:ab:d9:38:6d",
+                "isEdgeRouter": false,
+                "adjacencySids": []
+            }
+        }
+    },
+    "ports": {
+        "of:0000cc37abb6b564/2": {
+            "interfaces": [
+                {
+                    "ips": [ "10.6.2.254/24" ],
+                    "vlan-untagged" : 2
+                }
+            ]
+        },
+        "of:0000cc37abd93769/2": {
+            "interfaces": [
+                {
+                    "ips": [ "10.6.1.254/24" ],
+                    "vlan-untagged" : 1
+                }
+            ]
+        },
+        "of:0000cc37abb6b564/1": {
+            "interfaces": [
+                {
+                    "ips": [ "10.6.2.254/24" ],
+                    "vlan-untagged" : 2
+                }
+            ]
+        },
+        "of:0000cc37abd93769/1": {
+            "interfaces": [
+                {
+                    "ips": [ "10.6.1.254/24" ],
+                    "vlan-untagged" : 1
+                }
+            ]
+        }
+    },
+    "apps" : {
+        "org.onosproject.segmentrouting" : {
+            "segmentrouting" : {
+                "vRouterMacs" : [ "a4:23:05:06:01:01" ]
+            },
+            "xconnect": {
+              "of:0000cc37abd93769": [{
+                "vlan": 333,
+                "ports": [1, 2],
+                "name": "vsg-1"
+                },
+                {
+                "vlan": 555,
+                "ports": [1, 2],
+                "name": "vsg-2"},
+                {
+                "vlan": 666,
+                "ports": [1, 2],
+                "name": "vsg-3"}]
+           }
+        }
+    }
+}
