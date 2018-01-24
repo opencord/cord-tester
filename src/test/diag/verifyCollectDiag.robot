@@ -54,7 +54,7 @@ Verify Docker Container
 
 Verify Synchronizer Log
     [Arguments]    ${name}    ${log}
-    ${config}    utils.readFile    /opt/cord/orchestration/xos_services/*/xos/synchronizer/@{name}[1]_config.yaml
+    ${config}    utils.readFile    /opt/cord/orchestration/*/*/xos/synchronizer/@{name}[1]_config.yaml
     ${match1}=    Get Lines Matching Regexp    ${config}    ^steps_dir: ".*"$
     ${match2}=    Get Lines Matching Regexp    ${config}    ^model_policies_dir: ".*"$
     Run Keyword If    '${match1}' != '${EMPTY}'    Should Contain    ${log}    Waiting for event or timeout    msg= "Waiting for event or timeout" not found in @{name}[1] synchronizer log
