@@ -1,0 +1,37 @@
+# Copyright 2017-present Radisys Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+*** Settings ***
+Documentation     Test suite for checking results collected by various commands on the soak server
+Library           OperatingSystem
+Library           ../cord-api/Framework/utils/onosUtils.py
+Library           ../cord-api/Framework/utils/utils.py
+
+*** Variables ***
+${FILE_PATH}       ${CURDIR}
+
+*** Test Cases ***
+Verify Docker Containers Restart Status
+    [Documentation]    Verify  that no containers have been restarted
+    ${command_output}=	Run	docker inspect --format "ID: {{.ID}} RESTARTS: {{.RestartCount}} NAME: {{.Name}}" $(docker ps -aq) | grep -v ": 0"
+    Log ${command_output}
+    Should Be Empty	${command_output}
+
+Verify Memory Utilization on the Containers
+    [Documentation]     Display the memory utilization for the containers
+    ${command_output}=  Run     docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(docker ps -a --format '{{.Names}}') > ${FILE_PATH}/file.txt
+    ${cat_output}=      Run     cat ${FILE_PATH}/file.txt
+    ${count}=   Run     cat ${FILE_PATH}/file.txt | wc -l
+    Should Not Be Empty ${count}
