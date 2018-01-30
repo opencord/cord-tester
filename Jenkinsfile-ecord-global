@@ -39,7 +39,10 @@ node ("${deployment_config.dev_node.name}") {
                 cd /opt/cord/build; make collect-diag
                 cd /opt/cord/test/cord-tester/src/test/diag/
                 rm -r Log/ || true
+                rm -r TestDoc/ || true
+                mkdir TestDoc || true
                 pybot -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T verifyCollectDiag.robot
+                python -m robot.testdoc verifyCollectDiag.robot TestDoc/verifyCollectDiag.html
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
@@ -63,11 +66,12 @@ node ("${deployment_config.dev_node.name}") {
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/TestDoc/* ./RobotLogs/TestDocs || true
             """
             step([$class: 'RobotPublisher',
                 disableArchiveOutput: false,
                 logFileName: 'RobotLogs/log*.html',
-                otherFiles: '',
+                otherFiles: 'RobotLogs/TestDocs/*.html',
                 outputFileName: 'RobotLogs/output*.xml',
                 outputPath: '.',
                 passThreshold: 100,

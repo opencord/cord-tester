@@ -80,7 +80,10 @@ node ("${deployment_config.dev_node.name}") {
                 cd /opt/cord/build; make collect-diag
                 cd /opt/cord/test/cord-tester/src/test/diag/
                 rm -r Log/ || true
+                rm -r TestDoc/ || true
+                mkdir TestDoc || true
                 pybot -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T verifyCollectDiag.robot
+                python -m robot.testdoc verifyCollectDiag.robot TestDoc/verifyCollectDiag.html
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
@@ -91,11 +94,14 @@ node ("${deployment_config.dev_node.name}") {
                 runHeadNodeCmd("""
                 cd /opt/cord/test/cord-tester/src/test/robot/
                 rm -r Log/ || true
+                rm -r TestDoc/ || true
+                mkdir TestDoc
                 """)
                 if (deployment_config.fabric_switches != null) {
                     runHeadNodeCmd("""
                     cd /opt/cord/test/cord-tester/src/test/robot/
                     pybot --exclude notready -v FABRIC:on -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
+                    python -m robot.testdoc SanityPhyPOD.robot TestDoc/SanityPhyPOD.html
                     """)
                 }
                 else {
@@ -103,6 +109,7 @@ node ("${deployment_config.dev_node.name}") {
                     runHeadNodeCmd("""
                     cd /opt/cord/test/cord-tester/src/test/robot/
                     pybot --exclude notready --exclude fabric -v FABRIC:off -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
+                    python -m robot.testdoc SanityPhyPOD.robot TestDoc/SanityPhyPOD.html
                     """)
                 }
             } catch(error) { currentBuild.result = 'FAILURE' }
@@ -119,6 +126,8 @@ node ("${deployment_config.dev_node.name}") {
                 all_passed=true
                 cd /opt/cord/test/cord-tester/src/test/cord-api/
                 rm -r Log/ || true
+                rm -r TestDoc/ || true
+                mkdir TestDoc || true
                 pybot -d Log -T Tests/Ch_defaultImagesCheck.txt || all_passed=false
                 pybot -d Log -T -v PROFILE:${pod_config.cord_profile} Tests/Ch_DefaultServiceCheck.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_SubscriberTest.txt || all_passed=false
@@ -131,6 +140,7 @@ node ("${deployment_config.dev_node.name}") {
                 pybot -d Log -T Tests/Ch_SanityInstance.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_SanityFlavors.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_SiteTest.txt || all_passed=false
+                python -m robot.testdoc Tests/Ch_*.txt TestDoc/XOSApiTests.html
                 if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
@@ -142,9 +152,12 @@ node ("${deployment_config.dev_node.name}") {
                 runHeadNodeCmd("""
                 cd /opt/cord/test/cord-tester/src/test/vsg/
                 rm -r Log/ || true
+                rm -r TestDoc/ || true
+                mkdir TestDoc || true
                 ssh-agent bash
                 ssh-add
                 pybot -L TRACE -d Log -T vsg_dataplane_test.robot
+                python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
@@ -157,11 +170,15 @@ node ("${deployment_config.dev_node.name}") {
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/vsg/Log/* ./RobotLogs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/TestDoc/* ./RobotLogs/TestDocs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/TestDoc/* ./RobotLogs/TestDocs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/TestDoc/* ./RobotLogs/TestDocs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/vsg/TestDoc/* ./RobotLogs/TestDocs || true
             """
             step([$class: 'RobotPublisher',
                 disableArchiveOutput: false,
                 logFileName: 'RobotLogs/log*.html',
-                otherFiles: '',
+                otherFiles: 'RobotLogs/TestDocs/*.html,
                 outputFileName: 'RobotLogs/output*.xml',
                 outputPath: '.',
                 passThreshold: 100,
