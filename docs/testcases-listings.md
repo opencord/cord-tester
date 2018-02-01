@@ -2,16 +2,17 @@
 
 Information of the all testcases listed here can be found at [CORD System Test wiki](https://wiki.opencord.org/display/CORD/Functional)
 
-##  XOS Based Tests
-1.  Ch_defaultImagesCheck.txt
-2.  Ch_DefaultServiceCheck.txt
-3.  Ch_DeploymentTest.txt
-4.  Ch_MultiInstanceTest.txt
-5.  Ch_NodeTest.txt
-6.  Ch_SanityFlavors.txt
-7.  Ch_SanityInstance.txt
-8.  Ch_ServiceTest.txt
-9.  Ch_SingleInstanceTest.txt
+## XOS Based Tests
+
+1. Ch_defaultImagesCheck.txt
+2. Ch_DefaultServiceCheck.txt
+3. Ch_DeploymentTest.txt
+4. Ch_MultiInstanceTest.txt
+5. Ch_NodeTest.txt
+6. Ch_SanityFlavors.txt
+7. Ch_SanityInstance.txt
+8. Ch_ServiceTest.txt
+9. Ch_SingleInstanceTest.txt
 10. Ch_SiteTest.txt
 11. Ch_SliceTest.txt
 12. Ch_SubscriberTest.txt
@@ -22,7 +23,7 @@ Information of the all testcases listed here can be found at [CORD System Test w
 
 ## MODULE BASED TESTS
 
-##  IPERF
+### IPERF
 
 1. test_tcp_using_iperf
 2. test_udp_using_iperf
@@ -35,7 +36,7 @@ Information of the all testcases listed here can be found at [CORD System Test w
 9. test_tcp_mss_with_1490Bytes_using_iperf
 10. test_tcp_mss_with_9000Bytes_for_max_throughput_using_iperf
 
-## DHCP
+### DHCP
 
 11. test_dhcp_1request
 12. test_dhcp_1request_with_invalid_source_mac_broadcast
@@ -71,11 +72,11 @@ Information of the all testcases listed here can be found at [CORD System Test w
 42. test_dhcp_server_client_transactions_per_second
 43. test_dhcp_server_consecutive_successful_clients_per_second
 
-## FABRIC
+### FABRIC
 
 44. test_fabric
 
-## XOS-CONTAINERS-APIS
+### XOS-CONTAINERS-APIS
 
 45. test_xos_base_container_status
 46. test_xos_base_container_ping
