@@ -1,6 +1,7 @@
 # CORD Test Environment
 
-Several jenkins based jobs are created to run tests on the following platforms
+Several jenkins based jobs are created to run tests on the following platforms:
+
 * Cord-in-a-Box
 * Physical POD
 * VMs
@@ -16,3 +17,4 @@ The following diagram shows how the test servers are interconnected
 The following diagram shows how Jenkins interconnects with a Physical POD.
 
 ![QA Physical POD setup](images/qa-pod-setup.png)
+
