@@ -178,7 +178,7 @@ node ("${deployment_config.dev_node.name}") {
             step([$class: 'RobotPublisher',
                 disableArchiveOutput: false,
                 logFileName: 'RobotLogs/log*.html',
-                otherFiles: 'RobotLogs/TestDocs/*.html,
+                otherFiles: 'RobotLogs/TestDocs/*.html',
                 outputFileName: 'RobotLogs/output*.xml',
                 outputPath: '.',
                 passThreshold: 100,
