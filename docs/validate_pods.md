@@ -1,8 +1,8 @@
 # Validating PODs
 
-PODs are deployed everynight using Jenkins Build System.
-After a successful installation of the POD, test jobs are triggered which validate the
-following categories of tests
+PODs are deployed everynight using Jenkins Build System.  After a successful
+installation of the POD, test jobs are triggered which validate the following
+categories of tests
 
 * Post Installation Verification
 
@@ -52,6 +52,7 @@ To execute the test, perform the following on the headnode
 cd /opt/cord/test/cord-tester/src/test/robot
 pybot SanityPhyPOD.robot
 ```
+
 ## Functional Tests
 
 Control and Data plane tests can be executed on the POD once the
@@ -74,6 +75,7 @@ SERVER_PORT = '9101'
 USER = 'xosadmin@opencord.org'
 PASSWD = ''
 ```
+
 * To run the test
 
 ```bash
@@ -97,7 +99,7 @@ Following steps are performed when the data plane test is executed.
 * Configures a dhclient on the Cord-Tester containers interface that is being
   used as the vSG Subscriber
 * Validates a DHCP IP address is received from the vCPE Container and external
-connectivity is reachable through the vCPE
+  connectivity is reachable through the vCPE
 
 To run a data plane test, perform the following steps
 
@@ -141,10 +143,12 @@ cd /opt/cord/test/cord-tester/src/test/vsg
 pybot vsg_dataplane_test.robot
 ```
 
->NOTE: All the control and data plane tests can also be executed on a `Virtual POD(Cord-in-a-Box)`
->using the above procedure. Except for the data plane tests, where it needs to be run
->using a different option as there are no crossconnects required to be provisioned on CiaB.
+> NOTE: All the control and data plane tests can also be executed on a `Virtual
+> POD(Cord-in-a-Box)` using the above procedure. Except for the data plane
+> tests, where it needs to be run using a different option as there are no
+> crossconnects required to be provisioned on CiaB.
 
 ```bash
 pybot -e xconnect vsg_dataplane_test.robot
 ```
+

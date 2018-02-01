@@ -7,7 +7,7 @@ test suite targeting CORD PODs.  Prerequisites include:
 * Docker
 * vagrant(Optional)
 
-##  How to Install cord-tester
+## How to Install cord-tester
 
 To install `cord-tester`, execute the following:
 
@@ -20,6 +20,7 @@ $ cd /cord-tester/src/test/setup/
 $ Run prerequisites.sh which would setup the runtime for cord-tester
 $ sudo ./prerequisites.sh
 $ sudo ./cord-test.py -h
+
 usage: cord-test.py [-h] {run,setup,xos,list,build,metrics,start,cleanup} ...
 
 Cord Tester
@@ -91,13 +92,13 @@ optional arguments:
                         test cases.
 ```
 
-If you want to run `cord-tester` without Vagrant and already have an
-ubuntu 14.04 or 16.04 server installed, do the following:
+If you want to run `cord-tester` without Vagrant and already have an ubuntu
+14.04 or 16.04 server installed, do the following:
 
-```
-$ git clone https://github.com/opencord/cord-tester.git
-$ cd cord-tester/src/test/setup/
-$ sudo ./prerequisites.sh
+```shell
+git clone https://github.com/opencord/cord-tester.git
+cd cord-tester/src/test/setup/
+sudo ./prerequisites.sh
 ```
 
 Then follow the same instructions as described above.
@@ -106,47 +107,47 @@ Then follow the same instructions as described above.
 
 `eval.sh` runs all the test cases for you.
 
-```
-$ sudo ./eval.sh
+```shell
+sudo ./eval.sh
 ```
 
 To run all test cases in a module (e.g., for DHCP):
 
-```
-$ sudo ./cord-test.py run -t dhcp
+```shell
+sudo ./cord-test.py run -t dhcp
 ```
 
 To run a single test case in a module:
 
-```
-$ sudo ./cord-test.py  run -t dhcp:dhcp_exchange.test_dhcp_1request
+```shell
+sudo ./cord-test.py  run -t dhcp:dhcp_exchange.test_dhcp_1request
 ```
 
 To run all test cases:
 
-```
-$ sudo ./cord-test.py  run -t all
+```shell
+sudo ./cord-test.py  run -t all
 ```
 
 To check the list of test cases:
 
-```
-$ sudo ./cord-test.py list -t all/<Module name>
+```shell
+sudo ./cord-test.py list -t all/<Module name>
 ```
 
 To check the list of a specific module:
 
-```
-$ sudo ./cord-test.py list -t dhcp
+```shell
+sudo ./cord-test.py list -t dhcp
 ```
 
 To cleanup all test containers:
 
-```
-$ sudo ./cord-test.py cleanup
+```shell
+sudo ./cord-test.py cleanup
 ```
 
-For other options, run with -h option.
+For other options, run with `-h` option.
 
 ## CORD API Tests
 
@@ -159,16 +160,16 @@ automated python library framework.
 To install `robotframework` do the following:
 
 ```bash
-     $ sudo pip install robotframework
-     $ sudo pip install pygments
-     $ sudo apt-get install python-wxgtk2.8
-     $ sudo pip install robotframework-ride
+sudo pip install robotframework
+sudo pip install pygments
+sudo apt-get install python-wxgtk2.8
+sudo pip install robotframework-ride
 ```
 
 To bring up IDE for the robot framework, do the following:
 
 ```bash
-   $ ride.py
+ride.py
 ```
 
 ### Execute testcases
@@ -177,11 +178,12 @@ Testcases can be run using the `ride.py` IDE, or from the command
 line:
 
 ```bash
-     $ cd cord-tester/src/test/cord-api/Tests
-     $ pybot <testcase.txt>
+cd cord-tester/src/test/cord-api/Tests
+pybot <testcase.txt>
 ```
 
 ### Input Files for testcases
 
 Input files for the testcases are present in the `tests/data`
 directory.
+
