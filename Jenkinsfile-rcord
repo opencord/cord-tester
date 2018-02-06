@@ -146,7 +146,7 @@ node ("${deployment_config.dev_node.name}") {
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
     }
-    stage('Dataplane Test') {
+    /*stage('Dataplane Test') {
         timeout(10) {
             try {
                 runHeadNodeCmd("""
@@ -161,7 +161,7 @@ node ("${deployment_config.dev_node.name}") {
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
-    }
+    }*/
     stage('Publish') {
         try {
             sh """
