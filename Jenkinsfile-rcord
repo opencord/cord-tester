@@ -62,6 +62,8 @@ node ("${deployment_config.dev_node.name}") {
                        cp fabric-network-cfg.json fabric-network-cfg.json.\$(date +%Y%m%d-%H%M%S)
                        cord generate > fabric-network-cfg.json
                        """)
+        // Install httpie on the head-node
+        runHeadNodeCmd("sudo pip install httpie")
         // Delete old ONOS netcfg
         runHeadNodeCmd("http -a onos:rocks DELETE http://onos-fabric:8181/onos/v1/network/configuration/")
         // Load new configuration
