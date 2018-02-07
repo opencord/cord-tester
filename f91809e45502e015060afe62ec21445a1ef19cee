@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "00eb4e09_578c2756",
+        "filename": "docs/running.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-07T22:27:35Z",
+      "side": 1,
+      "message": "shell was used else where, should shell be used always instead of bash?",
+      "revId": "f91809e45502e015060afe62ec21445a1ef19cee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f63c10ee_0e08ce05",
+        "filename": "docs/running.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1000003
+      },
+      "writtenOn": "2018-02-07T22:27:35Z",
+      "side": 1,
+      "message": "guess this is several places.",
+      "range": {
+        "startLine": 171,
+        "startChar": 3,
+        "endLine": 171,
+        "endChar": 7
+      },
+      "revId": "f91809e45502e015060afe62ec21445a1ef19cee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
