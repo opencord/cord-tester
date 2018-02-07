@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "dc59c295_1ed11803",
+        "filename": "docs/running.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-07T22:35:13Z",
+      "side": 1,
+      "message": "It doesn\u0027t really matter.  In this case, `bash` was specified earlier, so I left it as is. \n\nThis is primarily is for code highlighting, and the highlight.js includes all the `bash` rules when you specify `shell`: https://github.com/isagalaev/highlight.js/blob/master/src/languages/shell.js#L16\n\nThe removal of the $\u0027s is to pass this rule (which basically says not to use a $ the output isn\u0027t printed): https://github.com/markdownlint/markdownlint/blob/master/docs/RULES.md#md014---dollar-signs-used-before-commands-without-showing-output",
+      "parentUuid": "00eb4e09_578c2756",
+      "revId": "f91809e45502e015060afe62ec21445a1ef19cee",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f63c10ee_0e08ce05",
         "filename": "docs/running.md",
         "patchSetId": 1
