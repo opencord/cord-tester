@@ -90,6 +90,7 @@ node ("${deployment_config.dev_node.name}") {
         try {
             sh """
             if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs
+            mkdir RobotLogs/TestDocs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
