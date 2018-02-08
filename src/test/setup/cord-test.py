@@ -1397,7 +1397,7 @@ def cleanupTests(args):
     if args.onos_cord:
         #try restoring the onos cord instance
         try:
-            onos_cord = OnosCord(args.onos_ip, args.onos_cord, args.service_profile, args.synchronizer, start = False, skip = test_manifest.skip_onos_restart)
+            onos_cord = OnosCord(args.onos_ip, args.onos_cord, args.service_profile, args.synchronizer, start = False, skip = manifest.skip_onos_restart)
             onos_cord.restore(force = True)
         except Exception as e:
             print(e)

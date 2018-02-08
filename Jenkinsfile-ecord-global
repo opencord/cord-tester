@@ -63,15 +63,16 @@ node ("${deployment_config.dev_node.name}") {
         try {
             sh """
             if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs
+            mkdir RobotLogs/TestDoc || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
-            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/TestDoc/* ./RobotLogs/TestDocs || true
+            scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/TestDoc/* ./RobotLogs/TestDoc || true
             """
             step([$class: 'RobotPublisher',
                 disableArchiveOutput: false,
                 logFileName: 'RobotLogs/log*.html',
-                otherFiles: 'RobotLogs/TestDocs/*.html',
+                otherFiles: 'RobotLogs/TestDoc/*.html',
                 outputFileName: 'RobotLogs/output*.xml',
                 outputPath: '.',
                 passThreshold: 100,
