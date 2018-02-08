@@ -158,7 +158,7 @@ node ("${deployment_config.dev_node.name}") {
                 mkdir TestDoc || true
                 ssh-agent bash
                 ssh-add
-                pybot -L TRACE -d Log -T vsg_dataplane_test.robot
+                pybot -L TRACE -v pod:${deployment_config.pod_config.file_name} -d Log -T vsg_dataplane_test.robot
                 python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
@@ -167,7 +167,8 @@ node ("${deployment_config.dev_node.name}") {
     stage('Publish') {
         try {
             sh """
-            if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs
+            if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
+            mkdir RobotLogs/TestDocs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/cord-api/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/robot/Log/* ./RobotLogs || true
             scp -r ${deployment_config.head.user}@${deployment_config.head.ip}:/opt/cord/test/cord-tester/src/test/diag/Log/* ./RobotLogs || true
