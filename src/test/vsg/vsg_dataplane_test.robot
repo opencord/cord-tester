@@ -51,7 +51,7 @@ Validate VSG External Connectivity
 
 Configure X-Connects for 3 Subscribers
     [Documentation]    Configures the cross connect on the fabric switch with s-tags for the subscribers created via control-plane tests on the correct ports
-    [Tags]    xconnect
+    [Tags]    xconnect    dataplane
     ${netcfg_init}=    onosUtils.onos_command_execute    onos-fabric    8101    netcfg
     Log    ${netcfg_init}
     Run    http -a onos:rocks DELETE http://onos-fabric:8181/onos/v1/network/configuration/
@@ -87,6 +87,7 @@ Validate VCPE Containers
 
 Get VSG Subscriber and Tags
     [Documentation]    Retrieves compute node connected on leaf-1 and s/c tags for that particular subscriber
+    [Tags]    dataplane
     ${cmd}=    Set Variable    cordvtn-nodes | grep 10.6.1
     ${cnode}=    onosUtils.onos_command_execute    onos-cord    8102    ${cmd}
     @{cnode_on_leaf_1}=    Split String    ${cnode}
