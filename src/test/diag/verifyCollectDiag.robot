@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# NOTE: `make collect-diag` command needs to be executed on the head-node
+#        before running this test
 
 *** Settings ***
 Documentation     Test suite for checking results collected by `make collect-diag` command
