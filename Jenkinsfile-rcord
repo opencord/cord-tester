@@ -148,20 +148,32 @@ node ("${deployment_config.dev_node.name}") {
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
     }
-    /*stage('Dataplane Test') {
+    stage('Dataplane Test') {
         timeout(10) {
             try {
                 runHeadNodeCmd("""
                 cd /opt/cord/test/cord-tester/src/test/vsg/
                 rm -r Log/ || true
                 rm -r TestDoc/ || true
-                mkdir TestDoc || true
-                pybot -L TRACE -v pod:${deployment_config.pod_config.file_name} -d Log -T vsg_dataplane_test.robot
-                python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html
+                mkdir TestDoc
                 """)
+                if (deployment_config.pod_config.file_name != 'calix-pod1.yml') {
+                    runHeadNodeCmd("""
+                    cd /opt/cord/test/cord-tester/src/test/vsg/
+                    pybot -L TRACE -v pod:${deployment_config.pod_config.file_name} -d Log -T vsg_dataplane_test.robot
+                    python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html
+                    """)
+                }
+                else {
+                    runHeadNodeCmd("""
+                    cd /opt/cord/test/cord-tester/src/test/vsg/
+                    pybot -L TRACE -v pod:${deployment_config.pod_config.file_name} -e dataplane -d Log -T vsg_dataplane_test.robot
+                    python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html
+                    """)
+                }
             } catch(error) { currentBuild.result = 'FAILURE' }
-        }
-    }*/
+         }
+    }
     stage('Publish') {
         try {
             sh """
