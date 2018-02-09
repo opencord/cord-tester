@@ -14,6 +14,7 @@
 
 *** Settings ***
 Suite Setup       Setup
+Suite Teardown    Teardown
 Test Timeout      10 minutes
 Documentation     Validates external connectivity from Cord-Tester Container through VSG Subscriber
 Library           OperatingSystem
@@ -51,17 +52,17 @@ Validate VSG External Connectivity
 
 Configure X-Connects for 3 Subscribers
     [Documentation]    Configures the cross connect on the fabric switch with s-tags for the subscribers created via control-plane tests on the correct ports
-    [Tags]    xconnect
+    [Tags]    xconnect    dataplane
     ${netcfg_init}=    onosUtils.onos_command_execute    onos-fabric    8101    netcfg
     Log    ${netcfg_init}
     Run    http -a onos:rocks DELETE http://onos-fabric:8181/onos/v1/network/configuration/
-    Sleep    5
+    Sleep    15
     Run    http -a onos:rocks POST http://onos-fabric:8181/onos/v1/network/configuration/ < /opt/cord/test/cord-tester/src/test/setup/${netcfg_file}
-    Sleep    5
+    Sleep    15
     Run    http -a onos:rocks DELETE http://onos-fabric:8181/onos/v1/applications/org.onosproject.segmentrouting/active
-    Sleep    5
+    Sleep    15
     Run    http -a onos:rocks POST http://onos-fabric:8181/onos/v1/applications/org.onosproject.segmentrouting/active
-    Sleep    5
+    Sleep    15
     ${netcfg}=    onosUtils.onos_command_execute    onos-fabric    8101    netcfg
     Log    ${netcfg}
     Should Contain    ${netcfg}    vsg-1
@@ -87,6 +88,7 @@ Validate VCPE Containers
 
 Get VSG Subscriber and Tags
     [Documentation]    Retrieves compute node connected on leaf-1 and s/c tags for that particular subscriber
+    [Tags]    dataplane
     ${cmd}=    Set Variable    cordvtn-nodes | grep 10.6.1
     ${cnode}=    onosUtils.onos_command_execute    onos-cord    8102    ${cmd}
     @{cnode_on_leaf_1}=    Split String    ${cnode}
@@ -147,6 +149,11 @@ Setup
     Set Suite Variable    @{nova_ids}
     Set Suite Variable    ${s_tags}
     Set Suite Variable    ${c_tags}
+
+Teardown
+    ${cmd}=    Set Variable    log:display
+    ${onos_logs}=    onosUtils.onos_command_execute    onos-fabric    8101    ${cmd}
+    Log    ${onos_logs}
 
 Validate Number of VSGs
     [Arguments]    ${count}
