@@ -149,7 +149,7 @@ node ("${deployment_config.dev_node.name}") {
         }
     }
     stage('Dataplane Test') {
-        timeout(10) {
+        timeout(30) {
             try {
                 runHeadNodeCmd("""
                 cd /opt/cord/test/cord-tester/src/test/vsg/
