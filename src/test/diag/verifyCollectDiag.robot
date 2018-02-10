@@ -37,7 +37,8 @@ Verify Docker Containers
 
 Verify Synchronizer Logs
     [Documentation]    Verify synchronizer logs are correct
-    ${synchronizerLogs}    utils.readFiles    /home/cord/diag-*/docker/*synchronizer*.logs
+    ${latestDiag}=    Run    ls -1t /home/cord | head -1
+    ${synchronizerLogs}    utils.readFiles    /home/cord/${latestDiag}/docker/*synchronizer*.logs
     : FOR    ${key}    IN    @{synchronizerLogs.keys()}
     \    @{name}=    Split String    ${key}    -synchronizer
     \    @{name}=    Split String From Right   @{name}[0]    _    1
