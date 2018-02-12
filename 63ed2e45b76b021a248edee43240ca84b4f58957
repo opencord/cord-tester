@@ -1,0 +1,188 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4c68dc9c_b24a4290",
+        "filename": "docs/qa_testenv.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "Remove EOL whitespace.  It\u0027s in a few other places as well.",
+      "range": {
+        "startLine": 16,
+        "startChar": 0,
+        "endLine": 16,
+        "endChar": 1
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "7a6e0347_556bd7db",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "Blank line before/after all code blocks",
+      "range": {
+        "startLine": 25,
+        "startChar": 0,
+        "endLine": 25,
+        "endChar": 7
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "4c3d4faa_71f05c49",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "Avoid prefixing commands with $ unless there\u0027s output included in the code block.",
+      "range": {
+        "startLine": 50,
+        "startChar": 0,
+        "endLine": 50,
+        "endChar": 1
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0e689b54_deebbed0",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 68,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "cat instead of vi?",
+      "range": {
+        "startLine": 68,
+        "startChar": 2,
+        "endLine": 68,
+        "endChar": 4
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "5107e93d_324fd371",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "Having $\u0027s here is fine as you\u0027re showing output.",
+      "range": {
+        "startLine": 67,
+        "startChar": 0,
+        "endLine": 73,
+        "endChar": 11
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "854a5d42_a6255014",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "Put a blank line before the start of and after end of a list.\n\nAlso, use a consistent list style (either all *\u0027s or all -\u0027s) in the document",
+      "range": {
+        "startLine": 90,
+        "startChar": 0,
+        "endLine": 90,
+        "endChar": 2
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "0195fd72_b8c46823",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "Indent NOTE and WARNING with `\u003e `",
+      "range": {
+        "startLine": 138,
+        "startChar": 0,
+        "endLine": 138,
+        "endChar": 5
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "986f49b6_cb944542",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 138,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-02-12T05:49:01Z",
+      "side": 1,
+      "message": "This is first called a \"Virtual Pod\" or \"Virtual Install\" in the rest of the docs - it\u0027s more readily recognizable to a new/unfamiliar user, whereas CiaB is more colloquial.  You might link to `/install_virtual.md` here.",
+      "range": {
+        "startLine": 138,
+        "startChar": 71,
+        "endLine": 138,
+        "endChar": 86
+      },
+      "revId": "63ed2e45b76b021a248edee43240ca84b4f58957",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
