@@ -26,9 +26,13 @@ ${FILE_PATH}       /home/cord/SoakTest_Logs
 Verify Docker Containers Restart Status
     [Documentation]    Verify  that no containers have been restarted
     [Tags]      Restart_Status
-    ${command_output}=  Run     docker inspect --format "ID: {{.ID}} RESTARTS: {{.RestartCount}} NAME: {{.Name}}" $(docker ps -aq) | grep -v ": 0" > ${FILE_PATH}/container_restart_counts_$(date "+%Y.%m.%d-%H.%M.%S")
-    Log ${command_output}
-    Should Be Empty     ${command_output}
+    ${command_output}=  Run     docker inspect --format "ID: {{.ID}} RESTARTS: {{.RestartCount}} NAME: {{.Name}}" $(docker ps -aq) | grep -v ": 0" > /tmp/count_log
+    Log To Console      ${command_output}
+    ${file_output}=     Run     cat /tmp/count_log
+    ${count}=   Run     cat /tmp/count_log | wc -l
+    Log ${file_output}
+    ${command_output1}= Run     sudo mv /tmp/count_log ${FILE_PATH}/container_restarts$(date "+%Y.%m.%d-%H.%M.%S")
+    Should Be Empty     ${count}
 
 Verify Memory Utilization on the Containers
     [Documentation]     Display the memory utilization for the containers
@@ -36,5 +40,5 @@ Verify Memory Utilization on the Containers
     ${command_output}=  Run     docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" $(docker ps -a --format '{{.Names}}') > /tmp/mem_log
     ${cat_output}=      Run     cat /tmp/mem_log
     ${count}=   Run     cat /tmp/mem_log | wc -l
-    ${command_output1}= Run     mv /tmp/mem_log ${FILE_PATH}/container_mem_usage_$(date "+%Y.%m.%d-%H.%M.%S")
+    ${command_output1}= Run     sudo mv /tmp/mem_log ${FILE_PATH}/container_mem_usage_$(date "+%Y.%m.%d-%H.%M.%S")
     Should Not Be Empty ${count}
