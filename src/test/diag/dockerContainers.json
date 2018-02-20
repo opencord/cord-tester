@@ -13,13 +13,11 @@
         "mavenrepo",
         "onosfabric_xos-onos_1",
         "onoscord_xos-onos_1",
-        "rcord_consul_1",
         "rcord_onos-synchronizer_1",
         "rcord_xos_chameleon_1",
         "rcord_xos_redis_1",
         "rcord_xos_core_1",
         "rcord_xos_tosca_1",
-        "rcord_registrator_1",
         "rcord_xos_db_1",
         "rcord_xos_gui_1",
         "rcord_xos_ws_1",
@@ -33,7 +31,6 @@
     ],
     "docker-containers-ecord-global":
     [
-        "ecordglobal_consul_1",
         "ecordglobal_onos-synchronizer_1",
         "ecordglobal_xos_chameleon_1",
         "ecordglobal_xos_redis_1",
@@ -41,7 +38,6 @@
         "ecordglobal_xos_core_1",
         "ecordglobal_xos_tosca_1",
         "onoscord_xos-onos_1",
-        "ecordglobal_registrator_1",
         "ecordglobal_xos_db_1",
         "ecordglobal_vnaas-synchronizer_1",
         "ecordglobal_xos_gui_1",
@@ -61,7 +57,6 @@
         "ecord_onos-synchronizer_1",
         "ecord_vrouter-synchronizer_1",
         "ecord_addressmanager-synchronizer_1",
-        "ecord_consul_1",
         "ecord_fabric-synchronizer_1",
         "ecord_openstack-synchronizer_1",
         "ecord_registrator_1",
@@ -106,8 +101,6 @@
 	"mcordng40_vspgwu-synchronizer_1",
 	"mcordng40_xos_redis_1",
 	"mcordng40_xos_db_1",
-	"mcordng40_registrator_1",
-	"mcordng40_consul_1",
 	"onosfabric_xos-onos_1",
 	"onoscord_xos-onos_1"
     ]

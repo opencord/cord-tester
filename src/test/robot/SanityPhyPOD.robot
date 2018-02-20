@@ -116,7 +116,7 @@ Verify MAAS Service State
 Verify Docker Containers State
     ${dockerContainers}    utils.jsonToList    ${DOCKER_CONTAINERS_FILE}    docker-containers-${CORD_PROFILE}
     : FOR    ${container}    IN    @{dockerContainers}
-    \    Verify Containers    ${container}
+    \    Run Keyword And Continue On Failure    Verify Containers    ${container}
 
 Verify Juju Services State
     [Template]    Verify JUJU Service
