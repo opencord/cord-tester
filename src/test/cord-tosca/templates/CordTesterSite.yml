@@ -1,0 +1,15 @@
+
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+description: Creates a CORD test site, used by cord-tester
+
+imports:
+  - custom_types/site.yaml
+
+topology_template:
+  node_templates:
+
+    mysitecordtester:
+      type: tosca.nodes.Site
+      properties:
+        name: mysitecordtester
