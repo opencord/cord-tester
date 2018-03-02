@@ -1,7 +1,7 @@
 *** Settings ***
-Documentation     Test suite for Instance creation for multiple subscribers with same "s_tag" - Chameleon APIs
+Documentation     Test suite for Instance creation for multiple subscribers with multiple "s_tag" - Chameleon APIs
 Suite Setup       Read InputFile
-Test Template     Verify Single Instance Functionality
+Test Template     Verify Multiple Instance Creation Functionality
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -13,8 +13,7 @@ Library           ../Framework/restApi.py
 *** Variables ***
 ${USER}           admin
 ${PASSWORD}       admin
-${PATHFILE}       ${CURDIR}/data/Ch_Subscriber.json
-${PATHFILE2}      ${CURDIR}/data/Ch_MultiInstance_VoltTenant.json
+${PATHFILE}       ${CURDIR}/data/Ch_Subscriber_MultiInstance.json
 
 *** Test Cases ***    TYPE                 LISTINDEX
 Test Create Subscriber-1
@@ -26,15 +25,6 @@ Test Create Subscriber-2
 Test Create Subscriber-3
                       SUBSCRIBER_CREATE    2
 
-Test Create Tenant-1
-                      TENANT_CREATE        0
-
-Test Create Tenant-2
-                      TENANT_CREATE        1
-
-Test Create Tenant-3
-                      TENANT_CREATE        2
-
 Test Instance creation validation
                       INSTANCE_VALIDATE    0
 
@@ -42,75 +32,49 @@ Test Instance creation validation
 Read InputFile
     ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
     Set Suite Variable    ${slist}    ${subscriberList}
-    ${voltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
-    Set Suite Variable    ${vlist}    ${voltList}
     @{instanceList}=    Create List
     ${Subscriber_Id}=    Set Variable
     Set Suite Variable    @{instanceList}
     Set Suite Variable    ${Subscriber_Id}
 
-Verify Single Instance functionality
+Verify Multiple Instance Creation Functionality
     [Arguments]    ${type}    ${listIndex}
     Run Keyword If    "${type}" == "SUBSCRIBER_CREATE"    Test Post Subscriber Create    ${listIndex}
-    Run Keyword If    "${type}" == "TENANT_CREATE"    Test Post volt Tenant Create    ${listIndex}
     Run Keyword If    "${type}" == "INSTANCE_VALIDATE"    Test Instance Validation    ${listIndex}
 
 Test Post Subscriber Create
     [Arguments]    ${listIndex}
+    [Documentation]    Test posts subscribers and validates the end-end functionality until instance creations
+    # Read input from data files and post subscriber
     ${subscriberList} =    Get Variable Value    ${slist}
     ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
     ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    Sleep    30
     ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
     ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
     Log    ${json_result}
+    # Verifying GET operation after POST and validating the contents posted match the input data
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
     ${result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
     Should Be True    ${result}
-    #${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
-    #Log    ${Subscriber_Id}
-    ${instanceList}    Create List
-
-Test Post volt Tenant Create
-    [Arguments]    ${listIndex}
-    ${subscriberList} =    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
-    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
-    Log    ${json_result}
-    ${json_result_list}=    Get From Dictionary    ${json_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
     ${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
     Log    ${Subscriber_Id}
-    ${voltTenantList} =    Get Variable Value    ${vlist}
-    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
-    ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
-    ${c_tag}=    Get From Dictionary    ${voltDict}    c_tag
-    ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
-    Sleep    30
-    # Verifying GET operation after POST
-    ${get_result}=    restApi.ApiGet    VOLT_TENANT
-    ${get_result_list}=    Get From Dictionary    ${get_result}    items
-    ${getJsonDict}=    utils.getDictFromListofDict    ${get_result_list}    c_tag    ${c_tag}
-    Log    ${getJsonDict}
-    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
-    Should Be True    ${test_result}
-    ${Volt_Id}=    Get From Dictionary    ${getJsonDict}    id
-    ${provided_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    provided_links_ids
-    Log    ${provided_links_ids_list}
-    ${provided_links_ids}=    Get From List    ${provided_links_ids_list}    0
-    Log    ${provided_links_ids}
-    # Get subscribed_links_ids from volttenant
+    # Retrieve subscribed_links_id from GET result of the posted Subscriber
     ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
+    Log    ${subscribed_links_ids_list}
     ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
-    # Retrieve service links using provided links ID
-    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${provided_links_ids}
+    Log    ${subscribed_links_ids}
+    # Retrieve provided_links_ids from core/serviceinstancelink
+    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
     ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
-    # Update the subscriber_service_instance_id to the required subscriber_id to establish desired link
-    ${serviceDict}=    Create Dictionary    subscriber_service_instance_id=${Subscriber_Id}
-    ${result}=    restApi.ApiChameleonPut    CH_CORE_SERVICELINK    ${serviceDict}    ${provided_links_ids}
-    Sleep    30
-    Should Be True    ${result}
+    # Verify created volt using the above provider_service_instance_id
+    # Verifying GET operation for the Autocreated Volt
+    ${get_result}=    restApi.ApiChameleonGet    VOLT_TENANT    ${provider_service_instance_id}
+    Should Be True    ${get_result}
+    # Get "subscriber_links_ids" from the GET result of /volt/volttenants
+    ${subscribed_links_ids_list}=    Get From Dictionary    ${get_result}    subscribed_links_ids
+    ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
     # Validation of Instances
     Log    ${instanceList}
     ${serviceLinkDict}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
