@@ -133,7 +133,6 @@ node ("${deployment_config.dev_node.name}") {
                 pybot -d Log -T Tests/Ch_defaultImagesCheck.txt || all_passed=false
                 pybot -d Log -T -v PROFILE:${pod_config.cord_profile} Tests/Ch_DefaultServiceCheck.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_SubscriberTest.txt || all_passed=false
-                pybot -d Log -T Tests/Ch_VoltTenant.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_ServiceTest.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_UsersTest.txt || all_passed=false
                 pybot -d Log -T Tests/Ch_DeploymentTest.txt || all_passed=false

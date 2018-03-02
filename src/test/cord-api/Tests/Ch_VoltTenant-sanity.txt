@@ -39,40 +39,11 @@ Test Post volt Tenant API
     ${voltTenantList} =    Get Variable Value    ${vlist}
     ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
-    ${c_tag}=    Get From Dictionary    ${voltDict}    c_tag
+    ${name}=    Get From Dictionary    ${voltDict}   name 
     ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
     # Verifying Get Operation after POST
     ${getVolt_result}=    restApi.ApiGet    VOLT_TENANT
     ${getVolt_result_list}=    Get From Dictionary    ${getVolt_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result_list}    c_tag    ${c_tag}
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result_list}    name    ${name}
     ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
     Should Be True    ${test_result}
-    # Retrieve provided_link_ids from tenantobject and associate with serviceinstancelinks to the core
-    #${service_specific_id}=    Get From Dictionary    ${voltTenantDict}    service_specific_id
-    #${get_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
-    #${get_result_list}=    Get From Dictionary    ${get_result}    items
-    #${subscriberDict}=    utils.getDictFromListofDict    ${get_result_list}    service_specific_id    ${service_specific_id}
-    #${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
-    #Log    ${subscriberID}
-    #${updatedVoltDict}=    utils.setFieldValueInDict    ${voltDict}    subscriber_root_id    ${subscriberID}
-    #${api_result}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
-    #Should Be True    ${api_result}
-    # Verifying Get operation after POST
-    #${getVolt_result}=    restApi.ApiGet    VOLT_TENANT
-    #${getVolt_result_list}=    Get From Dictionary    ${getVolt_result}    items
-    #${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result_list}    subscriber_root_id    ${subscriberID}
-    #${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
-    #Should Be True    ${test_result}
-    #    # Verifying PUT operation
-    #    ${putvoltList}=    Get Variable Value    ${putList}
-    #    ${putVoltDict}=    utils.listToDict    ${putvoltList}    ${listIndex}
-    #    ${putvoltTenantDict}=    Get From Dictionary    ${putVoltDict}    voltTenant
-    #    ${voltID}=    utils.getFieldValueFromDict    ${getJsonDict}    id
-    #    ${put_result}=    restApi.ApiChameleonPut    VOLT_TENANT    ${putvoltTenantDict}    ${voltID}
-    #    Should Be True    ${put_result}
-    #    # Verifying Get after PUT operation
-    #    #${getVolt_afterPut}=    restApi.ApiGet    VOLT_TENANT
-    #    #${getVoltDict}=    utils.getDictFromListofDict    ${getVolt_afterPut}    id    ${voltID}
-    #    ${getVoltDict}=    restApi.ApiChameleonGet    VOLT_TENANT    ${voltID}
-    #    ${result_afterPut}=    utils.compare_dict    ${putvoltTenantDict}    ${getVoltDict}
-    #    Should Be True    ${result_afterPut}
