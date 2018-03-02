@@ -26,7 +26,7 @@ Resource          /opt/cord/test/cord-tester/src/test/cord-api/Framework/utils/u
 
 *** Variables ***
 ${pod}              qct-pod1.yml
-${vsg_data_file}    /opt/cord/test/cord-tester/src/test/cord-api/Tests/data/Ch_VoltTenant.json
+${vsg_data_file}    /opt/cord/test/cord-tester/src/test/cord-api/Tests/data/Ch_Subscriber.json
 
 *** Test Cases ***
 Validate Instances are ACTIVE
@@ -133,16 +133,14 @@ Setup
     ...    '${pod}' == 'flex-pod1.yml'    flex_fabric_test_netcfg.json
     ...    '${pod}' == 'calix-pod1.yml'    calix_fabric_test_netcfg.json
     Set Suite Variable    ${netcfg_file}
-    ${voltList} =    utils.jsonToList    ${vsg_data_file}    voltSubscriberInfo
-    Set Suite Variable    ${vlist}    ${voltList}
-    ${voltTenantList} =    Get Variable Value    ${vlist}
-    ${vsg_count}=    Get Length    ${vlist}
+    ${subscriberList} =    utils.jsonToList    ${vsg_data_file}    SubscriberInfo
+    Set Suite Variable    ${slist}    ${subscriberList}
+    ${voltTenantList} =    Get Variable Value    ${slist}
+    ${vsg_count}=    Get Length    ${slist}
     Set Suite Variable    ${vsg_count}
     : FOR    ${INDEX}    IN RANGE    0    ${vsg_count}
-    \    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${INDEX}
-    \    ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
-    \    ${s_tag}=    Get From Dictionary    ${voltDict}    s_tag
-    \    ${c_tag}=    Get From Dictionary    ${voltDict}    c_tag
+    \    ${s_tag}=    Get From Dictionary    ${slist[${INDEX}]}    s_tag
+    \    ${c_tag}=    Get From Dictionary    ${slist[${INDEX}]}    c_tag
     \    Append To List    ${s_tags}    ${s_tag}
     \    Append To List    ${c_tags}    ${c_tag}
     @{nova_ids}=    Wait Until Keyword Succeeds    120s    5s    Validate Number of VSGs    ${vsg_count}
