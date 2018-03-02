@@ -3,24 +3,21 @@
     {
       "voltTenant" : 
        {
-         "s_tag" : 333,
-         "c_tag" : 888
+         "name" : "Test1" 
        },
        "service_specific_id" : "304"
     },
     {
      "voltTenant" : 
       {
-        "s_tag" : 555,
-        "c_tag" : 999
+        "name" : "Test2"
       },
       "service_specific_id" : "305"
     },
     {
      "voltTenant" :
       {
-        "s_tag" : 666,
-        "c_tag" : 661
+        "name" : "Test3"
       },
      "service_specific_id" : "306"
     }

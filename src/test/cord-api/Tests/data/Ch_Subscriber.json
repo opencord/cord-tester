@@ -7,7 +7,9 @@
             "enable_uverse": true,
             "status": "enabled",
             "service_specific_id": "304",
-            "name": "My House-304"
+            "name": "My House-304",
+            "s_tag": 333,
+            "c_tag": 888
     },
     {
             "cdn_enable": false,
@@ -16,13 +18,17 @@
             "enable_uverse": false,
             "status": "enabled",
             "service_specific_id": "305",
-            "name": "My House-305"
+            "name": "My House-305",
+            "s_tag": 555,
+            "c_tag": 999
     },
     {
             "cdn_enable": true,
             "uplink_speed": 500000000,
             "service_specific_id": "306",
-            "name": "My House-306"
+            "name": "My House-306",
+            "s_tag": 666,
+            "c_tag": 661
     }
   ]
 }
