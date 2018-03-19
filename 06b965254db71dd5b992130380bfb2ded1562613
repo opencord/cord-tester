@@ -22,6 +22,30 @@
       "revId": "06b965254db71dd5b992130380bfb2ded1562613",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "06087c2d_79dc06c9",
+        "filename": "src/test/setup/venv-apitests.sh",
+        "patchSetId": 1
+      },
+      "lineNbr": 32,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-03-19T18:22:34Z",
+      "side": 1,
+      "message": "No, we just use the latest stable.",
+      "parentUuid": "bb641298_e1b4980c",
+      "range": {
+        "startLine": 31,
+        "startChar": 22,
+        "endLine": 32,
+        "endChar": 111
+      },
+      "revId": "06b965254db71dd5b992130380bfb2ded1562613",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
