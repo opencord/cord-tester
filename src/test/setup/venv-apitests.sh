@@ -29,4 +29,4 @@ if [ ! $VIRTUAL_ENV ]; then
 fi
 
 # install pip packages
-pip install robotframework robotframework-sshlibrary robotframework-requests robotframework-httplibrary pexpect
+pip install robotframework robotframework-sshlibrary robotframework-requests robotframework-httplibrary pexpect pyyaml
