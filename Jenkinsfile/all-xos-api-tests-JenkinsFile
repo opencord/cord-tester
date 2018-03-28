@@ -1,0 +1,123 @@
+PROFILE="null"
+CORE_CONTAINER="null"
+
+
+stage('Config') {
+    sh """
+    sudo rm -rf ~/cord/
+    sudo rm -rf ~/cord_profile
+    sudo rm -rf /opt/cord
+    sudo rm -rf /opt/cord_profile
+    sudo rm -rf /opt/credentials
+    sudo rm -rf /opt/images
+    sudo rm -rf /opt/pki
+    sudo rm -rf ~/.repo/
+    mkdir ~/cord && cd ~/cord/
+    repo init -u https://gerrit.opencord.org/manifest -b $GERRIT_BRANCH
+    repo sync
+    repo download $GERRIT_PROJECT $GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER
+    """
+}
+try {
+    stage('Build') {
+        sh """
+        if [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ]; then
+            PROFILE=rcord-local.yml
+        fi
+        if [ '$GERRIT_PROJECT' = 'ecord' ] || [ '$GERRIT_PROJECT' = 'vEE' ] || [ '$GERRIT_PROJECT' = 'vEG' ]; then
+            PROFILE=ecord-local.yml
+        fi
+        if [ '$GERRIT_PROJECT' = 'mcord' ] || [ '$GERRIT_PROJECT' = 'vspgwu' ] || [ '$GERRIT_PROJECT' = 'venb' ] || [ '$GERRIT_PROJECT' = 'vspgwc' ] || [ '$GERRIT_PROJECT' = 'vEPC' ]; then
+            PROFILE=mcord-ng40-local.yml
+        fi
+        if [ '$GERRIT_PROJECT' = 'vMME' ] || [ '$GERRIT_PROJECT' = 'vHSS' ]; then
+            PROFILE=mcord-cavium-local.yml
+        fi
+        cd ~/cord/build/
+        make PODCONFIG=\$PROFILE config
+        make -j4 build
+        """
+    }
+    stage('Setup') {
+        try {
+            sh """
+        if [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ]; then
+            CORE_CONTAINER=rcord_xos_core_1
+        fi
+        if [ '$GERRIT_PROJECT' = 'ecord' ] || [ '$GERRIT_PROJECT' = 'vEE' ] || [ '$GERRIT_PROJECT' = 'vEG' ]; then
+            CORE_CONTAINER=ecord_xos_core_1
+        fi
+        if [ '$GERRIT_PROJECT' = 'mcord' ] || [ '$GERRIT_PROJECT' = 'vspgwu' ] || [ '$GERRIT_PROJECT' = 'venb' ] || [ '$GERRIT_PROJECT' = 'vspgwc' ] || [ '$GERRIT_PROJECT' = 'vEPC' ]; then
+            CORE_CONTAINER=mcordng40_xos_core_1
+        fi
+        if [ '$GERRIT_PROJECT' = 'vMME' ] || [ '$GERRIT_PROJECT' = 'vHSS' ]; then
+            CORE_CONTAINER=mcordcavium_xos_core_1
+        fi
+        cd ~/cord/test/cord-tester/src/test/cord-api/Properties/
+        sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'127.0.0.1\'/\" RestApiProperties.py
+        sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'9101\'/\" RestApiProperties.py
+        sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
+        docker cp ~/cord/test/cord-tester/src/test/cord-api/Tests/targets/xosapitests.xtarget \$CORE_CONTAINER:/opt/xos/lib/xos-genx/xosgenx/targets/xosapitests.xtarget
+        docker exec -i \$CORE_CONTAINER /bin/bash -c "xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosapitests.xtarget /opt/xos/core/models/core.xproto" > ~/cord/test/cord-tester/src/test/cord-api/Tests/XOSCoreAPITests.robot
+        SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
+        export testname=_service_api.robot
+        for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosapitests.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/\$i\$testname; done
+        """
+        }
+        catch(error) { currentBuild.result = 'FAILURE' }
+    }
+    stage('Test') {
+        try {
+            sh """
+            if [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ]; then
+                CORE_CONTAINER=rcord_xos_core_1
+            fi
+            if [ '$GERRIT_PROJECT' = 'ecord' ] || [ '$GERRIT_PROJECT' = 'vEE' ] || [ '$GERRIT_PROJECT' = 'vEG' ]; then
+                CORE_CONTAINER=ecord_xos_core_1
+            fi
+            if [ '$GERRIT_PROJECT' = 'mcord' ] || [ '$GERRIT_PROJECT' = 'vspgwu' ] || [ '$GERRIT_PROJECT' = 'venb' ] || [ '$GERRIT_PROJECT' = 'vspgwc' ] || [ '$GERRIT_PROJECT' = 'vEPC' ]; then
+                CORE_CONTAINER=mcordng40_xos_core_1
+            fi
+            if [ '$GERRIT_PROJECT' = 'vMME' ] || [ '$GERRIT_PROJECT' = 'vHSS' ]; then
+                CORE_CONTAINER=mcordcavium_xos_core_1
+            fi
+                cd ~/cord/test/cord-tester/src/test/cord-api/Tests
+                export testname=_service_api.robot
+                SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
+                echo \$SERVICES
+                pybot -d Log -T -e TenantWithContainer -e Port -e ControllerImages -e ControllerNetwork -e ControllerSlice XOSCoreAPITests.robot  || true
+                for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v xos_service:\$i \$i\$testname"; done || true
+                """
+            }
+        catch(error) { currentBuild.result = 'FAILURE' }
+    }
+    stage('Publish') {
+        try {
+            sh """
+            if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs
+            cp -r ~/cord/test/cord-tester/src/test/cord-api/Tests/Log/*ml ./RobotLogs
+            """
+            step([$class: 'RobotPublisher',
+                disableArchiveOutput: false,
+                logFileName: 'RobotLogs/log*.html',
+                otherFiles: '',
+                outputFileName: 'RobotLogs/output*.xml',
+                outputPath: '.',
+                passThreshold: 100,
+                reportFileName: 'RobotLogs/report*.html',
+                unstableThreshold: 0]);
+        }catch(error) {}
+    }
+}
+finally {
+    stage('Cleanup') {
+        sh """
+        cd /home/sdn/cord/build/
+        make PODCONFIG=\$PROFILE config
+        make xos-teardown
+        make clean-local
+        docker images
+        """
+    }
+    step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${RECIPIENTS}", sendToIndividuals: false])
+}
