@@ -1,0 +1,92 @@
+*** Settings ***
+Documentation     Test suite for Instance creation for multiple subscribers with same "s_tag" - Chameleon APIs
+Suite Setup       Read InputFile
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           HttpLibrary.HTTP
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${USER}           admin
+${PASSWORD}       admin
+${PATHFILE}       ${CURDIR}/data/Soak_ScaleVCPE.json
+${SCALE_COUNT}    1
+
+*** Test Cases ***
+Test Post Subscriber Create
+    [Documentation]     Tests creates subscribers based on the count
+    ${service_specific_id}=    utils.convertStringToInt    ${service_specific_id}
+    :FOR        ${i}    IN RANGE        ${SCALE_COUNT}
+    \   ${service_specific_id}=    Evaluate        ${service_specific_id} + 1
+    \   ${service_specific_id}=    utils.convertToString    ${service_specific_id}
+    \   &{subscriberDict}=    Create Dictionary    service_specific_id     ${service_specific_id}
+    \   ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    \   Should Be True    ${api_result}
+    # Volt Tenant Creation
+    \   ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    \   Log    ${json_result}
+    \   ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    \   ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
+    \   ${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
+    \   Log    ${Subscriber_Id}
+    \   ${s_tag}=       Evaluate        ${s_tag} + 0
+    \   ${c_tag}=       Evaluate        ${c_tag} + 1
+    \   &{voltDict}=     Create Dictionary       s_tag   ${s_tag}        c_tag   ${c_tag}
+    \   Log    ${voltDict}
+    \   ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
+    \   Sleep    30
+    # Verifying GET operation after POST
+    \   ${get_result}=    restApi.ApiGet    VOLT_TENANT
+    \   ${get_result_list}=    Get From Dictionary    ${get_result}    items
+    \   ${getJsonDict}=    utils.getDictFromListofDict    ${get_result_list}    c_tag    ${c_tag}
+    \   Log    ${getJsonDict}
+    \   #${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    \   #Should Be True    ${test_result}
+    \   ${Volt_Id}=    Get From Dictionary    ${getJsonDict}    id
+    \   ${provided_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    provided_links_ids
+    \   Log    ${provided_links_ids_list}
+    \   ${provided_links_ids}=    Get From List    ${provided_links_ids_list}    0
+    \   Log    ${provided_links_ids}
+    # Get subscribed_links_ids from volttenant
+    \   ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
+    \   ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
+    # Retrieve service links using provided links ID
+    \   ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${provided_links_ids}
+    \   ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
+    # Update the subscriber_service_instance_id to the required subscriber_id to establish desired link
+    \   ${serviceDict}=    Create Dictionary    subscriber_service_instance_id=${Subscriber_Id}
+    \   ${result}=    restApi.ApiChameleonPut    CH_CORE_SERVICELINK    ${serviceDict}    ${provided_links_ids}
+    \   Sleep    30
+    \   Should Be True    ${result}
+    # Validation of Instances
+    \   Log    ${instanceList}
+    \   ${serviceLinkDict}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    \   Log    ${serviceLinkDict}
+    \   ${VSGTenant}=    Get From Dictionary    ${serviceLinkDict}    provider_service_instance_id
+    # Retrieve VSGTenant to retrieve instance_id
+    \   ${getVSG_result}=    restApi.ApiChameleonGet    VSG_TENANT    ${VSGTenant}
+    \   ${instance_id}=    Get From Dictionary    ${getVSG_result}    instance_id
+    \   Append To List    ${instanceList}    ${instance_id}
+    \   Log    ${instanceList}
+    Log    ${c_tag}
+    Log    ${service_specific_id}
+
+*** Keywords ***
+Read InputFile
+    ${inputDict}=	utils.readFile	${PATHFILE}
+    Log To Console    \n ${inputDict}
+    ${service_specific_id}=	Get Json Value    ${inputDict}    /service_specific_id
+    Log   \n ${service_specific_id}
+    ${s_tag} =    Get Json Value    ${inputDict}    /s_tag
+    Log   \n ${s_tag}
+    ${c_tag} =    Get Json Value    ${inputDict}    /c_tag
+    Log   \n ${c_tag}
+    Set Suite Variable    ${service_specific_id}
+    Set Suite Variable    ${s_tag}
+    Set Suite Variable    ${c_tag}
+    @{instanceList}=    Create List
+    Set Suite Variable    @{instanceList}

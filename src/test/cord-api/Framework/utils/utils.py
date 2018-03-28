@@ -294,3 +294,9 @@ class utils(object):
     def generate_random_slice_name(self):
         random_name = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
         return 'testloginbase' + random_name
+
+    def convertStringToInt(self,input_string):
+        return int(input_string)
+
+    def convertToString(self,input_value):
+        return str(input_value)
