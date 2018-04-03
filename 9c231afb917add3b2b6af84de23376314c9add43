@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1b362ac9_32d76412",
+        "filename": "Dockerfile.k8s-api-tester",
+        "patchSetId": 2
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-04-03T21:00:30Z",
+      "side": 1,
+      "message": "I bet this will work with `ubuntu:16.04`",
+      "range": {
+        "startLine": 17,
+        "startChar": 5,
+        "endLine": 17,
+        "endChar": 17
+      },
+      "revId": "9c231afb917add3b2b6af84de23376314c9add43",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "f6fc4580_ca497d24",
+        "filename": "Dockerfile.k8s-api-tester",
+        "patchSetId": 2
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-04-03T21:00:30Z",
+      "side": 1,
+      "message": "Deprecated https://docs.docker.com/engine/reference/builder/#maintainer-deprecated",
+      "range": {
+        "startLine": 18,
+        "startChar": 0,
+        "endLine": 18,
+        "endChar": 11
+      },
+      "revId": "9c231afb917add3b2b6af84de23376314c9add43",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
