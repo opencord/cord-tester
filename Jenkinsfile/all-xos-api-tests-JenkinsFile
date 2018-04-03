@@ -19,14 +19,14 @@ CORE_CONTAINER="null"
 node ('ubuntu16.04-basebuild-1c-2g') {
     stage('Config') {
         sh """
-        sudo rm -rf ~/cord/
-        sudo rm -rf ~/cord_profile
-        sudo rm -rf /opt/cord
-        sudo rm -rf /opt/cord_profile
-        sudo rm -rf /opt/credentials
-        sudo rm -rf /opt/images
-        sudo rm -rf /opt/pki
-        sudo rm -rf ~/.repo/
+        rm -rf ~/cord/
+        rm -rf ~/cord_profile
+        rm -rf /opt/cord
+        rm -rf /opt/cord_profile
+        rm -rf /opt/credentials
+        rm -rf /opt/images
+        rm -rf /opt/pki
+        rm -rf ~/.repo/
         mkdir ~/cord && cd ~/cord/
         repo init -u https://gerrit.opencord.org/manifest -b $GERRIT_BRANCH
         repo sync
