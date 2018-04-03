@@ -16,7 +16,7 @@
 PROFILE="null"
 CORE_CONTAINER="null"
 
-node ('ubuntu16.04-basebuild-1c-2g') {
+node ('ubuntu16.04-basebuild-4c-8g') {
     stage('Config') {
         sh """
         rm -rf ~/cord/
@@ -134,6 +134,6 @@ node ('ubuntu16.04-basebuild-1c-2g') {
             docker images
             """
         }
-        step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${RECIPIENTS}", sendToIndividuals: false])
+        step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "kailash@opennetworking.org", sendToIndividuals: false])
     }
 }
