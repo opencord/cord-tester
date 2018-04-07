@@ -125,15 +125,6 @@ node ('ubuntu16.04-basebuild-4c-8g') {
         }
     }
     finally {
-        stage('Cleanup') {
-            sh """
-            cd /home/sdn/cord/build/
-            make PODCONFIG=\$PROFILE config
-            make xos-teardown
-            make clean-local
-            docker images
-            """
-        }
         step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "kailash@opennetworking.org", sendToIndividuals: false])
     }
 }
