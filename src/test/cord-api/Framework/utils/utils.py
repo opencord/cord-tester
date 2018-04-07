@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-import pexpect,os
+import os
 import time
 import json
 import collections
