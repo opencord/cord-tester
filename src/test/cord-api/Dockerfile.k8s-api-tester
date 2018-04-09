@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Manual build example:
+# docker build -f Dockerfile.k8s-api-tester -t xos-api-tester:local .
 
 FROM ubuntu:16.04
 
@@ -24,11 +26,26 @@ RUN pip install robotframework robotframework-requests \
 
 RUN pip install -U requests
 
-RUN mkdir -p /tests
-COPY src /tests
-COPY src/test/cord-api/Properties/K8S_RestApiProperties.py /tests/test/cord-api/Properties/RestApiProperties.py
+RUN mkdir -p /src/cord-api
+COPY . /src/cord-api
 
-WORKDIR /tests/test/cord-api/Tests
+WORKDIR /src/cord-api/Tests
+
+ARG org_label_schema_schema_version=1.0
+ARG org_label_schema_name=xos-api-tester
+ARG org_label_schema_version=unknown
+ARG org_label_schema_vcs_url=unknown
+ARG org_label_schema_vcs_ref=unknown
+ARG org_label_schema_build_date=unknown
+ARG org_opencord_vcs_commit_date=unknown
+
+LABEL org.label-schema.schema-version=$org_label_schema_schema_version \
+      org.label-schema.name=$org_label_schema_name \
+      org.label-schema.version=$org_label_schema_version \
+      org.label-schema.vcs-url=$org_label_schema_vcs_url \
+      org.label-schema.vcs-ref=$org_label_schema_vcs_ref \
+      org.label-schema.build-date=$org_label_schema_build_date \
+      org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date
 
 ENTRYPOINT ["pybot", "-L", "TRACE", "-d", "Log", "-T"]
 CMD ["Ch_ServiceTest.txt"]
