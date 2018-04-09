@@ -26,7 +26,6 @@ RUN pip install -U requests
 
 RUN mkdir -p /tests
 COPY src /tests
-COPY src/test/cord-api/Properties/K8S_RestApiProperties.py /tests/test/cord-api/Properties/RestApiProperties.py
 
 WORKDIR /tests/test/cord-api/Tests
 
