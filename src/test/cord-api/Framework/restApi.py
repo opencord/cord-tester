@@ -36,8 +36,16 @@ class restApi(object):
         '''
         Get and return values from properties file
         '''
-        rawValue = self.rp.getValueProperties(key)
-        value = rawValue.replace("'","")
+        try:
+            rawValue = self.rp.getValueProperties(key)
+            value = rawValue.replace("'","")
+        except:
+            value = None
+
+        # Allow override from environment
+        if key in os.environ:
+            value = os.environ[key]
+
         return value
 
     def getURL(self, key):
