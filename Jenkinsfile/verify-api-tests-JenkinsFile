@@ -36,7 +36,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
     try {
         stage('Build') {
             sh """
-            if [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ] ||  [ '$GERRIT_PROJECT' = 'cord-tester' ]; then
+            if  [ '$GERRIT_PROJECT' = 'cord' ] || [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ] ||  [ '$GERRIT_PROJECT' = 'cord-tester' ]; then
                 PROFILE=rcord-local.yml
             fi
             if [ '$GERRIT_PROJECT' = 'ecord' ] || [ '$GERRIT_PROJECT' = 'vEE' ] || [ '$GERRIT_PROJECT' = 'vEG' ]; then
@@ -56,7 +56,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
         stage('Setup') {
             try {
                 sh """
-            if [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ] ||  [ '$GERRIT_PROJECT' = 'cord-tester' ]; then
+            if [ '$GERRIT_PROJECT' = 'cord' ] || [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ] ||  [ '$GERRIT_PROJECT' = 'cord-tester' ]; then
                 CORE_CONTAINER=rcord_xos_core_1
             fi
             if [ '$GERRIT_PROJECT' = 'ecord' ] || [ '$GERRIT_PROJECT' = 'vEE' ] || [ '$GERRIT_PROJECT' = 'vEG' ]; then
@@ -84,7 +84,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
         stage('Test') {
             try {
                 sh """
-                if [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ] ||  [ '$GERRIT_PROJECT' = 'cord-tester' ]; then
+                if [ '$GERRIT_PROJECT' = 'cord' ] || [ '$GERRIT_PROJECT' = 'rcord' ] || [ '$GERRIT_PROJECT' = 'vrouter' ] || [ '$GERRIT_PROJECT' = 'vsg' ] || [ '$GERRIT_PROJECT' = 'vtn' ] || [ '$GERRIT_PROJECT' = 'vtr' ] || [ '$GERRIT_PROJECT' = 'fabric' ] || [ '$GERRIT_PROJECT' = 'openstack' ] || [ '$GERRIT_PROJECT' = 'chameleon' ] || [ '$GERRIT_PROJECT' = 'exampleservice' ] || [ '$GERRIT_PROJECT' = 'onos-service' ] ||  [ '$GERRIT_PROJECT' = 'olt-service' ] ||  [ '$GERRIT_PROJECT' = 'cord-tester' ]; then
                     CORE_CONTAINER=rcord_xos_core_1
                 fi
                 if [ '$GERRIT_PROJECT' = 'ecord' ] || [ '$GERRIT_PROJECT' = 'vEE' ] || [ '$GERRIT_PROJECT' = 'vEG' ]; then
