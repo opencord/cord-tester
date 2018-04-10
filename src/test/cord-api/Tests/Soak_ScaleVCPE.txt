@@ -71,7 +71,14 @@ Test Post Subscriber Create
     \   ${getVSG_result}=    restApi.ApiChameleonGet    VSG_TENANT    ${VSGTenant}
     \   ${instance_id}=    Get From Dictionary    ${getVSG_result}    instance_id
     \   Append To List    ${instanceList}    ${instance_id}
-    \   Log    ${instanceList}
+    # Wait for container to be created
+    \   Sleep    420
+    # Verify container creation within the VSG
+    \   ${nova_id}=    Run    . /opt/cord_profile/admin-openrc.sh; nova list --all-tenants | grep mysite_vsg-${instance_id} | awk '{print $2}'
+    \   ${compute_node}=    Run    . /opt/cord_profile/admin-openrc.sh; nova show ${nova_id} | grep :host | awk '{print $4}'
+    \   ${vsg_ip}=    Run    . /opt/cord_profile/admin-openrc.sh; nova show ${nova_id} | grep management | awk '{print $5}'
+    \   ${docker_container}=    Run    ssh -o ProxyCommand="ssh -W %h:%p -l ubuntu ${compute_node}" ubuntu@${vsg_ip} sudo docker ps | grep vsg-${s_tag}-${c_tag} | wc -l
+    \   Should Not Contain    ${docker_container}    0
     Log    ${c_tag}
     Log    ${service_specific_id}
 
