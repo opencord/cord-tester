@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1fee5b5f_7c774ee8",
+        "filename": "src/test/cord-api/Dockerfile.k8s-api-tester",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-04-10T00:16:09Z",
+      "side": 1,
+      "message": "You can chain these together into one longer RUN and it won\u0027t make as many layers.  Example: https://github.com/opencord/xos/blob/master/containers/xos/Dockerfile.base#L19-L39\n\nAlso, `rm -rf /var/lib/apt/lists/*` at the end to get rid of the cached apt package lists.",
+      "range": {
+        "startLine": 19,
+        "startChar": 17,
+        "endLine": 29,
+        "endChar": 26
+      },
+      "revId": "bb06b2d30cb0beadc5e12c22059a4ea7e2d36f3a",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
