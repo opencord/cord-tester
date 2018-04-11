@@ -11,7 +11,7 @@ Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
 *** Variables ***
-${PATHFILE}       ${CURDIR}/data/Soak_ScaleVCPE.json
+${PATHFILE}       ${CURDIR}/data/Soak_ScaleVSG.json
 ${SCALE_COUNT}    1
 
 *** Test Cases ***
@@ -31,7 +31,7 @@ Test Post Subscriber Create
     \   ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
     \   ${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
     \   Log    ${Subscriber_Id}
-    \   ${s_tag}=       Evaluate        ${s_tag} + 0
+    \   ${s_tag}=       Evaluate        ${s_tag} + 1
     \   ${c_tag}=       Evaluate        ${c_tag} + 1
     \   &{voltDict}=     Create Dictionary       s_tag   ${s_tag}        c_tag   ${c_tag}
     \   Log    ${voltDict}
@@ -78,6 +78,7 @@ Test Post Subscriber Create
     \   ${docker_container}=    Run    ssh -o ProxyCommand="ssh -W %h:%p -l ubuntu ${compute_node}" ubuntu@${vsg_ip} sudo docker ps | grep vsg-${s_tag}-${c_tag} | wc -l
     \   Should Not Contain    ${docker_container}    0
     Log    ${c_tag}
+    Log    ${s_tag}
     Log    ${service_specific_id}
 
 *** Keywords ***
