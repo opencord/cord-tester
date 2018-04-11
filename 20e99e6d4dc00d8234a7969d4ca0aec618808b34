@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "201e33d7_8d092834",
+        "filename": "src/test/cord-api/Tests/Soak_ScaleVSG.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-04-11T21:54:58Z",
+      "side": 1,
+      "message": "You can remove USER and PASSWORD. The XOS_USER/PASSWD will come from the RestApiProperties",
+      "revId": "20e99e6d4dc00d8234a7969d4ca0aec618808b34",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
