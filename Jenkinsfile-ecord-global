@@ -35,6 +35,10 @@ node ("${deployment_config.dev_node.name}") {
         timeout(10) {
             try {
                 runHeadNodeCmd("""
+                export SERVER_IP=localhost
+                export SERVER_PORT=9101
+                export XOS_USER=xosadmin@opencord.org
+                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
                 rm -rf ~/diag-*
                 cd /opt/cord/build; make collect-diag
                 cd /opt/cord/test/cord-tester/src/test/diag/
@@ -51,10 +55,10 @@ node ("${deployment_config.dev_node.name}") {
         timeout(10) {
             try {
                 runHeadNodeCmd("""
-                cd /opt/cord/test/cord-tester/src/test/cord-api/Properties/
-                sed -i s/^SERVER_IP\\ =\\ .*/SERVER_IP\\ =\\ \\'localhost\\'/ RestApiProperties.py
-                sed -i s/^SERVER_PORT\\ =\\ .*/SERVER_PORT\\ =\\ \\'9101\\'/ RestApiProperties.py
-                sed -i s/^PASSWD\\ =\\ .*/PASSWD\\ =\\ \\'\\\$(cat /opt/credentials/xosadmin@opencord.org)\\'/ RestApiProperties.py
+                export SERVER_IP=localhost
+                export SERVER_PORT=9101
+                export XOS_USER=xosadmin@opencord.org
+                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
