@@ -310,7 +310,7 @@ Validate New Flows Removed From OVS
 
 *** Keywords ***
 Suite Setup
-    ${auth} =    Create List    ${USER}    ${PASSWD}
+    ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
     Read InputFile
