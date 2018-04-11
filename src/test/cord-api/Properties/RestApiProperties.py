@@ -18,8 +18,8 @@
 
 SERVER_IP = '10.192.4.62'
 SERVER_PORT = '9101'
-USER = 'xosadmin@opencord.org'
-PASSWD = ''
+XOS_USER = 'xosadmin@opencord.org'
+XOS_PASSWD = ''
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
 VOLT_TENANT = '/xosapi/v1/volt/voltserviceinstances'
 CH_CORE_SERVICELINK = '/xosapi/v1/core/serviceinstancelinks'
