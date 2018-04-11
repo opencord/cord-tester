@@ -28,8 +28,8 @@ class restApi(object):
         self.rp = readProperties(os.path.abspath(os.path.dirname(__file__))+"/../Properties/"+ propertyFile)
         self.controllerIP = self.getValueFromProperties("SERVER_IP")
         self.controllerPort = self.getValueFromProperties("SERVER_PORT")
-        self.user = self.getValueFromProperties("USER")
-        self.password = self.getValueFromProperties("PASSWD")
+        self.user = self.getValueFromProperties("XOS_USER")
+        self.password = self.getValueFromProperties("XOS_PASSWD")
         self.jsonHeader = {'Content-Type': 'application/json'}
 
     def getValueFromProperties(self, key):

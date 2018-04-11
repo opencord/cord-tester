@@ -68,10 +68,6 @@ node ('ubuntu16.04-basebuild-4c-8g') {
             if [ '$GERRIT_PROJECT' = 'vMME' ] || [ '$GERRIT_PROJECT' = 'vHSS' ]; then
                 CORE_CONTAINER=mcordcavium_xos_core_1
             fi
-            cd ~/cord/test/cord-tester/src/test/cord-api/Properties/
-            sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'127.0.0.1\'/\" RestApiProperties.py
-            sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'9101\'/\" RestApiProperties.py
-            sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
             docker cp ~/cord/test/cord-tester/src/test/cord-api/Tests/targets/xosapitests.xtarget \$CORE_CONTAINER:/opt/xos/lib/xos-genx/xosgenx/targets/xosapitests.xtarget
             docker exec -i \$CORE_CONTAINER /bin/bash -c "xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosapitests.xtarget /opt/xos/core/models/core.xproto" > ~/cord/test/cord-tester/src/test/cord-api/Tests/XOSCoreAPITests.robot
             SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
@@ -96,10 +92,16 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                 if [ '$GERRIT_PROJECT' = 'vMME' ] || [ '$GERRIT_PROJECT' = 'vHSS' ]; then
                     CORE_CONTAINER=mcordcavium_xos_core_1
                 fi
-                    cd ~/cord/test/cord-tester/src/test/cord-api/Tests
                     export testname=_service_api.robot
                     SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
                     echo \$SERVICES
+                    export SERVER_IP=localhost
+                    export SERVER_PORT=9101
+                    export XOS_USER=xosadmin@opencord.org
+                    export XOS_PASSWD=\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)
+                    cd ~/cord/test/cord-tester/src/test/cord-api/Properties/
+                    sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
+                    cd ~/cord/test/cord-tester/src/test/cord-api/Tests
                     pybot -d Log -T -e TenantWithContainer -e Port -e ControllerImages -e ControllerNetwork -e ControllerSlice XOSCoreAPITests.robot  || true
                     for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v xos_service:\$i \$i\$testname"; done || true
                     """
