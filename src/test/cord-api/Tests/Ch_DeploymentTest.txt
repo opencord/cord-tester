@@ -11,8 +11,6 @@ Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
 *** Variables ***
-${USER}           admin
-${PASSWORD}       admin
 ${PATHFILE}       ${CURDIR}/data/Ch_Deployment.json
 ${PATHFILE2}      ${CURDIR}/data/putDeployment.json
 

@@ -11,8 +11,6 @@ Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
 *** Variables ***
-${USER}           admin
-${PASSWORD}       admin
 ${PATHFILE}       ${CURDIR}/data/Ch_Subscriber_MultiInstance.json
 
 *** Test Cases ***    TYPE                 LISTINDEX

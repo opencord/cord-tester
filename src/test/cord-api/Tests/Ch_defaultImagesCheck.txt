@@ -11,8 +11,6 @@ Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
 *** Variables ***
-${USER}           admin
-${PASSWORD}       admin
 ${PROFILE}        mock-rcord
 ${PROFILE_FILE}   ${CURDIR}/../../../../../../orchestration/profiles/${PROFILE}/${PROFILE}.yml
 ${PATHFILE}       ${CURDIR}/data/defaultImages.json

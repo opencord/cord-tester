@@ -12,8 +12,6 @@ Library           ../Framework/restApi.py
 Variables         ../Properties/RestApiProperties.py
 
 *** Variables ***
-${USER}           admin
-${PASSWORD}       admin
 ${PATHFILE}       ${CURDIR}/data/Ch_Node.json
 ${IP}             ${SERVER_IP}
 ${PORT}           ${SERVER_PORT}
