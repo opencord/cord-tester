@@ -12,8 +12,6 @@ Library           ../Framework/restApi.py
 Resource          ../Framework/utils/utils.robot
 
 *** Variables ***
-${USER}           admin
-${PASSWORD}       admin
 ${PROFILE}        mock-rcord
 ${PROFILE_FILE}   ${CURDIR}/../../../../../../orchestration/profiles/${PROFILE}/${PROFILE}.yml
 
