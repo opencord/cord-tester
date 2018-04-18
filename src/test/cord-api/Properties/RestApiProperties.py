@@ -1,4 +1,3 @@
-
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #!/usr/bin/env python
 
-SERVER_IP = '10.192.4.62'
+SERVER_IP = 'localhost'
 SERVER_PORT = '9101'
 USER = 'xosadmin@opencord.org'
 PASSWD = ''
