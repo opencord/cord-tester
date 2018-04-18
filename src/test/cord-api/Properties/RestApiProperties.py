@@ -16,7 +16,7 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = '10.192.4.62'
+SERVER_IP = 'localhost'
 SERVER_PORT = '9101'
 USER = 'xosadmin@opencord.org'
 PASSWD = ''
