@@ -15,16 +15,14 @@
 pod_config = null
 deployment_config = null
 
-node ('master') {
-    stage ("Parse configuration file") {
+node ("${devNodeName}") {
+
+    stage ("Parse deployment configuration file") {
         sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
         sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
         deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
         pod_config = readYaml file: "${configRepoBaseDir}${deployment_config.pod_config.file_name}"
     }
-}
-
-node ("${deployment_config.dev_node.name}") {
     stage('Prerequisites') {
         runHeadNodeCmd("""
         cd /opt/cord/test/cord-tester/src/test/setup
@@ -87,7 +85,7 @@ node ("${deployment_config.dev_node.name}") {
                 export SERVER_IP=localhost
                 export SERVER_PORT=9101
                 export XOS_USER=xosadmin@opencord.org
-                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                 pybot -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T verifyCollectDiag.robot
                 python -m robot.testdoc verifyCollectDiag.robot TestDoc/verifyCollectDiag.html
                 """)
@@ -108,7 +106,7 @@ node ("${deployment_config.dev_node.name}") {
                     export SERVER_IP=localhost
                     export SERVER_PORT=9101
                     export XOS_USER=xosadmin@opencord.org
-                    export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                    export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                     cd /opt/cord/test/cord-tester/src/test/robot/
                     pybot --exclude notready -v FABRIC:on -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
                     python -m robot.testdoc SanityPhyPOD.robot TestDoc/SanityPhyPOD.html
@@ -120,7 +118,7 @@ node ("${deployment_config.dev_node.name}") {
                     export SERVER_IP=localhost
                     export SERVER_PORT=9101
                     export XOS_USER=xosadmin@opencord.org
-                    export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                    export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                     cd /opt/cord/test/cord-tester/src/test/robot/
                     pybot --exclude notready --exclude fabric -v FABRIC:off -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
                     python -m robot.testdoc SanityPhyPOD.robot TestDoc/SanityPhyPOD.html
@@ -136,7 +134,7 @@ node ("${deployment_config.dev_node.name}") {
                 export SERVER_IP=localhost
                 export SERVER_PORT=9101
                 export XOS_USER=xosadmin@opencord.org
-                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                 all_passed=true
                 cd /opt/cord/test/cord-tester/src/test/cord-api/
                 rm -r Log/ || true
@@ -177,7 +175,7 @@ node ("${deployment_config.dev_node.name}") {
                     export SERVER_IP=localhost
                     export SERVER_PORT=9101
                     export XOS_USER=xosadmin@opencord.org
-                    export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                    export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                     cd /opt/cord/test/cord-tester/src/test/vsg/
                     pybot -L TRACE -v pod:${deployment_config.pod_config.file_name} -d Log -T vsg_dataplane_test.robot
                     python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html
@@ -188,7 +186,7 @@ node ("${deployment_config.dev_node.name}") {
                     export SERVER_IP=localhost
                     export SERVER_PORT=9101
                     export XOS_USER=xosadmin@opencord.org
-                    export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                    export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                     cd /opt/cord/test/cord-tester/src/test/vsg/
                     pybot -L TRACE -v pod:${deployment_config.pod_config.file_name} -e dataplane -d Log -T vsg_dataplane_test.robot
                     python -m robot.testdoc vsg_dataplane_test.robot TestDoc/vsg_dataplane_test.html

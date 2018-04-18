@@ -15,16 +15,16 @@
 pod_config = null
 deployment_config = null
 
-node ('master') {
-    stage ("Parse configuration file") {
+
+node ("${devNodeName}") {
+
+    stage ("Parse deployment configuration file") {
         sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
         sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
         deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
         pod_config = readYaml file: "${configRepoBaseDir}${deployment_config.pod_config.file_name}"
     }
-}
 
-node ("${deployment_config.dev_node.name}") {
     stage('Prerequisites') {
         runHeadNodeCmd("""
         cd /opt/cord/test/cord-tester/src/test/setup
@@ -38,7 +38,7 @@ node ("${deployment_config.dev_node.name}") {
                 export SERVER_IP=localhost
                 export SERVER_PORT=9101
                 export XOS_USER=xosadmin@opencord.org
-                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                 rm -rf ~/diag-*
                 cd /opt/cord/build; make collect-diag
                 cd /opt/cord/test/cord-tester/src/test/diag/
@@ -58,7 +58,7 @@ node ("${deployment_config.dev_node.name}") {
                 export SERVER_IP=localhost
                 export SERVER_PORT=9101
                 export XOS_USER=xosadmin@opencord.org
-                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                 cd /opt/cord/test/cord-tester/src/test/robot/
                 rm -r Log/ || true
                 rm -r TestDoc/ || true
@@ -69,7 +69,7 @@ node ("${deployment_config.dev_node.name}") {
                     export SERVER_IP=localhost
                     export SERVER_PORT=9101
                     export XOS_USER=xosadmin@opencord.org
-                    export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                    export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                     cd /opt/cord/test/cord-tester/src/test/robot/
                     pybot --exclude notready -v FABRIC:on -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
                     python -m robot.testdoc SanityPhyPOD.robot TestDoc/SanityPhyPOD.html
@@ -81,7 +81,7 @@ node ("${deployment_config.dev_node.name}") {
                     export SERVER_IP=localhost
                     export SERVER_PORT=9101
                     export XOS_USER=xosadmin@opencord.org
-                    export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                    export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                     cd /opt/cord/test/cord-tester/src/test/robot/
                     pybot --exclude notready --exclude fabric -v FABRIC:off -v PUBLIC_IFACE:${pod_config.external_iface} -v CORD_PROFILE:${pod_config.cord_profile} -d Log -T SanityPhyPOD.robot
                     python -m robot.testdoc SanityPhyPOD.robot TestDoc/SanityPhyPOD.html
@@ -97,7 +97,7 @@ node ("${deployment_config.dev_node.name}") {
                 export SERVER_IP=localhost
                 export SERVER_PORT=9101
                 export XOS_USER=xosadmin@opencord.org
-                export XOS_PASSWD=\$(cat /opt/credentials/xosadmin@opencord.org)
+                export XOS_PASSWD=\\\$(cat /opt/credentials/xosadmin@opencord.org)
                 """)
             } catch(error) { currentBuild.result = 'FAILURE' }
         }
