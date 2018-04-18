@@ -15,16 +15,14 @@
 pod_config = null
 deployment_config = null
 
-node ('master') {
-    stage ("Parse configuration file") {
+node ("${deployment_config.dev_node.name}") {
+
+    stage ("Parse deployment configuration file") {
         sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
         sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
         deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
         pod_config = readYaml file: "${configRepoBaseDir}${deployment_config.pod_config.file_name}"
     }
-}
-
-node ("${deployment_config.dev_node.name}") {
     stage('Prerequisites') {
         runHeadNodeCmd("""
         cd /opt/cord/test/cord-tester/src/test/setup
