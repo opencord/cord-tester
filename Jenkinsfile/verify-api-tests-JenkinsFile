@@ -101,6 +101,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     export XOS_PASSWD=\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)
                     cd ~/cord/test/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     cd ~/cord/test/cord-tester/src/test/cord-api/Tests
                     pybot -d Log -T -e TenantWithContainer -e Port -e ControllerImages -e ControllerNetwork -e ControllerSlice -e ControllerUser XOSCoreAPITests.robot  || true
                     for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v xos_service:\$i \$i\$testname"; done || true
