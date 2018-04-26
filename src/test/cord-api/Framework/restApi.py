@@ -118,6 +118,16 @@ class restApi(object):
         passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
         return passed
 
+    def ApiPostReturnJson(self, key, jsonData):
+        url = self.getURL(key)
+        data = json.dumps(jsonData)
+        print "url, data..", url, data
+        resp = requests.post(url, data=data, headers=self.jsonHeader, auth=(self.user, self.password))
+        print "requests.codes.....",requests.codes.created
+        print "posted data...", resp.json()
+        passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
+        return passed, resp.json()
+
     def ApiGet(self, key, urlSuffix=""):
         url = self.getURL(key) + str(urlSuffix)
         print "get url...",url
@@ -171,8 +181,22 @@ class restApi(object):
         return passed
 
 #test
-'''
+#'''
 test = restApi("MCORD_RestApiProperties.py")
 print test.getURL("CORE_INSTANCES")
 
-'''
+test = restApi()
+voltdevice = {
+   "name" : "volt-10",
+   "device_type" : "asf_olt",
+   "host" : "172.17.0.1",
+   "port" : 50060,
+   "switch_port" : "5",
+   "outer_tpid" : "0x8100",
+   "volt_service_id" : 7
+  }
+#result = test.ApiPost("VOLT_DEVICE",voltdevice) 
+dele = test.ApiChameleonDelete("VOLT_DEVICE",13)
+dele = test.ApiChameleonDelete("VOLT_DEVICE",14)
+dele = test.ApiChameleonDelete("VOLT_DEVICE",15)
+#'''

@@ -1,0 +1,19 @@
+{
+    "PONPortInfo" : [
+    {
+            "name": "volt-port-1",
+            "s_tag": 222,
+            "olt_device_id": 1
+    },
+    {
+            "name": "volt-port-2",
+            "s_tag": 444,
+            "olt_device_id": 1
+    },
+    {
+            "name": "volt-port-3",
+            "s_tag": 333,
+            "olt_device_id": 1
+    }
+  ]
+}
