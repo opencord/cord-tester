@@ -1,0 +1,34 @@
+{
+    "VOLTDeviceInfo" : [
+    {
+            "device_type": "simulate_olt",
+            "host": "172.17.0.1",
+            "port": 50060,
+            "switch_datapath_id": "of:0000000ce2314000",
+            "switch_port": "5",
+            "outer_tpid": "0x8100",
+            "name": "volt-1",
+            "volt_service_id": 1
+    },
+    {
+            "device_type": "asf_olt",
+            "host": "172.17.0.2",
+            "port": 50060,
+            "switch_datapath_id": "of:0000000ce2315000",
+            "switch_port": "5",
+            "outer_tpid": "0x8100",
+            "name": "volt-2",
+            "volt_service_id": 1
+    },
+    {
+            "device_type": "ponsim_olt",
+            "host": "172.17.0.3",
+            "port": 50060,
+            "switch_datapath_id": "of:0000000ce2316000",
+            "switch_port": "5",
+            "outer_tpid": "0x8100",
+            "name": "volt-3",
+            "volt_service_id": 1
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+*** Settings ***
+Documentation     Test suite for VOLTDevice
+Suite Setup       Read InputFile
+Test Template     Verify VOLTDevice functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/VOLTDevice.json
+${PATHFILE1}      ${CURDIR}/data/PONPort.json
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Test Create VOLTDevice-1
+                      CREATE                       0
+Test Get VOLTDevice-1
+                      RETRIEVE                     0
+Test Create PONPort-1
+                      PONCREATE                       0
+
+Test Get PONPort-1
+                      PONRETRIEVE                     0
+#Test Delete VOLTDevice-1
+#                      DELETE       0
+Test Create VOLTDevice-2
+                      CREATE       1
+Test Get VOLTDevice-2
+                      RETRIEVE     1
+Test Create PONPort-2
+                      PONCREATE       1
+Test Get PONPort-2
+                      PONRETRIEVE     1
+#Test Delete VOLTDevice-2
+#                      DELETE       1
+Test Create VOLTDevice-3
+                      CREATE       2
+Test Get VOLTDevice-3
+                      RETRIEVE     2
+Test Create PONPort-3
+                      CREATE       2
+Test Get PONPort-3
+                      RETRIEVE     2
+#Test Delete VOLTDevice-3
+#                      DELETE       2
+
+
+*** Keywords ***
+Read InputFile
+    ${voltDeviceList}=    utils.jsonToList    ${PATHFILE}    VOLTDeviceInfo
+    Set Suite Variable    ${dlist}    ${voltDeviceList}
+    Set Global Variable    ${VOLTDevice_Id}    ${EMPTY}
+    ${PONPortList}=    utils.jsonToList    ${PATHFILE1}    PONPortInfo
+    Set Suite Variable    ${plist}    ${PONPortList}
+    Set Suite Variable    ${PONPort_Id}    ${EMPTY}
+
+Verify VOLTDevice functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post VOLT Device API    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get VOLT Device API    ${listIndex}
+    Run Keyword If    "${type}" == "DELETE"    Test Delete VOLT Device API    ${listIndex}
+    Run Keyword If    "${type}" == "PONCREATE"    Test Post PONPort API    ${listIndex}
+    Run Keyword If    "${type}" == "PONRETRIEVE"    Test Get PONPort API    ${listIndex}
+
+Test Post VOLT Device API
+    [Arguments]    ${listIndex}
+    ${voltDeviceList} =    Get Variable Value    ${dlist}
+    ${voltDeviceDict}=    utils.listToDict    ${voltDeviceList}    ${listIndex}
+    ${api_getResult}=    restApi.ApiGet    VOLT_SERVICE
+    ${voltServiceList}=    Get From Dictionary    ${api_getResult}    items
+    ${voltServiceDict}=    utils.getDictFromListOfDict    ${voltServiceList}    leaf_model_name    VOLTService
+    ${VOLTService_Id}=    Get From Dictionary    ${voltServiceDict}    id
+    ${voltDeviceDict}=    utils.setFieldValueInDict    ${voltDeviceDict}    volt_service_id    ${VOLTService_Id}
+    Log    ${voltDeviceDict}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    VOLT_DEVICE    ${voltDeviceDict}
+    Should Be True    ${api_result_status}
+    ${VOLTDevice_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${VOLTDevice_Id}
+
+Test Get VOLT Device API
+    [Arguments]    ${listIndex}
+    Log    ${VOLTDevice_Id}
+    ${json_result}=    restApi.ApiChameleonGet    VOLT_DEVICE    ${VOLTDevice_Id}
+    Log    ${json_result}
+    ${voltDeviceList} =    Get Variable Value    ${dlist}
+    ${voltDeviceDict}=    utils.listToDict    ${voltDeviceList}    ${listIndex}
+    Log    ${voltDeviceDict}
+    ${test_result}=    utils.compare_dict    ${voltDeviceDict}    ${json_result}
+    Should Be True    ${test_result}
+
+Test Post PONPort API
+    [Arguments]    ${listIndex}
+    ${PONPortList} =    Get Variable Value    ${plist}
+    ${PONPortDict}=    utils.listToDict    ${PONPortList}    ${listIndex}
+    ${PONPortDict}=    utils.setFieldValueInDict    ${PONPortDict}    olt_device_id    ${VOLTDevice_Id}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    PON_PORT    ${PONPortDict}
+    Should Be True    ${api_result_status}
+    ${PONPort_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${PONPort_Id}
+
+Test Get PONPort API
+    [Arguments]    ${listIndex}
+    Log    ${PONPort_Id}
+    ${json_result}=    restApi.ApiChameleonGet    PON_PORT    ${PONPort_Id}
+    Log    ${json_result}
+    ${PONPortList} =    Get Variable Value    ${plist}
+    ${PONPortDict}=    utils.listToDict    ${PONPortList}    ${listIndex}
+    Log    ${PONPortDict}
+    ${test_result}=    utils.compare_dict    ${PONPortDict}    ${json_result}
+    Should Be True    ${test_result}
+
+Test Delete VOLT Device API
+    [Arguments]    ${listIndex}
+    ${test_result}=    restApi.ApiChameleonDelete    VOLT_DEVICE    ${VOLTDevice_Id}
+    Should Be True    ${test_result}
