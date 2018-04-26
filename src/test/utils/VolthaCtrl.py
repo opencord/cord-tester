@@ -25,8 +25,8 @@ from OnosCtrl import OnosCtrl
 from OltConfig import OltConfig
 
 class VolthaService(object):
-    services = ('consul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
-    standalone_services = ('envoy', 'voltha', 'ofagent', 'vcli',)
+    services = ('vconsul', 'kafka', 'zookeeper', 'registrator', 'fluentd')
+    standalone_services = ('envoy', 'voltha', 'ofagent', 'cli',)
     compose_file = 'docker-compose-system-test.yml'
     service_map = {}
     PROJECT = 'cordtester'

@@ -1027,7 +1027,7 @@ class Onos(Container):
             app_version = '3.0-SNAPSHOT'
         elif major == 1 and minor >= 10:
             app_version = '3.0-SNAPSHOT'
-            if patch < 3:
+            if minor == 10 and patch < 3:
                 app_version = '1.2-SNAPSHOT'
         for apps in cls.onos_cord_apps:
             apps[1] = app_version
