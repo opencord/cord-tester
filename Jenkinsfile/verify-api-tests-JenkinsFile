@@ -100,6 +100,8 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     export XOS_USER=xosadmin@opencord.org
                     export XOS_PASSWD=\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)
                     cd ~/cord/test/cord-tester/src/test/cord-api/Properties/
+                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'127.0.0.1\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'9101\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     cd ~/cord/test/cord-tester/src/test/cord-api/Tests
