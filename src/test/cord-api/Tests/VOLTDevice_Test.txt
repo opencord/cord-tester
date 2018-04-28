@@ -24,8 +24,6 @@ Test Create PONPort-1
 
 Test Get PONPort-1
                       PONRETRIEVE                     0
-#Test Delete VOLTDevice-1
-#                      DELETE       0
 Test Create VOLTDevice-2
                       CREATE       1
 Test Get VOLTDevice-2
@@ -34,18 +32,14 @@ Test Create PONPort-2
                       PONCREATE       1
 Test Get PONPort-2
                       PONRETRIEVE     1
-#Test Delete VOLTDevice-2
-#                      DELETE       1
 Test Create VOLTDevice-3
                       CREATE       2
 Test Get VOLTDevice-3
                       RETRIEVE     2
 Test Create PONPort-3
-                      CREATE       2
+                      PONCREATE       2
 Test Get PONPort-3
-                      RETRIEVE     2
-#Test Delete VOLTDevice-3
-#                      DELETE       2
+                      PONRETRIEVE     2
 
 
 *** Keywords ***
