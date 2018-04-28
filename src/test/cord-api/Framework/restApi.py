@@ -180,23 +180,3 @@ class restApi(object):
         passed = self.checkResult(resp, requests.codes.created) or self.checkResult(resp, requests.codes.ok)
         return passed
 
-#test
-#'''
-test = restApi("MCORD_RestApiProperties.py")
-print test.getURL("CORE_INSTANCES")
-
-test = restApi()
-voltdevice = {
-   "name" : "volt-10",
-   "device_type" : "asf_olt",
-   "host" : "172.17.0.1",
-   "port" : 50060,
-   "switch_port" : "5",
-   "outer_tpid" : "0x8100",
-   "volt_service_id" : 7
-  }
-#result = test.ApiPost("VOLT_DEVICE",voltdevice) 
-dele = test.ApiChameleonDelete("VOLT_DEVICE",13)
-dele = test.ApiChameleonDelete("VOLT_DEVICE",14)
-dele = test.ApiChameleonDelete("VOLT_DEVICE",15)
-#'''
