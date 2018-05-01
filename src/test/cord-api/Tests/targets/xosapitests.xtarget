@@ -8,7 +8,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library		  HttpLibrary.HTTP
+Library		      HttpLibrary.HTTP
 Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 Variables         ../Properties/RestApiProperties.py
@@ -108,7 +108,7 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_updated_key}=    Set Variable    null
     Set Suite Variable    ${json_{{ m.name | lower}}_updated_key}
     # set required fields for {{ m.name | lower }} object
-    {% for f in m.fields -%}
+    {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
     {% if f.modifier == "required" -%}
     {% if f.options.blank == "False" -%}
     {% if not f.options.default -%}
@@ -151,7 +151,7 @@ Create {{ m.name }}
     ##Creating {{ m.name | lower }} object
     ${json_{{ m.name | lower }}_tmp}=    Set Variable    { }
     # set required fields for {{ m.name | lower }} object
-    {% for f in m.fields -%}
+    {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
     {% if f.link -%}
     {% if f.modifier == "required" -%}
     {% if f.options.blank == "False" -%}
