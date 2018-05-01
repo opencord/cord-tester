@@ -22,9 +22,6 @@ node ("${devNodeName}") {
         deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
         pod_config = readYaml file: "${configRepoBaseDir}${deployment_config.pod_config.file_name}"
     }
-}
-
-node ("${deployment_config.dev_node.name}") {
     stage('Prerequisites') {
         runHeadNodeCmd("""
         cd /opt/cord/test/cord-tester/src/test/setup
