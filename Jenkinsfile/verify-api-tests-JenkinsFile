@@ -97,6 +97,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     CORE_CONTAINER=mcordcavium_xos_core_1
                 fi
                     export testname=_service_api.robot
+                    export library=_library.robot
                     SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
                     echo \$SERVICES
                     export SERVER_IP=localhost
@@ -110,7 +111,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     cd ~/cord/test/cord-tester/src/test/cord-api/Tests
                     pybot -d Log -T -e TenantWithContainer -e Port -e ControllerImages -e ControllerNetwork -e ControllerSlice -e ControllerUser XOSCoreAPITests.robot  || true
-                    for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v TESTLIBRARY:\$i_library \$i\$testname"; sleep 2; done || true
+                    for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v TESTLIBRARY:\$i\$library \$i\$testname"; sleep 2; done || true
                     """
                 }
             catch(error) { currentBuild.result = 'FAILURE' }
