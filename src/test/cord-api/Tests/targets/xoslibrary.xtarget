@@ -1,8 +1,5 @@
 *** Settings ***
-Documentation     Test Suite for XOS APIs
-Suite Setup       Setup
-Suite Teardown    Teardown
-Test Template     Verify API Functionality
+Documentation     Setup and Teardown Functionality for XOS API Tests
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -12,42 +9,6 @@ Library		      HttpLibrary.HTTP
 Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 Variables         ../Properties/RestApiProperties.py
-
-*** Variables ***
-${xos_service}    core
-
-*** Test Cases ***    TYPE        API
-{%- for m in proto.messages -%}
-{%- if m.name not in  ['XOSBase'] -%}
-{%- if m.name not in ['ServiceMonitoringAgentInfo', 'XOS'] -%}
-{% autoescape false %}
-{% endautoescape %}
-Create {{ m.name }}    CREATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_1}
-    [Tags]    {{ m.name }}
-
-Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_updated_1}    ${id}
-    [Tags]    {{ m.name }}
-
-Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
-    [Tags]    {{ m.name }}
-
-Delete {{ m.name }}    DELETE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    data_id=${id}
-    [Tags]    {{ m.name }}
-{% else %}
-Create {{ m.name }}    CREATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_1}
-    [Tags]    {{ m.name }}
-
-Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_updated_1}    ${id}
-    [Tags]    {{ m.name }}
-
-Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
-    [Tags]    {{ m.name }}
-
-Delete {{ m.name }}    DELETE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    data_id=${id}
-    [Tags]    {{ m.name }}
-{% endif %}
-{% endif %}
-{% endfor -%}
 
 *** Keywords ***
 Verify API Functionality
@@ -99,7 +60,7 @@ CORD Delete
     [Return]    ${resp}
 
 Generate JSON Data
-    {%- for m in proto.messages -%}
+    {% for m in proto.messages %}
     {%- if m.name not in  ['XOSBase'] -%}
     {% autoescape false %}
     {% endautoescape %}
@@ -131,13 +92,13 @@ Generate JSON Data
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
-    {% endif %}
+    {% endif -%}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
     ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
-    {% endif %}
+    {% endif -%}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
@@ -174,29 +135,30 @@ Create {{ m.name }}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
-    {% endif %}
+    {% endif -%}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
-    {% endif %}
+    {% endif -%}
     {% if  m.name  == "Network" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
-    {% endif %}
+    {% endif -%}
     ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
-    ${resp}=    CORD Post    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower }}_tmp}
+    ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
     Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
     [Return]    ${id_{{ m.name | lower }}_tmp}
-{% endif %}
+{% endif -%}
 {% endfor -%}
 
-Setup
+Setup Tests
+    [Documentation]    Find all dependent objects per model and create them and store them for later use
     {% for m in proto.messages %}
     {%- if m.name not in  ['XOSBase'] -%}
     ${model}=    Set Variable    {{ m.name | lower }}s
     @{dependent_{{ m.name | lower }}_ids}=    Create List    ${model}
     Set Suite Variable    @{dependent_{{ m.name | lower }}_ids}
-    {% endif %}
+    {% endif -%}
     {% endfor -%}
     @{dependent_models}=    Create List
     Set Suite Variable    ${dependent_models}
@@ -205,12 +167,14 @@ Setup
     Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
     Generate JSON Data
 
-Teardown
+Teardown Tests
+    [Documentation]    Delete all dependent objects created in Setup
     {% for m in proto.messages %}
     {%- if m.name not in  ['XOSBase'] -%}
     ${len}=    Get Length    ${dependent_{{ m.name | lower }}_ids}
     : FOR    ${INDEX}    IN RANGE    1    ${len}
-    \    Run Keyword And Ignore Error    CORD Delete    /xosapi/v1/${xos_service}/${dependent_{{ m.name | lower }}_ids[0]}    ${dependent_{{ m.name | lower }}_ids[${INDEX}]}
-    {% endif %}
+    \    Run Keyword And Ignore Error    CORD Delete    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/${dependent_{{ m.name | lower }}_ids[0]}    ${dependent_{{ m.name | lower }}_ids[${INDEX}]}
+    {% endif -%}
     {% endfor -%}
     Delete All Sessions
+
