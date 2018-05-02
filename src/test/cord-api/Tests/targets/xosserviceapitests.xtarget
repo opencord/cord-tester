@@ -12,7 +12,7 @@ Library           RequestsLibrary
 Library		      HttpLibrary.HTTP
 Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
-Resource          $TESTLIBRARY
+Resource          ${TESTLIBRARY}
 Variables         ../Properties/RestApiProperties.py
 
 *** Variables ***
