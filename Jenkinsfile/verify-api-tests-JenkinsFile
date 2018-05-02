@@ -72,7 +72,8 @@ node ('ubuntu16.04-basebuild-4c-8g') {
             docker exec -i \$CORE_CONTAINER /bin/bash -c "xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosapitests.xtarget /opt/xos/core/models/core.xproto" > ~/cord/test/cord-tester/src/test/cord-api/Tests/XOSCoreAPITests.robot
             SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
             export testname=_service_api.robot
-            for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosapitests.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/\$i\$testname; done
+            for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosserviceapitests.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/\$i\$testname; done
+            for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xoslibrary.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/$\i_library.robot; done
             """
             }
             catch(error) { currentBuild.result = 'FAILURE' }
@@ -106,7 +107,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     cd ~/cord/test/cord-tester/src/test/cord-api/Tests
                     pybot -d Log -T -e TenantWithContainer -e Port -e ControllerImages -e ControllerNetwork -e ControllerSlice -e ControllerUser XOSCoreAPITests.robot  || true
-                    for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v xos_service:\$i \$i\$testname"; sleep 2; done || true
+                    for i in \$SERVICES; do bash -c "pybot -d Log -T -e AddressManagerServiceInstance -v TESTLIBRARY:\$i_library \$i\$testname"; sleep 2; done || true
                     """
                 }
             catch(error) { currentBuild.result = 'FAILURE' }
