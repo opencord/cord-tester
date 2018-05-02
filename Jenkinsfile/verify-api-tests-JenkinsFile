@@ -74,8 +74,9 @@ node ('ubuntu16.04-basebuild-4c-8g') {
             docker exec -i \$CORE_CONTAINER /bin/bash -c "xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosapitests.xtarget /opt/xos/core/models/core.xproto" > ~/cord/test/cord-tester/src/test/cord-api/Tests/XOSCoreAPITests.robot
             SERVICES=\$(docker exec -i \$CORE_CONTAINER /bin/bash -c "cd /opt/xos/dynamic_services/;find -name '*.xproto'" | awk -F[//] '{print \$2}')
             export testname=_service_api.robot
+            export library=_library.robot
             for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xosserviceapitests.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/\$i\$testname; done
-            for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xoslibrary.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/$\i_library.robot; done
+            for i in \$SERVICES; do bash -c "docker exec -i \$CORE_CONTAINER /bin/bash -c 'xosgenx --target /opt/xos/lib/xos-genx/xosgenx/targets/./xoslibrary.xtarget /opt/xos/dynamic_services/\$i/\$i.xproto'" > ~/cord/test/cord-tester/src/test/cord-api/Tests/\$i\$library; done
             """
             }
             catch(error) { currentBuild.result = 'FAILURE' }
