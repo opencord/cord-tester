@@ -67,47 +67,6 @@ class restApi(object):
         else:
             print "Test failed: " + str(resp.status_code) + ": " + resp.text
             return False
-    '''
-    @method getAccountNum
-    @Returns AccountNumber for the subscriber
-    @params: jsonData is Dictionary
-    '''
-    def getAccountNum(self, jsonData):
-        print type(str(jsonData['identity']['account_num']))
-        return jsonData['identity']['account_num']
-
-    def getSubscriberId(self, jsonDataList, accountNum):
-        '''
-        Search in each json data in the given list to find and return the
-        subscriber id that corresponds to the given account number.
-        '''
-        # Here we assume subscriber id starts from 1
-        subscriberId = 0
-        try:
-            for jsonData in jsonDataList:
-                if jsonData["service_specific_id"] == str(accountNum):
-                    subscriberId = jsonData["id"]
-                    break
-            return str(subscriberId)
-        except KeyError:
-            print "Something wrong with the json data provided: ", jsonData
-            return -1
-    '''
-     Retrieve the correct jsonDict from the List of json objects returned
-     from Get Reponse
-     Account Number is the one used to post "Data"
-    '''
-    def getJsonDictOfAcctNum(self, getResponseList, AccountNum):
-        getJsonDict = {}
-        try:
-            for data in getResponseList:
-                if data['identity']['account_num'] == AccountNum:
-                   getJsonDict = data
-                   break
-            return getJsonDict
-        except KeyError:
-            print "Could not find the related account number in Get Resonse Data"
-            return -1
 
     def ApiPost(self, key, jsonData):
         url = self.getURL(key)
