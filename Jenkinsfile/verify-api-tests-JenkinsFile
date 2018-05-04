@@ -51,6 +51,9 @@ node ('ubuntu16.04-basebuild-4c-8g') {
             cd ~/cord/build/
             make PODCONFIG=\$PROFILE config
             make -j4 build
+            if [ '$GERRIT_BRANCH' = 'master' ]; then
+              make xos-wait-dynamicload
+            fi
             """
         }
         stage('Setup') {
