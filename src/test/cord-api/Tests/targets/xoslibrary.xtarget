@@ -1,0 +1,180 @@
+*** Settings ***
+Documentation     Setup and Teardown Functionality for XOS API Tests
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library		      HttpLibrary.HTTP
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+Variables         ../Properties/RestApiProperties.py
+
+*** Keywords ***
+Verify API Functionality
+    [Arguments]    ${type}    ${endpoint}    ${data}=${EMPTY}    ${data_id}=${EMPTY}    ${key}=${EMPTY}
+    Run Keyword If    "${type}" == "RETRIEVE"    CORD Get    ${endpoint}    ${data_id}    ${data}    ${key}
+    Run Keyword If    "${type}" == "CREATE"   CORD Post    ${endpoint}    ${data}
+    Run Keyword If    "${type}" == "UPDATE"   CORD Put    ${endpoint}    ${data}    ${data_id}
+    Run Keyword If    "${type}" == "DELETE"    CORD Delete    ${endpoint}    ${data_id}
+
+CORD Get
+    [Documentation]    Make a GET call to the CORD controller
+    [Arguments]    ${service}    ${id}    ${value}    ${key}
+    ${resp}=    Get Request    ${SERVER_IP}    ${service}/${id}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${updated_value}=    Run Keyword If    '${key}' != 'null'    Get Json Value    ${resp.content}    /${key}
+    ${updated_value}=    Run Keyword If    '${key}' != 'null'    Remove String    ${updated_value}    "
+    Run Keyword If    '${key}' != 'null'    Should Contain    "${value}"    ${updated_value}
+    [Return]    ${resp}
+
+CORD Post
+    [Documentation]    Make a POST call to the CORD controller
+    [Arguments]    ${service}    ${data}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Post Request    ${SERVER_IP}    uri=${service}    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${id}
+    [Return]    ${resp}
+
+CORD Put
+    [Documentation]    Make a PUT call to the CORD controller
+    [Arguments]    ${service}    ${data}    ${data_id}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Put Request    ${SERVER_IP}    uri=${service}/${data_id}    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${id}
+    [Return]    ${resp}
+
+CORD Delete
+    [Documentation]    Make a DELETE call to the CORD controller
+    [Arguments]    ${service}    ${data_id}
+    ${resp}=    Delete Request    ${SERVER_IP}    uri=${service}/${data_id}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    [Return]    ${resp}
+
+Generate JSON Data
+    {% for m in proto.messages %}
+    {%- if m.name not in  ['XOSBase'] -%}
+    {% autoescape false %}
+    {% endautoescape %}
+    ${json_{{ m.name | lower }}_1}=    Set Variable    { }
+    ${json_{{ m.name | lower }}_updated_1}=    Set Variable    { }
+    ${json_{{ m.name | lower}}_updated_key}=    Set Variable    null
+    Set Suite Variable    ${json_{{ m.name | lower}}_updated_key}
+    # set required fields for {{ m.name | lower }} object
+    {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
+    {% if f.modifier == "required" -%}
+    {% if f.options.blank == "False" -%}
+    {% if not f.options.default -%}
+    {% if f.link -%}
+    ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    {% else -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% if loop.index0 == 0 -%}
+    ${json_{{ m.name | lower}}_updated_key}=    Set Variable    {{ f.name }}
+    ${json_{{ m.name | lower}}_{{ f.name }}_updated_1}=    Generate Random Value    {{ f.type }}
+    ${json_{{ m.name | lower }}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated__1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_updated_1}"
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endfor -%}
+    {% if  m.name  == "Site" -%}
+    ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    {% endif -%}
+    {% if  m.name  == "Slice" -%}
+    ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
+    ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Slice Name
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
+    {% endif -%}
+    ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
+    ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
+    Set Suite Variable    ${json_{{ m.name | lower }}_1}
+    Set Suite Variable    ${json_{{ m.name | lower }}_updated_1}
+    {% endif -%}
+    {% endfor %}
+
+{% for m in proto.messages %}
+{%- if m.name not in  ['XOSBase'] -%}
+Create {{ m.name }}
+    ##Creating {{ m.name | lower }} object
+    ${json_{{ m.name | lower }}_tmp}=    Set Variable    { }
+    # set required fields for {{ m.name | lower }} object
+    {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
+    {% if f.link -%}
+    {% if f.modifier == "required" -%}
+    {% if f.options.blank == "False" -%}
+    # create dependent {{ f.options.model }}
+    ${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
+    {% endif -%}
+    {% endif -%}
+    {% else -%}
+    {% if f.modifier == "required" -%}
+    {% if f.options.blank == "False" -%}
+    {% if not f.options.default -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    {{ f.type }}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endfor -%}
+    {% if  m.name  == "Site" -%}
+    ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    {% endif -%}
+    {% if  m.name  == "Slice" -%}
+    ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
+    {% endif -%}
+    {% if  m.name  == "Network" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
+    {% endif -%}
+    ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
+    ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    ${json_{{ m.name | lower }}_tmp}
+    ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
+    Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
+    [Return]    ${id_{{ m.name | lower }}_tmp}
+{% endif -%}
+{% endfor -%}
+
+Setup Tests
+    [Documentation]    Find all dependent objects per model and create them and store them for later use
+    {% for m in proto.messages %}
+    {%- if m.name not in  ['XOSBase'] -%}
+    ${model}=    Set Variable    {{ m.name | lower }}s
+    @{dependent_{{ m.name | lower }}_ids}=    Create List    ${model}
+    Set Suite Variable    @{dependent_{{ m.name | lower }}_ids}
+    {% endif -%}
+    {% endfor -%}
+    @{dependent_models}=    Create List
+    Set Suite Variable    ${dependent_models}
+    ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
+    ${HEADERS}    Create Dictionary    Content-Type=application/json
+    Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
+    Generate JSON Data
+
+Teardown Tests
+    [Documentation]    Delete all dependent objects created in Setup
+    {% for m in proto.messages %}
+    {%- if m.name not in  ['XOSBase'] -%}
+    ${len}=    Get Length    ${dependent_{{ m.name | lower }}_ids}
+    : FOR    ${INDEX}    IN RANGE    1    ${len}
+    \    Run Keyword And Ignore Error    CORD Delete    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/${dependent_{{ m.name | lower }}_ids[0]}    ${dependent_{{ m.name | lower }}_ids[${INDEX}]}
+    {% endif -%}
+    {% endfor -%}
+    Delete All Sessions
+
