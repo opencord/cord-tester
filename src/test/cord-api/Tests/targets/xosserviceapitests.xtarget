@@ -1,0 +1,61 @@
+
+*** Settings ***
+Documentation     Test Suite for XOS APIs
+Suite Setup       Setup
+Suite Teardown    Teardown
+Test Template     Verify API Functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library		      HttpLibrary.HTTP
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+Resource          ${TESTLIBRARY}
+Variables         ../Properties/RestApiProperties.py
+
+*** Variables ***
+${xos_service}    core
+
+*** Test Cases ***    TYPE        API
+{% for m in proto.messages %}
+{%- if xproto_unquote(m.options.app_label) != "core" -%}
+{%- if m.name not in  ['XOSBase'] -%}
+{%- if m.name not in ['ServiceMonitoringAgentInfo', 'XOS'] -%}
+{% autoescape false %}
+{% endautoescape %}
+Create {{ m.name }}    CREATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_1}
+    [Tags]    {{ m.name }}
+
+Update {{ m.name }}    UPDATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_updated_1}    ${id}
+    [Tags]    {{ m.name }}
+
+Get {{ m.name }}    RETRIEVE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
+    [Tags]    {{ m.name }}
+
+Delete {{ m.name }}    DELETE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    data_id=${id}
+    [Tags]    {{ m.name }}
+{% else %}
+Create {{ m.name }}    CREATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_1}
+    [Tags]    {{ m.name }}
+
+Update {{ m.name }}    UPDATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_updated_1}    ${id}
+    [Tags]    {{ m.name }}
+
+Get {{ m.name }}    RETRIEVE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
+    [Tags]    {{ m.name }}
+
+Delete {{ m.name }}    DELETE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}es    data_id=${id}
+    [Tags]    {{ m.name }}
+{% endif -%}
+{% endif -%}
+{% endif -%}
+{% endfor %}
+
+*** Keywords ***
+Setup
+    Setup Tests
+
+Teardown
+    Teardown Tests
