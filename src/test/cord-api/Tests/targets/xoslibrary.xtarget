@@ -144,7 +144,7 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
     {% endif -%}
     ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
-    ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ m.name | lower}}s    ${json_{{ m.name | lower }}_tmp}
+    ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
     Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
     [Return]    ${id_{{ m.name | lower }}_tmp}
