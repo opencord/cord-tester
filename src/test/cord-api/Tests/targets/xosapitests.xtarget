@@ -19,33 +19,19 @@ ${xos_service}    core
 *** Test Cases ***    TYPE        API
 {%- for m in proto.messages -%}
 {%- if m.name not in  ['XOSBase'] -%}
-{%- if m.name not in ['ServiceMonitoringAgentInfo', 'XOS'] -%}
 {% autoescape false %}
 {% endautoescape %}
-Create {{ m.name }}    CREATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_1}
+Create {{ m.name }}    CREATE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_1}
     [Tags]    {{ m.name }}
 
-Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_updated_1}    ${id}
+Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_updated_1}    ${id}
     [Tags]    {{ m.name }}
 
-Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
+Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
     [Tags]    {{ m.name }}
 
-Delete {{ m.name }}    DELETE    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    data_id=${id}
+Delete {{ m.name }}    DELETE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    data_id=${id}
     [Tags]    {{ m.name }}
-{% else %}
-Create {{ m.name }}    CREATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_1}
-    [Tags]    {{ m.name }}
-
-Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_updated_1}    ${id}
-    [Tags]    {{ m.name }}
-
-Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
-    [Tags]    {{ m.name }}
-
-Delete {{ m.name }}    DELETE    /xosapi/v1/${xos_service}/{{ m.name | lower}}es    data_id=${id}
-    [Tags]    {{ m.name }}
-{% endif %}
 {% endif %}
 {% endfor -%}
 
