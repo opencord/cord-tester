@@ -19,14 +19,6 @@ CORE_CONTAINER="null"
 node ('ubuntu16.04-basebuild-4c-8g') {
     stage('Config') {
         sh """
-        rm -rf ~/cord/
-        rm -rf ~/cord_profile
-        rm -rf /opt/cord
-        rm -rf /opt/cord_profile
-        rm -rf /opt/credentials
-        rm -rf /opt/images
-        rm -rf /opt/pki
-        rm -rf ~/.repo/
         mkdir ~/cord && cd ~/cord/
         repo init -u https://gerrit.opencord.org/manifest -b $GERRIT_BRANCH
         repo sync
@@ -131,7 +123,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     otherFiles: '',
                     outputFileName: 'RobotLogs/output*.xml',
                     outputPath: '.',
-                    passThreshold: 90,
+                    passThreshold: 100,
                     reportFileName: 'RobotLogs/report*.html',
                     unstableThreshold: 0]);
             }catch(error) {}
