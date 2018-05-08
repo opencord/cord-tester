@@ -125,7 +125,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     otherFiles: '',
                     outputFileName: 'RobotLogs/output*.xml',
                     outputPath: '.',
-                    passThreshold: 100,
+                    passThreshold: 95,
                     reportFileName: 'RobotLogs/report*.html',
                     unstableThreshold: 0]);
             }catch(error) {}
