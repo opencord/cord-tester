@@ -162,7 +162,7 @@ Setup Tests
     {% endfor -%}
     @{dependent_models}=    Create List
     Set Suite Variable    ${dependent_models}
-    ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
+    ${auth} =    Create List    ${USER}    ${PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
     Generate JSON Data
