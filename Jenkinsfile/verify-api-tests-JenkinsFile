@@ -19,6 +19,8 @@ CORE_CONTAINER="null"
 node ('ubuntu16.04-basebuild-4c-8g') {
     stage('Config') {
         sh """
+        rm -rf ~/cord/
+        rm -rf ~/cord_profile
         mkdir ~/cord && cd ~/cord/
         repo init -u https://gerrit.opencord.org/manifest -b $GERRIT_BRANCH
         repo sync
