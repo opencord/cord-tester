@@ -16,10 +16,10 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = 'ms1343.utah.cloudlab.us'
-SERVER_PORT = '8080'
-XOS_USER = 'xosadmin@opencord.org'
-XOS_PASSWD = 'TbVle45watOPMeB1q93N'
+SERVER_IP = '10.128.22.7'
+SERVER_PORT = '30006'
+XOS_USER = 'admin@opencord.org'
+XOS_PASSWD = 'letmein'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/cordsubscriberroots'
 VOLT_TENANT = '/xosapi/v1/volt/voltserviceinstances'
 VOLT_DEVICE = '/xosapi/v1/volt/oltdevices'
@@ -60,3 +60,4 @@ CH_CORE_SERVICES = '/xosapi/v1/core/services'
 CH_CORE_SITEDEPLOYMENTS = '/xosapi/v1/core/sitedeployments'
 CH_CORE_NETWORK_TEMPLATES = '/xosapi/v1/core/networktemplates'
 VSG_TENANT = '/xosapi/v1/vsg/vsgserviceinstances'
+HWVSG_TENANT = '/xosapi/v1/vsg-hw/vsghwserviceinstances'
