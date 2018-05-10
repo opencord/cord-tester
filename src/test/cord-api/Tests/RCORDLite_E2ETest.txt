@@ -1,0 +1,68 @@
+*** Settings ***
+Documentation     Test suite for end-end service chain validation for RCORD Lite Profile (without hardware vSG instances)
+Suite Setup       Read InputFile
+Test Template     Verify Service Chain Validation for Subscriber
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/RCORDLite_Subscriber.json
+
+*** Test Cases ***    TYPE                 LISTINDEX
+#Test Create Subscriber-1
+#                      SUBSCRIBER_CREATE    0
+
+#Test Create Subscriber-2
+#                      SUBSCRIBER_CREATE    1
+
+Test Create Subscriber-3
+                      SUBSCRIBER_CREATE    2
+
+*** Keywords ***
+Read InputFile
+    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    Set Suite Variable    ${slist}    ${subscriberList}
+    @{instanceList}=    Create List
+    Set Suite Variable    @{instanceList}
+
+Verify Service Chain Validation for Subscribers
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "SUBSCRIBER_CREATE"    Test Post Subscriber Create    ${listIndex}
+
+Test Post Subscriber Create
+    [Arguments]    ${listIndex}
+    ${subscriberList} =    Get Variable Value    ${slist}
+    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    Sleep    90
+    ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
+    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    Log    ${json_result}
+    ${json_result_list}=    Get From Dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
+    ${result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
+    Should Be True    ${result}
+    ${instanceList}    Create List
+    # Retrieve Subscribed_links_id from Posted Subscriber
+    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
+    ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
+    # Retrieve Provided_Service_Instance_Id from "ServiceInstanceLinks"
+    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
+    # RETRIEVE VOLT OBJECT USING PROVIDER INSTANCE ID   
+    ${getVoltDict}=    restApi.ApiChameleonGet    VOLT_TENANT    ${provider_service_instance_id}
+    # RETRIEVE SUBSCRIBED_LINKS_IDS FROM THE VOLT DICTIONARY
+    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getVoltDict}    subscribed_links_ids
+    ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
+    # RETRIEVE PROVIDED_SERVICE_INSTANCE_ID 
+    ${serviceLinkDict}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    Log    ${serviceLinkDict}
+    ${VSGTenant}=    Get From Dictionary    ${serviceLinkDict}    provider_service_instance_id
+    # Retrieve VSGTenant to retrieve instance_id
+    ${getVSG_result}=    restApi.ApiChameleonGet    HWVSG_TENANT    ${VSGTenant}
+    Should Be True    ${getVSG_result}

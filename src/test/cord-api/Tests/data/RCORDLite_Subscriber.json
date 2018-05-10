@@ -1,0 +1,39 @@
+{
+    "SubscriberInfo" : [
+    {
+            "cdn_enable": true,
+            "uplink_speed": 1000000000,
+            "downlink_speed": 1000000000,
+            "enable_uverse": true,
+            "status": "enabled",
+            "service_specific_id": "304",
+            "name": "My House-304",
+            "c_tag": 888,
+            "olt_device": "volt-1",
+            "olt_port": "volt-port-1"
+    },
+    {
+            "cdn_enable": false,
+            "uplink_speed": 500000000,
+            "downlink_speed": 500000000,
+            "enable_uverse": false,
+            "status": "enabled",
+            "service_specific_id": "305",
+            "name": "My House-305",
+            "c_tag": 999,
+            "olt_device": "volt-2",
+            "olt_port": "volt-port-2",
+            "mac_address" : "00:AA:00:00:00:01",
+            "ip_address" : "10.8.1.1"
+    },
+    {
+            "cdn_enable": true,
+            "uplink_speed": 500000000,
+            "service_specific_id": "306",
+            "name": "My House-306",
+            "c_tag": 661,
+            "olt_device": "volt-3",
+            "olt_port": "volt-port-3"
+    }
+  ]
+}
