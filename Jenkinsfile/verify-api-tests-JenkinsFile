@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 PROFILE="null"
 CORE_CONTAINER="null"
 
@@ -104,6 +103,7 @@ node ('ubuntu16.04-basebuild-4c-8g') {
                     cd ~/cord/test/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'127.0.0.1\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'9101\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(XOS_USER = \\).*/\\1\'xosadmin@opencord.org\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     sed -i \"s/^\\(PASSWD = \\).*/\\1\'\$(cat ~/cord/build/platform-install/credentials/xosadmin@opencord.org)\'/\" RestApiProperties.py
                     cd ~/cord/test/cord-tester/src/test/cord-api/Tests
