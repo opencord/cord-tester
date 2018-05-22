@@ -1,0 +1,22 @@
+{
+    "ONUDeviceInfo" : [
+    {
+            "pon_port_id": 1,
+            "serial_number": "ONUSerialNumber1",
+            "vendor": "Vendor5",
+            "device_type": "asfvolt16_olt"
+    },
+    {
+            "pon_port_id": 1,
+            "serial_number": "ONUSerialNumber2",
+            "vendor": "Vendor5",
+            "device_type": "asfvolt16_olt"
+    },
+    {
+            "pon_port_id": 1,
+            "serial_number": "ONUSerialNumber3",
+            "vendor": "Vendor5",
+            "device_type": "asfvolt16_olt"
+    }
+  ]
+}

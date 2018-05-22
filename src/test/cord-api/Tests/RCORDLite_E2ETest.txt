@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation     Test suite for end-end service chain validation for RCORD Lite Profile (without hardware vSG instances)
 Suite Setup       Read InputFile
-Test Template     Verify Service Chain Validation for Subscriber
+Test Template     Service Chain Validation For Subscriber
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -14,11 +14,11 @@ Library           ../Framework/restApi.py
 ${PATHFILE}       ${CURDIR}/data/RCORDLite_Subscriber.json
 
 *** Test Cases ***    TYPE                 LISTINDEX
-#Test Create Subscriber-1
-#                      SUBSCRIBER_CREATE    0
+Test Create Subscriber-1
+                      SUBSCRIBER_CREATE    0
 
-#Test Create Subscriber-2
-#                      SUBSCRIBER_CREATE    1
+Test Create Subscriber-2
+                      SUBSCRIBER_CREATE    1
 
 Test Create Subscriber-3
                       SUBSCRIBER_CREATE    2
@@ -30,7 +30,7 @@ Read InputFile
     @{instanceList}=    Create List
     Set Suite Variable    @{instanceList}
 
-Verify Service Chain Validation for Subscribers
+Service Chain Validation For Subscriber
     [Arguments]    ${type}    ${listIndex}
     Run Keyword If    "${type}" == "SUBSCRIBER_CREATE"    Test Post Subscriber Create    ${listIndex}
 

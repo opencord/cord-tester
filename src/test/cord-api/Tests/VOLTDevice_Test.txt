@@ -13,6 +13,7 @@ Library           ../Framework/restApi.py
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/VOLTDevice.json
 ${PATHFILE1}      ${CURDIR}/data/PONPort.json
+${PATHFILE2}      ${CURDIR}/data/ONUDevice.json
 
 *** Test Cases ***    TYPE                         LISTINDEX
 Test Create VOLTDevice-1
@@ -21,9 +22,12 @@ Test Get VOLTDevice-1
                       RETRIEVE                     0
 Test Create PONPort-1
                       PONCREATE                       0
-
 Test Get PONPort-1
                       PONRETRIEVE                     0
+Test Create ONUDevice-1
+                      ONUCREATE                       0
+Test Get ONUDevice-1
+                      ONURETRIEVE                     0
 Test Create VOLTDevice-2
                       CREATE       1
 Test Get VOLTDevice-2
@@ -32,6 +36,10 @@ Test Create PONPort-2
                       PONCREATE       1
 Test Get PONPort-2
                       PONRETRIEVE     1
+Test Create ONUDevice-2
+                      ONUCREATE                       1
+Test Get ONUDevice-2
+                      ONURETRIEVE                     1
 Test Create VOLTDevice-3
                       CREATE       2
 Test Get VOLTDevice-3
@@ -40,6 +48,10 @@ Test Create PONPort-3
                       PONCREATE       2
 Test Get PONPort-3
                       PONRETRIEVE     2
+Test Create ONUDevice-3
+                      ONUCREATE                       2
+Test Get ONUDevice-3
+                      ONURETRIEVE                     2
 
 
 *** Keywords ***
@@ -50,6 +62,9 @@ Read InputFile
     ${PONPortList}=    utils.jsonToList    ${PATHFILE1}    PONPortInfo
     Set Suite Variable    ${plist}    ${PONPortList}
     Set Suite Variable    ${PONPort_Id}    ${EMPTY}
+    ${ONUDeviceList}=    utils.jsonToList    ${PATHFILE2}    ONUDeviceInfo
+    Set Suite Variable    ${nlist}    ${ONUDeviceList}
+    Set Suite Variable    ${ONUDevice_Id}    ${EMPTY}
 
 Verify VOLTDevice functionality
     [Arguments]    ${type}    ${listIndex}
@@ -58,6 +73,8 @@ Verify VOLTDevice functionality
     Run Keyword If    "${type}" == "DELETE"    Test Delete VOLT Device API    ${listIndex}
     Run Keyword If    "${type}" == "PONCREATE"    Test Post PONPort API    ${listIndex}
     Run Keyword If    "${type}" == "PONRETRIEVE"    Test Get PONPort API    ${listIndex}
+    Run Keyword If    "${type}" == "ONUCREATE"    Test Post ONUDevice API    ${listIndex}
+    Run Keyword If    "${type}" == "ONURETRIEVE"    Test Get ONUDevice API    ${listIndex}
 
 Test Post VOLT Device API
     [Arguments]    ${listIndex}
@@ -104,6 +121,27 @@ Test Get PONPort API
     ${PONPortDict}=    utils.listToDict    ${PONPortList}    ${listIndex}
     Log    ${PONPortDict}
     ${test_result}=    utils.compare_dict    ${PONPortDict}    ${json_result}
+    Should Be True    ${test_result}
+
+Test Post ONUDevice API
+    [Arguments]    ${listIndex}
+    ${ONUDeviceList}=    Get Variable Value    ${nlist}
+    ${ONUDeviceDict}=    utils.listToDict    ${ONUDeviceList}    ${listIndex}
+    ${ONUDeviceDict}=    utils.setFieldValueInDict    ${ONUDeviceDict}    pon_port_id    ${PONPort_Id}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    ONU_DEVICE    ${ONUDeviceDict}
+    Should Be True    ${api_result_status}
+    ${ONUDevice_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${ONUDevice_Id}
+
+Test Get ONUDevice API
+    [Arguments]    ${listIndex}
+    Log    ${ONUDevice_Id}
+    ${json_result}=    restApi.ApiChameleonGet    ONU_DEVICE    ${ONUDevice_Id}
+    Log    ${json_result}
+    ${ONUDeviceList} =    Get Variable Value    ${nlist}
+    ${ONUDeviceDict}=    utils.listToDict    ${ONUDeviceList}    ${listIndex}
+    Log    ${ONUDeviceDict}
+    ${test_result}=    utils.compare_dict    ${ONUDeviceDict}    ${json_result}
     Should Be True    ${test_result}
 
 Test Delete VOLT Device API
