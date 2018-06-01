@@ -1,0 +1,132 @@
+// Copyright 2017-present Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pod_config = null
+
+node ("${TestNodeName}") {
+    timeout (time: 240) {
+        stage ("Parse deployment configuration file") {
+            sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
+            sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
+            deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
+            pod_config = readYaml file: "${configRepoBaseDir}${deployment_config.pod_config.file_name}"
+        }
+
+    stage('Clean up') {
+        timeout(10) {
+            try {
+                sh """
+                helm delete --purge onos-voltha
+                helm delete --purge onos-fabric
+                helm delete --purge voltha
+                helm delete --purge rcord-lite
+                helm delete --purge xos-core
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+    }
+    stage('Export pod config') {
+        timeout(10) {
+            try {
+                sh """
+                export KUBECONFIG=/home/cord/${pod_config.pod_config}
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+    }
+    stage('Install xos-core and rcord-lite') {
+        timeout(10) {
+            try {
+                sh """
+                rm -rf ~/helm-charts*
+                git clone -b ${branch} https://gerrit.opencord.org/helm-charts
+                cd helm-charts
+                helm dep update xos-core
+                helm install -n xos-core xos-core
+                helm dep update xos-profiles/rcord-lite
+                helm install -n rcord-lite xos-profiles/rcord-lite
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('Install voltha') {
+        timeout(10) 
+            try {
+                sh """
+                cd ~/helm-charts/voltha  
+                helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+                helm dep build
+                cd ~/helm-charts
+                helm install -n voltha --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
+                helm upgrade --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('Install ONOS-Voltha and ONOS-Fabric') {
+        timeout(10) 
+            try {
+                sh """
+                cd ~/helm-charts
+                helm install -n onos-fabric -f configs/onos-fabric.yaml onos
+                helm install -n onos-voltha -f configs/onos-voltha.yaml onos
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('Download cord-tester repo') {
+        timeout(10) 
+            try {
+                sh """
+                cd ~/home/cord
+                rm -rf ~/cord-tester
+                git clone -b ${branch} https://gerrit.opencord.org/cord-tester 
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+   stage('Verify E2E XOS') {
+        timeout(10) {
+            try {
+                sh """
+                cd /home/cord/cord-tester/src/test/cord-api/Properties/
+                sed -i s/^XOS_USER\\ =\\ .*$/XOS_USER\\ =\\ \\'admin@opencord.org'/ RestApiProperties.py               
+                sed -i s/^XOS_PASSWD\\ =\\ .*$/XOS_PASSWD\\ =\\ \\'letmein'/ RestApiProperties.py               
+                cd /home/cord/cord-tester/src/test/cord-api/Tests
+                rm -r Log/ || true
+                pybot -d Log -T VOLTDevice_Test.txt || all_passed=false
+                pybot -d Log -T RCORDLite_E2ETest.txt || all_passed=false
+                python -m robot.testdoc Tests/*.txt TestDoc/XOSApiTests.html
+                if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                """
+            } catch(error) { currentBuild.result = 'FAILURE' }
+        }
+    }
+    stage('Publish') {
+        try {
+            sh """
+            if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs
+            scp -r sdn@{TestNodeName}:/home/cord/cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
+            """
+            step([$class: 'RobotPublisher',
+                disableArchiveOutput: false,
+                logFileName: 'RobotLogs/log*.html',
+                otherFiles: '',
+                outputFileName: 'RobotLogs/output*.xml',
+                outputPath: '.',
+                passThreshold: 100,
+                reportFileName: 'RobotLogs/report*.html',
+                unstableThreshold: 0])
+        } catch(error) {}
+    }
+    step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+}
