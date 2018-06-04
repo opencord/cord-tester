@@ -99,8 +99,8 @@ node ("${TestNodeName}") {
             try {
                 sh """
                 cd /home/cord/cord-tester/src/test/cord-api/Properties/
-                sed -i s/^XOS_USER\\ =\\ .*$/XOS_USER\\ =\\ \\'admin@opencord.org'/ RestApiProperties.py               
-                sed -i s/^XOS_PASSWD\\ =\\ .*$/XOS_PASSWD\\ =\\ \\'letmein'/ RestApiProperties.py               
+                sed -i \"s/^\\(XOS_USER = \\).*/\\1\'admin@opencord.org\'/\" RestApiProperties.py
+                sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
                 cd /home/cord/cord-tester/src/test/cord-api/Tests
                 rm -r Log/ || true
                 pybot -d Log -T VOLTDevice_Test.txt || all_passed=false
