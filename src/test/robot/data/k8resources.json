@@ -58,5 +58,26 @@
         "onos-fabric-ovsdb",
         "onos-fabric-ssh",
         "onos-fabric-ui"
+    ],
+    "voltha-containers":
+    [
+        "kafka-broker",
+        "zookeeper-server",
+        "etcd-restore-operator",
+        "voltha-etcd-operator-etcd-operator",
+        "etcd-backup-operator"
+    ],
+    "voltha-deployments":
+    [
+        "voltha-etcd-operator-etcd-backup-operator",
+        "voltha-etcd-operator-etcd-operator",
+        "voltha-etcd-operator-etcd-restore-operator"
+    ],
+    "voltha-services":
+    [
+        "voltha-kafka",
+        "voltha-kafka-headless",
+        "voltha-zookeeper",
+        "voltha-zookeeper-headless"
     ]
 }
