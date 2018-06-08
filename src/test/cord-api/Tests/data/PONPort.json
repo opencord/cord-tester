@@ -4,19 +4,19 @@
             "name": "volt-port-1",
             "s_tag": 222,
             "olt_device_id": 1,
-            "port_id" : "of:0000000000000002/1"
+            "port_no" : 1
     },
     {
             "name": "volt-port-2",
             "s_tag": 444,
             "olt_device_id": 1,
-            "port_id" : "of:0000000000000001/2"
+            "port_no" : 2
     },
     {
             "name": "volt-port-3",
             "s_tag": 333,
             "olt_device_id": 1,
-            "port_id" : "of:0000000000000001/1"
+            "port_no" : 3
     }
   ]
 }
