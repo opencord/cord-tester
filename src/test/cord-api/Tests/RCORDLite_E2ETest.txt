@@ -38,18 +38,17 @@ Test Post Subscriber Create
     [Arguments]    ${listIndex}
     ${subscriberList} =    Get Variable Value    ${slist}
     ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    ${api_result_status}   ${api_result_json}=    restApi.ApiPostReturnJson    VOLT_SUBSCRIBER    ${subscriberDict}
     Sleep    90
-    ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
-    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    Should Be True    ${api_result_status}
+    ${Subscriber_Id}=    Get From Dictionary    ${api_result_json}    id
+    ${json_result}=    restApi.ApiChameleonGet    VOLT_SUBSCRIBER    ${Subscriber_Id}
     Log    ${json_result}
-    ${json_result_list}=    Get From Dictionary    ${json_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
-    ${result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
+    ${result}=    utils.compare_dict    ${subscriberDict}    ${json_result}
     Should Be True    ${result}
     ${instanceList}    Create List
     # Retrieve Subscribed_links_id from Posted Subscriber
-    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
+    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${json_result}    subscribed_links_ids
     ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
     # Retrieve Provided_Service_Instance_Id from "ServiceInstanceLinks"
     ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
