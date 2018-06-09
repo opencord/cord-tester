@@ -46,7 +46,7 @@ node ("${TestNodeName}") {
                     helm ls | grep voltha && helm delete --purge voltha
                     helm ls | grep rcord-lite && helm delete --purge rcord-lite
                     helm ls | grep xos-core && helm delete --purge xos-core
-                    sleep 120
+                    sleep 80
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }    
@@ -88,6 +88,7 @@ node ("${TestNodeName}") {
                     cd /home/cord/helm-charts
                     helm install -n onos-fabric -f configs/onos-fabric.yaml onos
                     helm install -n onos-voltha -f configs/onos-voltha.yaml onos
+                    sleep 60
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
@@ -103,11 +104,28 @@ node ("${TestNodeName}") {
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
+        stage('Validate Helm Chart Install') {
+            timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/cord-tester/src/test/robot/
+                    rm -rf Log/ || true
+                    pybot -d Log -T SanityK8POD.robot || all_passed=false
+                    if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
         stage('Verify E2E XOS') {
             timeout(10) {
                 try {
                     sh """
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    chameleon=\$(kubectl get pod | grep chameleon)
+                    echo $chameleon
+                    kubectl delete pod $chameleon
+                    kubectl get pods
                     cd /home/cord/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.node1.ip}\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
@@ -127,6 +145,7 @@ node ("${TestNodeName}") {
                 sh """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
+                cp -r /home/cord/cord-tester/src/test/robot/Log/* ./RobotLogs || true
                 cp -r /home/cord/cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
                 """
                 step([$class: 'RobotPublisher',
@@ -143,3 +162,4 @@ node ("${TestNodeName}") {
         step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
     }
 }
+
