@@ -112,7 +112,7 @@ node ("${TestNodeName}") {
                     cd /home/cord/cord-tester/src/test/robot/
                     rm -rf Log/ || true
                     pybot -d Log -T SanityK8POD.robot || all_passed=false
-                    if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                    #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
@@ -122,9 +122,10 @@ node ("${TestNodeName}") {
                 try {
                     sh """
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    chameleon=\$(kubectl get pod | grep chameleon)
-                    echo $chameleon
-                    kubectl delete pod $chameleon
+                    chameleon=\$(kubectl get pods | grep chameleon | cut -d' ' -f1)
+                    echo \$chameleon
+                    kubectl delete pod \$chameleon
+                    sleep 120
                     kubectl get pods
                     cd /home/cord/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.node1.ip}\'/\" RestApiProperties.py
@@ -162,4 +163,3 @@ node ("${TestNodeName}") {
         step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
     }
 }
-
