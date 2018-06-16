@@ -1,0 +1,20 @@
+{
+    "FabricPortInterface" : [
+    {
+            "name": "OLT1-Interface-1",
+            "ips": "10.8.2.254",
+            "port_id": 1
+    },
+    {
+    
+            "name": "Interface-2",
+            "ips": "192.22.18.4",
+            "port_id": 2
+    },
+    {
+            "name": "Interface-2",
+            "ips": "192.22.18.4",
+            "port_id": 3
+    }
+  ]
+}
