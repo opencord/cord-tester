@@ -18,7 +18,6 @@
     "rcord-lite-containers":
     [
         "fabric",
-        "kubernetes",
         "onos-service",
         "rcord",
         "volt",
@@ -28,7 +27,6 @@
     "rcord-lite-deployments":
     [
         "rcord-lite-fabric",
-        "rcord-lite-kubernetes",
         "rcord-lite-onos-service",
         "rcord-lite-rcord",
         "rcord-lite-volt",
