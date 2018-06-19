@@ -111,7 +111,10 @@ node ("${TestNodeName}") {
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
                     cd /home/cord/cord-tester/src/test/robot/
                     rm -rf Log/ || true
+                    rm -r TestDoc/ || true
+                    mkdir TestDoc
                     pybot -d Log -T SanityK8POD.robot || all_passed=false
+                    python -m robot.testdoc SanityK8POD.robot TestDoc/SanityK8POD.html
                     #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
@@ -134,8 +137,12 @@ node ("${TestNodeName}") {
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
                     cd /home/cord/cord-tester/src/test/cord-api/Tests
                     rm -rf Log/ || true
+                    rm -r TestDoc/ || true
+                    mkdir TestDoc
                     pybot -d Log -T VOLTDevice_Test.txt || all_passed=false
                     pybot -d Log -T RCORDLite_E2ETest.txt || all_passed=false
+                    python -m robot.testdoc VOLTDevice_Test.txt TestDoc/VOLTDevice_Test.html
+                    python -m robot.testdoc RCORDLite_E2ETest.txt TestDoc/RCORDLite_E2ETest.html
                     if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
@@ -147,12 +154,13 @@ node ("${TestNodeName}") {
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
                 cp -r /home/cord/cord-tester/src/test/robot/Log/* ./RobotLogs || true
-                cp -r /home/cord/cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
+                cp -r /home/cord/cord-tester/src/test/robot/TestDoc* ./RobotLogs || true
+                cp -r /home/cord/cord-tester/src/test/cord-api/Tests/TestDoc/* ./RobotLogs/TestDoc || true
                 """
                 step([$class: 'RobotPublisher',
                     disableArchiveOutput: false,
                     logFileName: 'RobotLogs/log*.html',
-                    otherFiles: '',
+                    otherFiles: 'RobotLogs/TestDoc/*.html',
                     outputFileName: 'RobotLogs/output*.xml',
                     outputPath: '.',
                     passThreshold: 100,
