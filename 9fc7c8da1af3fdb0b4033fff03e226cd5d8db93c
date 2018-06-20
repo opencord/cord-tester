@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "62f048e8_b346544a",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 25,
+      "author": {
+        "id": 1000009
+      },
+      "writtenOn": "2018-06-20T02:51:19Z",
+      "side": 1,
+      "message": "We\u0027re trying to stay away from \"head node\" language.",
+      "range": {
+        "startLine": 25,
+        "startChar": 52,
+        "endLine": 25,
+        "endChar": 56
+      },
+      "revId": "9fc7c8da1af3fdb0b4033fff03e226cd5d8db93c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
