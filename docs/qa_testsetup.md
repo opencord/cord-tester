@@ -2,11 +2,10 @@
 
 ## Configure Automation Framework
 
-* When the POD/Cord-in-a-Box is installed, cord-tester repo is downloaded on
-  the head node at `/opt/cord/test` directory
-
-* Tests can be run directly from the headnode or from a different VM then it
-  can be done using the following command:
+* Tests can be run directly from your local machine or from a different VM by exporting the
+  configuration file for the target CORD servers.
+  
+* Download the `cord-tester` repo using the following command:
 
   ```bash
   git clone https://gerrit.opencord.org/cord-tester
@@ -16,7 +15,7 @@
   done using the following command:
 
   ```bash
-  cd /opt/cord/test/cord-tester/src/test/setup
+  cd cord-tester/src/test/setup
   sudo ./prerequisites.sh --cord
   ```
 
@@ -25,58 +24,43 @@
 Most of the tests in cord-tester framework are written in `python` and
 `RobotFramework`.  Few examples for test execution are shown below
 
+* Export the configuration file(file that was generated during kubernetes/helm installation)
+
+  ```bash
+  export KUBECONFIG=/home/cord/cord-pod1.conf
+  ```
+  Assuming that `cord-pod1.conf` file is present in `/home/cord` directory
+
 * Executing a sample test
 
   ```bash
-  cd /opt/cord/test/cord-tester/src/test/robot/
-  pybot SanityPhyPOD.robot
+  cd cord-tester/src/test/robot/
+  pybot SanityK8POD.robot
   ```
 
 ### Executing Control Plane Tests
 
 * Each control plane test uses input data in `json` format which are present
-  under `/opt/cord/test/cord-tester/src/test/cord-api/Tests/data`
+  under `cord-tester/src/test/cord-api/Tests/data`
 
 * Before running control plane tests, a properties file need to be edited as
   shown below.  Update the following attributes accordingly
 
   ```bash
-  $ cd /opt/cord/test/cord-tester/src/test/cord-api/Properties
+  $ cd cord-tester/src/test/cord-api/Properties
   $ cat RestApiProperties.py
 
   SERVER_IP = 'localhost'
-  SERVER_PORT = '9101'
-  USER = 'xosadmin@opencord.org'
+  SERVER_PORT = '30006'
+  USER = 'admin@opencord.org'
   PASSWD = ''
   ```
 
 * To run tests
 
   ```bash
-  cd /opt/cord/test/cord-tester/src/test/cord-api/
+  cd cord-tester/src/test/cord-api/Tests/
   pybot <testcase.txt>
   ```
-
-## Executing Functional/Module Tests
-
-* There are several functional tests written to test various modules of CORD
-  independently.
-
-* Before executing module based tests, following steps need to be performed
-  which will create a `test container` and sets up the environment in the
-  container to run tests.
-
-  ```bash
-  cd /opt/cord/test/cord-tester/src/test/setup/
-  sudo ./cord-test.py setup -m manifest-cord.json
-  ```
-
-* Run a single test from a module
-
-  ```bash
-  sudo ./cord-test.py  run -t dhcp:dhcp_exchange.test_dhcp_1request
-  ```
-
   For more detailed explanations of the cord-tester options please see [Running
   Tests](running.md).
-
