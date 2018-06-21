@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5fc2f682_fc13fab4",
+        "filename": "docs/README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-06-21T20:11:00Z",
+      "side": 1,
+      "message": "Is this a separate paragraph?",
+      "range": {
+        "startLine": 8,
+        "startChar": 22,
+        "endLine": 9,
+        "endChar": 2
+      },
+      "revId": "b407c587f2a5008ef80b39e7fe70f848807c08af",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6f59b348_2f0a95b0",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-06-21T20:11:00Z",
+      "side": 1,
+      "message": "Might specify physical or virtual to clarify the current test situation.",
+      "range": {
+        "startLine": 64,
+        "startChar": 9,
+        "endLine": 64,
+        "endChar": 10
+      },
+      "revId": "b407c587f2a5008ef80b39e7fe70f848807c08af",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
