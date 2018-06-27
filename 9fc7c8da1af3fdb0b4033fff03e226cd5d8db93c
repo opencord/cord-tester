@@ -19,6 +19,24 @@
     },
     {
       "key": {
+        "uuid": "3136c1b4_8e03fa13",
+        "filename": "docs/qa_testsetup.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 37,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-06-27T21:42:43Z",
+      "side": 1,
+      "message": "Yes, I agree.  But currently it works without these options and the document has been updated based on the current implementation.  Incase there are additional changes to the script, please take care of the updates to this section.",
+      "parentUuid": "560f679a_45aadd00",
+      "revId": "9fc7c8da1af3fdb0b4033fff03e226cd5d8db93c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "62f048e8_b346544a",
         "filename": "docs/validate_pods.md",
         "patchSetId": 1
