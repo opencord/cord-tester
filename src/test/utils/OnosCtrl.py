@@ -277,7 +277,7 @@ class OnosCtrl:
         return False, 400
 
     @classmethod
-    def config_device_driver(cls, controller = None, dids = None, driver = 'pmc-olt'):
+    def config_device_driver(cls, controller = None, dids = None, driver = 'voltha'):
         driver_apps = ('org.onosproject.drivers', 'org.onosproject.openflow-base',)
         if dids is None:
             dids = cls.get_device_ids(controller = controller)
