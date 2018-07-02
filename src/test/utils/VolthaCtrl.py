@@ -279,7 +279,7 @@ class VolthaCtrl(object):
                                               names = onu_names,
                                               macs = onu_macs)
             device_config['devices'][device_id] = {}
-            device_config['devices'][device_id]['basic'] = dict(driver='pmc-olt')
+            device_config['devices'][device_id]['basic'] = dict(driver='voltha')
             device_config['devices'][device_id]['accessDevice'] = dict(uplink=nni_ports[0]['port'],
                                                                        vlan = uplink_vlan,
                                                                        defaultVlan=str(onu_ports[0])
@@ -424,7 +424,7 @@ def voltha_setup(host = '172.17.0.1', ponsim_host = VolthaService.PONSIM_HOST, o
                  uplink_vlan_start = VolthaCtrl.UPLINK_VLAN_START,
                  config_fake = False, olt_app = None, teardown = True):
     devices = OnosCtrl.get_devices()
-    olt_devices = filter(lambda d: not d['mfr'].startswith('Nicira') and d['driver'] == 'pmc-olt', devices)
+    olt_devices = filter(lambda d: not d['mfr'].startswith('Nicira') and d['driver'] == 'voltha', devices)
     voltha = VolthaCtrl(host, rest_port = rest_port,
                         uplink_vlan_map = uplink_vlan_map,
                         uplink_vlan_start = uplink_vlan_start)
