@@ -170,7 +170,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         device_details = OnosCtrl.get_devices()
         if device_details is not None:
            for device in device_details:
-               if device['available'] is True and device['driver'] == 'pmc-olt':
+               if device['available'] is True and device['driver'] == 'voltha':
                   cls.olt_serial_id = "{}".format(device['serial'])
                   break
                else:
@@ -499,7 +499,7 @@ subnet 192.168.1.0 netmask 255.255.255.0 {
         if device_details is not None:
            for device in device_details:
              ## Assuming only one OVS is detected on ONOS and its for external DHCP server connect point...
-             if device['available'] is True and device['driver'] == 'pmc-olt':
+             if device['available'] is True and device['driver'] == 'voltha':
                 cls.olt_serial_id = "{}".format(device['serial'])
              else:
                 cls.olt_serial_id = " "

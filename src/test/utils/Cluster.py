@@ -1697,7 +1697,7 @@ yg==
             cls.device_dict = { "devices" : {
                         "{}".format(did) : {
                               "basic" : {
-                                    "driver" : "pmc-olt"
+                                    "driver" : "voltha"
                                     }
                               }
                         },
@@ -1712,7 +1712,7 @@ yg==
           network_cfg = { "devices" : {
                   "{}".format(did) : {
                         "basic" : {
-                              "driver" : "pmc-olt"
+                              "driver" : "voltha"
                               }
                         }
                   },

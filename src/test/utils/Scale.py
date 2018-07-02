@@ -720,7 +720,7 @@ line vty
         #dids = OnosCtrl.get_device_ids()
         #device_map = {}
         #for did in dids:
-        #      device_map[did] = { 'basic' : { 'driver' : 'pmc-olt' } }
+        #      device_map[did] = { 'basic' : { 'driver' : 'voltha' } }
         #network_cfg = {}
         #network_cfg = { 'devices' : device_map }
         #Restart ONOS with cpqd driver config for OVS
