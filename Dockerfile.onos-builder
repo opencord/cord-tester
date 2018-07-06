@@ -14,7 +14,8 @@
 # limitations under the License.
 
 
-FROM debian:jessie
+# 8.11 == jessie
+FROM debian:8.11
 MAINTAINER A R Karthick <kramanar@ciena.com>
 
 # Add Java 8 repository
