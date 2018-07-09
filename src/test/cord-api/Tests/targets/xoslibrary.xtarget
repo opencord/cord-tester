@@ -105,6 +105,14 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Value    string
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
     {% endif %}
+    {% if  m.name  == "RCORDSubscriber" -%}
+    ${json_{{ m.name | lower}}_onudevice}=    Set Variable    onudevice123
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /onu_device    "${json_{{ m.name | lower}}_onudevice}"
+    ${json_{{ m.name | lower}}_onudevice_updated_1}=    Set Variable    onudevice1234
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /onu_device    "${json_{{ m.name | lower}}_onudevice_updated_1}"
+    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice123", "pon_port_id": 1, "vendor": "abcdefg"}
+    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice1234", "pon_port_id": 2, "vendor": "zzcdefg"}
+    {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
