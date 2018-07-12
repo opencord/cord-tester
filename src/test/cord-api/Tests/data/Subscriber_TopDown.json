@@ -5,8 +5,7 @@
             "c_tag": 999,
             "mac_address" : "08:35:71:06:b9:69",
             "ip_address" : "10.8.2.105",
-            "onu_device": "ALPHe3d1cfa7",
-            "status": "awaiting-auth" 
+            "onu_device": "ALPHe3d1cfa7"
      },
      {
             "name": "My House-306",
