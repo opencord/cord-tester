@@ -1,6 +1,6 @@
 
 *** Settings ***
-Documentation     Test Suite for XOS APIs
+Documentation     Test Suite for XOS Service APIs
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Verify API Functionality

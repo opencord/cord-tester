@@ -106,12 +106,13 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
     {% endif %}
     {% if  m.name  == "RCORDSubscriber" -%}
+    ## Create req objects for subscriber (voltservice -> oltdevice -> ponport -> onudevice)
+    CORD Post    /xosapi/v1/volt/voltservices    {"name": "testvoltservice123"}
+    CORD Post    /xosapi/v1/volt/oltdevices    {"volt_service_id": ${id}, "uplink": "testoltdevice123"}
+    CORD Post    /xosapi/v1/volt/ponports    {"s_tag": "1234", "olt_device_id": ${id}, "port_no": "123", "name": "testponport123"}
     ${json_{{ m.name | lower}}_onudevice}=    Set Variable    onudevice123
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /onu_device    "${json_{{ m.name | lower}}_onudevice}"
-    ${json_{{ m.name | lower}}_onudevice_updated_1}=    Set Variable    onudevice1234
-    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /onu_device    "${json_{{ m.name | lower}}_onudevice_updated_1}"
-    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice123", "pon_port_id": 1, "vendor": "abcdefg"}
-    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice1234", "pon_port_id": 2, "vendor": "zzcdefg"}
+    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice123", "pon_port_id": ${id}, "vendor": "abcdefg"}
     {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
@@ -191,4 +192,3 @@ Teardown Tests
     {% endif -%}
     {% endfor -%}
     Delete All Sessions
-
