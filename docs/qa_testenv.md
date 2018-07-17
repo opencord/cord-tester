@@ -21,4 +21,4 @@ The following diagram shows how the test servers are interconnected
 ![QA Jenkins Setup](images/qa_jenkinsetup_diag.png)
 
 * To view results from recent runs of the jenkins jobs, please view the
-  [Jenkins dashboard](https://jenkins-new.opencord.org/)
+  [Jenkins dashboard](https://jenkins.opencord.org/)
