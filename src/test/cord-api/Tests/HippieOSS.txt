@@ -1,0 +1,51 @@
+*** Settings ***
+Documentation     Test for configuring HippieOSS for ZeroTouch test
+Suite Setup       Read InputFile
+Test Template     Configuring Hippie OSS Service
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/hippieOSS.json
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Test Create HippieOSS-1
+                      CREATE                       0
+Test Get HippieOSS-1
+                      RETRIEVE                     0
+
+*** Keywords ***
+Read InputFile
+    ${hippieList}=    utils.jsonToList    ${PATHFILE}   hippieOSSInfo 
+    Set Suite Variable    ${slist}    ${hippieList}
+    Set Global Variable    ${hippieOSS_Id}    ${EMPTY}
+
+Configuring Hippie OSS Service
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Post Hippie OSS    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Get Hippie OSS    ${listIndex}
+
+Post Hippie OSS
+    [Arguments]    ${listIndex}
+    ${hippieList} =    Get Variable Value    ${slist}
+    ${hippieOSSDict}=    utils.listToDict    ${hippieList}    ${listIndex}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    OSS_SERVICE    ${hippieOSSDict}
+    Should Be True    ${api_result_status}
+    ${hippieOSS_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${hippieOSS_Id}
+
+Get Hippie OSS
+    [Arguments]    ${listIndex}
+    Log    ${hippieOSS_Id}
+    ${json_result}=    restApi.ApiChameleonGet    OSS_SERVICE    ${hippieOSS_Id}
+    Log    ${json_result}
+    ${hippieList} =    Get Variable Value    ${slist}
+    ${hippieOSSDict}=    utils.listToDict    ${hippieList}    ${listIndex}
+    Log    ${hippieOSSDict}
+    ${test_result}=    utils.compare_dict    ${hippieOSSDict}    ${json_result}
+    Should Be True    ${test_result}

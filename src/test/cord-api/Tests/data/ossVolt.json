@@ -1,0 +1,9 @@
+{
+    "ossVoltInfo" : [
+     {
+       "connect_method": "None",
+       "subscriber_service_id": 8,
+       "provider_service_id": 2
+     }
+ ]
+}
