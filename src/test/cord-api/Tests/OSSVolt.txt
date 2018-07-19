@@ -1,0 +1,64 @@
+*** Settings ***
+Documentation     Test for configuring OSS VOLT for Zero Touch
+Suite Setup       Read InputFile
+Test Template     Configuring OSS Volt
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/ossVolt.json
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Test Create VOLTDevice-1
+                      CREATE                       0
+Test Get VOLTDevice-1
+                      RETRIEVE                     0
+
+*** Keywords ***
+Read InputFile
+    ${ossVoltList}=    utils.jsonToList    ${PATHFILE}    ossVoltInfo
+    Set Suite Variable    ${dlist}    ${ossVoltList}
+    Set Global Variable    ${VOLTDevice_Id}    ${EMPTY}
+    Set Global Variable    ${hippieOSS_Id}    ${EMPTY}
+
+Configuring OSS Volt
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Post OSS Volt    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get OSS Volt    ${listIndex}
+
+Test Post OSS Volt
+    [Arguments]    ${listIndex}
+    ${ossVoltList} =    Get Variable Value    ${dlist}
+    ${ossVoltDict}=    utils.listToDict    ${ossvoltList}    ${listIndex}
+    ${api_getResult}=    restApi.ApiGet   VOLT_SERVICE 
+    ${voltServiceList}=    Get From Dictionary    ${api_getResult}    items
+    ${voltServiceDict}=    utils.getDictFromListOfDict    ${voltServiceList}    leaf_model_name    VOLTService
+    ${VOLTService_Id}=    Get From Dictionary    ${voltServiceDict}    id
+    ${ossVoltDict}=    utils.setFieldValueInDict    ${ossVoltDict}    provider_service_id    ${VOLTService_Id}
+    Log    ${ossVoltDict}
+    ${api_getResult}=    restApi.ApiGet   OSS_SERVICE 
+    ${ServiceList}=    Get From Dictionary    ${api_getResult}    items
+    ${ServiceDict}=    utils.getDictFromListOfDict    ${ServiceList}    self_content_type_id    hippie-oss.hippieossservice
+    ${hippieOSS_Id}=    Get From Dictionary    ${ServiceDict}    id
+    ${ossVoltDict}=    utils.setFieldValueInDict    ${ossVoltDict}    subscriber_service_id    ${hippieOSS_Id}
+    Log    ${ossVoltDict}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    OSS_VOLT    ${ossVoltDict}
+    Should Be True    ${api_result_status}
+    ${VOLTDevice_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${VOLTDevice_Id}
+
+Test Get OSS Volt 
+    [Arguments]    ${listIndex}
+    Log    ${VOLTDevice_Id}
+    ${json_result}=    restApi.ApiChameleonGet    OSS_VOLT    ${VOLTDevice_Id}
+    Log    ${json_result}
+    ${voltDeviceList} =    Get Variable Value    ${dlist}
+    ${voltDeviceDict}=    utils.listToDict    ${voltDeviceList}    ${listIndex}
+    Log    ${voltDeviceDict}
+    ${test_result}=    utils.compare_dict    ${voltDeviceDict}    ${json_result}
+    Should Be True    ${test_result}
