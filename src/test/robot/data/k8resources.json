@@ -5,7 +5,9 @@
         "xos-core",
         "xos-db",
         "xos-redis",
-        "xos-tosca"
+        "xos-tosca",
+        "xos-gui",
+        "xos-ws"
     ],
     "xos-core-deployments":
     [
@@ -13,7 +15,9 @@
         "xos-core",
         "xos-db",
         "xos-redis",
-        "xos-tosca"
+        "xos-tosca",
+        "xos-gui",
+        "xos-ws"
     ],
     "rcord-lite-containers":
     [
@@ -59,8 +63,6 @@
     ],
     "voltha-containers":
     [
-        "kafka-broker",
-        "zookeeper-server",
         "etcd-restore-operator",
         "voltha-etcd-operator-etcd-operator",
         "etcd-backup-operator"
@@ -73,9 +75,8 @@
     ],
     "voltha-services":
     [
-        "voltha-kafka",
-        "voltha-kafka-headless",
-        "voltha-zookeeper",
-        "voltha-zookeeper-headless"
+        "etcd-cluster",
+        "etcd-cluster-client",
+        "etcd-restore-operator"
     ]
 }
