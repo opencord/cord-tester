@@ -229,7 +229,7 @@ Validate Pods
     \    ${name}=    Get From Dictionary    ${metadata}    name
     \    Continue For Loop If    '${component}' not in '''${name}'''
     \    Continue For Loop If    'tosca-loader' in '''${name}'''
-    \    Continue For Loop If    '-test' not in '''${name}'''
+    \    Continue For Loop If    '-test' in '''${name}'''
     \    ${status}=    Get From Dictionary    ${item}    status
     \    ${containerStatuses}=    Get From Dictionary    ${status}    containerStatuses
     \    Log    ${containerStatuses}
