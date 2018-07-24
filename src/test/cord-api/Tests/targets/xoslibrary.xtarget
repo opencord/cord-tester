@@ -116,6 +116,11 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /onu_device    "${json_{{ m.name | lower}}_onudevice}"
     CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice123", "pon_port_id": ${id}, "vendor": "abcdefg"}
     {% endif %}
+    {% if  m.name  == "HippieOSSServiceInstance" -%}
+    ## Create req service owner for hippie oss service instance
+    CORD Post    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
