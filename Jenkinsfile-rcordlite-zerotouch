@@ -146,8 +146,8 @@ node ("${TestNodeName}") {
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
                     sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist'
                     sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./bal.log 2>&1 &'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./openolt.log 2>&1 &'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C :55001 < /dev/tty1 > ./bal.log 2>&1 &'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:55001 < /dev/tty1 > ./openolt.log 2>&1 &'
                     sleep 180
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
