@@ -55,7 +55,7 @@ node ("${TestNodeName}") {
                         try {
                             sh """
                             export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                            ! helm ls | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite|xos-core|cord-kafka|voltha-kafka’
+                            ! helm ls | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite|xos-core|cord-kafka|voltha-kafka'
                             ! kubectl get pods --all-namespaces | grep -E 'onos-voltha|onos-fabric|cord-kafka|voltha |rcord-lite-|xos-'
                             """
                             return true
@@ -64,6 +64,20 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
+            }
+        }
+        stage('Restart OLT processes') {
+            timeout(5) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist || true'
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt || true'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C :55001 < /dev/tty1 > ./bal.log 2>&1 &'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:55001 < /dev/tty1 > ./openolt.log 2>&1 &'
+                    sleep 120
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
         stage('Install Kafka') {
@@ -89,6 +103,7 @@ node ("${TestNodeName}") {
                     helm install -n xos-core xos-core
                     helm dep update xos-profiles/rcord-lite
                     helm install -n rcord-lite xos-profiles/rcord-lite
+                    helm install -n hippie-oss xos-services/hippie-oss
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
@@ -137,20 +152,6 @@ node ("${TestNodeName}") {
                         return false
                     }
                 }
-            }
-        }
-        stage('Restart OLT processes') {
-            timeout(5) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist'
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./bal.log 2>&1 &'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./openolt.log 2>&1 &'
-                    sleep 180
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
         stage('Download cord-tester repo') {

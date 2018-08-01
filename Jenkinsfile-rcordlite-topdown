@@ -21,7 +21,6 @@ node ("${TestNodeName}") {
             sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
             deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
         }
-        
         stage('Export pod config') {
             timeout(10) {
                 try {
@@ -65,6 +64,20 @@ node ("${TestNodeName}") {
                 }
             }
         }
+        stage('Restart OLT processes') {
+            timeout(5) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist' || true
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt' || true
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C :55001 < /dev/tty1 > ./bal.log 2>&1 &'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:55001 < /dev/tty1 > ./openolt.log 2>&1 &'
+                    sleep 80
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
         stage('Install xos-core and rcord-lite') {
             timeout(10) {
                 try {
@@ -106,30 +119,6 @@ node ("${TestNodeName}") {
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
-        /*
-        stage('Download cord-tester repo') {
-            timeout(10) {
-                try {
-                    sh """
-                    rm -rf /home/cord/cord-tester
-                    cd /home/cord/
-                    git clone -b ${branch} https://gerrit.opencord.org/cord-tester 
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
-        stage('Validate Helm Chart Install') {
-            timeout(10) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/cord-tester/src/test/robot/
-                    rm -rf Log/ || true
-                    pybot -d Log -T SanityK8POD.robot || true
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }*/
         stage('Wait for PODs to complete') {
             /*
             timeout(5) {
@@ -158,20 +147,6 @@ node ("${TestNodeName}") {
                         return false
                     }
                 }
-            }
-        }
-        stage('Restart OLT processes') {
-            timeout(5) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist' || true
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt' || true
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./bal.log 2>&1 &'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./openolt.log 2>&1 &'
-                    sleep 120
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
         stage('Download cord-tester repo') {
@@ -211,7 +186,7 @@ node ("${TestNodeName}") {
                     rm -rf Log/ || true
                     pybot -d Log -T FabricConfig.txt || true
                     pybot -d Log -T RealOLT_Test.txt || true
-                    sleep 120
+                    sleep 90
                     pybot -d Log -T Subscriber_TopDown.txt || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
