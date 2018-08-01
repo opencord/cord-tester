@@ -16,6 +16,23 @@
       "revId": "fb16dd5603494060b8135327c32a24d54d166dfa",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5a22eb30_c2c6579b",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 3
+      },
+      "lineNbr": 42,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2018-08-01T20:37:08Z",
+      "side": 1,
+      "message": "add \" || true\" after the two pkill commands",
+      "revId": "fb16dd5603494060b8135327c32a24d54d166dfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
