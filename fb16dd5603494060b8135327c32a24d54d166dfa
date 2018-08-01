@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4dcb0b79_f9a74bd3",
+        "filename": "Jenkinsfile-rcordlite-topdown",
+        "patchSetId": 3
+      },
+      "lineNbr": 130,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-01T18:59:27Z",
+      "side": 1,
+      "message": "why are you deleting the chameleon pod here ?",
+      "revId": "fb16dd5603494060b8135327c32a24d54d166dfa",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
