@@ -1,0 +1,218 @@
+// Copyright 2017-present Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+pod_config = null
+
+node ("${TestNodeName}") {
+    timeout (time: 240) {
+        stage ("Parse deployment configuration file") {
+            sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
+            sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
+            deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
+        }
+        stage('Export pod config') {
+            timeout(10) {
+                try {
+                    sh """
+                    cd /home/cord
+                    rm -rf /home/cord/helm-charts
+                    git clone -b ${branch} https://gerrit.opencord.org/helm-charts
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    kubectl get pods
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Clean up') {
+            timeout(10) {
+                try {
+                    sh """
+                    cd /home/cord/helm-charts
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    helm ls | grep onos-voltha && helm delete --purge onos-voltha || true
+                    helm ls | grep onos-fabric && helm delete --purge onos-fabric || true
+                    helm ls | grep voltha && helm delete --purge voltha || true
+                    helm ls | grep rcord-lite && helm delete --purge rcord-lite || true
+                    helm ls | grep xos-core && helm delete --purge xos-core || true
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+                // Wait for helm delete
+                timeout(5) {
+                    waitUntil {
+                        try {
+                            sh """
+                            export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                            ! helm ls | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite|xos-core'
+                            ! kubectl get pods --all-namespaces | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite-|xos-'
+                            """
+                            return true
+                        } catch (exception) {
+                            return false
+                        }
+                    }
+                }
+            }
+        }
+        stage('Restart OLT processes') {
+            timeout(5) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist' || true
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt' || true
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C :55001 < /dev/tty1 > ./bal.log 2>&1 &'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:55001 < /dev/tty1 > ./openolt.log 2>&1 &'
+                    sleep 80
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Install xos-core and rcord-lite') {
+            timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/helm-charts
+                    helm dep update xos-core
+                    helm install -n xos-core xos-core
+                    helm dep update xos-profiles/rcord-lite
+                    helm install -n rcord-lite xos-profiles/rcord-lite
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Install voltha') {
+            timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/helm-charts
+                    helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+                    helm dep build voltha
+                    helm install -n voltha --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
+                    helm upgrade --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Install ONOS-Voltha and ONOS-Fabric') {
+            timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/helm-charts
+                    helm install -n onos-fabric -f configs/onos-fabric.yaml onos
+                    helm install -n onos-voltha -f configs/onos-voltha.yaml onos
+                    sleep 60
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Wait for PODs to complete') {
+            /*
+            timeout(5) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    chameleon=\$(kubectl get pods | grep chameleon | cut -d' ' -f1)
+                    echo \$chameleon
+                    kubectl delete pod \$chameleon
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }*/
+            timeout(5) {
+                waitUntil {
+                    try {
+                        sh """
+                        export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                        kubectl get pods | grep -i tosca-loader | grep -i complete
+                        kubectl get pods | grep -i chameleon | grep -i running
+                        kubectl get pods | grep -i onos-fabric | grep -i running
+                        kubectl get pods --namespace=voltha | grep -i voltha- | grep -i running
+                        kubectl get pods --namespace=voltha | grep -i onos-voltha | grep -i running
+                        """
+                        return true
+                    } catch (exception) {
+                        return false
+                    }
+                }
+            }
+        }
+        stage('Download cord-tester repo') {
+            timeout(10) {
+                try {
+                    sh """
+                    rm -rf /home/cord/cord-tester
+                    cd /home/cord/
+                    git clone -b ${branch} https://gerrit.opencord.org/cord-tester 
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Validate Helm Chart Install') {
+            timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/cord-tester/src/test/robot/
+                    rm -rf Log/ || true
+                    pybot -d Log -T SanityK8POD.robot || all_passed=false
+                    #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Configuration and Tests') {
+            timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/cord-tester/src/test/cord-api/Properties/
+                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.node1.ip}\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(XOS_USER = \\).*/\\1\'admin@opencord.org\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
+                    cd /home/cord/cord-tester/src/test/cord-api/Tests/
+                    rm -rf Log/ || true
+                    pybot -d Log -T FabricConfig.txt || all_passed=false
+                    pybot -d Log -T RealOLT_Test.txt || all_passed=false
+                    sleep 120
+                    pybot -d Log -T Subscriber_TopDown.txt || all_passed=false
+                    #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Publish') {
+            try {
+                sh """
+                if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
+                mkdir RobotLogs/TestDoc || true
+                //cp -r /home/cord/cord-tester/src/test/robot/Log/* ./RobotLogs || true
+                cp -r /home/cord/cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
+                """
+                step([$class: 'RobotPublisher',
+                    disableArchiveOutput: false,
+                    logFileName: 'RobotLogs/log*.html',
+                    otherFiles: '',
+                    outputFileName: 'RobotLogs/output*.xml',
+                    outputPath: '.',
+                    passThreshold: 100,
+                    reportFileName: 'RobotLogs/report*.html',
+                    unstableThreshold: 0])
+            } catch(error) {}
+        }
+        //step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+    }
+}
