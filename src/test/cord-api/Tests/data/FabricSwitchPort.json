@@ -1,8 +1,13 @@
 {
     "FabricSwitchPort" : [
     {
-            "portId": 7
-            "switch_id": 1
+            "portId": 7,
+            "switch_id": 1,
+            "host_learning": false
+    },
+    {
+            "portId": 5,
+            "switch_id" : 6
     }
   ]
 }

@@ -1,0 +1,133 @@
+*** Settings ***
+Documentation     Test suite for FabricSwitch
+Suite Setup       Read InputFile
+Test Template     Verify FabricSwitch functionality
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/FabricSwitch.json
+${PATHFILE1}       ${CURDIR}/data/FabricSwitchPort.json
+${PATHFILE2}       ${CURDIR}/data/FabricPortInterface.json
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Test Create FarbicSwitch-1
+                      CREATE                       0
+Test Get FabricSwitch-1
+                      RETRIEVE     0
+Test Create FabricSwitchPort-1
+                      PORTCREATE                       0
+Test Get FabricSwitchPort-1
+                      PORTRETRIEVE     0
+Test Create FabricPortInterface-1
+                      INTERFACECREATE                       0
+Test Get FabricPortInterface-1
+                      INTERFACERETRIEVE     0
+Test Create FarbicSwitch-2
+                      CREATE                       1
+Test Get FabricSwitch-2
+                      RETRIEVE     1
+Test Create FabricSwitchPort-2
+                      PORTCREATE                       1
+Test Get FabricSwitchPort-2
+                      PORTRETRIEVE     1
+Test Create FabricPortInterface-2
+                      INTERFACECREATE                       1
+Test Get FabricPortInterface-2
+                      INTERFACERETRIEVE     1
+Test Create FarbicSwitch-3
+                      CREATE                       2
+Test Get FabricSwitch-3
+                      RETRIEVE     2
+Test Create FarbicSwitch-4
+                      CREATE                       3
+Test Get FabricSwitch-4
+                      RETRIEVE     3
+
+*** Keywords ***
+Read InputFile
+    ${FabricList}=    utils.jsonToList    ${PATHFILE}   FabricSwitchInfo
+    Set Suite Variable    ${dlist}    ${FabricList}
+    Set Global Variable    ${Fabric_Id}    ${EMPTY}
+    ${FabricPortList}=    utils.jsonToList    ${PATHFILE1}   FabricSwitchPort
+    Set Suite Variable    ${plist}    ${FabricPortList}
+    Set Global Variable    ${SwitchPort_Id}    ${EMPTY}
+    ${FabricInterfaceList}=    utils.jsonToList    ${PATHFILE2}   FabricPortInterface
+    Set Suite Variable    ${ilist}    ${FabricInterfaceList}
+    Set Global Variable    ${FabricInterface_Id}    ${EMPTY}
+
+Verify FabricSwitch functionality
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Test Create Fabric Switch    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Test Get Fabric Switch    ${listIndex}
+    Run Keyword If    "${type}" == "PORTCREATE"    Test Create Switch Port API    ${listIndex}
+    Run Keyword If    "${type}" == "PORTRETRIEVE"    Test Get Switch Port API    ${listIndex}
+    Run Keyword If    "${type}" == "INTERFACECREATE"    Test Create Fabric Interface    ${listIndex}
+    Run Keyword If    "${type}" == "INTERFACERETRIEVE"    Test Get Fabric Interface    ${listIndex}
+
+Test Create Fabric Switch
+    [Arguments]    ${listIndex}
+    ${FabricList} =    Get Variable Value    ${dlist}
+    ${FabricDict}=    utils.listToDict    ${FabricList}    ${listIndex}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    FABRIC_SWITCH    ${FabricDict}
+    Should Be True    ${api_result_status}
+    ${Fabric_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${Fabric_Id}
+
+Test Get Fabric Switch
+    [Arguments]    ${listIndex}
+    Log    ${Fabric_Id}
+    ${json_result}=    restApi.ApiChameleonGet    FABRIC_SWITCH    ${Fabric_Id}
+    Log    ${json_result}
+    ${FabricList} =    Get Variable Value    ${dlist}
+    ${FabricDict}=    utils.listToDict    ${FabricList}    ${listIndex}
+    Log    ${FabricDict}
+    ${test_result}=    utils.compare_dict    ${FabricDict}    ${json_result}
+    Should Be True    ${test_result}
+
+Test Create Switch Port API
+    [Arguments]    ${listIndex}
+    ${SwitchPortList} =    Get Variable Value    ${plist}
+    ${SwitchPortDict}=    utils.listToDict    ${SwitchPortList}    ${listIndex}
+    ${SwitchPortDict}=    utils.setFieldValueInDict    ${SwitchPortDict}    switch_id    ${Fabric_Id}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    SWITCH_PORT    ${SwitchPortDict}
+    Should Be True    ${api_result_status}
+    ${SwitchPort_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${SwitchPort_Id}
+
+Test Get Switch Port API
+    [Arguments]    ${listIndex}
+    Log    ${SwitchPort_Id}
+    ${json_result}=    restApi.ApiChameleonGet    SWITCH_PORT    ${SwitchPort_Id}
+    Log    ${json_result}
+    ${SwitchPortList} =    Get Variable Value    ${plist}
+    ${SwitchPortDict}=    utils.listToDict    ${SwitchPortList}    ${listIndex}
+    Log    ${SwitchPortDict}
+    ${test_result}=    utils.compare_dict    ${SwitchPortDict}    ${json_result}
+    Should Be True    ${test_result}
+
+Test Create Fabric Interface
+    [Arguments]    ${listIndex}
+    ${FabricInterfaceList}=    Get Variable Value    ${ilist}
+    ${FabricInterfaceDict}=    utils.listToDict    ${FabricInterfaceList}    ${listIndex}
+    ${FabricInterfaceDict}=    utils.setFieldValueInDict    ${FabricInterfaceDict}    port_id    ${SwitchPort_Id}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    PORT_INTERFACE    ${FabricInterfaceDict}
+    Should Be True    ${api_result_status}
+    ${FabricInterface_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${FabricInterface_Id}
+
+Test Get Fabric Interface
+    [Arguments]    ${listIndex}
+    Log    ${FabricInterface_Id}
+    ${json_result}=    restApi.ApiChameleonGet    PORT_INTERFACE    ${FabricInterface_Id}
+    Log    ${json_result}
+    ${FabricInterfaceList} =    Get Variable Value    ${ilist}
+    ${FabricInterfaceDict}=    utils.listToDict    ${FabricInterfaceList}    ${listIndex}
+    Log    ${FabricInterfaceDict}
+    ${test_result}=    utils.compare_dict    ${FabricInterfaceDict}    ${json_result}
+    Should Be True    ${test_result}
