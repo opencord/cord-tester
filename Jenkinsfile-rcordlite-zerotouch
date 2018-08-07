@@ -171,8 +171,7 @@ node ("${TestNodeName}") {
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
                     cd /home/cord/cord-tester/src/test/robot/
                     rm -rf Log/ || true
-                    pybot -d Log -T SanityK8POD.robot || all_passed=false
-                    #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                    pybot -d Log -T SanityK8POD.robot || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
@@ -189,11 +188,10 @@ node ("${TestNodeName}") {
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
                     cd /home/cord/cord-tester/src/test/cord-api/Tests/
                     rm -rf Log/ || true
-                    pybot -d Log -T FabricConfig.txt || all_passed=false
-                    pybot -d Log -T HippieOSS.txt || all_passed=false
-                    pybot -d Log -T OSSVolt.txt || all_passed=false
-                    pybot -d Log -T RealOLT_Test.txt || all_passed=false
-                    #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
+                    pybot -d Log -T FabricConfig.txt || true
+                    pybot -d Log -T HippieOSS.txt || true
+                    pybot -d Log -T OSSVolt.txt || true
+                    pybot -d Log -T RealOLT_Test.txt || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
@@ -203,7 +201,7 @@ node ("${TestNodeName}") {
                 sh """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
-                //cp -r /home/cord/cord-tester/src/test/robot/Log/* ./RobotLogs || true
+                cp -r /home/cord/cord-tester/src/test/robot/Log/* ./RobotLogs || true
                 cp -r /home/cord/cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
                 """
                 step([$class: 'RobotPublisher',
