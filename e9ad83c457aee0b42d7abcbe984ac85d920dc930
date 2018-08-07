@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2987daf5_ab14276f",
+        "filename": "Jenkinsfile-rcordlite",
+        "patchSetId": 1
+      },
+      "lineNbr": 136,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2018-08-07T19:39:50Z",
+      "side": 1,
+      "message": "In this case I guess it won\u0027t fail the build even if the test fails?",
+      "range": {
+        "startLine": 136,
+        "startChar": 20,
+        "endLine": 136,
+        "endChar": 63
+      },
+      "revId": "e9ad83c457aee0b42d7abcbe984ac85d920dc930",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
