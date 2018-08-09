@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "65a65918_3ff4414f",
+        "filename": "src/test/cord-api/Tests/targets/xosapitests.xtarget",
+        "patchSetId": 1
+      },
+      "lineNbr": 154,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-09T16:08:07Z",
+      "side": 1,
+      "message": "You need to also do a “Set Json Value” after this line",
+      "range": {
+        "startLine": 154,
+        "startChar": 3,
+        "endLine": 154,
+        "endChar": 22
+      },
+      "revId": "3c93f5e9500b49a2de802d23a367a5842aec0cc2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
