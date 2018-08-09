@@ -115,8 +115,10 @@ Generate JSON Data
     {% endif -%}
     {% endfor -%}
     {% if  m.name  == "User" -%}
-    ${json_{{ m.name | lower}}_email_tmp}=    Set Variable    testuser@opencord.org
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email_tmp}"
+    ${json_{{ m.name | lower}}_email}=    Set Variable    testuser@opencord.org
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email}"
+    ${json_{{ m.name | lower}}_email_updated_1}=    Set Variable    testuserupdated@opencord.org
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /email    "${json_{{ m.name | lower }}_email_updated_1}"
     {% endif %}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
