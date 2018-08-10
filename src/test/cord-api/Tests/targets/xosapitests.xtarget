@@ -95,8 +95,6 @@ Generate JSON Data
     Set Suite Variable    ${json_{{ m.name | lower}}_updated_key}
     # set required fields for {{ m.name | lower }} object
     {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
     {% if not f.options.default -%}
     {% if f.link -%}
     ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
@@ -108,8 +106,6 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_updated_key}=    Set Variable    {{ f.name }}
     ${json_{{ m.name | lower}}_{{ f.name }}_updated_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated__1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_updated_1}"
-    {% endif -%}
-    {% endif -%}
     {% endif -%}
     {% endif -%}
     {% endif -%}
@@ -145,16 +141,10 @@ Create {{ m.name }}
     # set required fields for {{ m.name | lower }} object
     {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
     {% if f.link -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
     # create dependent {{ f.options.model }}
     ${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
-    {% endif -%}
-    {% endif -%}
     {% else -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
     {% if not f.options.default -%}
     {% if m.name == "User" and f.name == "email" -%}
     ${json_user_email_tmp}=   Generate Random Value    {{ f.type }}
@@ -163,8 +153,6 @@ Create {{ m.name }}
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
-    {% endif -%}
-    {% endif -%}
     {% endif -%}
     {% endif -%}
     {% endif -%}
