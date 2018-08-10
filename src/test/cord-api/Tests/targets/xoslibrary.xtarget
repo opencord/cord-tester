@@ -89,6 +89,11 @@ Generate JSON Data
     {% endif -%}
     {% endif -%}
     {% endfor -%}
+    {% if m.name == "User" and f.name == "email" -%}
+    ${json_user_email_tmp}=   Generate Random Value    {{ f.type }}
+    ${json_user_email_tmp}=    Catenate    SEPARATOR=    ${json_user_email_tmp}    @opencord.org
+    ${json_user_1}=   Set Json Value    ${json_user_1}   /email    "${json_user_email_tmp}"
+    {% endif -%}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
