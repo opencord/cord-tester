@@ -24,10 +24,10 @@ ${xos_service}    core
 Create {{ m.name }}    CREATE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_1}
     [Tags]    {{ m.name }}
 
-Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_updated_1}    ${id}
+Update {{ m.name }}    UPDATE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_amend_1}    ${id}
     [Tags]    {{ m.name }}
 
-Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
+Get {{ m.name }}    RETRIEVE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower}}_amend_1}    ${id}    ${json_{{ m.name | lower}}_amend_key}
     [Tags]    {{ m.name }}
 
 Delete {{ m.name }}    DELETE    /xosapi/v1/${xos_service}/{{ xproto_pluralize(m) | lower}}    data_id=${id}
@@ -49,9 +49,9 @@ CORD Get
     ${resp}=    Get Request    ${SERVER_IP}    ${service}/${id}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
-    ${updated_value}=    Run Keyword If    '${key}' != 'null'    Get Json Value    ${resp.content}    /${key}
-    ${updated_value}=    Run Keyword If    '${key}' != 'null'    Remove String    ${updated_value}    "
-    Run Keyword If    '${key}' != 'null'    Should Contain    "${value}"    ${updated_value}
+    ${amend_value}=    Run Keyword If    '${key}' != 'null'    Get Json Value    ${resp.content}    /${key}
+    ${amend_value}=    Run Keyword If    '${key}' != 'null'    Remove String    ${amend_value}    "
+    Run Keyword If    '${key}' != 'null'    Should Contain    "${value}"    ${amend_value}
     [Return]    ${resp}
 
 CORD Post
@@ -90,13 +90,12 @@ Generate JSON Data
     {% autoescape false %}
     {% endautoescape %}
     ${json_{{ m.name | lower }}_1}=    Set Variable    { }
-    ${json_{{ m.name | lower }}_updated_1}=    Set Variable    { }
-    ${json_{{ m.name | lower}}_updated_key}=    Set Variable    null
-    Set Suite Variable    ${json_{{ m.name | lower}}_updated_key}
+    ${json_{{ m.name | lower }}_amend_1}=    Set Variable    { }
+    ${json_{{ m.name | lower}}_amend_key}=    Set Variable    null
+    Set Suite Variable    ${json_{{ m.name | lower}}_amend_key}
     # set required fields for {{ m.name | lower }} object
     {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
+    {% if f.modifier == "required" and f.options.blank != "True" -%}
     {% if not f.options.default -%}
     {% if f.link -%}
     ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
@@ -104,10 +103,14 @@ Generate JSON Data
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    float
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_1}"
+    {% else -%}
     {% if loop.index0 == 0 -%}
-    ${json_{{ m.name | lower}}_updated_key}=    Set Variable    {{ f.name }}
-    ${json_{{ m.name | lower}}_{{ f.name }}_updated_1}=    Generate Random Value    {{ f.type }}
-    ${json_{{ m.name | lower }}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated__1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_updated_1}"
+    ${json_{{ m.name | lower}}_amend_key}=    Set Variable    {{ f.name }}
+    ${json_{{ m.name | lower}}_{{ f.name }}_amend_1}=    Generate Random Value    {{ f.type }}
+    ${json_{{ m.name | lower }}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_amend_1}"
     {% endif -%}
     {% endif -%}
     {% endif -%}
@@ -117,8 +120,8 @@ Generate JSON Data
     {% if  m.name  == "User" -%}
     ${json_{{ m.name | lower}}_email}=    Set Variable    testuser@opencord.org
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email}"
-    ${json_{{ m.name | lower}}_email_updated_1}=    Set Variable    testuserupdated@opencord.org
-    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /email    "${json_{{ m.name | lower }}_email_updated_1}"
+    ${json_{{ m.name | lower}}_email_amend_1}=    Set Variable    testuseramend@opencord.org
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /email    "${json_{{ m.name | lower }}_email_amend_1}"
     {% endif %}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
@@ -127,13 +130,13 @@ Generate JSON Data
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
-    ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Slice Name
-    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
+    ${json_{{ m.name | lower}}_name_amend_1}=    Generate Random Slice Name
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "${json_{{ m.name | lower}}_name_amend_1}"
     {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
-    ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
+    ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
-    Set Suite Variable    ${json_{{ m.name | lower }}_updated_1}
+    Set Suite Variable    ${json_{{ m.name | lower }}_amend_1}
     {% endif -%}
     {% endfor %}
 
@@ -145,21 +148,22 @@ Create {{ m.name }}
     # set required fields for {{ m.name | lower }} object
     {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
     {% if f.link -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
+    {% if f.modifier == "required" and f.options.blank != "True"-%}
     # create dependent {{ f.options.model }}
     ${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
     {% endif -%}
-    {% endif -%}
     {% else -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
+    {% if f.modifier == "required" and f.options.blank != "True"-%}
     {% if not f.options.default -%}
     {% if m.name == "User" and f.name == "email" -%}
     ${json_user_email_tmp}=   Generate Random Value    {{ f.type }}
     ${json_user_email_tmp}=    Catenate    SEPARATOR=    ${json_user_email_tmp}    @opencord.org
     ${json_user_tmp}=   Set Json Value    ${json_user_tmp}   /email    "${json_user_email_tmp}"
+    {% else -%}
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    float
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"

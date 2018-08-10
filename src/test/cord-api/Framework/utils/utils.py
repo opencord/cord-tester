@@ -286,10 +286,10 @@ class utils(object):
                 return random.choice([True, False])
         if value == 'int32' or value == 'uint32':
                 return random.randint(1,10000)
-	if value == 'float':
-		return random.uniform(1,10)
+        if value == 'float':
+            return random.uniform(1,10)
         else:
-                return None
+            return None
 
     def generate_random_slice_name(self):
         random_name = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
