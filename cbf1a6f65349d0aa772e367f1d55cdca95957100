@@ -22,6 +22,30 @@
       "revId": "cbf1a6f65349d0aa772e367f1d55cdca95957100",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "6ffdf0fc_fd541ef3",
+        "filename": "src/test/cord-api/Tests/Subscriber_StatusChecks.txt",
+        "patchSetId": 4
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-10T03:49:11Z",
+      "side": 1,
+      "message": "good catch. fixed!",
+      "parentUuid": "a39e8045_77035177",
+      "range": {
+        "startLine": 99,
+        "startChar": 85,
+        "endLine": 99,
+        "endChar": 86
+      },
+      "revId": "cbf1a6f65349d0aa772e367f1d55cdca95957100",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
