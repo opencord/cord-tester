@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "07dab0d5_ef684ffb",
+        "filename": "src/test/cord-api/Tests/Subscriber_StatusChecks.txt",
+        "patchSetId": 5
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-08-10T19:01:25Z",
+      "side": 1,
+      "message": "We might need to add pings before changing the status of the subscriber to `enabled`.  Probably we should be able to bring out this function so that it can be called whenever we can.  We can discuss more",
+      "range": {
+        "startLine": 89,
+        "startChar": 0,
+        "endLine": 89,
+        "endChar": 4
+      },
+      "revId": "7f4ddebfd4c7c064b76aff1c3aed4c03221d9905",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
