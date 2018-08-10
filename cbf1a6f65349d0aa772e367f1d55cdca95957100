@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "9ba69e83_ccc68ad6",
+        "filename": "src/test/cord-api/Tests/Subscriber_StatusChecks.txt",
+        "patchSetId": 4
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-08-10T19:01:25Z",
+      "side": 1,
+      "message": "Probably we might need to check pings with status as `disabled` as well.  So we might need a way to bring these tests out somehow so that they can be called anytime.  Something like, Subscriber is `disabled` then ping to verify it fails.  Change subscriber status , then ping again to verify if it succeeds or not",
+      "range": {
+        "startLine": 89,
+        "startChar": 0,
+        "endLine": 89,
+        "endChar": 4
+      },
+      "revId": "cbf1a6f65349d0aa772e367f1d55cdca95957100",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a39e8045_77035177",
         "filename": "src/test/cord-api/Tests/Subscriber_StatusChecks.txt",
         "patchSetId": 4
