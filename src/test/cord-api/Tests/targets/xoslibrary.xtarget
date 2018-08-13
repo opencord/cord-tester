@@ -112,14 +112,10 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /CellIndividualOffset    "1"
     {% endif %}
-    {% if  m.name  == "RCORDSubscriber" -%}
-    ## Create req objects for subscriber (voltservice -> oltdevice -> ponport -> onudevice)
-    CORD Post    /xosapi/v1/volt/voltservices    {"name": "testvoltservice123"}
-    CORD Post    /xosapi/v1/volt/oltdevices    {"volt_service_id": ${id}, "uplink": "testoltdevice123"}
-    CORD Post    /xosapi/v1/volt/ponports    {"olt_device_id": ${id}, "port_no": "123", "name": "testponport123"}
-    ${json_{{ m.name | lower}}_onudevice}=    Set Variable    onudevice123
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /onu_device    "${json_{{ m.name | lower}}_onudevice}"
-    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "onudevice123", "pon_port_id": ${id}, "vendor": "abcdefg"}
+    {% if  m.name  == "RCORDService" -%}
+    ## Set rcordservice.access to "test" to skip policy validations
+    ${json_{{ m.name | lower}}_access}=    Set Variable    test
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /access    "${json_{{ m.name | lower}}_access}"
     {% endif %}
     {% if  m.name  == "HippieOSSServiceInstance" -%}
     ## Create req service owner for hippie oss service instance
