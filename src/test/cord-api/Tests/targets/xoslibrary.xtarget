@@ -112,10 +112,10 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
     ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /CellIndividualOffset    "1"
     {% endif %}
-    {% if  m.name  == "RCORDService" -%}
-    ## Set rcordservice.access to "test" to skip policy validations
-    ${json_{{ m.name | lower}}_access}=    Set Variable    test
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /access    "${json_{{ m.name | lower}}_access}"
+    {% if  m.name  == "RCORDSubscriber" -%}
+    ## Create req service owner for rcord subscriber
+    CORD Post    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "test"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
     {% endif %}
     {% if  m.name  == "HippieOSSServiceInstance" -%}
     ## Create req service owner for hippie oss service instance
