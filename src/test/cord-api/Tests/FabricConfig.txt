@@ -28,10 +28,6 @@ Test Create FabricPortInterface-1
                       INTERFACECREATE                       0
 Test Get FabricPortInterface-1
                       INTERFACERETRIEVE     0
-Test Create FarbicSwitch-2
-                      CREATE                       1
-Test Get FabricSwitch-2
-                      RETRIEVE     1
 Test Create FabricSwitchPort-2
                       PORTCREATE                       1
 Test Get FabricSwitchPort-2
@@ -40,14 +36,6 @@ Test Create FabricPortInterface-2
                       INTERFACECREATE                       1
 Test Get FabricPortInterface-2
                       INTERFACERETRIEVE     1
-Test Create FarbicSwitch-3
-                      CREATE                       2
-Test Get FabricSwitch-3
-                      RETRIEVE     2
-Test Create FarbicSwitch-4
-                      CREATE                       3
-Test Get FabricSwitch-4
-                      RETRIEVE     3
 
 *** Keywords ***
 Read InputFile

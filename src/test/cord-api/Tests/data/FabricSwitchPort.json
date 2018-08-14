@@ -6,8 +6,8 @@
             "host_learning": false
     },
     {
-            "portId": 5,
-            "switch_id" : 6
+            "portId": 8,
+            "switch_id" : 1
     }
   ]
 }
