@@ -79,6 +79,10 @@ Generate JSON Data
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    float
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_1}"
+    {% else -%}
     {% if loop.index0 == 0 -%}
     ${json_{{ m.name | lower}}_updated_key}=    Set Variable    {{ f.name }}
     ${json_{{ m.name | lower}}_{{ f.name }}_updated_1}=    Generate Random Value    {{ f.type }}
