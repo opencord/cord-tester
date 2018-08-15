@@ -60,7 +60,7 @@
     "voltha-containers":
     [
         "kafka-broker",
-        "zookeeper-server",
+        "zookeeper",
         "etcd-restore-operator",
         "voltha-etcd-operator-etcd-operator",
         "etcd-backup-operator"
@@ -74,8 +74,6 @@
     "voltha-services":
     [
         "voltha-kafka",
-        "voltha-kafka-headless",
-        "voltha-zookeeper",
-        "voltha-zookeeper-headless"
+        "voltha-zookeeper"
     ]
 }
