@@ -1,0 +1,52 @@
+*** Settings ***
+Documentation     Test suite for saving objects in HippieOSS service objects after discovery
+Suite Setup       Read InputFile
+Test Template     HippieOSS Save Test
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/Subscriber_TopDown.json
+&{input_dict}    serial_number=test    of_dpid=test2
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Hippie OSS for Subscriber-1
+                      STATUS                       0
+
+*** Keywords ***
+Read InputFile
+    ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
+    Set Suite Variable    ${slist}    ${SubscriberList}
+    Set Global Variable    ${HippieOSS_Id}    ${EMPTY}
+
+HippieOSS Save Test
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "STATUS"    HippieOSS Retrieve    ${listIndex}
+
+HippieOSS Retrieve
+    [Arguments]    ${listIndex}
+    Set Global Variable    ${HippieOSS_Id}    ${EMPTY}
+    Log    ${HippieOSS_Id}
+    ${json_result}=    restApi.ApiGet    OSS_SERVICEINSTANCE 
+    Log    ${json_result}
+    ${SubscriberList} =    Get Variable Value    ${slist}
+    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${listIndex}
+    Log    ${SubscriberDict}
+    ${onu_device}=    utils.getFieldValueFromDict    ${subscriberDict}   onu_device
+    ${json_result_list}=    Get From dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
+    ${serial_number}=	Get From Dictionary    ${getJsonDict}    serial_number 
+    ${of_dpid}=	Get From Dictionary    ${getJsonDict}    of_dpid 
+    ${HippieOSS_Id}=    Get From Dictionary    ${getJsonDict}   id
+    Set Global Variable    ${HippieOSS_Id}
+    # Create Dictionary
+    ${input_dict}=    Create Dictionary    serial_number=${serial_number}     of_dpid=${of_dpid}
+    # Re POST the same data to HippieOSS Service Instances
+    ${result}=    restApi.ApiPost    OSS_SERVICEINSTANCE    ${input_dict}
+    Should Be True    ${result}
+
