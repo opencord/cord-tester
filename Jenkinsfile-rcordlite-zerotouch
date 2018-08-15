@@ -47,6 +47,7 @@ node ("${TestNodeName}") {
                     helm ls | grep xos-core && helm delete --purge xos-core || true
                     helm ls | grep cord-kafka && helm delete --purge cord-kafka || true
                     helm ls | grep voltha-kafka && helm delete --purge voltha-kafka || true
+                    helm ls | grep hippie && helm delete --purge hippie-oss || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
                 // Wait for helm delete
@@ -191,9 +192,21 @@ node ("${TestNodeName}") {
                     rm -rf Log/ || true
                     pybot -d Log -T FabricConfig.txt || true
                     pybot -d Log -T HippieOSS.txt || true
+                    sleep 5
                     pybot -d Log -T OSSVolt.txt || true
                     pybot -d Log -T RealOLT_Test.txt || true
                     """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Subscriber Validation and Ping Tests') {
+             timeout(10) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/cord-tester/src/test/cord-api/Tests/
+                    pybot -d Log -T HippieOSS_instances.txt
+                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_ip:${deployment_config.dstHost.ip} Subscriber_StatusChecks.txt
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
