@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "58c961fc_eb9cc8ca",
+        "filename": "src/test/cord-api/Tests/Subscriber_StatusChecks.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-08-15T23:02:25Z",
+      "side": 1,
+      "message": "Ping will not work until MAC and IP addresses are pushed.\nWe should move this call to the PUSH function below",
+      "range": {
+        "startLine": 77,
+        "startChar": 49,
+        "endLine": 77,
+        "endChar": 58
+      },
+      "revId": "61245250235ad977f1d45ce44dff6cf567fa8ba0",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
