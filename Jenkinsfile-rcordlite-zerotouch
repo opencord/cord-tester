@@ -200,13 +200,14 @@ node ("${TestNodeName}") {
             }
         }
         stage('Subscriber Validation and Ping Tests') {
-             timeout(10) {
+             timeout(20) {
                 try {
                     sh """
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
                     cd /home/cord/cord-tester/src/test/cord-api/Tests/
-                    pybot -d Log -T HippieOSS_instances.txt
-                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_ip:${deployment_config.dstHost.ip} Subscriber_StatusChecks.txt
+                    pybot -d Log -T HippieOSS_instances.txt || true
+                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_ip:${deployment_config.dstHost.hostIp} Subscriber_StatusChecks.txt || true
+                    """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
