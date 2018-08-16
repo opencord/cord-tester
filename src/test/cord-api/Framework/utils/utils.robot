@@ -131,7 +131,7 @@ Remove Value From List
 
 
 Test Ping
-    [Arguments]    ${status}    ${user}    ${pass}    ${dest}    ${prompt}=$    ${prompt_timeout}=60s
+    [Arguments]    ${status}    ${src}    ${user}    ${pass}    ${dest}    ${prompt}=$    ${prompt_timeout}=60s
     [Documentation]    SSH's into src and attempts to ping dest. Status determines if ping should pass | fail
     ${conn_id}=    SSHLibrary.Open Connection    ${src}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
