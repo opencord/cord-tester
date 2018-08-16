@@ -65,7 +65,7 @@ Subscriber Status Check
     ${status}=	Get From Dictionary    ${getJsonDict}    status
     ${Subscriber_Id}=    Get From Dictionary    ${getJsonDict}   id
     Set Global Variable    ${Subscriber_Id}
-    Should Be Equal    ${status}    awaiting_auth
+    Should Be Equal    ${status}    awaiting-auth
     Wait Until Keyword Succeeds    60s    2s    Test Ping    FAIL    ${src_ip}    ${src_user}    ${src_pass}    ${dst_ip}
     #Set Global Variable    ${Subscriber_Id}
 
