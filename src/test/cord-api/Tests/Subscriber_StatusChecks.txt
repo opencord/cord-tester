@@ -20,7 +20,7 @@ ${src_gateway}    X.X.X.X
 ${src_user}       user
 ${src_pass}       pass
 ${dst_ip}         X.X.X.X
-${dst_usr}        user
+${dst_user}        user
 ${dst_pass}       pass
 ${dst_gateway}    X.X.X.X
 ${dst_host_ip}    X.X.X.X
