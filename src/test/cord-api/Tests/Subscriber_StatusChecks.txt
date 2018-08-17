@@ -30,12 +30,6 @@ Change Subscriber status
                       STATUSCHANGE             0
 Push MACandIP Subscriber-1
                       PUSH                     0
-Test Status Subscriber-2
-                      STATUS                       1
-Change Subscriber-2 status
-                      STATUSCHANGE             1
-Push MACandIP Subscriber-2
-                      PUSH                     1
 
 *** Keywords ***
 Read InputFile
