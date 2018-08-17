@@ -1,6 +1,6 @@
 *** Settings ***
 Documentation     Test suite for checking the subscriber status after discovery
-Suite Setup       Read InputFile
+Suite Setup       Setup
 Test Template     Subscriber Status Test
 Library           Collections
 Library           String
@@ -20,6 +20,8 @@ ${src_gateway}    X.X.X.X
 ${src_user}       user
 ${src_pass}       pass
 ${dst_ip}         X.X.X.X
+${dst_usr}        user
+${dst_pass}       pass
 ${dst_gateway}    X.X.X.X
 ${dst_host_ip}    X.X.X.X
 
@@ -32,6 +34,12 @@ Push MACandIP Subscriber-1
                       PUSH                     0
 
 *** Keywords ***
+Setup
+    [Documentation]    Read input file and send arping requests from host/dst to their gateways
+    Read InputFile
+    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
+
 Read InputFile
     ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
     Set Suite Variable    ${slist}    ${SubscriberList}
@@ -60,7 +68,7 @@ Subscriber Status Check
     ${Subscriber_Id}=    Get From Dictionary    ${getJsonDict}   id
     Set Global Variable    ${Subscriber_Id}
     Should Be Equal    ${status}    awaiting-auth
-    Wait Until Keyword Succeeds    60s    2s    Test Ping    FAIL    ${src_ip}    ${src_user}    ${src_pass}    ${dst_ip}
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${ENABLE_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
     #Set Global Variable    ${Subscriber_Id}
 
 Subscriber Status Change
@@ -68,7 +76,7 @@ Subscriber Status Change
     ${status}=    Create Dictionary    status=enabled
     ${api_result_status}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${status}    ${Subscriber_Id}
     Should Be True    ${api_result_status}
-    Wait Until Keyword Succeeds    60s    2s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_ip}
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${ENABLE_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
 
 Push MAC and IP For Subscriber
     [Arguments]    ${listIndex}
@@ -79,3 +87,12 @@ Push MAC and IP For Subscriber
     ${input_dict}=    Create Dictionary    mac_address=${mac_address}    ip_address=${ip_address}
     ${api_result_status}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${input_dict}    ${Subscriber_Id}
     Should Be True    ${api_result_status}
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${MACIP_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
+
+Ping Gateway
+    [Documentation]    SSH's into a host and sends an arping to its gateway for host discovery
+    [Arguments]    ${ip}    ${user}    ${pass}    ${gateway}    ${prompt}=$    ${prompt_timeout}=60s
+    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
+    SSHLibrary.Login    ${user}    ${pass}
+    ${result}=    SSHLibrary.Execute Command    sudo arping -c 3 ${gateway}
+    SSHLibrary.Close Connection
