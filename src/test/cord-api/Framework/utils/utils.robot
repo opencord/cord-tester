@@ -136,6 +136,7 @@ Test Ping
     ${conn_id}=    SSHLibrary.Open Connection    ${src}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
     ${result}=    SSHLibrary.Execute Command    ping -c 5 ${dest}
+    Log To Console    \n ${result}
     SSHLibrary.Close Connection
     Log    ${result}
     Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    64 bytes
