@@ -148,5 +148,4 @@ Test Ping
     Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    Destination Host Unreachable
     Run Keyword If    '${status}' == 'FAIL'    Should Not Contain    ${result}    64 bytes
     Run Keyword If    '${status}' == 'FAIL'    Should Contain    ${result}    100% packet loss
-    Run Keyword If    '${status}' == 'FAIL'    Should Contain    ${result}    Destination Host Unreachable
     Log To Console    \n ${result}
