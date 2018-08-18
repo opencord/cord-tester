@@ -32,6 +32,7 @@ HippieOSS Retrieve
     [Arguments]    ${listIndex}
     Set Global Variable    ${HippieOSS_Id}    ${EMPTY}
     Log    ${HippieOSS_Id}
+    Wait Until Keyword Succeeds    300s    5s    Validate HippieOSSInstances Populated    ${listIndex}
     ${json_result}=    restApi.ApiGet    OSS_SERVICEINSTANCE 
     Log    ${json_result}
     ${SubscriberList} =    Get Variable Value    ${slist}
@@ -41,7 +42,7 @@ HippieOSS Retrieve
     ${json_result_list}=    Get From dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
     ${serial_number}=	Get From Dictionary    ${getJsonDict}    serial_number 
-    ${of_dpid}=	Get From Dictionary    ${getJsonDict}    of_dpid 
+    ${of_dpid}=    Get From Dictionary    ${getJsonDict}    of_dpid 
     ${HippieOSS_Id}=    Get From Dictionary    ${getJsonDict}   id
     Set Global Variable    ${HippieOSS_Id}
     # Create Dictionary
@@ -50,3 +51,16 @@ HippieOSS Retrieve
     ${result}=    restApi.ApiPost    OSS_SERVICEINSTANCE    ${input_dict}
     Should Be True    ${result}
 
+Validate HippieOSSInstances Populated
+    [Arguments]    ${listIndex}
+    ${json_result}=    restApi.ApiGet    OSS_SERVICEINSTANCE
+    Log    ${json_result}
+    ${SubscriberList} =    Get Variable Value    ${slist}
+    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${listIndex}
+    Log    ${SubscriberDict}
+    ${onu_device}=    utils.getFieldValueFromDict    ${subscriberDict}   onu_device
+    ${json_result_list}=    Get From dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
+    ${serial_number}=	Get From Dictionary    ${getJsonDict}    serial_number
+    ${of_dpid}=    Get From Dictionary    ${getJsonDict}    of_dpid
+    ${HippieOSS_Id}=    Get From Dictionary    ${getJsonDict}   id
