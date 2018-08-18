@@ -94,5 +94,9 @@ Ping Gateway
     [Arguments]    ${ip}    ${user}    ${pass}    ${gateway}    ${prompt}=$    ${prompt_timeout}=60s
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
-    ${result}=    SSHLibrary.Execute Command    sudo arping -c 3 ${gateway}
+    SSHLibrary.Write    sudo arping -c 1 ${gateway}
+    Read Until    [sudo] password for ${user}:
+    SSHLibrary.Write    ${pass}
+    ${result}=    Read Until    ${prompt}
+    Log To Console    \n ${result}
     SSHLibrary.Close Connection
