@@ -59,7 +59,6 @@
     ],
     "voltha-containers":
     [
-        "kafka-broker",
         "zookeeper",
         "etcd-restore-operator",
         "voltha-etcd-operator-etcd-operator",
