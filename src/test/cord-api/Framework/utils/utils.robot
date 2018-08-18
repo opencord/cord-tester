@@ -136,13 +136,17 @@ Test Ping
     ${conn_id}=    SSHLibrary.Open Connection    ${src}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
     ${result}=    SSHLibrary.Execute Command    ping -c 5 ${dest}
-    Log To Console    \n ${result}
     SSHLibrary.Close Connection
     Log    ${result}
     Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    64 bytes
     Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    0% packet loss
     Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    100% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    80% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    60% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    40% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    20% packet loss
     Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    Destination Host Unreachable
     Run Keyword If    '${status}' == 'FAIL'    Should Not Contain    ${result}    64 bytes
     Run Keyword If    '${status}' == 'FAIL'    Should Contain    ${result}    100% packet loss
     Run Keyword If    '${status}' == 'FAIL'    Should Contain    ${result}    Destination Host Unreachable
+    Log To Console    \n ${result}

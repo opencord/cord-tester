@@ -37,8 +37,8 @@ Push MACandIP Subscriber-1
 Setup
     [Documentation]    Read input file and send arping requests from host/dst to their gateways
     Read InputFile
-    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
-    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
+    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
 
 Read InputFile
     ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
@@ -98,5 +98,7 @@ Ping Gateway
     Read Until    [sudo] password for ${user}:
     SSHLibrary.Write    ${pass}
     ${result}=    Read Until    ${prompt}
+    Should Not Contain    ${result}    100% unanswered
+    Should Contain    ${result}    0% unanswered
     Log To Console    \n ${result}
     SSHLibrary.Close Connection
