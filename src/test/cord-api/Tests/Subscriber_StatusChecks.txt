@@ -37,8 +37,8 @@ Push MACandIP Subscriber-1
 Setup
     [Documentation]    Read input file and send arping requests from host/dst to their gateways
     Read InputFile
-    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
-    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
+    Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
 
 Read InputFile
     ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
