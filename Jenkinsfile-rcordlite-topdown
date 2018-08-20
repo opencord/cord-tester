@@ -188,6 +188,7 @@ node ("${TestNodeName}") {
                     pybot -d Log -T RealOLT_Test.txt || true
                     sleep 90
                     pybot -d Log -T Subscriber_TopDown.txt || true
+                    pybot -d Log -T Subscriber_StatusChecks.txt || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
