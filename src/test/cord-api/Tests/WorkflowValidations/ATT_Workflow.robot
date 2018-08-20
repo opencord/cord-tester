@@ -7,6 +7,8 @@ Library           String
 Library           OperatingSystem
 Suite Setup       Setup
 Suite Teardown    Teardown
+Test Setup        TSetup
+Test Teardown     TTeardown
 
 *** Variables ***
 ${cord_kafka}         cord-kafka
@@ -117,6 +119,14 @@ Teardown
     CORD Delete    /xosapi/v1/volt/oltdevices    ${oltdevice_id}
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry2_id}
+
+TSetup
+    [Documentation]    Get ONU Devices for debugging purposes
+    CORD GET    /xosapi/v1/volt/onudevices
+
+TTeardown
+    [Documentation]    Get ONU Devices for debugging purposes
+    CORD GET    /xosapi/v1/volt/onudevices
 
 Send Kafka Event
     [Documentation]    Send event
