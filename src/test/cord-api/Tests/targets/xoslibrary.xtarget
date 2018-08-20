@@ -127,6 +127,10 @@ Generate JSON Data
     CORD Post    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
     {% endif %}
+    {% if  m.name  == "AddressManagerServiceInstance" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /public_ip    "2.2.2.2"
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /public_ip    "3.3.3.3"
+    {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
