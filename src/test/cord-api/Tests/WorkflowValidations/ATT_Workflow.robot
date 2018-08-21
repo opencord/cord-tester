@@ -64,20 +64,14 @@ Activate Non-Whitelisted ONU
 
 Activate Whitelisted ONU in Wrong Location
     [Documentation]    Validate that activating an ONU in the whitelist but in the wrong location DISABLES the onu device
-    Send Kafka Event    onu.events    {'status': 'activated','serial_number': '${onu_serial_no}','uni_port_id': 52, 'of_dpid': '${deviceId}'}
-    ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    DISABLED
+    Send Kafka Event    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': 52, 'of_dpid': 'wrongofdpid'}
+    Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_serial_no}    DISABLED
 
 Activate Whitelisted ONU
     [Documentation]    Validate that activating an ONU in the whitelist creates a attworkflow-driver-serviceinstance
     Send Kafka Event    onu.events    {'status': 'activated','serial_number': '${onu_serial_no}','uni_port_id': ${uniportno}, 'of_dpid': '${deviceId}'}
     ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    AWAITING
-
-Send Denied Auth Request
-    [Documentation]    Validate that denied auth request to the onu will disable the subscriber and remove a service chain
-    Send Kafka Event    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}
-    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
-    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    0
-    ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    AWAITING
+    Wait Until Keyword Succeeds    60s    5s    Validate ONU Device Status    ${onu_serial_no}    ENABLED
 
 Send Auth Request
     [Documentation]    Validate that sending an auth request to the onu will enable the subscriber and create a service chain
@@ -91,6 +85,13 @@ Send DHCP Request
     Send Kafka Event    dhcp.events    {'macAddress': '${mac_address}','ipAddress': '${ip_address}', 'deviceId': '${deviceId}', 'portNumber': ${uniportno}}
     Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Settings    ${onu_serial_no}
 
+Send Denied Auth Request
+    [Documentation]    Validate that denied auth request to the onu will disable the subscriber and remove a service chain
+    Send Kafka Event    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}
+    ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    DENIED
+
 Create New Whitelist Entry
     [Documentation]    Validate that creating a new whitelist entry for the "invalid" onu device will enable the onu
     ${resp}=    CORD Post    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    {"serial_number": "${onu_invalid_sn}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
@@ -101,8 +102,9 @@ Create New Whitelist Entry
 Remove Whitelist Entry
     [Documentation]    Validate that removing a whitelist entry for an onu device will disable the subscriber and remove it's service chain
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
-    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    enabled
-    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    0
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}
+    Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    DISABLED
 
 *** Keywords ***
 Setup
@@ -175,20 +177,6 @@ Get ATT Service Instance ID
     Should Be Equal    ${as}    ${auth_state}
     [Return]    ${id}
 
-Validate Service Chain Links
-    [Arguments]    ${serial_no}    ${expected_links}
-    ${resp}=    CORD Get    ${subscriber_api}
-    ${jsondata}=    To Json    ${resp.content}
-    Log    ${jsondata}
-    ${length}=    Get Length    ${jsondata['items']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${subscribed_links}=    Get From Dictionary    ${value}    subscribed_links_ids
-    \    ${id}=    Get From Dictionary    ${value}    id
-    \    ${sn}=    Get From Dictionary    ${value}    onu_device
-    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
-    Should Be Equal    ${expected_links}    ${subscribed_links}
-
 Validate Subscriber Status
     [Arguments]    ${serial_no}    ${expected_status}
     ${resp}=    CORD Get    ${subscriber_api}
@@ -203,7 +191,7 @@ Validate Subscriber Status
     Should Be Equal    ${status}    ${expected_status}
 
 Validate Subscriber Service Chain
-    [Arguments]    ${serial_no}    ${expected_no_sc}
+    [Arguments]    ${serial_no}    ${expected_no_sc}=${EMPTY}
     ${resp}=    CORD Get    ${subscriber_api}
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
@@ -211,10 +199,10 @@ Validate Subscriber Service Chain
     : FOR    ${INDEX}    IN RANGE    0    ${length}
     \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
     \    ${sl}=    Get From Dictionary    ${value}    subscribed_links_ids
-    \    ${sl}=    Get From List    ${sl}    0
+    \    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
     \    ${sn}=    Get From Dictionary    ${value}    onu_device
     \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
-    Should Be Equal As Integers    ${sl}    ${expected_no_sc}
+    Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Be Equal As Integers    ${slinks}    ${expected_no_sc}    ELSE    Should Be Empty    ${sl}
 
 Validate ONU Device Status
     [Arguments]    ${serial_no}    ${expected_status}
