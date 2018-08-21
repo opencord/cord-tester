@@ -25,8 +25,7 @@ ${uniportno}          100
 
 *** Test Cases ***
 Create Two ONU Devices
-    [Documentation]    Create two onu devices to be tested for valid + invalid paths
-    [Tags]    play
+    [Documentation]    Create two onu devices to be tested for valid/invalid paths
     ${resp}=    CORD Get    /xosapi/v1/volt/voltservices
     ${jsondata}=    To Json    ${resp.content}
     ${voltservice}=    Get From List    ${jsondata['items']}    0
@@ -74,10 +73,10 @@ Activate Whitelisted ONU
     ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    AWAITING
 
 Send Denied Auth Request
-    [Documentation]    Validate that denied auth request to the onu will disabled the subscriber and remove a service chain
+    [Documentation]    Validate that denied auth request to the onu will disable the subscriber and remove a service chain
     Send Kafka Event    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}
-    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Status    ${onu_serial_no}    disabled
-    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    0
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    0
     ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    AWAITING
 
 Send Auth Request
@@ -94,11 +93,16 @@ Send DHCP Request
 
 Create New Whitelist Entry
     [Documentation]    Validate that creating a new whitelist entry for the "invalid" onu device will enable the onu
-    [Tags]    notready
     ${resp}=    CORD Post    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    {"serial_number": "${onu_invalid_sn}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
     ${whitelist_entry2_id}=    Get Json Value    ${resp.content}    /id
     Set Suite Variable    ${whitelist_entry2_id}
     Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    ENABLED
+
+Remove Whitelist Entry
+    [Documentation]    Validate that removing a whitelist entry for an onu device will disable the subscriber and remove it's service chain
+    CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    enabled
+    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    0
 
 *** Keywords ***
 Setup
@@ -110,14 +114,10 @@ Setup
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
 
 Teardown
-    [Documentation]    Delete all models create
+    [Documentation]    Delete all models created
     CORD Get    /xosapi/v1/rcord/rcordsubscribers
     CORD Delete    /xosapi/v1/rcord/rcordsubscribers    ${subscriber_id}
-    # sleeping to allow onu devices to be deleted
-    Sleep    60
-    CORD Get    /xosapi/v1/volt/onudevices
-    CORD Delete    /xosapi/v1/volt/oltdevices    ${oltdevice_id}
-    CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
+    Wait Until Keyword Succeeds    60s    5s    CORD Delete    /xosapi/v1/volt/oltdevices    ${oltdevice_id}
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry2_id}
 
 Send Kafka Event
