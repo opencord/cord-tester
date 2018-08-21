@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "e6b2376c_a7141c2b",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-21T17:44:40Z",
+      "side": 1,
+      "message": "we\u0027ll need to edit this variable here - https://gerrit.opencord.org/gitweb?p\u003dpod-configs.git;a\u003dblob;f\u003dkubernetes-configs/flex-pod1-olt.yml;h\u003db35980aa7a55a7d945051060d556adb4dbb6b6d6;hb\u003drefs/heads/master#l19",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "adf33881_b9e2d293",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 235,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-21T17:44:40Z",
+      "side": 1,
+      "message": "\"-s\" \u003d\u003d silent right ? that means this wont return anything and the function will timeout/fail",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
