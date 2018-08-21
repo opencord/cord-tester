@@ -7,8 +7,6 @@ Library           String
 Library           OperatingSystem
 Suite Setup       Setup
 Suite Teardown    Teardown
-Test Setup        TSetup
-Test Teardown     TTeardown
 
 *** Variables ***
 ${cord_kafka}         cord-kafka
@@ -113,20 +111,14 @@ Setup
 
 Teardown
     [Documentation]    Delete all models create
-    Sleep    30
     CORD Get    /xosapi/v1/rcord/rcordsubscribers
     CORD Delete    /xosapi/v1/rcord/rcordsubscribers    ${subscriber_id}
+    # sleeping to allow onu devices to be deleted
+    Sleep    60
+    CORD Get    /xosapi/v1/volt/onudevices
     CORD Delete    /xosapi/v1/volt/oltdevices    ${oltdevice_id}
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry2_id}
-
-TSetup
-    [Documentation]    Get ONU Devices for debugging purposes
-    CORD GET    /xosapi/v1/volt/onudevices
-
-TTeardown
-    [Documentation]    Get ONU Devices for debugging purposes
-    CORD GET    /xosapi/v1/volt/onudevices
 
 Send Kafka Event
     [Documentation]    Send event
