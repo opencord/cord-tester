@@ -16,10 +16,10 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = ''
+SERVER_IP = '10.192.4.241'
 SERVER_PORT = '30006'
 XOS_USER = 'admin@opencord.org'
-XOS_PASSWD = ''
+XOS_PASSWD = 'letmein'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/rcordsubscribers'
 VOLT_TENANT = '/xosapi/v1/volt/voltserviceinstances'
 VOLT_DEVICE = '/xosapi/v1/volt/oltdevices'
@@ -66,4 +66,8 @@ FABRIC_SWITCH = '/xosapi/v1/fabric/switches'
 SWITCH_PORT = '/xosapi/v1/fabric/switchports'
 PORT_INTERFACE = '/xosapi/v1/fabric/portinterfaces'
 OSS_SERVICE = '/xosapi/v1/hippie-oss/hippieossservices'
+OSS_SERVICEINSTANCE = '/xosapi/v1/hippie-oss/hippieossserviceinstances'
 OSS_VOLT = '/xosapi/v1/core/servicedependencys'
+BNG_MAP = '/xosapi/v1/fabric-crossconnect/bngportmappings'
+ATT-SERVICE = '/xosapi/v1/att-workflow-driver/attworkflowdriverservices'
+ATT-WHITELIST = '/xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries'

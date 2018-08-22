@@ -1,12 +1,12 @@
 {
     "FabricPortInterface" : [
     {
-            "name": "OLT Leaf1- Interface-1",
+            "name": "Switch Interface-1",
             "ips": "10.8.2.254/24",
-            "port_id": 8
+            "port_id": 1
     },
     {
-            "name": "OLT Leaf2- Interface-2",
+            "name": "Switch Interface-2",
             "ips": "10.8.3.254/24",
             "vlanUntagged": 100,
             "port_id": 9
