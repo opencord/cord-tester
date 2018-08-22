@@ -32,27 +32,9 @@ HippieOSS Retrieve
     [Arguments]    ${listIndex}
     Set Global Variable    ${HippieOSS_Id}    ${EMPTY}
     Log    ${HippieOSS_Id}
-    Wait Until Keyword Succeeds    300s    5s    Validate HippieOSSInstances Populated    ${listIndex}
-    ${json_result}=    restApi.ApiGet    OSS_SERVICEINSTANCE 
-    Log    ${json_result}
-    ${SubscriberList} =    Get Variable Value    ${slist}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${listIndex}
-    Log    ${SubscriberDict}
-    ${onu_device}=    utils.getFieldValueFromDict    ${subscriberDict}   onu_device
-    ${json_result_list}=    Get From dictionary    ${json_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
-    ${serial_number}=	Get From Dictionary    ${getJsonDict}    serial_number 
-    ${of_dpid}=    Get From Dictionary    ${getJsonDict}    of_dpid 
-    ${HippieOSS_Id}=    Get From Dictionary    ${getJsonDict}   id
-    Set Global Variable    ${HippieOSS_Id}
-    # Create Dictionary
-    ${input_dict}=    Create Dictionary    serial_number=${serial_number}     of_dpid=${of_dpid}
-    # Re PUT the same data to HippieOSS Service Instances
-    ${result}=    restApi.ApiChameleonPut    OSS_SERVICEINSTANCE    ${input_dict}    ${HippieOSS_Id}
-    Should Be True    ${result}
+    Wait Until Keyword Succeeds    600s    10s    Validate Subscriber Synced
 
-Validate HippieOSSInstances Populated
-    [Arguments]    ${listIndex}
+Validate Subscriber Synced
     ${json_result}=    restApi.ApiGet    OSS_SERVICEINSTANCE
     Log    ${json_result}
     ${SubscriberList} =    Get Variable Value    ${slist}
@@ -61,6 +43,17 @@ Validate HippieOSSInstances Populated
     ${onu_device}=    utils.getFieldValueFromDict    ${subscriberDict}   onu_device
     ${json_result_list}=    Get From dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
-    ${serial_number}=	Get From Dictionary    ${getJsonDict}    serial_number
+    ${serial_number}=   Get From Dictionary    ${getJsonDict}    serial_number
     ${of_dpid}=    Get From Dictionary    ${getJsonDict}    of_dpid
     ${HippieOSS_Id}=    Get From Dictionary    ${getJsonDict}   id
+    Set Global Variable    ${HippieOSS_Id}
+    # Create Dictionary
+    ${input_dict}=    Create Dictionary    serial_number=${serial_number}     of_dpid=${of_dpid}
+    # Re PUT the same data to HippieOSS Service Instances
+    ${result}=    restApi.ApiChameleonPut    OSS_SERVICEINSTANCE    ${input_dict}    ${HippieOSS_Id}
+    Should Be True    ${result}
+    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    Log    ${json_result}
+    ${json_result_list}=    Get From dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    onu_device    ${onu_device}
+    ${status}=  Get From Dictionary    ${getJsonDict}    status
