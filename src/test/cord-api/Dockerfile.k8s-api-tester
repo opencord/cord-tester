@@ -16,11 +16,9 @@
 # Manual build example:
 # docker build -f Dockerfile.k8s-api-tester -t xos-api-tester:local .
 
-FROM ubuntu:16.04
+FROM python:2.7
 
-RUN apt-get update  && \
-    apt-get install -y python python-pip python-setuptools && \
-    pip install robotframework robotframework-requests pexpect \
+RUN pip install robotframework robotframework-requests pexpect \
      robotframework-httplibrary robotframework-ride robotframework-kafkalibrary pygments pyyaml && \
     pip install -U requests && rm -rf /var/lib/apt/lists/*
 
