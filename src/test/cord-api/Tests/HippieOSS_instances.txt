@@ -47,9 +47,9 @@ HippieOSS Retrieve
     Set Global Variable    ${HippieOSS_Id}
     # Create Dictionary
     ${input_dict}=    Create Dictionary    serial_number=${serial_number}     of_dpid=${of_dpid}
-    # Re POST the same data to HippieOSS Service Instances
-    ${result}=    restApi.ApiPost    OSS_SERVICEINSTANCE    ${input_dict}
-    #Should Be True    ${result}
+    # Re PUT the same data to HippieOSS Service Instances
+    ${result}=    restApi.ApiChameleonPut    OSS_SERVICEINSTANCE    ${input_dict}    ${HippieOSS_Id}
+    Should Be True    ${result}
 
 Validate HippieOSSInstances Populated
     [Arguments]    ${listIndex}
