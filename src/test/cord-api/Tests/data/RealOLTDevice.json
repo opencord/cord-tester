@@ -4,7 +4,7 @@
             "device_type": "openolt",
             "host": "10.192.4.218",
             "port": 9191,
-            "switch_datapath_id": "of:0000cc37abd93769",
+            "switch_datapath_id": "of:0000cc37ab5b6da8",
             "switch_port": "7",
             "outer_tpid": "0x8100",
             "name": "olt-1",

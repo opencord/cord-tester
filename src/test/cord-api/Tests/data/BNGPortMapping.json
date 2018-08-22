@@ -1,0 +1,8 @@
+{
+    "BNGPortMapping" : [
+    {
+            "s_tag": "any",
+            "switch_port" : 8
+    }
+  ]
+}
