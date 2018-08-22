@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "26b0901e_f9d060b5",
+        "filename": "src/test/cord-api/Properties/RestApiProperties.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 19,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-22T15:48:39Z",
+      "side": 1,
+      "message": "can you remove the IP here ?",
+      "revId": "f8b3e981c9216d9c892dbf048680e47813456f87",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e6fa6e6f_477663fb",
+        "filename": "src/test/cord-api/Properties/RestApiProperties.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 72,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-22T15:48:39Z",
+      "side": 1,
+      "message": "these variables need to be underscore \"_\". Python will complain if you assign a variable with a dash.",
+      "revId": "f8b3e981c9216d9c892dbf048680e47813456f87",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5802cb8e_34b60707",
+        "filename": "src/test/cord-api/Properties/RestApiProperties.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-22T15:48:39Z",
+      "side": 1,
+      "message": "these variables need to be underscore \"_\". Python will complain if you assign a variable with a dash.",
+      "revId": "f8b3e981c9216d9c892dbf048680e47813456f87",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
