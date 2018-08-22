@@ -20,10 +20,11 @@ ${src_gateway}    X.X.X.X
 ${src_user}       user
 ${src_pass}       pass
 ${dst_ip}         X.X.X.X
-${dst_user}        user
+${dst_user}       user
 ${dst_pass}       pass
 ${dst_gateway}    X.X.X.X
 ${dst_host_ip}    X.X.X.X
+${init_state}     xxxxxxx
 
 *** Test Cases ***    TYPE                         LISTINDEX
 Test Status Subscriber-1
@@ -32,6 +33,7 @@ Change Subscriber status
                       STATUSCHANGE             0
 Push MACandIP Subscriber-1
                       PUSH                     0
+    [Tags]    zerotouch
 
 *** Keywords ***
 Setup
@@ -67,9 +69,8 @@ Subscriber Status Check
     ${status}=	Get From Dictionary    ${getJsonDict}    status
     ${Subscriber_Id}=    Get From Dictionary    ${getJsonDict}   id
     Set Global Variable    ${Subscriber_Id}
-    ${expected_status}=    utils.getFieldValueFromDict    ${subscriberDict}   status
-    Should Be Equal    ${status}    ${expected_status}
-    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${ENABLE_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
+    Should Be Equal    ${status}    ${init_state}
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${INITIAL_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
     #Set Global Variable    ${Subscriber_Id}
 
 Subscriber Status Change
