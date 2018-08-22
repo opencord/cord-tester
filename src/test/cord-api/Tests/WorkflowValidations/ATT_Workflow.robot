@@ -199,7 +199,7 @@ Validate Subscriber Service Chain
     : FOR    ${INDEX}    IN RANGE    0    ${length}
     \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
     \    ${sl}=    Get From Dictionary    ${value}    subscribed_links_ids
-    \    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
+    \    ${result}    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
     \    ${sn}=    Get From Dictionary    ${value}    onu_device
     \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
     Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Be Equal As Integers    ${slinks}    ${expected_no_sc}    ELSE    Should Be Empty    ${sl}
