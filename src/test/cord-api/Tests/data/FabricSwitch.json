@@ -2,39 +2,12 @@
     "FabricSwitchInfo" : [
     {
             "driver": "ofdpa3",
-            "ipv4Loopback": "192.168.9.22",
-            "ipv4NodeSid": 18,
-            "isEdgeRouter": true,
-            "name": "Fabric Switch - Leaf1",
-            "ofId": "of:0000cc37abd93769",
-            "routerMac": "00:00:00:00:00:01"
-    },
-    {
-            "driver": "ofdpa3",
-            "ipv4Loopback": "192.168.9.23",
-            "ipv4NodeSid": 17,
-            "isEdgeRouter": true,
-            "name": "Fabric Switch - Leaf2",
-            "ofId": "of:0000cc37abb6b564",
-            "routerMac": "00:00:00:00:00:02"
-    },
-    {
-            "driver": "ofdpa3",
             "ipv4Loopback": "192.168.9.24",
             "ipv4NodeSid": 19,
             "isEdgeRouter": false,
-            "name": "Fabric Switch - Spine1",
+            "name": "Fabric Switch - 1",
             "ofId": "of:0000cc37ab5b6da8",
             "routerMac": "00:00:00:00:00:03"
-    },
-    {
-            "driver": "ofdpa3",
-            "ipv4Loopback": "192.168.9.25",
-            "ipv4NodeSid": 20,
-            "isEdgeRouter": false,
-            "name": "Fabric Switch - Spine2",
-            "ofId": "of:0000cc37abd9386d",
-            "routerMac": "00:00:00:00:00:04"
     }
   ]
 }

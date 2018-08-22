@@ -1,0 +1,10 @@
+{
+    "AttWhiteList" : [
+    {
+            "serial_number": "",
+            "device_id" : "1",
+            "pon_port_id" : "",
+            "owner_id" : "1"
+    }
+  ]
+}

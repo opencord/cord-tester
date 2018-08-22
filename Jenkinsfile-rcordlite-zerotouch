@@ -47,6 +47,7 @@ node ("${TestNodeName}") {
                     helm ls | grep xos-core && helm delete --purge xos-core || true
                     helm ls | grep cord-kafka && helm delete --purge cord-kafka || true
                     helm ls | grep voltha-kafka && helm delete --purge voltha-kafka || true
+                    helm ls | grep hippie && helm delete --purge hippie-oss || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
                 // Wait for helm delete
@@ -55,7 +56,7 @@ node ("${TestNodeName}") {
                         try {
                             sh """
                             export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                            ! helm ls | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite|xos-core|cord-kafka|voltha-kafka’
+                            ! helm ls | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite|xos-core|cord-kafka|voltha-kafka'
                             ! kubectl get pods --all-namespaces | grep -E 'onos-voltha|onos-fabric|cord-kafka|voltha |rcord-lite-|xos-'
                             """
                             return true
@@ -64,6 +65,20 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
+            }
+        }
+        stage('Restart OLT processes') {
+            timeout(5) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist || true'
+                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt || true'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C :55001 < /dev/tty1 > ./bal.log 2>&1 &'
+                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:55001 < /dev/tty1 > ./openolt.log 2>&1 &'
+                    sleep 120
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
             }
         }
         stage('Install Kafka') {
@@ -89,6 +104,7 @@ node ("${TestNodeName}") {
                     helm install -n xos-core xos-core
                     helm dep update xos-profiles/rcord-lite
                     helm install -n rcord-lite xos-profiles/rcord-lite
+                    helm install -n hippie-oss xos-services/hippie-oss
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
@@ -139,20 +155,6 @@ node ("${TestNodeName}") {
                 }
             }
         }
-        stage('Restart OLT processes') {
-            timeout(5) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist'
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./bal.log 2>&1 &'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:40000 -A 127.0.0.1:50000 < /dev/tty1 > ./openolt.log 2>&1 &'
-                    sleep 180
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
         stage('Download cord-tester repo') {
             timeout(10) {
                 try {
@@ -190,8 +192,21 @@ node ("${TestNodeName}") {
                     rm -rf Log/ || true
                     pybot -d Log -T FabricConfig.txt || true
                     pybot -d Log -T HippieOSS.txt || true
+                    sleep 5
                     pybot -d Log -T OSSVolt.txt || true
                     pybot -d Log -T RealOLT_Test.txt || true
+                    """
+                } catch(error) { currentBuild.result = 'FAILURE' }
+            }
+        }
+        stage('Subscriber Validation and Ping Tests') {
+             timeout(20) {
+                try {
+                    sh """
+                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
+                    cd /home/cord/cord-tester/src/test/cord-api/Tests/
+                    pybot -d Log -T HippieOSS_instances.txt || true
+                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }

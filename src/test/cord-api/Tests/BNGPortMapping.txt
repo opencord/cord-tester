@@ -1,0 +1,51 @@
+*** Settings ***
+Documentation     Test suite for configuring BNG Port Mapping
+Suite Setup       Read InputFile
+Test Template     Configuring BNG Port Mapping 
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/BNGPortMapping.json
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Test Create BNGPortMapping-1
+                      CREATE                       0
+Test Get BNGPortMapping-1
+                      RETRIEVE                     0
+
+*** Keywords ***
+Read InputFile
+    ${BNGList}=    utils.jsonToList    ${PATHFILE}    BNGPortMapping
+    Set Suite Variable    ${dlist}    ${BNGList}
+    Set Global Variable    ${BNG_Id}    ${EMPTY}
+
+Configuring BNG Port Mapping 
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Create BNG Mapping    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Validate posted BNG Port   ${listIndex}
+
+Create BNG Mapping
+    [Arguments]    ${listIndex}
+    ${BNGList} =    Get Variable Value    ${dlist}
+    ${BNGDict}=    utils.listToDict    ${BNGList}    ${listIndex}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    BNG_MAP    ${BNGDict}
+    Should Be True    ${api_result_status}
+    ${BNG_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${BNG_Id}
+
+Validate posted BNG Port
+    [Arguments]    ${listIndex}
+    Log    ${BNG_Id}
+    ${json_result}=    restApi.ApiChameleonGet    BNG_MAP    ${BNG_Id}
+    Log    ${json_result}
+    ${BNGList} =    Get Variable Value    ${dlist}
+    ${BNGDict}=    utils.listToDict    ${BNGList}    ${listIndex}
+    Log    ${BNGDict}
+    ${test_result}=    utils.compare_dict    ${BNGDict}    ${json_result}
+    Should Be True    ${test_result}

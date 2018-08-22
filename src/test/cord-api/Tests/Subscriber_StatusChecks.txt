@@ -1,6 +1,6 @@
 *** Settings ***
 Documentation     Test suite for checking the subscriber status after discovery
-Suite Setup       Read InputFile
+Suite Setup       Setup
 Test Template     Subscriber Status Test
 Library           Collections
 Library           String
@@ -8,12 +8,22 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           ../Framework/utils/utils.py
+Resource          ../Framework/utils/utils.robot
 Library           ../Framework/restApi.py
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Subscriber_TopDown.json
 &{input_dict}    mac_address=test    ip_address=test2
 &{status}    status=test
+${src_ip}         X.X.X.X
+${src_gateway}    X.X.X.X
+${src_user}       user
+${src_pass}       pass
+${dst_ip}         X.X.X.X
+${dst_user}        user
+${dst_pass}       pass
+${dst_gateway}    X.X.X.X
+${dst_host_ip}    X.X.X.X
 
 *** Test Cases ***    TYPE                         LISTINDEX
 Test Status Subscriber-1
@@ -22,14 +32,14 @@ Change Subscriber status
                       STATUSCHANGE             0
 Push MACandIP Subscriber-1
                       PUSH                     0
-Test Status Subscriber-2
-                      STATUS                       1
-Change Subscriber-2 status
-                      STATUSCHANGE             1
-Push MACandIP Subscriber-2
-                      PUSH                     1
 
 *** Keywords ***
+Setup
+    [Documentation]    Read input file and send arping requests from host/dst to their gateways
+    Read InputFile
+    Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
+
 Read InputFile
     ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
     Set Suite Variable    ${slist}    ${SubscriberList}
@@ -39,7 +49,7 @@ Read InputFile
 Subscriber Status Test
     [Arguments]    ${type}    ${listIndex}
     Run Keyword If    "${type}" == "PUSH"    Push MAC and IP For Subscriber    ${listIndex}
-    Run Keyword If    "${type}" == "STATUS"    Subscriber Status Check    ${listIndex}
+    Run Keyword If    "${type}" == "STATUS"    Wait Until Keyword Succeeds    60s    5s    Subscriber Status Check    ${listIndex}
     Run Keyword If    "${type}" == "STATUSCHANGE"    Subscriber Status Change   ${listIndex}
 
 Subscriber Status Check
@@ -57,7 +67,8 @@ Subscriber Status Check
     ${status}=	Get From Dictionary    ${getJsonDict}    status
     ${Subscriber_Id}=    Get From Dictionary    ${getJsonDict}   id
     Set Global Variable    ${Subscriber_Id}
-    Should Be Equal    ${status}    awaiting_auth
+    Should Be Equal    ${status}    awaiting-auth
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${ENABLE_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
     #Set Global Variable    ${Subscriber_Id}
 
 Subscriber Status Change
@@ -65,6 +76,7 @@ Subscriber Status Change
     ${status}=    Create Dictionary    status=enabled
     ${api_result_status}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${status}    ${Subscriber_Id}
     Should Be True    ${api_result_status}
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${ENABLE_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
 
 Push MAC and IP For Subscriber
     [Arguments]    ${listIndex}
@@ -75,3 +87,18 @@ Push MAC and IP For Subscriber
     ${input_dict}=    Create Dictionary    mac_address=${mac_address}    ip_address=${ip_address}
     ${api_result_status}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${input_dict}    ${Subscriber_Id}
     Should Be True    ${api_result_status}
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    ${MACIP_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
+
+Ping Gateway
+    [Documentation]    SSH's into a host and sends an arping to its gateway for host discovery
+    [Arguments]    ${ip}    ${user}    ${pass}    ${gateway}    ${prompt}=$    ${prompt_timeout}=60s
+    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
+    SSHLibrary.Login    ${user}    ${pass}
+    SSHLibrary.Write    sudo arping -c 1 ${gateway}
+    Read Until    [sudo] password for ${user}:
+    SSHLibrary.Write    ${pass}
+    ${result}=    Read Until    ${prompt}
+    Should Not Contain    ${result}    100% unanswered
+    Should Contain    ${result}    0% unanswered
+    Log To Console    \n ${result}
+    SSHLibrary.Close Connection
