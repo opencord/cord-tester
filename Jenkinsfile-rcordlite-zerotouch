@@ -179,7 +179,7 @@ node ("${TestNodeName}") {
             }
         }
         stage('Configurations and Tests') {
-             timeout(10) {
+             timeout(20) {
                 try {
                     sh """
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
