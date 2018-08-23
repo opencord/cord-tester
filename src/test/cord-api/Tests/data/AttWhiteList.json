@@ -1,10 +1,29 @@
 {
     "AttWhiteList" : [
     {
-            "serial_number": "",
-            "device_id" : "1",
-            "pon_port_id" : "",
+            "serial_number": "ALPHe3d1cfa7",
+            "device_id" : "of:000000000ac004da",
+            "pon_port_id" : "536870912",
+            "owner_id" : "1"
+    },
+    {
+            "serial_number": "ALPHe3d1cea3",
+            "device_id" : "of:000000000ac004da",
+            "pon_port_id" : "536870912",
+            "owner_id" : "1"
+    },
+    {
+            "serial_number": "ALPHe3d1cf84",
+            "device_id" : "of:000000000ac004da",
+            "pon_port_id" : "536870912",
+            "owner_id" : "1"
+    },
+    {
+            "serial_number": "ALPHe3d1cee9",
+            "device_id" : "of:000000000ac004da",
+            "pon_port_id" : "536870912",
             "owner_id" : "1"
     }
+
   ]
 }
