@@ -37,6 +37,52 @@
     },
     {
       "key": {
+        "uuid": "7234edb6_a331e58d",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-08-23T22:51:52Z",
+      "side": 1,
+      "message": "In 6.0, due to some issues.. we need to install cord-kafka first, then voltha-kafka and wait for them to come up first before installing the rest of the helm charts.  This was a workaround suggested by Gopi, due to container restart issues.",
+      "range": {
+        "startLine": 66,
+        "startChar": 31,
+        "endLine": 66,
+        "endChar": 42
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "fa93c545_aa001539",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-08-23T22:51:52Z",
+      "side": 1,
+      "message": "To avoid too many stages in the jenkins job, May be we can combine the onos related helm charts into one stage",
+      "range": {
+        "startLine": 103,
+        "startChar": 31,
+        "endLine": 103,
+        "endChar": 43
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "adf33881_b9e2d293",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
