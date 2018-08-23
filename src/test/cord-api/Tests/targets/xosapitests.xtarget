@@ -177,6 +177,10 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
     {% endif %}
+    {% if  m.name  == "SiteRole" -%}
+    ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
+    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
