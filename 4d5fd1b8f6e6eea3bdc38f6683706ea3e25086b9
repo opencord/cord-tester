@@ -69,6 +69,23 @@
       "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fecaade5_54e339a4",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2018-08-23T22:40:18Z",
+      "side": 1,
+      "message": "At least the test stages should have their own try...catch since we always want to run and publish all of them even if they fail.",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
