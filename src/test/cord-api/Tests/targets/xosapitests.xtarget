@@ -181,10 +181,22 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
     {% endif %}
+    {% if  m.name  == "SliceRole" -%}
+    ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
+    {% endif %}
+    {% if  m.name  == "ControllerRole" -%}
+    ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
+    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
-    {% endif %}
+    {% endif -%}
+    {% if  m.name  == "InterfaceType" -%}
+    ${json_{{ m.name | lower}}_direction}=    Set Variable    in
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_direction}"
+    {% endif -%}
     {% if  m.name  == "Network" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
     {% endif %}
