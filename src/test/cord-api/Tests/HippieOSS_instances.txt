@@ -32,9 +32,10 @@ HippieOSS Retrieve
     [Arguments]    ${listIndex}
     Set Global Variable    ${HippieOSS_Id}    ${EMPTY}
     Log    ${HippieOSS_Id}
-    Wait Until Keyword Succeeds    600s    10s    Validate Subscriber Synced
+    Wait Until Keyword Succeeds    600s    10s    Validate Subscriber Synced    ${listIndex}
 
 Validate Subscriber Synced
+    [Arguments]    ${listIndex}
     ${json_result}=    restApi.ApiGet    OSS_SERVICEINSTANCE
     Log    ${json_result}
     ${SubscriberList} =    Get Variable Value    ${slist}
