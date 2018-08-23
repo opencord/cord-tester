@@ -1,0 +1,51 @@
+*** Settings ***
+Documentation     Test to Configure ATT Work flow driver
+Suite Setup       Read InputFile
+Test Template     Configuring ATT Driver
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+
+*** Variables ***
+${PATHFILE}       ${CURDIR}/data/AttWorkFlowDriver.json
+
+*** Test Cases ***    TYPE                         LISTINDEX
+Test Create AttWorkFlow-1
+                      CREATE                       0
+Test Get AttWorkFlow-1
+                      RETRIEVE                     0
+
+*** Keywords ***
+Read InputFile
+    ${AttWorkFlowList}=    utils.jsonToList    ${PATHFILE}   AttWorkFlowDriverInfo 
+    Set Suite Variable    ${slist}    ${AttWorkFlowList}
+    Set Global Variable    ${AttWorkFlowDriver_Id}    ${EMPTY}
+
+Configuring ATT Driver
+    [Arguments]    ${type}    ${listIndex}
+    Run Keyword If    "${type}" == "CREATE"    Post ATT Driver    ${listIndex}
+    Run Keyword If    "${type}" == "RETRIEVE"    Get ATT Driver    ${listIndex}
+
+Post ATT Driver
+    [Arguments]    ${listIndex}
+    ${AttWorkFlowList} =    Get Variable Value    ${slist}
+    ${AttWorkFlowDriverDict}=    utils.listToDict    ${AttWorkFlowList}    ${listIndex}
+    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    ATT_SERVICE    ${AttWorkFlowDriverDict}
+    Should Be True    ${api_result_status}
+    ${AttWorkFlowDriver_Id}=    Get From Dictionary    ${api_result_json}    id
+    Set Global Variable    ${AttWorkFlowDriver_Id}
+
+Get ATT Driver
+    [Arguments]    ${listIndex}
+    Log    ${AttWorkFlowDriver_Id}
+    ${json_result}=    restApi.ApiChameleonGet    ATT_SERVICE    ${AttWorkFlowDriver_Id}
+    Log    ${json_result}
+    ${AttWorkFlowList} =    Get Variable Value    ${slist}
+    ${AttWorkFlowDriverDict}=    utils.listToDict    ${AttWorkFlowList}    ${listIndex}
+    Log    ${AttWorkFlowDriverDict}
+    ${test_result}=    utils.compare_dict    ${AttWorkFlowDriverDict}    ${json_result}
+    Should Be True    ${test_result}
