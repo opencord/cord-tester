@@ -89,7 +89,7 @@ node ("${TestNodeName}") {
                     cd /home/cord/helm-charts
                     helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.servers=1 --set zookeeper.persistence.enabled=false incubator/kafka
                     helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.servers=1 --set zookeeper.persistence.enabled=false incubator/kafka
-                    Sleep 120
+                    sleep 120
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
             }
