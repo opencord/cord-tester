@@ -102,6 +102,30 @@
     },
     {
       "key": {
+        "uuid": "46554fd4_2fe26942",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6a1a7e63_8f598588",
+      "range": {
+        "startLine": 66,
+        "startChar": 31,
+        "endLine": 66,
+        "endChar": 42
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "c208c4ab_c73fa568",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -113,6 +137,30 @@
       "writtenOn": "2018-08-24T15:02:47Z",
       "side": 1,
       "message": "@luca - set the right value. Put the same of att workflow",
+      "range": {
+        "startLine": 70,
+        "startChar": 106,
+        "endLine": 70,
+        "endChar": 132
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "065c16c0_5f884c81",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "c208c4ab_c73fa568",
       "range": {
         "startLine": 70,
         "startChar": 106,
@@ -172,6 +220,30 @@
     },
     {
       "key": {
+        "uuid": "38765f6e_c7a47510",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "37e407f4_04be23a6",
+      "range": {
+        "startLine": 103,
+        "startChar": 31,
+        "endLine": 103,
+        "endChar": 43
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
         "uuid": "10abdaff_1a67671f",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -195,6 +267,30 @@
     },
     {
       "key": {
+        "uuid": "f0cffee9_576d5e70",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "10abdaff_1a67671f",
+      "range": {
+        "startLine": 142,
+        "startChar": 57,
+        "endLine": 142,
+        "endChar": 61
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ca761a58_facdde7f",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -206,6 +302,30 @@
       "writtenOn": "2018-08-24T15:02:47Z",
       "side": 1,
       "message": "@luca - set the right value. Put the same of att workflow",
+      "range": {
+        "startLine": 177,
+        "startChar": 104,
+        "endLine": 177,
+        "endChar": 129
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1c00072d_18683f99",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ca761a58_facdde7f",
       "range": {
         "startLine": 177,
         "startChar": 104,
@@ -294,6 +414,53 @@
     },
     {
       "key": {
+        "uuid": "11d36c15_a3e26b69",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1df40b0d_d2aaa0cd",
+      "range": {
+        "startLine": 282,
+        "startChar": 31,
+        "endLine": 282,
+        "endChar": 35
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0b1fc92e_6ba3eb41",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 303,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "fixed",
+      "range": {
+        "startLine": 303,
+        "startChar": 82,
+        "endLine": 303,
+        "endChar": 83
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fecaade5_54e339a4",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -323,6 +490,24 @@
       "side": 1,
       "message": "Your call. You have already the || true at the end of each command. So either you remove all the || true and add the try/catch blocks, or viceversa",
       "parentUuid": "fecaade5_54e339a4",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b647f65f_8721e121",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:24:13Z",
+      "side": 1,
+      "message": "Left for now as is",
+      "parentUuid": "dbf5d9a9_d56b7b55",
       "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
