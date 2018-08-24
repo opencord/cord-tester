@@ -197,6 +197,10 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_direction}=    Set Variable    in
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_direction}"
     {% endif -%}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor}=    Set Variable    m1.large
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor}"
+    {% endif -%}
     {% if  m.name  == "Network" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
     {% endif %}
