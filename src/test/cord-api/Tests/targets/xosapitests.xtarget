@@ -195,7 +195,7 @@ Create {{ m.name }}
     {% endif -%}
     {% if  m.name  == "InterfaceType" -%}
     ${json_{{ m.name | lower}}_direction}=    Set Variable    in
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_direction}"
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /direction    "${json_{{ m.name | lower }}_direction}"
     {% endif -%}
     {% if  m.name  == "Flavor" -%}
     ${json_{{ m.name | lower}}_flavor}=    Set Variable    m1.large
