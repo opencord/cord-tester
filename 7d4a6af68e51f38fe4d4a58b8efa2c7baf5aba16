@@ -22,6 +22,30 @@
       "revId": "7d4a6af68e51f38fe4d4a58b8efa2c7baf5aba16",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "75328eeb_16ea8a80",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T17:22:19Z",
+      "side": 1,
+      "message": "I\u0027m fine with it. Actually this would cleanup the entire pod. I\u0027m just wondering if for this test we want to be specific to what we remove or not...",
+      "parentUuid": "c20fe4e0_8ae6d6a1",
+      "range": {
+        "startLine": 35,
+        "startChar": 31,
+        "endLine": 43,
+        "endChar": 34
+      },
+      "revId": "7d4a6af68e51f38fe4d4a58b8efa2c7baf5aba16",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
