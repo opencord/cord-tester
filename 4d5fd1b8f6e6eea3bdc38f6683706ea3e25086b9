@@ -37,6 +37,24 @@
     },
     {
       "key": {
+        "uuid": "db7a85d1_e6686556",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 34,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "71d39f8d_25281589",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "7234edb6_a331e58d",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -60,6 +78,53 @@
     },
     {
       "key": {
+        "uuid": "6a1a7e63_8f598588",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 66,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "This is not entirely true. The way it works is that Voltha needs to wait for Voltha kafka to be installed, because some communications between its different components require kafka. Nothing more. No components depend instead by CORD kafka (before the system is configured with the yaml files)",
+      "parentUuid": "7234edb6_a331e58d",
+      "range": {
+        "startLine": 66,
+        "startChar": 31,
+        "endLine": 66,
+        "endChar": 42
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "c208c4ab_c73fa568",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "@luca - set the right value. Put the same of att workflow",
+      "range": {
+        "startLine": 70,
+        "startChar": 106,
+        "endLine": 70,
+        "endChar": 132
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fa93c545_aa001539",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -80,6 +145,76 @@
       "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "37e407f4_04be23a6",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 103,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "I don\u0027t agree. The good thing of pipelines is to have stages. I would like to know -even graphically what fails and what doesn\u0027t specifically. I think components installation is a good granularity. What\u0027s the problem with pipelines being too long?",
+      "parentUuid": "fa93c545_aa001539",
+      "range": {
+        "startLine": 103,
+        "startChar": 31,
+        "endLine": 103,
+        "endChar": 43
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "10abdaff_1a67671f",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "@Luca to remove the space",
+      "range": {
+        "startLine": 142,
+        "startChar": 57,
+        "endLine": 142,
+        "endChar": 61
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ca761a58_facdde7f",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 177,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "@luca - set the right value. Put the same of att workflow",
+      "range": {
+        "startLine": 177,
+        "startChar": 104,
+        "endLine": 177,
+        "endChar": 129
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     },
     {
       "key": {
@@ -118,6 +253,47 @@
     },
     {
       "key": {
+        "uuid": "620910ad_a34d38d7",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 235,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eceed018_2f6365d7",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1df40b0d_d2aaa0cd",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 282,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "@luca remove spaces",
+      "range": {
+        "startLine": 282,
+        "startChar": 31,
+        "endLine": 282,
+        "endChar": 35
+      },
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "fecaade5_54e339a4",
         "filename": "Jenkinsfile-rcordlite-zerotouch",
         "patchSetId": 1
@@ -129,6 +305,24 @@
       "writtenOn": "2018-08-23T22:40:18Z",
       "side": 1,
       "message": "At least the test stages should have their own try...catch since we always want to run and publish all of them even if they fail.",
+      "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dbf5d9a9_d56b7b55",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 307,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2018-08-24T15:02:47Z",
+      "side": 1,
+      "message": "Your call. You have already the || true at the end of each command. So either you remove all the || true and add the try/catch blocks, or viceversa",
+      "parentUuid": "fecaade5_54e339a4",
       "revId": "4d5fd1b8f6e6eea3bdc38f6683706ea3e25086b9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
