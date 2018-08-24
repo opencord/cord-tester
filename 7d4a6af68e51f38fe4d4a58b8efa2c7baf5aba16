@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "c20fe4e0_8ae6d6a1",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 2
+      },
+      "lineNbr": 43,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2018-08-24T16:03:22Z",
+      "side": 1,
+      "message": "Why not a loop: https://gerrit.opencord.org/gitweb?p\u003dci-management.git;a\u003dblob;f\u003djjb/pipeline/all-xos-api-test-helm.groovy#l359",
+      "range": {
+        "startLine": 35,
+        "startChar": 31,
+        "endLine": 43,
+        "endChar": 34
+      },
+      "revId": "7d4a6af68e51f38fe4d4a58b8efa2c7baf5aba16",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
