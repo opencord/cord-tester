@@ -143,6 +143,10 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
     {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_constraints_tmp}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /constraints    "${json_{{ m.name | lower }}_constraints_tmp}"
+    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
@@ -205,6 +209,10 @@ Create {{ m.name }}
     {% if  m.name  == "Flavor" -%}
     ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_contraints_tmp}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /contraints    "${json_{{ m.name | lower }}_contraints_tmp}"
     {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
