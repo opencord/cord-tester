@@ -289,7 +289,7 @@ class utils(object):
         if value == 'float':
             return random.uniform(1,10)
         if value == 'role':
-            return random.choice(['admin', 'pi', 'tech', 'billing'])
+            return 'admin'
         if value == 'direction':
             return random.choice(['in', 'out'])
         if value == 'flavor':
