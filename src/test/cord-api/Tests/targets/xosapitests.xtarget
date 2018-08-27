@@ -100,6 +100,18 @@ Generate JSON Data
     {% if f.link -%}
     ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    float
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    role
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    direction
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    flavor
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
@@ -164,6 +176,15 @@ Create {{ m.name }}
     {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    float
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    role
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    direction
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    flavor
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
@@ -177,29 +198,9 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
     {% endif %}
-    {% if  m.name  == "SiteRole" -%}
-    ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
-    {% endif %}
-    {% if  m.name  == "SliceRole" -%}
-    ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
-    {% endif %}
-    {% if  m.name  == "ControllerRole" -%}
-    ${json_{{ m.name | lower}}_role_tmp}=    Set Variable    admin
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /role    "${json_{{ m.name | lower }}_role_tmp}"
-    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
-    {% endif -%}
-    {% if  m.name  == "InterfaceType" -%}
-    ${json_{{ m.name | lower}}_direction}=    Set Variable    in
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /direction    "${json_{{ m.name | lower }}_direction}"
-    {% endif -%}
-    {% if  m.name  == "Flavor" -%}
-    ${json_{{ m.name | lower}}_flavor}=    Set Variable    m1.large
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor}"
     {% endif -%}
     {% if  m.name  == "Network" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
