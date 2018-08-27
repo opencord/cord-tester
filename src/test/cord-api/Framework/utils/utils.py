@@ -288,6 +288,12 @@ class utils(object):
                 return random.randint(1,10000)
         if value == 'float':
             return random.uniform(1,10)
+        if value == 'role':
+            return random.choice(['admin', 'pi', 'tech', 'billing'])
+        if value == 'direction':
+            return random.choice(['in', 'out'])
+        if value == 'flavor':
+            return random.choice(['m1.large', 'm1.medium', 'm1.small'])
         else:
             return None
 
