@@ -271,7 +271,7 @@ node ("${TestNodeName}") {
                     sh """
                     export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Properties/
-                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.node1.ip}\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.nodes[0].ip}\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_USER = \\).*/\\1\'admin@opencord.org\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
@@ -286,7 +286,7 @@ node ("${TestNodeName}") {
                 }
             }
             stage('Subscriber Validation and Ping Tests') {
-                timeout(10) {
+                timeout(30) {
                     sh """
                     export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
