@@ -88,6 +88,23 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
+                stage('Install CORD Kafka') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                        helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            kafka_instances_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+                            """
+                            return kafka_instances_running.toInteger() == 2
+                        }
+                    }
+                }
                 stage('Install ONOS-Voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
@@ -155,23 +172,6 @@ node ("${TestNodeName}") {
                             kubectl get pods | grep -i tosca-loader | grep -i completed | wc -l
                             """
                             return rcord_tosca_completed.toInteger() == 1
-                        }
-                    }
-                }
-                stage('Install CORD Kafka') {
-                    timeout(10) {
-                        sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                        helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
-                        """
-                    }
-                    timeout(10) {
-                        waitUntil {
-                            kafka_instances_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
-                            kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
-                            """
-                            return kafka_instances_running.toInteger() == 2
                         }
                     }
                 }
