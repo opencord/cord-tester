@@ -29,6 +29,8 @@ node ("${TestNodeName}") {
                         echo "Purging chart: \${hchart}"
                         helm delete --purge "\${hchart}"
                     done
+                    rm -rf helm-charts cord-tester
+                    git clone -b ${branch} https://gerrit.opencord.org/helm-charts
                     """
                     timeout(5) {
                         waitUntil {
@@ -251,7 +253,6 @@ node ("${TestNodeName}") {
             stage('Download cord-tester repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
-                    rm -rf cord-tester
                     git clone -b ${branch} https://gerrit.opencord.org/cord-tester
                     """
                 }
