@@ -258,9 +258,9 @@ node ("${TestNodeName}") {
             }
             stage('Validate installed PODs') {
                 timeout(10) {
-                    sh returnStdout: true, script: """
+                    sh """
                     export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                    cd cord-tester/src/test/robot/
+                    cd $WORKSPACE/cord-tester/src/test/robot/
                     rm -rf Log/ || true
                     pybot -d Log -T SanityK8POD.robot || true
                     """
@@ -268,14 +268,14 @@ node ("${TestNodeName}") {
             }
             stage('Configurations and Tests') {
                 timeout(10) {
-                    sh returnStdout: true, script: """
+                    sh """
                     export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                    cd cord-tester/src/test/cord-api/Properties/
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.node1.ip}\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_USER = \\).*/\\1\'admin@opencord.org\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
-                    cd cord-tester/src/test/cord-api/Tests/
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     rm -rf Log/ || true
                     pybot -d Log -T FabricConfig.txt || true
                     pybot -d Log -T HippieOSS.txt || true
@@ -287,9 +287,9 @@ node ("${TestNodeName}") {
             }
             stage('Subscriber Validation and Ping Tests') {
                 timeout(10) {
-                    sh returnStdout: true, script: """
+                    sh """
                     export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                    cd cord-tester/src/test/cord-api/Tests/
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     pybot -d Log -T HippieOSS_instances.txt || true
                     pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
                     """
@@ -299,8 +299,8 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
-                cp -r cord-tester/src/test/robot/Log/* ./RobotLogs || true
-                cp -r cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
+                cp -r $WORKSPACE/cord-tester/src/test/robot/Log/* $WORKSPACE//RobotLogs || true
+                cp -r $WORKSPACE/cord-tester/src/test/cord-api/Tests/Log/* $WORKSPACE/RobotLogs || true
                 """
                 step([$class: 'RobotPublisher',
                     disableArchiveOutput: false,
