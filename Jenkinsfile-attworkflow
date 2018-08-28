@@ -18,7 +18,7 @@ node ("${TestNodeName}") {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf ${configBaseDir}"
                 sh returnStdout: true, script: "git clone -b ${branch} ${configRepoUrl}/${configBaseDir}"
-                deployment_config = readYaml file: "${configBaseDir}/${configFileName}.yml"
+                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
             }
             stage('Clean up') {
                 timeout(10) {
