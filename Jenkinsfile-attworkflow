@@ -12,224 +12,278 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pod_config = null
-
 node ("${TestNodeName}") {
-    timeout (time: 240) {
-        stage ("Parse deployment configuration file") {
-            sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
-            sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
-            deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
-        }
-        stage('Export pod config') {
-            timeout(10) {
-                try {
-                    sh """
-                    cd /home/cord
-                    rm -rf /home/cord/helm-charts
-                    git clone -b ${branch} https://gerrit.opencord.org/helm-charts
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    kubectl get pods
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
+    timeout (100) {
+        try {
+            stage ("Parse deployment configuration file") {
+                sh returnStdout: true, script: "rm -rf ${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${configRepoUrl}/${configBaseDir}"
+                deployment_config = readYaml file: "${configBaseDir}/${configFileName}.yml"
             }
-        }
-        stage('Clean up') {
-            timeout(10) {
-                try {
-                    sh """
-                    cd /home/cord/helm-charts
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    helm ls | grep onos-voltha && helm delete --purge onos-voltha || true
-                    helm ls | grep onos-fabric && helm delete --purge onos-fabric || true
-                    helm ls | grep voltha && helm delete --purge voltha || true
-                    helm ls | grep rcord-lite && helm delete --purge rcord-lite || true
-                    helm ls | grep xos-core && helm delete --purge xos-core || true
-                    helm ls | grep cord-kafka && helm delete --purge cord-kafka || true
-                    helm ls | grep voltha-kafka && helm delete --purge voltha-kafka || true
-                    helm ls | grep att-workflow && helm delete --purge att-workflow || true
+            stage('Clean up') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    rm -rf helm-charts cord-tester
+                    git clone -b ${branch} ${configRepoUrl}/helm-charts
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    for hchart in \$(helm list -q);
+                    do
+                        echo "Purging chart: \${hchart}"
+                        helm delete --purge "\${hchart}"
+                    done
                     """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-                // Wait for helm delete
-                timeout(5) {
-                    waitUntil {
-                        try {
-                            sh """
-                            export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                            ! helm ls | grep -E 'onos-voltha|onos-fabric|voltha |rcord-lite|xos-core|cord-kafka|voltha-kafka'
-                            ! kubectl get pods --all-namespaces | grep -E 'onos-voltha|onos-fabric|cord-kafka|voltha |rcord-lite-|xos-'
+                    timeout(5) {
+                        waitUntil {
+                            helm_deleted = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            helm ls | wc -l
                             """
-                            return true
-                        } catch (exception) {
-                            return false
+                            return helm_deleted.toInteger() == 0
+                        }
+                    }
+                    timeout(5) {
+                        waitUntil {
+                            kubectl_deleted = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods --all-namespaces --no-headers | grep -v kube-system | wc -l
+                            """
+                            return kubectl_deleted.toInteger() == 0
                         }
                     }
                 }
             }
-        }
-        stage('Restart OLT processes') {
-            timeout(5) {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill bal_core_dist || true'
-                    sshpass -p onl ssh -l root 10.192.4.218 'pkill openolt || true'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./bal_core_dist -C :55001 < /dev/tty1 > ./bal.log 2>&1 &'
-                    sshpass -p onl ssh -l root 10.192.4.218 'cd /broadcom; ./openolt -C 127.0.0.1:55001 < /dev/tty1 > ./openolt.log 2>&1 &'
-                    """
-            }
-            timeout(15) {
-                            waitUntil {
-                                onu_discovered = sh returnStdout: true, script: "sshpass -p onl ssh -l root 10.192.4.218 'cat /broadcom/openolt.log | grep \"onu discover indication\" | wc -l'"
-                                return onu_discovered.toInteger() > 0
-                            }
-                        }
-                    }
-                }
-        }
-        stage('Install Kafka') {
-            timeout(10) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/helm-charts
-                    helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.servers=1 --set zookeeper.persistence.enabled=false incubator/kafka
-                    helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.servers=1 --set zookeeper.persistence.enabled=false incubator/kafka
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
-        stage('Install xos-core') {
-            timeout(10) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/helm-charts
-                    helm dep update xos-core
-                    helm install -n xos-core xos-core
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
-        stage('Install voltha') {
-            timeout(10) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/helm-charts
-                    helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
-                    helm dep build voltha
-                    helm install -n voltha --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
-                    helm upgrade --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
-        stage('Install ONOS-Voltha and ONOS-Fabric') {
-            timeout(10) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/helm-charts
-                    helm install -n onos-fabric -f configs/onos-fabric.yaml onos
-                    helm install -n onos-voltha -f configs/onos-voltha.yaml onos
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
-        stage('Install ATT Workflow') {
-            timeout(10) {
-                try {
-                    sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/helm-charts
-                    helm install -n att-workflow xos-profiles/att-workflow
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }
-        }
-        stage('Wait for PODs to complete') {
-            timeout(5) {
-                waitUntil {
-                    try {
-                        sh """
-                        export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                        kubectl get pods | grep -i tosca-loader | grep -i complete
-                        kubectl get pods | grep -i chameleon | grep -i running
-                        kubectl get pods | grep -i onos-fabric | grep -i running
-                        kubectl get pods | grep -i cord-kafka | grep -i running
-                        kubectl get pods | grep -i voltha-kafka | grep -i running
-                        kubectl get pods --namespace=voltha | grep -i voltha- | grep -i running
-                        kubectl get pods --namespace=voltha | grep -i onos-voltha | grep -i running
+            dir ("helm-charts") {
+                stage('Install Voltha Kafka') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
                         """
-                        return true
-                    } catch (exception) {
-                        return false
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            kafka_instances_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep voltha-kafka | grep -i running | grep 1/1 | wc -l
+                            """
+                            return kafka_instances_running.toInteger() == 2
+                        }
+                    }
+                }
+                stage('Install voltha') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+                        helm dep build voltha
+                        helm install -n voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
+                        helm upgrade --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            voltha_completed = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods -n voltha | grep -i running | grep 1/1 | wc -l
+                            """
+                            return voltha_completed.toInteger() == 8
+                        }
+                    }
+                }
+                stage('Install CORD Kafka') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            kafka_instances_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+                            """
+                            return kafka_instances_running.toInteger() == 2
+                        }
+                    }
+                }
+                stage('Install ONOS') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -n onos -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos.yaml onos
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            onos_completed = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods -n voltha | grep -i onos | grep -i running | grep 1/1 | wc -l
+                            """
+                            return onos_completed.toInteger() == 1
+                        }
+                    }
+                }
+                stage('Install xos-core') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm dep update xos-core
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core xos-core
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            xos_core_completed = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
+                            """
+                            return xos_core_completed.toInteger() == 7
+                        }
+                    }
+                }
+                stage('Install att-workflow') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm dep update xos-profiles/att-workflow
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n att-workflow xos-profiles/att-workflow
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            att_workflow_tosca_completed = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep -i att-workflow-tosca-loader | grep -i completed | wc -l
+                            """
+                            return att_workflow_tosca_completed.toInteger() == 1
+                        }
+                    }
+                }
+                stage('Install base-kubernetes') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm dep update xos-profiles/base-kubernetes
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes xos-profiles/base-kubernetes
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            base_kubernetes_tosca_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep -i base-kubernetes-tosca-loader | grep -i completed | wc -l
+                            """
+                            return base_kubernetes_tosca_running.toInteger() == 1
+                        }
                     }
                 }
             }
-        }
-        stage('Download cord-tester repo') {
-            timeout(10) {
-                try {
-                    sh """
-                    rm -rf /home/cord/cord-tester
-                    cd /home/cord/
-                    git clone -b ${branch} https://gerrit.opencord.org/cord-tester 
+            stage('Reinstall OLT software') {
+                for(int i=0; i < deployment_config.olts.size(); i++) {
+                    sh returnStdout: true, script: """
+                    sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'dpkg --remove asfvolt16 && dpkg --purge asfvolt16'
                     """
-                } catch(error) { currentBuild.result = 'FAILURE' }
+                    timeout(5) {
+                        waitUntil {
+                            olt_sw_present = sh returnStdout: true, script: """
+                            sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'dpkg --list | grep asfvolt16 | wc -l'
+                            """
+                            return olt_sw_present.toInteger() == 0
+                        }
+                    }
+                    sh returnStdout: true, script: """
+                    sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} "dpkg --install ${oltDebVersion}"
+                    """
+                    timeout(5) {
+                        waitUntil {
+                            olt_sw_present = sh returnStdout: true, script: """
+                            sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'dpkg --list | grep asfvolt16 | wc -l'
+                            """
+                            return olt_sw_present.toInteger() == 1
+                        }
+                    }
+                    // If the OLT is connected to a 40G switch interface, set the NNI port to be downgraded
+                    if ("${deployment_config.olts[i].fortygig}" != null && "${deployment_config.olts[i].fortygig}" == 'true') {
+                        sh returnStdout: true, script: """
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'echo "port ce128 sp=40000" >> /broadcom/qax.soc'
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} '/opt/bcm68620/svk_init.sh'
+                        """
+                    }
+                }
             }
-        }
-        stage('Validate installed PODs') {
-            timeout(10) {
-                try {
+            stage('Restart OLT processes') {
+                for(int i=0; i < deployment_config.olts.size(); i++) {
+                    timeout(5) {
+                        sh returnStdout: true, script: """
+                        ssh-keyscan -H ${deployment_config.olts[i].ip} >> ~/.ssh/known_hosts
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'service bal_core_dist stop' || true
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'service openolt stop' || true
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} '> /var/log/bal_core_dist.log'
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} '> /var/log/openolt.log'
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'service bal_core_dist start &'
+                        sleep 5
+                        sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'service openolt start &'
+                        """
+                    }
+                    timeout(15) {
+                        waitUntil {
+                            onu_discovered = sh returnStdout: true, script: "sshpass -p ${deployment_config.olts[i].pass} ssh -l ${deployment_config.olts[i].user} ${deployment_config.olts[i].ip} 'cat /var/log/openolt.log | grep \"oper_state:up\" | wc -l'"
+                            return onu_discovered.toInteger() > 0
+                        }
+                    }
+                }
+            }
+            stage('Download cord-tester repo') {
+                timeout(2) {
+                    sh returnStdout: true, script: """
+                    git clone -b ${branch} ${configRepoUrl}/cord-tester
+                    """
+                }
+            }
+            stage('Validate installed PODs') {
+                timeout(10) {
                     sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/cord-tester/src/test/robot/
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    cd $WORKSPACE/cord-tester/src/test/robot/
                     rm -rf Log/ || true
                     pybot -d Log -T SanityK8POD.robot || true
                     """
-                } catch(error) { currentBuild.result = 'FAILURE' }
+                }
             }
-        }
-       /* stage('Configurations and Tests') {
-             timeout(10) {
-                try {
+            stage('Configurations and Tests') {
+                timeout(10) {
                     sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/cord-tester/src/test/cord-api/Properties/
-                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.node1.ip}\'/\" RestApiProperties.py
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Properties/
+                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.nodes[0].ip}\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_USER = \\).*/\\1\'admin@opencord.org\'/\" RestApiProperties.py
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
-                    cd /home/cord/cord-tester/src/test/cord-api/Tests/
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     rm -rf Log/ || true
                     pybot -d Log -T FabricConfig.txt || true
-                    pybot -d Log -T AttWorkFlowDriver.txt || true
                     sleep 5
                     pybot -d Log -T OSSVolt.txt || true
                     pybot -d Log -T RealOLT_Test.txt || true
                     """
-                } catch(error) { currentBuild.result = 'FAILURE' }
+                }
             }
-        }
-        stage('Subscriber Validation and Ping Tests') {
-             timeout(20) {
-                try {
+            stage('Subscriber Validation and Ping Tests') {
+                timeout(30) {
                     sh """
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/cord-tester/src/test/cord-api/Tests/
-                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
+                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
                     """
-                } catch(error) { currentBuild.result = 'FAILURE' }
+                }
             }
-        }
-        stage('Publish') {
-            try {
-                sh """
+            stage('Publish test results') {
+                sh returnStdout: true, script: """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
-                cp -r /home/cord/cord-tester/src/test/robot/Log/* ./RobotLogs || true
-                cp -r /home/cord/cord-tester/src/test/cord-api/Tests/Log/* ./RobotLogs || true
+                cp -r $WORKSPACE/cord-tester/src/test/robot/Log/* $WORKSPACE/RobotLogs || true
+                cp -r $WORKSPACE/cord-tester/src/test/cord-api/Tests/Log/* $WORKSPACE/RobotLogs || true
                 """
                 step([$class: 'RobotPublisher',
                     disableArchiveOutput: false,
@@ -239,9 +293,14 @@ node ("${TestNodeName}") {
                     outputPath: '.',
                     passThreshold: 100,
                     reportFileName: 'RobotLogs/report*.html',
-                    unstableThreshold: 0])
-            } catch(error) {}
-        }*/
-        //step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+                    unstableThreshold: 0
+                ])
+            }
+            currentBuild.result = 'SUCCESS'
+        } catch (err) {
+            currentBuild.result = 'FAILURE'
+            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+        }
+        echo "RESULT: ${currentBuild.result}"
     }
 }
