@@ -86,7 +86,7 @@ node ("${TestNodeName}") {
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods -n voltha | grep -i running | grep 1/1 | wc -l
                             """
-                            return voltha_completed.toInteger() == 12
+                            return voltha_completed.toInteger() == 11
                         }
                     }
                 }
