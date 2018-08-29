@@ -26,7 +26,7 @@ node ("${TestNodeName}") {
                     rm -rf helm-charts cord-tester
                     git clone -b ${branch} ${cordRepoUrl}/helm-charts
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    for hchart in \$(helm list -q);
+                    for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
                     do
                         echo "Purging chart: \${hchart}"
                         helm delete --purge "\${hchart}"
@@ -111,7 +111,7 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -n onos-voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos-voltha.yaml onos
+                        helm install -n onos-voltha -f configs/onos-voltha.yaml -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml onos
                         """
                     }
                     timeout(10) {
@@ -128,7 +128,7 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -n onos-fabric -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos-fabric.yaml onos
+                        helm install -n onos-fabric -f configs/onos-fabric.yaml -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml onos
                         """
                     }
                     timeout(10) {
