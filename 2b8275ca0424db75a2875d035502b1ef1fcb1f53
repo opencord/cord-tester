@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "665ebed6_a3bd5c29",
+        "filename": "Jenkinsfile-rcordlite-topdown",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-29T19:56:09Z",
+      "side": 1,
+      "message": "\"configRepoUrl\" is \"https://gerrit.opencord.org/pod-configs\".\n\nWe should just hard-code this to \"https://gerrit.opencord.org\"",
+      "revId": "2b8275ca0424db75a2875d035502b1ef1fcb1f53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "58d2146e_3318c94c",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 292,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-08-29T19:56:09Z",
+      "side": 1,
+      "message": "\"configRepoUrl\" is \"https://gerrit.opencord.org/pod-configs\".\n\nWe should just hard-code this to \"https://gerrit.opencord.org\"",
+      "revId": "2b8275ca0424db75a2875d035502b1ef1fcb1f53",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
