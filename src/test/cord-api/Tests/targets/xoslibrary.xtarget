@@ -127,6 +127,28 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
     ${json_{{ m.name | lower}}_name_amend_1}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "${json_{{ m.name | lower}}_name_amend_1}"
+    {% endif -%}
+    {% if  m.name  == "ProgranServiceInstance" -%}
+    ${json_{{ m.name | lower}}_name}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /CellIndividualOffset    "1"
+    ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /CellIndividualOffset    "1"
+    {% endif %}
+    {% if  m.name  == "RCORDSubscriber" -%}
+    ## Create req service owner for rcord subscriber
+    CORD Post    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
+    {% if  m.name  == "HippieOSSServiceInstance" -%}
+    ## Create req service owner for hippie oss service instance
+    CORD Post    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
+    {% if  m.name  == "AddressManagerServiceInstance" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /public_ip    "2.2.2.2"
+    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /public_ip    "3.3.3.3"
     {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
