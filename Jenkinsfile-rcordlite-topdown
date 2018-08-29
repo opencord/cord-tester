@@ -53,6 +53,23 @@ node ("${TestNodeName}") {
                 }
             }
             dir ("helm-charts") {
+                stage('Install Voltha Kafka') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            kafka_instances_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep voltha-kafka | grep -i running | grep 1/1 | wc -l
+                            """
+                            return kafka_instances_running.toInteger() == 2
+                        }
+                    }
+                }
                 stage('Install voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
