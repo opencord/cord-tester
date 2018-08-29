@@ -26,7 +26,7 @@ node ("${TestNodeName}") {
                     rm -rf helm-charts cord-tester
                     git clone -b ${branch} ${cordRepoUrl}/helm-charts
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    for hchart in \$(helm list -q);
+                    for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
                     do
                         echo "Purging chart: \${hchart}"
                         helm delete --purge "\${hchart}"
@@ -107,37 +107,20 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
-                stage('Install ONOS-Voltha') {
+                stage('Install ONOS') {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -n onos-voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos-voltha.yaml onos
+                        helm install -n onos -f configs/onos.yaml -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml onos
                         """
                     }
                     timeout(10) {
                         waitUntil {
-                            onos_voltha_completed = sh returnStdout: true, script: """
+                            onos_completed = sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods -n voltha | grep -i onos-voltha | grep -i running | grep 1/1 | wc -l
+                            kubectl get pods | grep -i onos | grep -i running | grep 1/1 | wc -l
                             """
-                            return onos_voltha_completed.toInteger() == 1
-                        }
-                    }
-                }
-                stage('Install ONOS-Fabric') {
-                    timeout(10) {
-                        sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -n onos-fabric -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos-fabric.yaml onos
-                        """
-                    }
-                    timeout(10) {
-                        waitUntil {
-                            onos_fabric_completed = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods | grep -i onos-fabric | grep -i running | grep 1/1 | wc -l
-                            """
-                            return onos_fabric_completed.toInteger() == 1
+                            return onos_completed.toInteger() == 1
                         }
                     }
                 }
