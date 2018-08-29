@@ -16,26 +16,26 @@ node ("${TestNodeName}") {
     timeout (100) {
         try {
             stage ("Parse deployment configuration file") {
-                sh returnStdout: true, script: 'rm -rf ${configRepoBaseDir}'
-                sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
-                deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
+                sh returnStdout: true, script: "rm -rf ${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
+                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
             }
             stage('Clean up') {
                 timeout(10) {
                     sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                    rm -rf helm-charts cord-tester
+                    git clone -b ${branch} ${cordRepoUrl}/helm-charts
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     for hchart in \$(helm list -q);
                     do
                         echo "Purging chart: \${hchart}"
                         helm delete --purge "\${hchart}"
                     done
-                    rm -rf helm-charts cord-tester
-                    git clone -b ${branch} https://gerrit.opencord.org/helm-charts
                     """
                     timeout(5) {
                         waitUntil {
                             helm_deleted = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             helm ls | wc -l
                             """
                             return helm_deleted.toInteger() == 0
@@ -44,7 +44,7 @@ node ("${TestNodeName}") {
                     timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods --all-namespaces --no-headers | grep -v kube-system | wc -l
                             """
                             return kubectl_deleted.toInteger() == 0
@@ -56,14 +56,14 @@ node ("${TestNodeName}") {
                 stage('Install Voltha Kafka') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                         helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             kafka_instances_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep voltha-kafka | grep -i running | grep 1/1 | wc -l
                             """
                             return kafka_instances_running.toInteger() == 2
@@ -73,34 +73,34 @@ node ("${TestNodeName}") {
                 stage('Install voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                         helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
                         helm dep build voltha
-                        helm install -n voltha --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
+                        helm install -n voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
                         helm upgrade --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             voltha_completed = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods -n voltha | grep -i running | grep 1/1 | wc -l
                             """
-                            return voltha_completed.toInteger() == 11
+                            return voltha_completed.toInteger() == 8
                         }
                     }
                 }
                 stage('Install CORD Kafka') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                         helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             kafka_instances_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
                             """
                             return kafka_instances_running.toInteger() == 2
@@ -110,14 +110,14 @@ node ("${TestNodeName}") {
                 stage('Install ONOS-Voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                        helm install -n onos-voltha -f configs/onos-voltha.yaml onos
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -n onos-voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos-voltha.yaml onos
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             onos_voltha_completed = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods -n voltha | grep -i onos-voltha | grep -i running | grep 1/1 | wc -l
                             """
                             return onos_voltha_completed.toInteger() == 1
@@ -127,14 +127,14 @@ node ("${TestNodeName}") {
                 stage('Install ONOS-Fabric') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                        helm install -n onos-fabric -f configs/onos-fabric.yaml onos
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -n onos-fabric -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -f configs/onos-fabric.yaml onos
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             onos_fabric_completed = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep -i onos-fabric | grep -i running | grep 1/1 | wc -l
                             """
                             return onos_fabric_completed.toInteger() == 1
@@ -144,15 +144,15 @@ node ("${TestNodeName}") {
                 stage('Install xos-core') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                         helm dep update xos-core
-                        helm install -n xos-core xos-core
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core xos-core
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             xos_core_completed = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
                             """
                             return xos_core_completed.toInteger() == 7
@@ -162,15 +162,15 @@ node ("${TestNodeName}") {
                 stage('Install rcord-lite') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                         helm dep update xos-profiles/rcord-lite
-                        helm install -n rcord-lite xos-profiles/rcord-lite
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n rcord-lite xos-profiles/rcord-lite
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             rcord_tosca_completed = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep -i tosca-loader | grep -i completed | wc -l
                             """
                             return rcord_tosca_completed.toInteger() == 1
@@ -180,14 +180,14 @@ node ("${TestNodeName}") {
                 stage('Install hippie-oss') {
                     timeout(10) {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
-                        helm install -n hippie-oss xos-services/hippie-oss
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n hippie-oss xos-services/hippie-oss
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             hippie_oss_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config} &&
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                             kubectl get pods | grep -i hippie-oss | grep -i running | grep 1/1 | wc -l
                             """
                             return hippie_oss_running.toInteger() == 1
@@ -253,14 +253,14 @@ node ("${TestNodeName}") {
             stage('Download cord-tester repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
-                    git clone -b ${branch} https://gerrit.opencord.org/cord-tester
+                    git clone -b ${branch} ${cordRepoUrl}/cord-tester
                     """
                 }
             }
             stage('Validate installed PODs') {
                 timeout(10) {
                     sh """
-                    export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/robot/
                     rm -rf Log/ || true
                     pybot -d Log -T SanityK8POD.robot || true
@@ -270,7 +270,7 @@ node ("${TestNodeName}") {
             stage('Configurations and Tests') {
                 timeout(10) {
                     sh """
-                    export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.nodes[0].ip}\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
@@ -289,7 +289,7 @@ node ("${TestNodeName}") {
             stage('Subscriber Validation and Ping Tests') {
                 timeout(30) {
                     sh """
-                    export KUBECONFIG=$WORKSPACE/pod-configs/kubernetes-configs/${deployment_config.kube_config}
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     pybot -d Log -T HippieOSS_instances.txt || true
                     pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
@@ -300,7 +300,7 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
-                cp -r $WORKSPACE/cord-tester/src/test/robot/Log/* $WORKSPACE//RobotLogs || true
+                cp -r $WORKSPACE/cord-tester/src/test/robot/Log/* $WORKSPACE/RobotLogs || true
                 cp -r $WORKSPACE/cord-tester/src/test/cord-api/Tests/Log/* $WORKSPACE/RobotLogs || true
                 """
                 step([$class: 'RobotPublisher',
