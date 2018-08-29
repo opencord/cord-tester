@@ -17,14 +17,14 @@ node ("${TestNodeName}") {
         try {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf ${configBaseDir}"
-                sh returnStdout: true, script: "git clone -b ${branch} ${configRepoUrl}/${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
             }
             stage('Clean up') {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     rm -rf helm-charts cord-tester
-                    git clone -b ${branch} ${configRepoUrl}/helm-charts
+                    git clone -b ${branch} ${cordRepoUrl}/helm-charts
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     for hchart in \$(helm list -q);
                     do
@@ -237,7 +237,7 @@ node ("${TestNodeName}") {
             stage('Download cord-tester repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
-                    git clone -b ${branch} ${configRepoUrl}/cord-tester
+                    git clone -b ${branch} ${cordRepoUrl}/cord-tester
                     """
                 }
             }
