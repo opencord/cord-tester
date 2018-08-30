@@ -1,2 +1,0 @@
-V	170601211227Z		01	unknown	/C=US/ST=CA/O=Ciena Inc./CN=Example Server Certificate/emailAddress=admin@ciena.com
-V	170601211227Z		02	unknown	/C=US/ST=CA/O=Ciena Inc./CN=user@ciena.com/emailAddress=user@ciena.com
