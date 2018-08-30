@@ -1,6 +1,0 @@
-{
-    "V_INF1" : "veth0",
-    "TLS_TIMEOUT" : 100,
-    "ITERATIONS" : 10,
-    "ARCHIVE_PARTITION" : false
-}

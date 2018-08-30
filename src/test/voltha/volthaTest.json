@@ -1,7 +1,0 @@
-{
-    "OLT_TYPE" : "simulated_olt",
-    "OLT_MAC"  : "00:0c:e2:31:12:00",
-    "VOLTHA_HOST" : "172.17.0.1",
-    "VOLTHA_REST_PORT" : 8882,
-    "VOLTHA_UPLINK_VLAN_START" : 444
-}

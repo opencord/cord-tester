@@ -1,6 +1,0 @@
-V	170306185335Z		01	unknown	/C=US/ST=CA/O=Ciena Inc./CN=Example Server Certificate/emailAddress=admin@ciena.com
-V	170306185336Z		02	unknown	/C=US/ST=CA/O=Ciena Inc./CN=user@ciena.com/emailAddress=user@ciena.com
-V	180306004618Z		03	unknown	/C=US/ST=CA/O=Ciena Inc./CN=Example Server Certificate/emailAddress=admin@ciena.com
-V	180306004619Z		04	unknown	/C=US/ST=CA/O=Ciena Inc./CN=user@ciena.com/emailAddress=user@ciena.com
-V	221031004743Z		05	unknown	/C=US/ST=CA/O=Ciena Inc./CN=Example Server Certificate/emailAddress=admin@ciena.com
-V	221031004744Z		06	unknown	/C=US/ST=CA/O=Ciena Inc./CN=user@ciena.com/emailAddress=user@ciena.com

@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-# example cord test web get to retrieve config from voltha test case
-
-curl  -H "Content-Type: application/json" -X GET -d '{"test_case" : "voltha"}' http://localhost:5000/get
