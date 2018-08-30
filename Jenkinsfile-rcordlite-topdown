@@ -77,7 +77,7 @@ node ("${TestNodeName}") {
                         helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
                         helm dep build voltha
                         helm install -n voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
-                        helm upgrade --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
+                        helm upgrade -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
                         """
                     }
                     timeout(10) {
