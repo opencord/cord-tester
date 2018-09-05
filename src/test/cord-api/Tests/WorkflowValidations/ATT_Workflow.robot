@@ -38,7 +38,7 @@ Create Two ONU Devices
     ${resp}=    CORD Post    /xosapi/v1/rcord/rcordsubscribers    {"onu_device": "${onu_serial_no}", "status": "pre-provisioned"}
     ${subscriber_id}=    Get Json Value    ${resp.content}    /id
     Set Suite Variable    ${subscriber_id}
-    ${resp}=    CORD Post    /xosapi/v1/volt/oltdevices    {"volt_service_id": ${voltservice_id}, "name": "testoltdevice1", "device_type": "ponism", "host": "172.17.0.1", "port": 50060, "switch_port": "1", "dp_id": "${deviceId}", "outer_tpid": "0x8100"}
+    ${resp}=    CORD Post    /xosapi/v1/volt/oltdevices    {"volt_service_id": ${voltservice_id}, "name": "testoltdevice1", "device_type": "ponism", "host": "172.17.0.1", "port": 50060, "switch_port": "1", "dp_id": "${deviceId}", "outer_tpid": "0x8100", "uplink": "128"}
     ${oltdevice_id}=    Get Json Value    ${resp.content}    /id
     Set Suite Variable    ${oltdevice_id}
     ${resp}=    CORD Post    /xosapi/v1/volt/ponports    {"olt_device_id": ${oltdevice_id}, "port_no": "${ponportno}", "name": "testponport1"}
