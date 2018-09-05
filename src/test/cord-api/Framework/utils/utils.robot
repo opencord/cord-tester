@@ -26,8 +26,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 *** Settings ***
 Documentation    Library for various utilities
 Library           SSHLibrary
@@ -37,24 +35,30 @@ Library           DateTime
 Library           Process
 Library           Collections
 Library           RequestsLibrary
-#Library           ${CURDIR}/readProperties.py
-#Resource          ${CURDIR}/utils.py
-*** Variables ***
-${SSH_KEY}=   id_rsa
 
 *** Keywords ***
 Run Command On Remote System
-    [Arguments]    ${system}    ${cmd}    ${user}=${VM_USER}    ${pass}=${VM_PASS}    ${prompt}=$    ${prompt_timeout}=60s    ${use_key}=False
+    [Arguments]    ${ip}    ${cmd}    ${user}    ${pass}    ${prompt}=$    ${prompt_timeout}=60s
     [Documentation]    SSH's into a remote host, executes command, and logs+returns output
     BuiltIn.Log    Attempting to execute command "${cmd}" on remote system "${system}"
-    BuiltIn.Log    ${pass}
-    ${conn_id}=    SSHLibrary.Open Connection    ${system}    prompt=${prompt}    timeout=${prompt_timeout}
-    Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}    ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/${SSH_KEY}    any
-    #SSHLibrary.Login    ${user}    ${pass}
+    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
+    SSHLibrary.Login    ${user}    ${pass}
     ${output}=    SSHLibrary.Execute Command    ${cmd}
     SSHLibrary.Close Connection
     Log    ${output}
     [Return]    ${output}
+
+Run Sudo Command On Remote System
+    [Arguments]    ${ip}    ${cmd}    ${user}    ${pass}    ${prompt}=$    ${prompt_timeout}=60s
+    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
+    SSHLibrary.Login    ${user}    ${pass}
+    SSHLibrary.Write    ${cmd}
+    Read Until    [sudo] password for ${user}:
+    SSHLibrary.Write    ${pass}
+    ${result}=    Read Until    ${prompt}
+    SSHLibrary.Close Connection
+    Log    ${result}
+    [Return]    ${result}
 
 Execute Command on CIAB Server in Specific VM
     [Arguments]    ${system}    ${vm}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True    ${strip_line}=True
