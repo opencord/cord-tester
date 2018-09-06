@@ -22,6 +22,29 @@
       "revId": "fd9e4e50ccc1c2258b96934096e22bac3a377723",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "cdc570cf_445519c1",
+        "filename": "src/test/cord-api/Framework/utils/RG_Authentication.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-09-06T19:33:06Z",
+      "side": 1,
+      "message": "For all the library related functions, it\u0027s best to use \"[return]\" to return outputs , so that validations can be performed in the actual test cases.",
+      "range": {
+        "startLine": 29,
+        "startChar": 4,
+        "endLine": 29,
+        "endChar": 41
+      },
+      "revId": "fd9e4e50ccc1c2258b96934096e22bac3a377723",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
