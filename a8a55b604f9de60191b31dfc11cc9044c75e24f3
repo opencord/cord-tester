@@ -42,6 +42,30 @@
     },
     {
       "key": {
+        "uuid": "da3348bb_c1289274",
+        "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-06T14:52:28Z",
+      "side": 1,
+      "message": "I just added two keywords (functions) to utils.robot that can send any command to a remote host (also for sudo commands)",
+      "parentUuid": "76f7421d_0b9b643c",
+      "range": {
+        "startLine": 38,
+        "startChar": 19,
+        "endLine": 38,
+        "endChar": 45
+      },
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ea5e2b96_096935ee",
         "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
         "patchSetId": 2
@@ -70,6 +94,30 @@
       "writtenOn": "2018-09-06T02:49:36Z",
       "side": 1,
       "message": "dst_subnet and src_gateway is probably more accurate",
+      "range": {
+        "startLine": 51,
+        "startChar": 42,
+        "endLine": 51,
+        "endChar": 74
+      },
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "62ff0b58_c640d10c",
+        "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-06T14:52:28Z",
+      "side": 1,
+      "message": "Isnt the command - \"sudo ip route add 10.8.3.0/24 via 10.8.2.254 dev enp4s0f1\"",
+      "parentUuid": "60ecb185_7e0b2632",
       "range": {
         "startLine": 51,
         "startChar": 42,
