@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "32274eed_6f0f38f0",
+        "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-06T00:17:56Z",
+      "side": 1,
+      "message": "Example usage:\n\nSend Dhclient Request    ${src_ip}    ${src_user}    ${src_pass}    ${public_iface}",
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ea5e2b96_096935ee",
+        "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-06T00:17:56Z",
+      "side": 1,
+      "message": "Example usage:\nAdd Default Route to Dst Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_snet}    ${dst_gt}    ${public_iface}",
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "681a7e3c_1d9dbf9f",
+        "filename": "src/test/cord-api/Framework/utils/RG_Authentication.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-06T00:17:56Z",
+      "side": 1,
+      "message": "Example usage:\nSend EAPOL Message    ${src_ip}    ${src_user}    ${src_pass}    ${public_iface}    wpa_supplicant_auth.conf",
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
