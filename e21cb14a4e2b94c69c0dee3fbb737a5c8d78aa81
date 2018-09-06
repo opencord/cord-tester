@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bd13fbfc_8ef4cea9",
+        "filename": "src/test/cord-api/Framework/WhiteList.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-06T21:39:17Z",
+      "side": 1,
+      "message": "typo ? ATT_SERVICEINSTANCES ?",
+      "revId": "e21cb14a4e2b94c69c0dee3fbb737a5c8d78aa81",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
