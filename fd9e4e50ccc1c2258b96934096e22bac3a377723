@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "023df000_e771e2af",
+        "filename": "src/test/cord-api/Framework/utils/RG_Authentication.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 1000064
+      },
+      "writtenOn": "2018-09-06T18:46:58Z",
+      "side": 1,
+      "message": "This library can be moved to /Framework directory.  Let\u0027s have \"utils\" directory to include only common utility functions/related operations.  Ex: \"Ping\" can be part of \"utils\" directory. But \"RG_Subscriber\" is application specific.",
+      "range": {
+        "startLine": 21,
+        "startChar": 0,
+        "endLine": 21,
+        "endChar": 18
+      },
+      "revId": "fd9e4e50ccc1c2258b96934096e22bac3a377723",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
