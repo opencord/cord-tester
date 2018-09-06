@@ -19,6 +19,29 @@
     },
     {
       "key": {
+        "uuid": "76f7421d_0b9b643c",
+        "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 38,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2018-09-06T02:49:36Z",
+      "side": 1,
+      "message": "Is it possible to still have the \"Send Client Command\" in the previous patch which handles sending commands via ssh?",
+      "range": {
+        "startLine": 38,
+        "startChar": 19,
+        "endLine": 38,
+        "endChar": 45
+      },
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "ea5e2b96_096935ee",
         "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
         "patchSetId": 2
@@ -30,6 +53,29 @@
       "writtenOn": "2018-09-06T00:17:56Z",
       "side": 1,
       "message": "Example usage:\nAdd Default Route to Dst Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_snet}    ${dst_gt}    ${public_iface}",
+      "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "60ecb185_7e0b2632",
+        "filename": "src/test/cord-api/Framework/utils/DHCP.robot",
+        "patchSetId": 2
+      },
+      "lineNbr": 51,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2018-09-06T02:49:36Z",
+      "side": 1,
+      "message": "dst_subnet and src_gateway is probably more accurate",
+      "range": {
+        "startLine": 51,
+        "startChar": 42,
+        "endLine": 51,
+        "endChar": 74
+      },
       "revId": "a8a55b604f9de60191b31dfc11cc9044c75e24f3",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
