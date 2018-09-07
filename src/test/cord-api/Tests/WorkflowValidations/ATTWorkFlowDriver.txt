@@ -11,7 +11,7 @@ Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
 *** Variables ***
-${PATHFILE}       ${CURDIR}/data/AttWorkFlowDriver.json
+${PATHFILE}       ${CURDIR}/data/ATTWorkFlowDriver.json
 
 *** Test Cases ***    TYPE                         LISTINDEX
 Test Create AttWorkFlow-1
