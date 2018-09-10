@@ -1,14 +1,14 @@
 *** Settings ***
 Documentation     Test suite for configuring BNG Port Mapping
 Suite Setup       Read InputFile
-Test Template     Configuring BNG Port Mapping 
+Test Template     Configuring BNG Port Mapping
 Library           Collections
 Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           ../../Framework/utils/utils.py
+Library           ../../Framework/restApi.py
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/BNGPortMapping.json
@@ -25,7 +25,7 @@ Read InputFile
     Set Suite Variable    ${dlist}    ${BNGList}
     Set Global Variable    ${BNG_Id}    ${EMPTY}
 
-Configuring BNG Port Mapping 
+Configuring BNG Port Mapping
     [Arguments]    ${type}    ${listIndex}
     Run Keyword If    "${type}" == "CREATE"    Create BNG Mapping    ${listIndex}
     Run Keyword If    "${type}" == "RETRIEVE"    Validate posted BNG Port   ${listIndex}
