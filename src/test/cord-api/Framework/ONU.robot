@@ -19,3 +19,17 @@ ONU Status Check
     ${operational_status}=  Get From Dictionary    ${getJsonDict}   oper_status
     ${admin_status}=  Get From Dictionary    ${getJsonDict}   admin_state
     [Return]    ${operational_status}    ${admin_status} 
+
+Create ONU Device
+    [Arguments]    ${device_list}    ${list_index}
+    [Documentation]    Sends a POST to create an att whitelist in XOS
+    ${dlist} =    Get Variable Value    ${device_list}
+    ${onu_dictionary}=    utils.listToDict    ${dlist}    ${list_index}
+    ${api_result}=    restApi.ApiPost    ONU_DEVICE    ${onu_dictionary}
+    Should Be True    ${api_result}
+
+Delete ONU Device
+    [Arguments]    ${id}
+    [Documentation]    Sends a DELETE to delete an onu device in XOS
+    ${api_result}=    restApi.ApiChameleonDelete    ONU_DEVICE    ${id}
+    Should Be True    ${api_result}
