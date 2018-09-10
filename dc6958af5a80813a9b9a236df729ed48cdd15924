@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "29fc5d4c_e343059c",
+        "filename": "src/test/cord-api/Tests/WorkflowValidations/ATT_Test001.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-10T19:16:39Z",
+      "side": 1,
+      "message": "Add \"Variables .   ../../Properties/RestApiProperties.py\"\n\nto add all the api variables to this suite",
+      "revId": "dc6958af5a80813a9b9a236df729ed48cdd15924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "319f1641_a6adaed6",
+        "filename": "src/test/cord-api/Tests/WorkflowValidations/ATT_Test001.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-10T19:16:39Z",
+      "side": 1,
+      "message": "you dont need this. delete this line.",
+      "revId": "dc6958af5a80813a9b9a236df729ed48cdd15924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b148668c_eafa5c54",
+        "filename": "src/test/cord-api/Tests/WorkflowValidations/ATT_Test001.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-10T19:16:39Z",
+      "side": 1,
+      "message": "You have to use these variables like this - ${ATT_WHITELIST}",
+      "revId": "dc6958af5a80813a9b9a236df729ed48cdd15924",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
