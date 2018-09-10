@@ -18,41 +18,49 @@ Variables           ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/ATTWhiteList.json
-Set Global Variable    ${onu_device}
+${src_ip}         X.X.X.X
+${src_gateway}    X.X.X.X
+${src_user}       user
+${src_pass}       pass
+${src_iface}      eth0
+${dst_ip}         X.X.X.X
+${dst_user}       user
+${dst_pass}       pass
+${dst_gateway}    X.X.X.X
+${dst_host_ip}    X.X.X.X
 
-*** Test Cases ***    TYPE                         LISTINDEX
+*** Test Cases ***
 Validate ONU States
     [Documentation]    Validate status field in ONU List
-    ${operational_status}    ${admin_status}    ONU Status Check    ${onu_device}
-    Should Be Equal    ${operational_status}    ACTIVE
-    Should Be Equal    ${admin_status}    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ONU States    ACTIVE    ENABLED
 
 Validate states in ATT WorkFlowDriver Service Instances
     [Documentation]    Validates necessary states for entries in workflow driver service instance list
-    Log    ${onu_device}
-    ${status}   ${authentication_status}   Service Instance Status Check    ${onu_device}
-    Should Be Equal    ${status}    valid 
-    Should Be Equal    ${authentication_status}    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    valid    AWAITING
 
 Validate Subscriber State
     [Documentation]    Validate subscriber status in the rcordsubscriber list
-    ${status}    Subscriber Status Check    ${onu_device}
-    Should Be Equal    ${status}    AWAITING-AUTH 
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    AWAITING-AUTH
 
-#Send Subscriber Authentication
-#    [Documentation]
-
+Send Subscriber Authentication
+    [Documentation]    Sends a successful 802.1x EAPOL message from the subscriber
+    Send EAPOL Message    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
 
 Validate states in ATT WorkFlowDriver instances after subscriber authentication
     [Documentation]    Validate proper states on the service instances after authentication
-    ${status}    ${authentication_status}    Service Instance Status Check    ${onu_device}
-    Should Be Equal    ${status}    valid
-    Should Be Equal    ${authentication_status}    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    valid    APPROVED
 
 Re-Validate Subscriber State
     [Documentation]    Validate subscriber status in the rcordsubscriber list
-    ${status}=    Subscriber Status Check    ${onu_device}
-    Should Be Equal    ${status}    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    ENABLED
+
+Execute Dhclient on RG
+    [Documentation]    Run dhclient on the dataplane interface on the RG
+    Send Dhclient Request    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
+
+Test E2E Connectivity
+    [Documentation]    Test pings after subscriber has been authenticated + enabled
+    Wait Until Keyword Succeeds    60s    2s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
 
 *** Keywords ***
 Read InputFile
@@ -66,6 +74,25 @@ Read InputFile
 
 Teardown
     [Documentation]    Delete and clean up xos objects
-    Clean Up Objects   ${VOLT_SUBSCRIBER} 
+    Kill Linux Process    [w]pa_supplicant
+    Kill Linux Process    [d]hclient
+    Clean Up Objects   ${VOLT_SUBSCRIBER}
     Clean Up Objects   ${VOLT_DEVICE} 
     Clean Up Objects   ${ATT_WHITELIST} 
+
+Validate ONU States
+    [Arguments]    ${expected_op_status}    ${expected_admin_status}
+    ${operational_status}    ${admin_status}    ONU Status Check    ${onu_device}
+    Should Be Equal    ${operational_status}    ${expected_op_status}
+    Should Be Equal    ${admin_status}    ${expected_admin_status}
+
+Validate ATT Workflow Driver SI
+    [Arguments]    ${expected_status}    ${expected_auth_status}
+    ${status}   ${authentication_status}   Service Instance Status Check    ${onu_device}
+    Should Be Equal    ${status}    ${expected_status}
+    Should Be Equal    ${authentication_status}    ${expected_auth_status}
+
+Validate Subscriber Status
+    [Arguments]    ${exepected_status}
+    ${status}    Subscriber Status Check    ${onu_device}
+    Should Be Equal    ${status}    ${exepected_status}

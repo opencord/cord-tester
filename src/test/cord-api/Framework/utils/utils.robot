@@ -159,3 +159,7 @@ CORD Delete
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     [Return]    ${resp}
+
+Kill Linux Process
+    [Arguments]    ${ip}    ${user}    ${pass}    ${process}
+    Run Sudo Command On Remote System    ${ip}    sudo kill $(ps aux | grep '${process}' | awk '{print $2}')    ${user}    ${pass}
