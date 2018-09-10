@@ -16,6 +16,7 @@
 Documentation     Library of functions related to RG (source host)
 Library           OperatingSystem
 Library           SSHLibrary
+Library           ../Framework/restApi.py
 
 *** Keywords ***
 Send EAPOL Message
