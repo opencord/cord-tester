@@ -22,6 +22,30 @@
       "revId": "885a3f90bcc35d52e9918a9247e068c0783de7ff",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f8f70443_b2cf2c26",
+        "filename": "src/test/cord-api/Framework/Subscriber.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-10T22:03:07Z",
+      "side": 1,
+      "message": "There can be multiple subscribers PER onu device. We will get to that stage soon enough, so I think its better that we know which particular subscriber we want to delete. Above in the \"Create Subscriber\" we are returning the ${id} that way we can keep track of which subscriber we are configuring/deleting/testing.",
+      "parentUuid": "40cd34ad_2ff8e777",
+      "range": {
+        "startLine": 57,
+        "startChar": 21,
+        "endLine": 57,
+        "endChar": 23
+      },
+      "revId": "885a3f90bcc35d52e9918a9247e068c0783de7ff",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
