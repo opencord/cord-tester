@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           ../../Framework/utils/utils.py
+Library           ../../Framework/restApi.py
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/ATTWorkFlowDriver.json
