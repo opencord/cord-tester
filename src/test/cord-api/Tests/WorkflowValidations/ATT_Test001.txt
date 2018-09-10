@@ -17,7 +17,8 @@ Resource           ../../Framework/DHCP.robot
 Variables           ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${PATHFILE}       ${CURDIR}/data/ATTWhiteList.json
+${WHITELIST_PATHFILE}     ${CURDIR}/data/ATTWhiteList.json
+${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/ATTSubscriber.json
 ${src_ip}         X.X.X.X
 ${src_gateway}    X.X.X.X
 ${src_user}       user
@@ -64,13 +65,15 @@ Test E2E Connectivity
 
 *** Keywords ***
 Read InputFile
-    ${AttWhiteListList}=    utils.jsonToList    ${PATHFILE}   AttWhiteListInfo 
-    Set Suite Variable    ${slist}    ${AttWhiteListList}
-    ${AttWhiteListList} =    Get Variable Value    ${slist}
+    ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    Set Suite Variable    ${alist}    ${AttWhiteListList}
+    ${AttWhiteListList} =    Get Variable Value    ${alist}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
     ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
     Log    ${onu_device}
     Set Global Variable    ${onu_device}
+    ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    Set Global Variable    ${slist}    ${SubscriberList}
 
 Teardown
     [Documentation]    Delete and clean up xos objects

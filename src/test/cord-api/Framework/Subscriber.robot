@@ -41,3 +41,20 @@ Subscriber Status Check
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    onu_device    ${onu_device}
     ${status}=    Get From Dictionary    ${getJsonDict}   status
     [Return]    ${status}
+
+Create Subscriber
+    [Arguments]    ${subscriber_list}    ${list_index}
+    [Documentation]    Sends a POST to create a subscriber in XOS
+    ${slist} =    Get Variable Value    ${subscriber_list}
+    ${subscriber_dictionary}=    utils.listToDict    ${slist}    ${list_index}
+    ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriber_dictionary}
+    Should Be True    ${api_result}
+    ${Subscriber_id}=    Get From Dictionary    ${api_result}    id
+    Set Global Variable    ${Subscriber_id}
+    [Return]    ${Subscriber_id}
+
+Delete Subscriber
+    [Arguments]    ${id}
+    [Documentation]    Sends a DELETE to delete a subscriber in XOS
+    ${api_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${id}
+    Should Be True    ${api_result}
