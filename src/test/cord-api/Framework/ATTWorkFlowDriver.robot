@@ -19,3 +19,20 @@ Service Instance Status Check
     ${status}=  Get From Dictionary    ${getJsonDict}   valid 
     ${authentication_status}=  Get From Dictionary    ${getJsonDict}   authentication_state
     [Return]    ${status}    ${authentication_status} 
+
+Create Whitelist Entry
+    [Arguments]    ${entry_list}    ${list_index}
+    [Documentation]    Sends a POST to create an att whitelist in XOS
+    ${elist} =    Get Variable Value    ${entry_list}
+    ${entry_dictionary}=    utils.listToDict    ${elist}    ${list_index}
+    ${api_result}=    restApi.ApiPost    ATT_WHITELIST    ${entry_dictionary}
+    Should Be True    ${api_result}
+    ${AttWhiteList_Id}=    Get From Dictionary    ${api_result}    id
+    Set Global Variable    ${AttWhiteList_Id}
+    [Return]    ${AttWhiteList_Id}
+
+Delete Whitelist Entry
+    [Arguments]    ${id}
+    [Documentation]    Sends a DELETE to delete an att whitelist in XOS
+    ${api_result}=    restApi.ApiChameleonDelete    ATT_WHITELIST    ${id}
+    Should Be True    ${api_result}
