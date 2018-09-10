@@ -22,13 +22,13 @@ Send EAPOL Message
     [Arguments]    ${ip}    ${user}    ${pass}    ${iface}    ${conf_file}    ${prompt}=$    ${prompt_timeout}=60s
     [Documentation]    SSH's into the RG (src) and executes a particular auth request via wpa_supplicant client. Requested packet should exist on src.
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pamvss}
+    SSHLibrary.Login    ${user}    ${pass}
     SSHLibrary.Write    sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file}
     Read Until    [sudo] password for ${user}:
     SSHLibrary.Write    ${pass}
     ${result}=    Read Until    ${prompt}
     SSHLibrary.Close Connection
-    Should Be Equal    ${result}    Successfully initialized wpa_supplicant
+    Should Contain    ${result}    Successfully initialized wpa_supplicant
     [Return]    ${result}
 
 Subscriber Status Check
