@@ -5,8 +5,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           utils/utils.py
+Library           restApi.py
 
 *** Keywords ***
 ONU Status Check

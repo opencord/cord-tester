@@ -16,6 +16,7 @@
 Documentation     Library of functions related to RG (source host)
 Library           OperatingSystem
 Library           SSHLibrary
+Library           restApi.py
 
 *** Keywords ***
 Send EAPOL Message
@@ -37,6 +38,6 @@ Subscriber Status Check
     ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
     Log    ${json_result}
     ${json_result_list}=    Get From dictionary    ${json_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    onu_device    ${onu_device}
     ${status}=    Get From Dictionary    ${getJsonDict}   status
     [Return]    ${status}
