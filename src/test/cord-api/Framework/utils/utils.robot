@@ -162,4 +162,5 @@ CORD Delete
 
 Kill Linux Process
     [Arguments]    ${ip}    ${user}    ${pass}    ${process}
-    Run Sudo Command On Remote System    ${ip}    sudo kill $(ps aux | grep '${process}' | awk '{print $2}')    ${user}    ${pass}
+    ${rc}=    Run Sudo Command On Remote System    ${ip}    sudo kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${user}    ${pass}
+    Should Contain    ${rc}    0
