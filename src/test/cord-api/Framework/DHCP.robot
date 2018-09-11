@@ -23,7 +23,7 @@ Send Dhclient Request
     [Documentation]    SSH's into the RG (src) and executes a dhclient against a particular interface
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo dhclient ${iface}
+    SSHLibrary.Write    sudo dhclient -nw ${iface}
     Read Until    [sudo] password for ${user}:
     SSHLibrary.Write    ${pass}
     ${result}=    Read Until    ${prompt}
