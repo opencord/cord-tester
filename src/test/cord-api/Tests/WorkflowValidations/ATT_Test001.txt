@@ -76,12 +76,12 @@ Read InputFile
     Set Global Variable    ${slist}    ${SubscriberList}
 
 Teardown
-    [Documentation]    Delete and clean up xos objects
-    Kill Linux Process    [w]pa_supplicant
-    Kill Linux Process    [d]hclient
+    [Documentation]    Delete xos objects and kill process on src host
+    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [w]pa_supplicant
+    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [d]hclient
     Clean Up Objects   ${VOLT_SUBSCRIBER}
-    Clean Up Objects   ${VOLT_DEVICE} 
-    Clean Up Objects   ${ATT_WHITELIST} 
+    Clean Up Objects   ${VOLT_DEVICE}
+    Clean Up Objects   ${ATT_WHITELIST}
 
 Validate ONU States
     [Arguments]    ${expected_op_status}    ${expected_admin_status}
