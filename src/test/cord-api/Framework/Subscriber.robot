@@ -69,3 +69,15 @@ Delete Subscriber
     ${id}=    Retrieve Subscriber    ${ctag}
     ${api_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${id}
     Should Be True    ${api_result}
+
+Delete IP Addresses from Interface on Remote Host
+    [Arguments]    ${ip}    ${user}    ${pass}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
+    [Documentation]    Deletes all ip addresses assigned to a particular interface on a remote host
+    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
+    SSHLibrary.Login    ${user}    ${pass}
+    SSHLibrary.Write    sudo ip addr flush dev ${interface}; echo $?
+    Read Until    [sudo] password for ${user}:
+    SSHLibrary.Write    ${pass}
+    ${result}=    Read Until    ${prompt}
+    SSHLibrary.Close Connection
+    Should Contain    ${rc}    0

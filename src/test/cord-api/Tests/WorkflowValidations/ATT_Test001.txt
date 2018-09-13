@@ -77,10 +77,13 @@ Read InputFile
 
 Teardown
     [Documentation]    Delete xos objects and kill process on src host
-    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [w]pa_supplicant
-    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [d]hclient
+    ##in some tests, these processes will not get started
+    Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [w]pa_supplicant
+    Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [d]hclient
+    Delete IP Addresses from Interface on Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
     Clean Up Objects   ${VOLT_SUBSCRIBER}
-    Clean Up Objects   ${VOLT_DEVICE}
+    ##need to keep retrying to delete olt device until subscriber is completely removed from xos
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${VOLT_DEVICE}
     Clean Up Objects   ${ATT_WHITELIST}
 
 Validate ONU States
