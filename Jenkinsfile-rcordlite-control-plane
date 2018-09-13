@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pod_config = null
-
 node ("${TestNodeName}") {
     timeout (time: 240) {
         stage ("Parse deployment configuration file") {
@@ -37,19 +35,35 @@ node ("${TestNodeName}") {
         }
         stage('Clean up') {
             timeout(10) {
-                try {
-                    sh """
-                    cd /home/cord/helm-charts
-                    export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    helm ls | grep onos-voltha && helm delete --purge onos-voltha
-                    helm ls | grep onos-fabric && helm delete --purge onos-fabric
-                    helm ls | grep voltha && helm delete --purge voltha
-                    helm ls | grep rcord-lite && helm delete --purge rcord-lite
-                    helm ls | grep xos-core && helm delete --purge xos-core
-                    sleep 80
-                    """
-                } catch(error) { currentBuild.result = 'FAILURE' }
-            }    
+                sh returnStdout: true, script: """
+                rm -rf helm-charts cord-tester
+                git clone -b ${branch} ${cordRepoUrl}/helm-charts
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
+                do
+                    echo "Purging chart: \${hchart}"
+                    helm delete --purge "\${hchart}"
+                done
+                """
+                timeout(5) {
+                    waitUntil {
+                        helm_deleted = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
+                        """
+                        return helm_deleted.toInteger() == 0
+                    }
+                }
+                timeout(5) {
+                    waitUntil {
+                        kubectl_deleted = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
+                        """
+                        return kubectl_deleted.toInteger() == 0
+                    }
+                }
+            }
         }
         stage('Install xos-core and rcord-lite') {
             timeout(10) {
