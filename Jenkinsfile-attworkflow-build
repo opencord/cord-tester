@@ -234,34 +234,36 @@ node ("${TestNodeName}") {
                     }
                 }
             }
-            dir ("${configBaseDir}/${configToscaDir}/attworkflow-configs") {
-                stage('Configure R-CORD - Fabric and whitelist') {
-                    timeout(1) {
-                        waitUntil {
-                            out_fabric = sh returnStdout: true, script: """
-                            curl -s -H "xos-username: admin@opencord.org" -H "xos-password: letmein" -X POST --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                            """
-                            return out_fabric.toInteger() == 1
+            if ( params.configurePod ) {
+                dir ("${configBaseDir}/${configToscaDir}/attworkflow-configs") {
+                    stage('Configure R-CORD - Fabric and whitelist') {
+                        timeout(1) {
+                            waitUntil {
+                                out_fabric = sh returnStdout: true, script: """
+                                curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_fabric.toInteger() == 1
+                            }
                         }
                     }
-                }
-                stage('Configure R-CORD - Subscriber') {
-                    timeout(1) {
-                        waitUntil {
-                            out_subscriber = sh returnStdout: true, script: """
-                            curl -s -H 'xos-username: admin@opencord.org' -H 'xos-password: letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                            """
-                            return out_subscriber.toInteger() == 1
+                    stage('Configure R-CORD - Subscriber') {
+                        timeout(1) {
+                            waitUntil {
+                                out_subscriber = sh returnStdout: true, script: """
+                                curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_subscriber.toInteger() == 1
+                            }
                         }
                     }
-                }
-                stage('Configure R-CORD - OLT') {
-                    timeout(1) {
-                        waitUntil {
-                            out_olt = sh returnStdout: true, script: """
-                            curl -H 'xos-username: admin@opencord.org' -H 'xos-password: letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                            """
-                            return out_olt.toInteger() == 1
+                    stage('Configure R-CORD - OLT') {
+                        timeout(1) {
+                            waitUntil {
+                                out_olt = sh returnStdout: true, script: """
+                                curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_olt.toInteger() == 1
+                            }
                         }
                     }
                 }
