@@ -233,13 +233,13 @@ node ("${TestNodeName}") {
                     }
                 }
             }
-            if ( configurePod ) {
-                dir ("${configBaseDir}/${configToscaDir}/${profile}-${scenario}") {
+            if ( params.configurePod ) {
+                dir ("${configBaseDir}/${configToscaDir}/${profile}") {
                     stage('Configure R-CORD - Fabric and whitelist') {
                         timeout(1) {
                             waitUntil {
                             out_fabric = sh returnStdout: true, script: """
-                            curl -s -H "xos-username: admin@opencord.org" -H "xos-password: letmein" -X POST --data-binary @${configFileName}-fabric.yaml http: //${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                            curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
                             """
                             return out_fabric.toInteger() == 1
                             }
@@ -249,7 +249,7 @@ node ("${TestNodeName}") {
                         timeout(1) {
                             waitUntil {
                             out_subscriber = sh returnStdout: true, script: """
-                            curl -s -H 'xos-username: admin@opencord.org' -H 'xos-password: letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http: //${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                            curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
                             """
                             return out_subscriber.toInteger() == 1
                             }
@@ -259,7 +259,7 @@ node ("${TestNodeName}") {
                         timeout(1) {
                             waitUntil {
                             out_olt = sh returnStdout: true, script: """
-                            curl -H 'xos-username: admin@opencord.org' -H 'xos-password: letmein' -X POST --data-binary @${configFileName}-olt.yaml http: //${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                            curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
                             """
                             return out_olt.toInteger() == 1
                             }
