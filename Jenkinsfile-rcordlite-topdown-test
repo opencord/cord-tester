@@ -1,0 +1,79 @@
+// Copyright 2017-present Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+node ("${TestNodeName}") {
+    timeout (100) {
+        try {
+            stage ("Parse deployment configuration file") {
+                sh returnStdout: true, script: "rm -rf ${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
+                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
+            }
+
+            stage('Download cord-tester repo') {
+                timeout(2) {
+                    sh returnStdout: true, script: """
+                    git clone -b ${branch} ${cordRepoUrl}/cord-tester
+                    """
+                }
+            }
+            stage('Configurations and Tests') {
+                timeout(10) {
+                    sh """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Properties/
+                    sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.nodes[0].ip}\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(XOS_USER = \\).*/\\1\'admin@opencord.org\'/\" RestApiProperties.py
+                    sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
+                    rm -rf Log/ || true
+                    """
+                }
+            }
+            stage('Subscriber Validation and Ping Tests') {
+                timeout(30) {
+                    sh """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
+                    pybot -d Log -T -v src_ip:${deployment_config.hosts.src.ip} -v src_user:${deployment_config.hosts.src.user} -v src_pass:${deployment_config.hosts.src.pass} -v dst_user:${deployment_config.hosts.dst.user} -v dst_pass:${deployment_config.hosts.dst.pass} -v dst_ip:${deployment_config.hosts.dst.ip} -v src_host_ip:${deployment_config.hosts.src.dp_iface_ip} -v dst_host_ip:${deployment_config.hosts.dst.dp_iface_ip} -v src_gateway:${deployment_config.hosts.src.dp_iface_gateway} -v dst_gateway:${deployment_config.hosts.dst.dp_iface_gateway} -v init_state:disabled -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:PASS -e zerotouch Subscriber_StatusChecks.txt || true
+                    """
+                }
+            }
+            stage('Publish test results') {
+                sh returnStdout: true, script: """
+                if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
+                mkdir RobotLogs/TestDoc || true
+                cp -r $WORKSPACE/cord-tester/src/test/robot/Log/* $WORKSPACE/RobotLogs || true
+                cp -r $WORKSPACE/cord-tester/src/test/cord-api/Tests/Log/* $WORKSPACE/RobotLogs || true
+                """
+                step([$class: 'RobotPublisher',
+                    disableArchiveOutput: false,
+                    logFileName: 'RobotLogs/log*.html',
+                    otherFiles: '',
+                    outputFileName: 'RobotLogs/output*.xml',
+                    outputPath: '.',
+                    passThreshold: 100,
+                    reportFileName: 'RobotLogs/report*.html',
+                    unstableThreshold: 0
+                ])
+            }
+            currentBuild.result = 'SUCCESS'
+        } catch (err) {
+            currentBuild.result = 'FAILURE'
+            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+        }
+        echo "RESULT: ${currentBuild.result}"
+    }
+}
