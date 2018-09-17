@@ -57,7 +57,8 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
+                        helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n voltha-kafka incubator/kafka
                         """
                     }
                     timeout(10) {
@@ -87,6 +88,23 @@ node ("${TestNodeName}") {
                             kubectl get pods -n voltha | grep -i running | grep 1/1 | wc -l
                             """
                             return voltha_completed.toInteger() == 8
+                        }
+                    }
+                }
+                stage('Install CORD Kafka') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n cord-kafka incubator/kafka
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            kafka_instances_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+                            """
+                            return kafka_instances_running.toInteger() == 2
                         }
                     }
                 }
