@@ -57,7 +57,8 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install --name voltha-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
+                        helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n voltha-kafka incubator/kafka
                         """
                     }
                     timeout(10) {
@@ -94,7 +95,7 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
+                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n cord-kafka incubator/kafka
                         """
                     }
                     timeout(10) {
@@ -235,7 +236,7 @@ node ("${TestNodeName}") {
                 }
             }
             if ( params.configurePod ) {
-                dir ("${configBaseDir}/${configToscaDir}/attworkflow-configs") {
+                dir ("${configBaseDir}/${configToscaDir}/att-workflow") {
                     stage('Configure R-CORD - Fabric and whitelist') {
                         timeout(1) {
                             waitUntil {
