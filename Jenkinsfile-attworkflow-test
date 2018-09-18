@@ -23,6 +23,7 @@ node ("${TestNodeName}") {
             stage('Download Cord-Tester Repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
+                    rm -rf cord-tester
                     git clone -b ${branch} ${cordRepoUrl}/cord-tester
                     """
                 }
@@ -46,7 +47,7 @@ node ("${TestNodeName}") {
                     sh """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
-                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v src_iface:${deployment_config.srcHost.public_iface} WorkflowValidations/ATT_Test001.txt || true
+                    pybot -d Log -T -v src_ip:${deployment_config.hosts.src.ip} -v src_gateway:${deployment_config.hosts.src.dp_iface_gateway} -v src_user:${deployment_config.hosts.src.user} -v src_pass:${deployment_config.hosts.src.pass} -v src_iface:${deployment_config.hosts.src.dp_iface_name} -v dst_ip:${deployment_config.hosts.dst.ip} -v dst_user:${deployment_config.hosts.dst.user} -v dst_pass:${deployment_config.hosts.dst.pass} -v dst_gateway:${deployment_config.hosts.dst.dp_iface_gateway} -v dst_dp_iface:${deployment_config.hosts.dst.dp_iface_name} -v dst_dp_ip:${deployment_config.hosts.dst.dp_iface_ip_qinq} WorkflowValidations/ATT_Test001.txt || true
                     """
                 }
             }
