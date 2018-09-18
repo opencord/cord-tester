@@ -1,34 +1,49 @@
+# Copyright 2017-present Open Networking Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 *** Settings ***
 Documentation     Test successful ping from end-end
 Suite Setup       Read InputFile
-#Suite Teardown    Teardown
+Suite Teardown    Teardown
 Library           Collections
 Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           ../../Framework/utils/utils.py
-Resource           ../../Framework/utils/utils.robot
+Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
-Resource           ../../Framework/Subscriber.robot
-Resource           ../../Framework/ATTWorkFlowDriver.robot
-Resource           ../../Framework/ONU.robot
-Resource           ../../Framework/DHCP.robot
-Variables           ../../Properties/RestApiProperties.py
+Resource          ../../Framework/Subscriber.robot
+Resource          ../../Framework/ATTWorkFlowDriver.robot
+Resource          ../../Framework/ONU.robot
+Resource          ../../Framework/DHCP.robot
+Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${WHITELIST_PATHFILE}     ${CURDIR}/data/ATTWhiteList.json
 ${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/ATTSubscriber.json
-${src_ip}         X.X.X.X
-${src_gateway}    X.X.X.X
-${src_user}       user
-${src_pass}       pass
-${src_iface}      eth0
-${dst_ip}         X.X.X.X
-${dst_user}       user
-${dst_pass}       pass
-${dst_gateway}    X.X.X.X
-${dst_host_ip}    X.X.X.X
+${src_ip}          X.X.X.X
+${src_gateway}     X.X.X.X
+${src_user}        user
+${src_pass}        pass
+${src_iface}       eth0
+${dst_ip}          X.X.X.X
+${dst_dp_iface}    eth0
+${dst_dp_ip}       X.X.X.X
+${dst_user}        user
+${dst_pass}        pass
+${dst_gateway}     X.X.X.X
 
 *** Test Cases ***
 Validate ONU States
@@ -55,13 +70,23 @@ Re-Validate Subscriber State
     [Documentation]    Validate subscriber status in the rcordsubscriber list
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    ENABLED
 
+Configure QinQ Interface on Dest Server
+    [Documentation]    Configure a QinQ (802.11q) interface to pass double tagged traffic from RG
+    Add Double Vlan Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}    ${s_tag}    ${c_tag}
+    Add IP Address on Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}/24    ${dst_dp_iface}.${stag}.${c_tag}
+    Add Route to Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}    ${src_gateway}    ${dst_dp_iface}.${stag}.${c_tag}
+
+Start DHCP Server on QinQ Interface
+    [Documentation]    Start dhcpd on the previously configured interface on the destination server
+    Start DHCP Server on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${stag}.${ctag}
+
 Execute Dhclient on RG
     [Documentation]    Run dhclient on the dataplane interface on the RG
     Send Dhclient Request    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
 
 Test E2E Connectivity
     [Documentation]    Test pings after subscriber has been authenticated + enabled
-    Wait Until Keyword Succeeds    60s    2s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
+    Wait Until Keyword Succeeds    60s    5s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_dp_ip}
 
 *** Keywords ***
 Read InputFile
@@ -74,17 +99,23 @@ Read InputFile
     Set Global Variable    ${onu_device}
     ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
     Set Global Variable    ${slist}    ${SubscriberList}
+    ${SubscriberList} =    Get Variable Value    ${slist}
+    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
+    ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
+    ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
+    Set Suite Variable    ${s_tag}
+    Set Suite Variable    ${c_tag}
 
 Teardown
     [Documentation]    Delete xos objects and kill process on src host
-    ##in some tests, these processes will not get started
     Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [w]pa_supplicant
     Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [d]hclient
+    Run Keyword And Ignore Error    Kill Linux Process    ${dst_ip}    ${dst_user}    ${dst_pass}    [d]hcpd
     Delete IP Addresses from Interface on Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
-    Clean Up Objects   ${VOLT_SUBSCRIBER}
-    ##need to keep retrying to delete olt device until subscriber is completely removed from xos
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${VOLT_DEVICE}
-    Clean Up Objects   ${ATT_WHITELIST}
+    Delete Interface on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${stag}
+    #Clean Up Objects   ${VOLT_SUBSCRIBER}
+    #Clean Up Objects   ${VOLT_DEVICE}
+    #Clean Up Objects   ${ATT_WHITELIST}
 
 Validate ONU States
     [Arguments]    ${expected_op_status}    ${expected_admin_status}

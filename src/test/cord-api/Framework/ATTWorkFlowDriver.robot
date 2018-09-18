@@ -1,5 +1,19 @@
+# Copyright 2017-present Open Networking Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 *** Settings ***
-Documentation     Library to retrieve status fields from ATT WorkFlow Driver Service Instance List 
+Documentation     Library to retrieve status fields from ATT WorkFlow Driver Service Instance List
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -16,9 +30,9 @@ Service Instance Status Check
     Log    ${json_result}
     ${json_result_list}=    Get From dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
-    ${status}=  Get From Dictionary    ${getJsonDict}   valid 
+    ${status}=  Get From Dictionary    ${getJsonDict}   status
     ${authentication_status}=  Get From Dictionary    ${getJsonDict}   authentication_state
-    [Return]    ${status}    ${authentication_status} 
+    [Return]    ${status}    ${authentication_status}
 
 Create Whitelist Entry
     [Arguments]    ${entry_list}    ${list_index}
