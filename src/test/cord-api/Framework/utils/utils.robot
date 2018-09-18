@@ -155,12 +155,20 @@ Clean Up Objects
     \    Append To List    ${ids}    ${id}
     : FOR    ${i}    IN    @{ids}
     \    CORD Delete    ${model_api}    ${i}
-    Delete All Sessions
 
 CORD Get
     [Documentation]    Make a GET call to XOS
     [Arguments]    ${service}
     ${resp}=    Get Request    ${server_ip}    ${service}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    [Return]    ${resp}
+
+CORD Post
+    [Documentation]    Make a POST call to XOS
+    [Arguments]    ${service}    ${data}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Post Request    ${SERVER_IP}    uri=${service}    data=${data}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     [Return]    ${resp}
@@ -172,6 +180,17 @@ CORD Delete
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     [Return]    ${resp}
+
+Get Service Owner Id
+    [Arguments]    ${service}
+    ${resp}=    CORD Get    ${service}
+    ${jsondata}=    To Json    ${resp.content}
+    log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
+    : for    ${INDEX}    IN RANGE    0    ${length}
+    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${id}=    Get From Dictionary    ${value}    id
+    [Return]    ${id}
 
 Kill Linux Process
     [Arguments]    ${ip}    ${user}    ${pass}    ${process}
