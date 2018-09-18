@@ -120,11 +120,24 @@ Remove Value From List
     \    Run Keyword If    '${value[0]}' == '${val}'    Exit For Loop
 
 Test Ping
-    [Arguments]    ${interface}    ${host}
-    [Documentation]    Ping hosts to check connectivity
-    ${result}=   Run    ping -I ${interface} -c 5 ${host}
-    Should Contain    ${result}    64 bytes
-    Should Not Contain    ${result}    Destination Host Unreachable
+    [Arguments]    ${status}    ${src}    ${user}    ${pass}    ${dest}    ${prompt}=$    ${prompt_timeout}=60s
+    [Documentation]    SSH's into src and attempts to ping dest. Status determines if ping should pass | fail
+    ${conn_id}=    SSHLibrary.Open Connection    ${src}    prompt=${prompt}    timeout=${prompt_timeout}
+    SSHLibrary.Login    ${user}    ${pass}
+    ${result}=    SSHLibrary.Execute Command    ping -c 5 ${dest}
+    SSHLibrary.Close Connection
+    Log    ${result}
+    Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    64 bytes
+    Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    0% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    100% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    80% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    60% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    40% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    20% packet loss
+    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    Destination Host Unreachable
+    Run Keyword If    '${status}' == 'FAIL'    Should Not Contain    ${result}    64 bytes
+    Run Keyword If    '${status}' == 'FAIL'    Should Contain    ${result}    100% packet loss
+    Log To Console    \n ${result}
 
 Clean Up Objects
     [Arguments]    ${model_api}

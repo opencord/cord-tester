@@ -80,4 +80,3 @@ Delete IP Addresses from Interface on Remote Host
     SSHLibrary.Write    ${pass}
     ${result}=    Read Until    ${prompt}
     SSHLibrary.Close Connection
-    Should Contain    ${rc}    0
