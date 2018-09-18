@@ -58,11 +58,11 @@ ONU in Correct Location + Successful Auth Request
     ...    Validate successful pings from src to dst
     [Setup]    None
     Wait Until Keyword Succeeds    60s    2s    Validate ONU States    ACTIVE    ENABLED
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    valid    AWAITING
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    AWAITING-AUTH
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Send EAPOL Message    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    valid    APPROVED
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
     Add Double Vlan Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}    ${s_tag}    ${c_tag}
     Add IP Address on Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}/24    ${dst_dp_iface}.${stag}.${c_tag}
     Add Route to Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}    ${src_gateway}    ${dst_dp_iface}.${stag}.${c_tag}
@@ -136,8 +136,8 @@ Validate ONU States
 
 Validate ATT Workflow Driver SI
     [Arguments]    ${expected_status}    ${expected_auth_status}
-    ${status}   ${authentication_status}   Service Instance Status Check    ${onu_device}
-    Should Be Equal    ${status}    ${expected_status}
+    ${onu_state}   ${authentication_status}   Service Instance Status Check    ${onu_device}
+    Should Be Equal    ${onu_state}    ${expected_status}
     Should Be Equal    ${authentication_status}    ${expected_auth_status}
 
 Validate Subscriber Status

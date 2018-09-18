@@ -30,9 +30,9 @@ Service Instance Status Check
     Log    ${json_result}
     ${json_result_list}=    Get From dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
-    ${status}=  Get From Dictionary    ${getJsonDict}   status
-    ${authentication_status}=  Get From Dictionary    ${getJsonDict}   authentication_state
-    [Return]    ${status}    ${authentication_status}
+    ${onu_state}=  Get From Dictionary    ${getJsonDict}   onu_state
+    ${authentication_state}=  Get From Dictionary    ${getJsonDict}   authentication_state
+    [Return]    ${onu_state}    ${authentication_state}
 
 Create Whitelist Entry
     [Arguments]    ${entry_list}    ${list_index}
