@@ -86,7 +86,7 @@ Execute Dhclient on RG
 
 Test E2E Connectivity
     [Documentation]    Test pings after subscriber has been authenticated + enabled
-    Wait Until Keyword Succeeds    60s    5s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_dp_ip}
+    Wait Until Keyword Succeeds    60s    5s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_dp_ip}    ${src_iface}
 
 *** Keywords ***
 Read InputFile

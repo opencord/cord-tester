@@ -120,11 +120,11 @@ Remove Value From List
     \    Run Keyword If    '${value[0]}' == '${val}'    Exit For Loop
 
 Test Ping
-    [Arguments]    ${status}    ${src}    ${user}    ${pass}    ${dest}    ${prompt}=$    ${prompt_timeout}=60s
+    [Arguments]    ${status}    ${src}    ${user}    ${pass}    ${dest}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
     [Documentation]    SSH's into src and attempts to ping dest. Status determines if ping should pass | fail
     ${conn_id}=    SSHLibrary.Open Connection    ${src}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
-    ${result}=    SSHLibrary.Execute Command    ping -c 5 ${dest}
+    ${result}=    SSHLibrary.Execute Command    ping -I ${interface} -c 5 ${dest}
     SSHLibrary.Close Connection
     Log    ${result}
     Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    64 bytes
