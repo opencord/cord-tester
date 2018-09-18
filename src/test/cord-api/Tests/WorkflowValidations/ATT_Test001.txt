@@ -14,8 +14,10 @@
 
 *** Settings ***
 Documentation     Test successful ping from end-end
-Suite Setup       Read InputFile
+Suite Setup       Setup
 Suite Teardown    Teardown
+Test Setup        Create Models
+Test Teardown     Clean Test Environment
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -33,6 +35,7 @@ Variables         ../../Properties/RestApiProperties.py
 *** Variables ***
 ${WHITELIST_PATHFILE}     ${CURDIR}/data/ATTWhiteList.json
 ${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/ATTSubscriber.json
+${VOLT_DEVICE_PATHFILE}    ${CURDIR}/../data/RealOLTDevice.json
 ${src_ip}          X.X.X.X
 ${src_gateway}     X.X.X.X
 ${src_user}        user
@@ -46,54 +49,39 @@ ${dst_pass}        pass
 ${dst_gateway}     X.X.X.X
 
 *** Test Cases ***
-Validate ONU States
-    [Documentation]    Validate status field in ONU List
+ONU in Correct Location + Successful Auth Request
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Discovery of ONU Device after whitelist has been configured
+    ...    Sending of a successful 802.1x auth request
+    ...    Configuration of the destination servers interface and start dhcpd
+    ...    Configuration of source server interface and execute dhclient on interface
+    ...    Validate successful pings from src to dst
+    [Setup]    None
     Wait Until Keyword Succeeds    60s    2s    Validate ONU States    ACTIVE    ENABLED
-
-Validate states in ATT WorkFlowDriver Service Instances
-    [Documentation]    Validates necessary states for entries in workflow driver service instance list
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    valid    AWAITING
-
-Validate Subscriber State
-    [Documentation]    Validate subscriber status in the rcordsubscriber list
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    AWAITING-AUTH
-
-Send Subscriber Authentication
-    [Documentation]    Sends a successful 802.1x EAPOL message from the subscriber
     Send EAPOL Message    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
-
-Validate states in ATT WorkFlowDriver instances after subscriber authentication
-    [Documentation]    Validate proper states on the service instances after authentication
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    valid    APPROVED
-
-Re-Validate Subscriber State
-    [Documentation]    Validate subscriber status in the rcordsubscriber list
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    ENABLED
-
-Configure QinQ Interface on Dest Server
-    [Documentation]    Configure a QinQ (802.11q) interface to pass double tagged traffic from RG
     Add Double Vlan Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}    ${s_tag}    ${c_tag}
     Add IP Address on Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}/24    ${dst_dp_iface}.${stag}.${c_tag}
     Add Route to Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}    ${src_gateway}    ${dst_dp_iface}.${stag}.${c_tag}
-
-Start DHCP Server on QinQ Interface
-    [Documentation]    Start dhcpd on the previously configured interface on the destination server
     Start DHCP Server on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${stag}.${ctag}
-
-Execute Dhclient on RG
-    [Documentation]    Run dhclient on the dataplane interface on the RG
     Send Dhclient Request    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
-
-Test E2E Connectivity
-    [Documentation]    Test pings after subscriber has been authenticated + enabled
     Wait Until Keyword Succeeds    60s    5s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_dp_ip}    ${src_iface}
 
 *** Keywords ***
-Read InputFile
+Setup
+    ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
+    ${HEADERS}    Create Dictionary    Content-Type=application/json
+    Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
+    ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
+    ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
     ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
     Set Suite Variable    ${alist}    ${AttWhiteListList}
     ${AttWhiteListList} =    Get Variable Value    ${alist}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
+    ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
     Log    ${onu_device}
     Set Global Variable    ${onu_device}
@@ -103,19 +91,42 @@ Read InputFile
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
     ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
+    ${VoltDeviceList}=    utils.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    Set Global Variable    ${vlist}    ${VoltDeviceList}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
 
 Teardown
-    [Documentation]    Delete xos objects and kill process on src host
+    [Documentation]    Performs any additional cleanup required
+    Log    Suite Teardown cleanup
+    Delete All Sessions
+
+Create Models
+    [Documentation]    Re-create Subscriber, whitelist, and olt-device models to test
+    Log    Re-creating objects
+    #create attwhitelist
+    ${AttWhiteListList} =    Get Variable Value    ${alist}
+    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
+    CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
+    #create subscriber
+    ${SubscriberList} =    Get Variable Value    ${slist}
+    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
+    Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
+    #create olt device
+    ${VoltDeviceList} =    Get Variable Value    ${vlist}
+    ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
+    CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
+
+Clean Test Environment
+    [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
     Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [w]pa_supplicant
     Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [d]hclient
     Run Keyword And Ignore Error    Kill Linux Process    ${dst_ip}    ${dst_user}    ${dst_pass}    [d]hcpd
     Delete IP Addresses from Interface on Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
     Delete Interface on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${stag}
-    #Clean Up Objects   ${VOLT_SUBSCRIBER}
-    #Clean Up Objects   ${VOLT_DEVICE}
-    #Clean Up Objects   ${ATT_WHITELIST}
+    Clean Up Objects   ${VOLT_SUBSCRIBER}
+    Clean Up Objects   ${VOLT_DEVICE}
+    Clean Up Objects   ${ATT_WHITELIST}
 
 Validate ONU States
     [Arguments]    ${expected_op_status}    ${expected_admin_status}
