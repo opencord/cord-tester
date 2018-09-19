@@ -53,24 +53,6 @@ node ("${TestNodeName}") {
                 }
             }
             dir ("helm-charts") {
-                stage('Install Voltha Kafka') {
-                    timeout(10) {
-                        sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
-                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n voltha-kafka incubator/kafka
-                        """
-                    }
-                    timeout(10) {
-                        waitUntil {
-                            kafka_instances_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods | grep voltha-kafka | grep -i running | grep 1/1 | wc -l
-                            """
-                            return kafka_instances_running.toInteger() == 2
-                        }
-                    }
-                }
                 stage('Install voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
