@@ -124,9 +124,9 @@ Clean Test Environment
     Run Keyword And Ignore Error    Kill Linux Process    ${dst_ip}    ${dst_user}    ${dst_pass}    [d]hcpd
     Delete IP Addresses from Interface on Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
     Delete Interface on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${stag}
-    Clean Up Objects   ${VOLT_SUBSCRIBER}
-    Clean Up Objects   ${VOLT_DEVICE}
-    Clean Up Objects   ${ATT_WHITELIST}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${VOLT_SUBSCRIBER}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${VOLT_DEVICE}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${ATT_WHITELIST}
 
 Validate ONU States
     [Arguments]    ${expected_op_status}    ${expected_admin_status}
