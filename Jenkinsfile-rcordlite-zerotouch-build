@@ -53,6 +53,43 @@ node ("${TestNodeName}") {
                 }
             }
             dir ("helm-charts") {
+                stage('Install CORD Kafka') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n cord-kafka incubator/kafka
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            kafka_instances_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+                            """
+                            return kafka_instances_running.toInteger() == 2
+                        }
+                    }
+                }
+                stage('Install Logging Infrastructure') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm dep update logging
+                        helm install -f examples/logging-single.yaml -n logging logging
+                        scripts/wait_for_pods.sh
+                        """
+                    }
+                }
+                stage('Install Monitoring Infrastructure') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm dep update nem-monitoring
+                        helm install -n nem-monitoring nem-monitoring
+                        scripts/wait_for_pods.sh
+                        """
+                    }
+                }
                 stage('Install voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
@@ -70,23 +107,6 @@ node ("${TestNodeName}") {
                             kubectl get pods -n voltha | grep -i running | grep 1/1 | wc -l
                             """
                             return voltha_completed.toInteger() == 8
-                        }
-                    }
-                }
-                stage('Install CORD Kafka') {
-                    timeout(10) {
-                        sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install --name cord-kafka --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false incubator/kafka
-                        """
-                    }
-                    timeout(10) {
-                        waitUntil {
-                            kafka_instances_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
-                            """
-                            return kafka_instances_running.toInteger() == 2
                         }
                     }
                 }
