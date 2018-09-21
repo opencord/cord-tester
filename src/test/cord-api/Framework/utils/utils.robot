@@ -170,6 +170,17 @@ CORD Post
     Should Be Equal As Strings    ${resp.status_code}    200
     [Return]    ${resp}
 
+CORD Put
+    [Documentation]    Make a PUT call to XOS
+    [Arguments]    ${service}    ${data}    ${data_id}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Put Request    ${SERVER_IP}    uri=${service}/${data_id}    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${id}
+    [Return]    ${resp}
+
 CORD Delete
     [Documentation]    Make a DELETE call to XOS
     [Arguments]    ${service}    ${data_id}
