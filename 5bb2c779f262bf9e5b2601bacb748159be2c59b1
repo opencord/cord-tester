@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ca37b243_e5f81d74",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 2
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-21T18:59:55Z",
+      "side": 1,
+      "message": "wc -l ?",
+      "revId": "5bb2c779f262bf9e5b2601bacb748159be2c59b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
