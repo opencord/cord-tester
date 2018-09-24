@@ -79,16 +79,16 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
-                stage('Install Logging Infrastructure') {
-                    timeout(10) {
-                        sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm dep update logging
-                        helm install -f examples/logging-single.yaml -n logging logging
-                        scripts/wait_for_pods.sh
-                        """
-                    }
-                }
+                // stage('Install Logging Infrastructure') {
+                //     timeout(10) {
+                //         sh returnStdout: true, script: """
+                //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                //         helm dep update logging
+                //         helm install -f examples/logging-single.yaml -n logging logging
+                //         scripts/wait_for_pods.sh
+                //         """
+                //     }
+                // }
                 stage('Install Monitoring Infrastructure') {
                     timeout(10) {
                         sh returnStdout: true, script: """
