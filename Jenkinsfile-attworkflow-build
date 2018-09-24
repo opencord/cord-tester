@@ -150,7 +150,7 @@ node ("${TestNodeName}") {
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
                             """
-                            return xos_core_completed.toInteger() == 7
+                            return xos_core_completed.toInteger() == 6
                         }
                     }
                 }
