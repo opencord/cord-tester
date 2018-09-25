@@ -49,7 +49,7 @@ node ("${TestNodeName}") {
                             """
                             return kubectl_deleted.toInteger() == 0
                         }
-                    }
+                    }/*
                     timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
@@ -58,7 +58,7 @@ node ("${TestNodeName}") {
                             """
                             return kubectl_deleted.toInteger() == 0
                         }
-                    }
+                    }*/
                 }
             }
             dir ("helm-charts") {
@@ -78,7 +78,7 @@ node ("${TestNodeName}") {
                             return kafka_instances_running.toInteger() == 2
                         }
                     }
-                }
+                }/*
                 stage('Install Logging Infrastructure') {
                     timeout(10) {
                         sh returnStdout: true, script: """
@@ -98,7 +98,7 @@ node ("${TestNodeName}") {
                         scripts/wait_for_pods.sh
                         """
                     }
-                }
+                }*/
                 stage('Install voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
@@ -150,7 +150,7 @@ node ("${TestNodeName}") {
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
                             """
-                            return xos_core_completed.toInteger() == 7
+                            return xos_core_completed.toInteger() == 6
                         }
                     }
                 }
