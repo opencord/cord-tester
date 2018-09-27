@@ -16,10 +16,10 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = ''
+SERVER_IP = 'localhost'
 SERVER_PORT = '30006'
 XOS_USER = 'admin@opencord.org'
-XOS_PASSWD = ''
+XOS_PASSWD = 'letmein'
 VOLT_SUBSCRIBER = '/xosapi/v1/rcord/rcordsubscribers'
 VOLT_TENANT = '/xosapi/v1/volt/voltserviceinstances'
 VOLT_DEVICE = '/xosapi/v1/volt/oltdevices'
