@@ -100,6 +100,18 @@ Generate JSON Data
     {% if f.link -%}
     ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    float
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    role
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    direction
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    flavor
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
@@ -126,6 +138,14 @@ Generate JSON Data
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    {% endif %}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_constraints_tmp}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /constraints    "${json_{{ m.name | lower }}_constraints_tmp}"
     {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
@@ -164,6 +184,15 @@ Create {{ m.name }}
     {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    float
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    role
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    direction
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    flavor
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
@@ -177,13 +206,23 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
     {% endif %}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_contraints_tmp}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /contraints    "${json_{{ m.name | lower }}_contraints_tmp}"
+    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
-    {% endif %}
+    {% endif -%}
     {% if  m.name  == "Network" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
     {% endif %}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true
     ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
     ${resp}=    CORD Post    /xosapi/v1/${xos_service}/{{ m.name | lower}}s    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
@@ -216,4 +255,3 @@ Teardown
     {% endif %}
     {% endfor -%}
     Delete All Sessions
-

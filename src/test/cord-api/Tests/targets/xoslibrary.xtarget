@@ -60,55 +60,100 @@ CORD Delete
     [Return]    ${resp}
 
 Generate JSON Data
-    {% for m in proto.messages %}
+    {%- for m in proto.messages -%}
     {%- if m.name not in  ['XOSBase'] -%}
     {% autoescape false %}
     {% endautoescape %}
     ${json_{{ m.name | lower }}_1}=    Set Variable    { }
-    ${json_{{ m.name | lower }}_updated_1}=    Set Variable    { }
-    ${json_{{ m.name | lower}}_updated_key}=    Set Variable    null
-    Set Suite Variable    ${json_{{ m.name | lower}}_updated_key}
+    ${json_{{ m.name | lower }}_amend_1}=    Set Variable    { }
+    ${json_{{ m.name | lower}}_amend_key}=    Set Variable    null
+    Set Suite Variable    ${json_{{ m.name | lower}}_amend_key}
     # set required fields for {{ m.name | lower }} object
     {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
+    {% if f.modifier == "required" and f.options.blank != "True" -%}
     {% if not f.options.default -%}
     {% if f.link -%}
     ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    float
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    role
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    direction
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    flavor
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    float
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_1}"
+    {% else -%}
     {% if loop.index0 == 0 -%}
-    ${json_{{ m.name | lower}}_updated_key}=    Set Variable    {{ f.name }}
-    ${json_{{ m.name | lower}}_{{ f.name }}_updated_1}=    Generate Random Value    {{ f.type }}
-    ${json_{{ m.name | lower }}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated__1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_updated_1}"
+    ${json_{{ m.name | lower}}_amend_key}=    Set Variable    {{ f.name }}
+    ${json_{{ m.name | lower}}_{{ f.name }}_amend_1}=    Generate Random Value    {{ f.type }}
+    ${json_{{ m.name | lower }}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_amend_1}"
     {% endif -%}
     {% endif -%}
     {% endif -%}
     {% endif -%}
     {% endif -%}
     {% endfor -%}
+    {% if  m.name  == "User" -%}
+    ${json_{{ m.name | lower}}_email}=    Set Variable    testuser@opencord.org
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email}"
+    ${json_{{ m.name | lower}}_email_amend_1}=    Set Variable    testuseramend@opencord.org
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /email    "${json_{{ m.name | lower }}_email_amend_1}"
+    {% endif %}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
-    {% endif -%}
+    {% endif %}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_constraints_tmp}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /constraints    "${json_{{ m.name | lower }}_constraints_tmp}"
+    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
-    ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Slice Name
-    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
+    ${json_{{ m.name | lower}}_name_amend_1}=    Generate Random Slice Name
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "${json_{{ m.name | lower}}_name_amend_1}"
     {% endif -%}
     {% if  m.name  == "ProgranServiceInstance" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Value    string
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${json_{{ m.name | lower }}_name}"
-    ${json_{{ m.name | lower}}_name_updated_1}=    Generate Random Value    string
-    ${json_{{ m.name | lower}}_updated_1}=    Set Json Value    ${json_{{ m.name | lower }}_updated_1}    /name    "${json_{{ m.name | lower}}_name_updated_1}"
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /CellIndividualOffset    "1"
+    ${json_{{ m.name | lower}}_name_amend_1}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "${json_{{ m.name | lower}}_name_amend_1}"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /CellIndividualOffset    "1"
+    {% endif %}
+    {% if  m.name  == "RCORDSubscriber" -%}
+    ## Create req service owner for rcord subscriber
+    CORD Post    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
+    {% if  m.name  == "HippieOSSServiceInstance" -%}
+    ## Create req service owner for hippie oss service instance
+    CORD Post    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
+    {% if  m.name  == "AddressManagerServiceInstance" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /public_ip    "2.2.2.2"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /public_ip    "3.3.3.3"
     {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
-    ${json_{{ m.name | lower }}_updated_1}=     To JSON    ${json_{{ m.name | lower }}_updated_1}
+    ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
-    Set Suite Variable    ${json_{{ m.name | lower }}_updated_1}
+    Set Suite Variable    ${json_{{ m.name | lower }}_amend_1}
     {% endif -%}
     {% endfor %}
 
@@ -120,19 +165,35 @@ Create {{ m.name }}
     # set required fields for {{ m.name | lower }} object
     {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
     {% if f.link -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
+    {% if f.modifier == "required" and f.options.blank != "True"-%}
     # create dependent {{ f.options.model }}
     ${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
     {% endif -%}
-    {% endif -%}
     {% else -%}
-    {% if f.modifier == "required" -%}
-    {% if f.options.blank == "False" -%}
+    {% if f.modifier == "required" and f.options.blank != "True"-%}
     {% if not f.options.default -%}
+    {% if m.name == "User" and f.name == "email" -%}
+    ${json_user_email_tmp}=   Generate Random Value    {{ f.type }}
+    ${json_user_email_tmp}=    Catenate    SEPARATOR=    ${json_user_email_tmp}    @opencord.org
+    ${json_user_tmp}=   Set Json Value    ${json_user_tmp}   /email    "${json_user_email_tmp}"
+    {% else -%}
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    float
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    role
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    direction
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    flavor
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    {% endif -%}
     {% endif -%}
     {% endif -%}
     {% endif -%}
@@ -141,20 +202,30 @@ Create {{ m.name }}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
-    {% endif -%}
+    {% endif %}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_contraints_tmp}=    Generate Random Value    string
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /contraints    "${json_{{ m.name | lower }}_contraints_tmp}"
+    {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower }}_name}"
     {% endif -%}
     {% if  m.name  == "Network" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
-    {% endif -%}
+    {% endif %}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true    
     ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
     ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
     Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
     [Return]    ${id_{{ m.name | lower }}_tmp}
-{% endif -%}
+{% endif %}
 {% endfor -%}
 
 Setup Tests
@@ -183,4 +254,3 @@ Teardown Tests
     {% endif -%}
     {% endfor -%}
     Delete All Sessions
-
