@@ -1,6 +1,6 @@
 
 *** Settings ***
-Documentation     Test Suite for XOS APIs
+Documentation     Test Suite for XOS Service APIs
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Verify API Functionality
@@ -27,10 +27,10 @@ ${xos_service}    core
 Create {{ m.name }}    CREATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower }}    ${json_{{ m.name | lower}}_1}
     [Tags]    {{ m.name }}
 
-Update {{ m.name }}    UPDATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower }}    ${json_{{ m.name | lower}}_updated_1}    ${id}
+Update {{ m.name }}    UPDATE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower }}    ${json_{{ m.name | lower}}_amend_1}    ${id}
     [Tags]    {{ m.name }}
 
-Get {{ m.name }}    RETRIEVE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower }}    ${json_{{ m.name | lower}}_updated_1}    ${id}    ${json_{{ m.name | lower}}_updated_key}
+Get {{ m.name }}    RETRIEVE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower }}    ${json_{{ m.name | lower}}_amend_1}    ${id}    ${json_{{ m.name | lower}}_amend_key}
     [Tags]    {{ m.name }}
 
 Delete {{ m.name }}    DELETE    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower }}    data_id=${id}
@@ -45,3 +45,4 @@ Setup
 
 Teardown
     Teardown Tests
+
