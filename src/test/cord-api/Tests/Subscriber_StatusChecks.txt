@@ -45,9 +45,9 @@ Setup
     [Documentation]    Read input file and setup IP/route and send arping requests from host/dst to their gateways
     Read InputFile
     Add IP Address on Interface on Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_host_ip}/24    ${src_iface}
-    Add Route to Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_host_ip}    ${dst_gateway}    ${src_iface}
+    Add Route to Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}    ${src_gateway}    ${src_iface}
     Add IP Address on Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_host_ip}/24    ${dst_iface}
-    Add Route to Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_host_ip}    ${src_gateway}    ${dst_iface}
+    Add Route to Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${src_host_ip}    ${dst_gateway}    ${dst_iface}
     Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
     Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
 
