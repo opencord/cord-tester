@@ -111,7 +111,7 @@ node ("${TestNodeName}") {
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
                     cd /home/cord/cord-tester/src/test/robot/
                     rm -rf Log/ || true
-                    pybot -d Log -T SanityK8POD.robot || all_passed=false
+                    pybot -d Log -T -l log-SanityK8POD SanityK8POD.robot || all_passed=false
                     #if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }
@@ -134,8 +134,8 @@ node ("${TestNodeName}") {
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
                     cd /home/cord/cord-tester/src/test/cord-api/Tests
                     rm -rf Log/ || true
-                    pybot -d Log -T VOLTDevice_Test.txt || all_passed=false
-                    pybot -d Log -T RCORDLite_E2ETest.txt || all_passed=false
+                    pybot -d Log -T -l log-VOLTDevice_Test VOLTDevice_Test.txt || all_passed=false
+                    pybot -d Log -T -l log-RCORDLite_E2ETest RCORDLite_E2ETest.txt || all_passed=false
                     if [ "\\\$all_passed" = true ]; then exit 0; else exit 1; fi
                     """
                 } catch(error) { currentBuild.result = 'FAILURE' }

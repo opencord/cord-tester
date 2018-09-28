@@ -263,7 +263,7 @@ node ("${TestNodeName}") {
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/robot/
                     rm -rf Log/ || true
-                    pybot -d Log -T SanityK8POD.robot || true
+                    pybot -d Log -T -l log-SanityK8POD SanityK8POD.robot || true
                     """
                 }
             }
@@ -278,11 +278,11 @@ node ("${TestNodeName}") {
                     sed -i \"s/^\\(XOS_PASSWD = \\).*/\\1\'letmein\'/\" RestApiProperties.py
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     rm -rf Log/ || true
-                    pybot -d Log -T FabricConfig.txt || true
-                    pybot -d Log -T HippieOSS.txt || true
+                    pybot -d Log -T -l log-FabricConfig FabricConfig.txt || true
+                    pybot -d Log -T -l log-HippieOSS HippieOSS.txt || true
                     sleep 5
-                    pybot -d Log -T OSSVolt.txt || true
-                    pybot -d Log -T RealOLT_Test.txt || true
+                    pybot -d Log -T -l log-OSSVolt OSSVolt.txt || true
+                    pybot -d Log -T -l log-RealOLT_Test RealOLT_Test.txt || true
                     """
                 }
             }
@@ -291,8 +291,8 @@ node ("${TestNodeName}") {
                     sh """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
-                    pybot -d Log -T HippieOSS_instances.txt || true
-                    pybot -d Log -T -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
+                    pybot -d Log -T -l log-HippieOSS_instances HippieOSS_instances.txt || true
+                    pybot -d Log -T -l log-Subscriber_StatusChecks -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
                     """
                 }
             }
