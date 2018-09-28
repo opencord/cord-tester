@@ -17,6 +17,7 @@ Documentation     Library of functions related to RG (source host)
 Library           OperatingSystem
 Library           SSHLibrary
 Library           restApi.py
+Resource          ../../Framework/utils/utils.robot
 
 *** Keywords ***
 Send EAPOL Message
@@ -24,14 +25,12 @@ Send EAPOL Message
     [Documentation]    SSH's into the RG (src) and executes a particular auth request via wpa_supplicant client. Requested packet should exist on src.
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file}
+    SSHLibrary.Write    rm -f wpa.log
+    SSHLibrary.Write    sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f wpa.log
     Read Until    [sudo] password for ${user}:
     SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    wpa_supplicant
-    Log To Console    \n\n ${result}\n
+    Wait Until Keyword Succeeds    30s    2s    Remote File Should Contain    ${conn_id}    wpa.log    authentication completed successfully
     SSHLibrary.Close Connection
-    Should Contain    ${result}    Successfully initialized wpa_supplicant
-    [Return]    ${result}
 
 Delete IP Addresses from Interface on Remote Host
     [Arguments]    ${ip}    ${user}    ${pass}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s

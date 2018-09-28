@@ -8,8 +8,9 @@
             "switch_port": "7",
             "outer_tpid": "0x8100",
             "name": "olt-1",
-            "uplink": "128",
-            "volt_service_id": 2
+            "uplink": "65536",
+            "volt_service_id": 2,
+            "nas_id": "NAS_ID"
     }
   ]
 }

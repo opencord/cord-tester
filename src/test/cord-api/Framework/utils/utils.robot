@@ -26,7 +26,6 @@ Library           RequestsLibrary
 Run Command On Remote System
     [Arguments]    ${ip}    ${cmd}    ${user}    ${pass}    ${prompt}=$    ${prompt_timeout}=60s
     [Documentation]    SSH's into a remote host, executes command, and logs+returns output
-    BuiltIn.Log    Attempting to execute command "${cmd}" on remote system "${system}"
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
     ${output}=    SSHLibrary.Execute Command    ${cmd}
@@ -204,3 +203,10 @@ Kill Linux Process
     [Arguments]    ${ip}    ${user}    ${pass}    ${process}
     ${rc}=    Run Sudo Command On Remote System    ${ip}    sudo kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${user}    ${pass}
     Should Contain    ${rc}    0
+
+Remote File Should Contain
+    [Arguments]    ${conn_id}    ${file_name}    ${pattern}
+    SSHLibrary.Switch Connection    ${conn_id}
+    SSHLibrary.Get File    ${file_name}    /tmp/
+    ${content}=    OperatingSystem.Get File    /tmp/${file_name}
+    Should Contain    ${content}    ${pattern}
