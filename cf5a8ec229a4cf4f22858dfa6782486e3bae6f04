@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "2c7a8ed1_fa398808",
+        "filename": "Jenkinsfile-rcordlite-zerotouch",
+        "patchSetId": 1
+      },
+      "lineNbr": 281,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-09-28T20:38:58Z",
+      "side": 1,
+      "message": "Remove \".txt\"",
+      "revId": "cf5a8ec229a4cf4f22858dfa6782486e3bae6f04",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
