@@ -21,15 +21,16 @@ Resource          ../../Framework/utils/utils.robot
 
 *** Keywords ***
 Send EAPOL Message
-    [Arguments]    ${ip}    ${user}    ${pass}    ${iface}    ${conf_file}    ${prompt}=$    ${prompt_timeout}=60s
+    [Arguments]    ${auth_pass}    ${ip}    ${user}    ${pass}    ${iface}    ${conf_file}    ${prompt}=$    ${prompt_timeout}=60s
     [Documentation]    SSH's into the RG (src) and executes a particular auth request via wpa_supplicant client. Requested packet should exist on src.
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
     SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    rm -f wpa.log
-    SSHLibrary.Write    sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f wpa.log
+    SSHLibrary.Write    sudo rm -f /tmp/wpa.log; sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log
     Read Until    [sudo] password for ${user}:
     SSHLibrary.Write    ${pass}
-    Wait Until Keyword Succeeds    30s    2s    Remote File Should Contain    ${conn_id}    wpa.log    authentication completed successfully
+    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    ${conn_id}    /tmp/    wpa.log    authentication completed successfully
+    Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    ${conn_id}    /tmp/    wpa.log    authentication completed successfully
     SSHLibrary.Close Connection
 
 Delete IP Addresses from Interface on Remote Host
