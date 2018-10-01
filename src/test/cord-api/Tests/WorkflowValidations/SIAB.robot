@@ -39,15 +39,13 @@ ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/SIABOLTDevice.json
 *** Test Cases ***
 Send Auth Request and Validate PING
     [Tags]    inittest
-    ${auth_request}=    Run    kubectl -n voltha exec ${RG_CONTAINER} -- wpa_supplicant -i eth0 -Dwired -c /etc/wpa_supplicant/wpa_supplicant.conf -B
-    Should Contain    ${auth_request}    Successfully initialized wpa_supplicant
+    Execute EAPOL Request and Verify
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -r
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
     Wait Until Keyword Succeeds    10s    2s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
-    Should Contain    ${auth_request}    Successfully initialized wpa_supplicant
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
 
 Disable Subscriber
@@ -63,7 +61,7 @@ Enable Subscriber
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
 
 Change Whitelist to Wrong Port Location
-    [Tags]    notready
+    [Tags]    negative
     ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
     CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 55 }    ${whitelist_id}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
@@ -74,8 +72,7 @@ Update Whitelist to Correct Port Location
     [Tags]    notready
     ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
     CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
-    ${auth_request}=    Run    kubectl -n voltha exec ${RG_CONTAINER} -- wpa_supplicant -i eth0 -Dwired -c /etc/wpa_supplicant/wpa_supplicant.conf -B
-    Should Contain    ${auth_request}    Successfully initialized wpa_supplicant
+    Execute EAPOL Request and Verify
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
@@ -107,6 +104,8 @@ Setup
     Set Suite Variable    ${c_tag}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
+    ## Validate ATT Workflow SI
+    Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
 
 Teardown
     [Documentation]    Performs any additional cleanup required
@@ -134,6 +133,15 @@ Validate Subscriber Status
     [Arguments]    ${exepected_status}
     ${status}    Subscriber Status Check    ${onu_sn}
     Should Be Equal    ${status}    ${exepected_status}
+
+Execute EAPOL Request and Verify
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- rm -f wpa.log
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- wpa_supplicant -B -i eth0 -Dwired -c /etc/wpa_supplicant/wpa_supplicant.conf -f wpa.log
+    Wait Until Keyword Succeeds    30s    1s    Authentication Completed
+
+Authentication Completed
+    ${output}=    Run    kubectl -n voltha exec ${RG_CONTAINER} -- cat wpa.log
+    Should Contain    ${output}    authentication completed successfully
 
 Ping From RG
     [Arguments]    ${status}
