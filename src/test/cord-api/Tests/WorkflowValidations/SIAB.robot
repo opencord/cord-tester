@@ -105,7 +105,7 @@ Setup
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     ## Validate ATT Workflow SI
-    Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
 
 Teardown
     [Documentation]    Performs any additional cleanup required
