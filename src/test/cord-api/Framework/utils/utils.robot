@@ -205,8 +205,31 @@ Kill Linux Process
     Should Contain    ${rc}    0
 
 Remote File Should Contain
-    [Arguments]    ${conn_id}    ${file_name}    ${pattern}
+    [Arguments]    ${conn_id}    ${file_path}    ${file_name}    ${pattern}
     SSHLibrary.Switch Connection    ${conn_id}
-    SSHLibrary.Get File    ${file_name}    /tmp/
-    ${content}=    OperatingSystem.Get File    /tmp/${file_name}
+    SSHLibrary.Get File    ${file_path}${file_name}    /tmp/
+    ${content}=    OperatingSystem.Get File    /tmp/${file_name}    encoding_errors=ignore
     Should Contain    ${content}    ${pattern}
+
+Remote File Should Not Contain
+    [Arguments]    ${conn_id}    ${file_path}    ${file_name}    ${pattern}
+    SSHLibrary.Switch Connection    ${conn_id}
+    SSHLibrary.Get File    ${file_path}${file_name}    /tmp/
+    ${content}=    OperatingSystem.Get File    /tmp/${file_name}    encoding_errors=ignore
+    Should Not Contain    ${content}    ${pattern}
+
+Remote System is Up
+    [Arguments]    ${ip}    ${prompt}=$    ${prompt_timeout}=60s
+    [Documentation]    Verify the specified IP address is reachable
+    ${result}=    Run    ping -c 3 -t 3 ${ip}
+    Log    ${result}
+    Should Contain    ${result}    64 bytes
+    Should Contain Any   ${result}    0% packet loss    0.0% packet loss
+
+Remote System is Down
+    [Arguments]    ${ip}    ${prompt}=$    ${prompt_timeout}=60s
+    [Documentation]    Verify the specified IP address is not reachable
+    ${result}=    Run    ping -c 3 -t 3 ${ip}
+    Log    ${result}
+    Should Not Contain    ${result}    64 bytes
+    Should Contain Any    ${result}    100% packet loss    100.0% packet loss
