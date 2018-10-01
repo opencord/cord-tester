@@ -43,8 +43,9 @@ Add Default Route to Dst Gateway
     SSHLibrary.Close Connection
     [Return]    ${result}
 
-IPv4 Address Assigned to DHCP Client
-    [Arguments]    ${ip}    ${user}    ${pass}    ${iface}
+Check IPv4 Address on DHCP Client
+    [Arguments]    ${ip_should_exist}    ${ip}    ${user}    ${pass}    ${iface}
     [Documentation]    Check if the sepcified interface has an IPv4 address assigned
     ${output}=    Run Command On Remote System    ${ip}    ifconfig ${iface}    ${user}    ${pass}
-    Should Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
+    Run Keyword If    '${ip_should_exist}' == 'True'    Should Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
+    Run Keyword If    '${ip_should_exist}' == 'False'    Should Not Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b

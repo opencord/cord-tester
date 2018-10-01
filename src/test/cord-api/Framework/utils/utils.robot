@@ -204,9 +204,21 @@ Kill Linux Process
     ${rc}=    Run Sudo Command On Remote System    ${ip}    sudo kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${user}    ${pass}
     Should Contain    ${rc}    0
 
-Remote File Should Contain
-    [Arguments]    ${conn_id}    ${file_name}    ${pattern}
+Check Remote File Contents
+    [Arguments]    ${file_should_exist}    ${conn_id}    ${file_path}    ${file_name}    ${pattern}
     SSHLibrary.Switch Connection    ${conn_id}
-    SSHLibrary.Get File    ${file_name}    /tmp/
-    ${content}=    OperatingSystem.Get File    /tmp/${file_name}
-    Should Contain    ${content}    ${pattern}
+    SSHLibrary.Get File    ${file_path}${file_name}    /tmp/
+    ${content}=    OperatingSystem.Get File    /tmp/${file_name}    encoding_errors=ignore
+    Run Keyword If    '${file_should_exist}' == 'True'    Should Contain    ${content}    ${pattern}
+    Run Keyword If    '${file_should_exist}' == 'False'    Should Not Contain    ${content}    ${pattern}
+
+Check Remote System Reachability
+    [Arguments]    ${reachable}    ${ip}    ${prompt}=$    ${prompt_timeout}=60s
+    [Documentation]    Check if the specified IP address is reachable or not
+    ${result}=    Run    ping -c 3 -t 3 ${ip}
+    Log    ${result}
+    Run Keyword If    '${reachable}' == 'True'    Should Contain    ${result}    64 bytes
+    Run Keyword If    '${reachable}' == 'True'    Should Contain Any   ${result}    0% packet loss    0.0% packet loss
+    Run Keyword If    '${reachable}' == 'True'    Should Not Contain Any    ${result}    100% packet loss    100.0% packet loss
+    Run Keyword If    '${reachable}' == 'False'    Should Not Contain    ${result}    64 bytes
+    Run Keyword If    '${reachable}' == 'False'    Should Contain Any    ${result}    100% packet loss    100.0% packet loss
