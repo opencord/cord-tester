@@ -40,9 +40,9 @@ ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/SIABOLTDevice.json
 Send Auth Request and Validate PING
     [Tags]    inittest
     Execute EAPOL Request and Verify
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -r
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
     Wait Until Keyword Succeeds    10s    2s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
