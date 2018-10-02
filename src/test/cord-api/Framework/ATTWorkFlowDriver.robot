@@ -55,6 +55,16 @@ Retrieve Whitelist Entry
     ${id}=    Get From Dictionary    ${getJsonDict}   id
     [Return]    ${id}
 
+Retrieve ATT Service Instance ID
+    [Arguments]    ${serial_number}
+    [Documentation]    Returns the whitelist entry per the onu's serial number
+    ${json_result}=    restApi.ApiGet    ATT_SERVICEINSTANCES
+    Log    ${json_result}
+    ${json_result_list}=    Get From dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${serial_number}
+    ${id}=    Get From Dictionary    ${getJsonDict}   id
+    [Return]    ${id}
+
 Delete Whitelist Entry
     [Arguments]    ${id}
     [Documentation]    Sends a DELETE to delete an att whitelist in XOS
