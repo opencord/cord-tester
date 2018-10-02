@@ -16,7 +16,6 @@
 Documentation     Test various E2E conditions for seba-in-a-box
 Suite Setup       Setup
 Suite Teardown    Teardown
-Test Teardown     Clean Test Environment
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -38,6 +37,7 @@ ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/SIABOLTDevice.json
 
 *** Test Cases ***
 Send Auth Request and Validate PING
+    [Documentation]    Validate successful pings from valid auth request
     [Tags]    inittest
     Execute EAPOL Request and Verify
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
@@ -49,33 +49,42 @@ Send Auth Request and Validate PING
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
 
 Disable Subscriber
+    [Documentation]    Validate pings fail when subscriber disabled
     [Tags]    disable
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
     CORD Put    ${VOLT_SUBSCRIBER}    {"status":"disabled"}    ${subscriber_id}
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    FAIL
 
 Enable Subscriber
+    [Documentation]    Validate pings pass when subscriber enabled
     [Tags]    enable
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
     CORD Put    ${VOLT_SUBSCRIBER}    {"status":"enabled"}    ${subscriber_id}
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
 
 Change Whitelist to Wrong Port Location
+    [Documentation]    Validate pings fail from when onu port location in whitelist is changed
     [Tags]    negative
     ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
     CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 55 }    ${whitelist_id}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    FAIL
+    [Teardown]    Restart RG Pod
 
 Update Whitelist to Correct Port Location
-    [Tags]    notready
+    [Documentation]    Validate pings pass from when whitelist updated to correct port location
+    [Tags]    update
     ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
     CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
     Execute EAPOL Request and Verify
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
     Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
+    [Teardown]    Restart RG Pod
 
 *** Keywords ***
 Setup
@@ -102,20 +111,27 @@ Setup
     Set Global Variable    ${vlist}    ${VoltDeviceList}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
+    Set Suite Variable    ${whitelist_id}
+    ${att_si_id}=    Retrieve ATT Service Instance ID    ${onu_sn}
+    Set Suite Variable    ${att_si_id}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     ## Validate ATT Workflow SI
     Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
 
 Teardown
-    [Documentation]    Performs any additional cleanup required
-    Log    Suite Teardown cleanup
+    [Documentation]    Restores ATT SI back to initial awaiting state
+    Log    Suite Teardown cleanup/restoring back to initial state
+    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
+    CORD Put    ${ATT_SERVICEINSTANCES}    {"authentication_state": "AWAITING"}    ${att_si_id}
     Delete All Sessions
 
-Clean Test Environment
-    ## TODO: fix this. not working right now
-    #Run    kubectl -n voltha exec ${RG_CONTAINER} -- kill $(ps aux | grep [w]pa_supplicant | awk '{print $2}')
-    Log    Need to kill wpa_supplicant process on RG
+Restart RG Pod
+    Run    kubectl -n voltha delete pod ${RG_CONTAINER}
+    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    Set Suite Variable    ${RG_CONTAINER}
+    Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
 
 Validate ONU States
     [Arguments]    ${expected_op_status}    ${expected_admin_status}
