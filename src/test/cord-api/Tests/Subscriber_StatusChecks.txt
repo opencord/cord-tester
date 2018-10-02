@@ -48,8 +48,6 @@ Setup
     Add Route to Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}    ${src_gateway}    ${src_iface}
     Add IP Address on Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_host_ip}/24    ${dst_iface}
     Add Route to Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${src_host_ip}    ${dst_gateway}    ${dst_iface}
-    Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
-    Run Keyword And Ignore Error    Wait Until Keyword Succeeds    300s    5s    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
 
 Read InputFile
     ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo
@@ -79,6 +77,8 @@ Subscriber Status Check
     ${Subscriber_Id}=    Get From Dictionary    ${getJsonDict}   id
     Set Global Variable    ${Subscriber_Id}
     Should Be Equal    ${status}    ${init_state}
+    Run Keyword And Ignore Error    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Run Keyword And Ignore Error    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
     Wait Until Keyword Succeeds    60s    2s    Test Ping    ${INITIAL_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
     #Set Global Variable    ${Subscriber_Id}
 
@@ -87,6 +87,8 @@ Subscriber Status Change
     ${status}=    Create Dictionary    status=enabled
     ${api_result_status}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${status}    ${Subscriber_Id}
     Should Be True    ${api_result_status}
+    Run Keyword And Ignore Error    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Run Keyword And Ignore Error    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
     Wait Until Keyword Succeeds    60s    2s    Test Ping    ${ENABLE_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
 
 Push MAC and IP For Subscriber
@@ -98,6 +100,8 @@ Push MAC and IP For Subscriber
     ${input_dict}=    Create Dictionary    mac_address=${mac_address}    ip_address=${ip_address}
     ${api_result_status}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${input_dict}    ${Subscriber_Id}
     Should Be True    ${api_result_status}
+    Run Keyword And Ignore Error    Ping Gateway    ${src_ip}    ${src_user}    ${src_pass}    ${src_gateway}
+    Run Keyword And Ignore Error    Ping Gateway    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_gateway}
     Wait Until Keyword Succeeds    60s    2s    Test Ping    ${MACIP_STATUS}    ${src_ip}    ${src_user}    ${src_pass}    ${dst_host_ip}
 
 Ping Gateway
