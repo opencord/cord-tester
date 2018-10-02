@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6497bcca_82cfc112",
+        "filename": "src/test/cord-api/Framework/OLT.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-10-02T16:43:55Z",
+      "side": 1,
+      "message": "Add \"SSHLibrary.Close Connection\" always at the end of your keyword after you do a \"SSHLibrary.Open Connection\".",
+      "revId": "b5a9ef54ce74bbed2c06ae400348a52cc2233aed",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b9aa521c_8b5152fe",
+        "filename": "src/test/cord-api/Framework/utils/utils.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 214,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-10-02T16:43:55Z",
+      "side": 1,
+      "message": "Can you just combine this keyword with \"Remote File Should Contain\".\n\nMaybe a generic one of \"Check Remote File Contents\" and an argument with a boolean flag of \"exists\" and you can set that to True or False.\n\nSo if exists\u003dTrue, then it should do \"Should Contain ........\"\n\nIf exists \u003d False, then it should do \"Should Not Contain.......\"",
+      "revId": "b5a9ef54ce74bbed2c06ae400348a52cc2233aed",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
