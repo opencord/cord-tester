@@ -66,7 +66,7 @@ ONU in Correct Location + Successful Auth Request
     ...    Configuration of source server interface and execute dhclient on interface
     ...    Validate successful pings from src to dst
     [Setup]    None
-    Wait Until Keyword Succeeds    120s    2s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    180s    10s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Send EAPOL Message    True    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
@@ -80,7 +80,7 @@ ONU in Correct Location + Skip Auth
     ...    Configuration of the destination servers interface and start dhcpd
     ...    Configuration of source server interface and execute dhclient on interface
     ...    Validate failed DHCP and pings from src to dst
-    Wait Until Keyword Succeeds    120s    2s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    180s    10s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Validate DHCP and Ping    False    False
@@ -99,7 +99,7 @@ ONU not in Whitelist + Failed Auth Request
     ${VoltDeviceList} =    Get Variable Value    ${vlist}
     ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
-    Wait Until Keyword Succeeds    120s    2s    Validate ONU States    UNKNOWN    DISABLED
+    Wait Until Keyword Succeeds    180s    10s    Validate ONU States    UNKNOWN    DISABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Send EAPOL Message    False    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
