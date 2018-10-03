@@ -292,7 +292,7 @@ node ("${TestNodeName}") {
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     pybot -d Log -T -l log-HippieOSS_instances HippieOSS_instances.txt || true
-                    pybot -d Log -T -l log-Subscriber_StatusChecks -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
+                    pybot -d Log -T -l log-Subscriber_StatusChecks -v src_ip:${deployment_config.srcHost.ip} -v src_user:${deployment_config.srcHost.user} -v src_pass:${deployment_config.srcHost.pass} -v src_host_ip:${deployment_config.srcHost.hostIp} -v src_iface:${deployment_config.srcHost.iface} -v dst_user:${deployment_config.dstHost.user} -v dst_pass:${deployment_config.dstHost.pass} -v dst_ip:${deployment_config.dstHost.ip} -v dst_host_ip:${deployment_config.dstHost.hostIp} -v dst_iface:${deployment_config.dstHost.iface} -v src_gateway:${deployment_config.srcHost.gateway} -v dst_gateway:${deployment_config.dstHost.gateway} -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt || true
                     """
                 }
             }
