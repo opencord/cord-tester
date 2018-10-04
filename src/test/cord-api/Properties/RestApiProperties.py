@@ -16,7 +16,7 @@
 
 #!/usr/bin/env python
 
-SERVER_IP = 'localhost'
+SERVER_IP = '127.0.0.1'
 SERVER_PORT = '30006'
 XOS_USER = 'admin@opencord.org'
 XOS_PASSWD = 'letmein'
