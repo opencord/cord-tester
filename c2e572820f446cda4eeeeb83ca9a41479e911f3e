@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ab1fdd8a_152c11ca",
+        "filename": "src/test/cord-api/Tests/WorkflowValidations/ATT_Test001.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 209,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-10-05T19:08:17Z",
+      "side": 1,
+      "message": "can you just do \"export KUBECONFIG\u003d${kubernetes_conf}; helm delete --purge voltha\" (in one line) ?",
+      "revId": "c2e572820f446cda4eeeeb83ca9a41479e911f3e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
