@@ -24,9 +24,6 @@ Library           restApi.py
 
 *** Keywords ***
 Openolt is Up
-    [Arguments]    ${ip}    ${user}    ${pass}    ${prompt}=\#    ${prompt_timeout}=60s
+    [Arguments]    ${ip}    ${user}    ${pass}    ${prompt}=~#
     [Documentation]    Verify that openolt process is started and ready to connect to voltha
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    Check Remote File Contents    True    ${conn_id}    /var/log/    openolt.log    oper_state: up
-    SSHLibrary.Close Connection
+    Check Remote File Contents    True    /var/log/openolt.log    oper_state: up    ${ip}    ${user}    ${pass}    prompt=${prompt}

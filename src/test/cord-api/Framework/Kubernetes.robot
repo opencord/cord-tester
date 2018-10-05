@@ -24,22 +24,19 @@ Library           restApi.py
 
 *** Keywords ***
 Helm Chart is Removed
-    [Arguments]    ${kubernetes_conf}    ${helm_chart}
+    [Arguments]    ${helm_chart}
     [Documentation]    Verify the specified helm chart has been removed
-    Run    export KUBECONFIG=${kubernetes_conf}
-    ${rc}=    Run And Return Rc    helm ls -q | grep ${helm_chart}
+    ${rc}=    Run And Return Rc    ${export_kubeconfig}; helm ls -q | grep ${helm_chart}
     Should Be Equal As Integers    ${rc}    1
 
 Kubernetes PODs in Namespace are Removed
-    [Arguments]    ${kubernetes_conf}    ${namespace}
+    [Arguments]    ${namespace}
     [Documentation]    Verify all Kubernetes pods in specified namespace have been removed
-    Run    export KUBECONFIG=${kubernetes_conf}
-    ${rc}    ${output}=    Run And Return Rc And Output    kubectl get pods --no-headers -n ${namespace}
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --no-headers -n ${namespace}
     Should Contain    ${output}    No resources found
 
 Kubernetes PODs in Namespace are Running
-    [Arguments]    ${kubernetes_conf}    ${namespace}    ${pod_num}
+    [Arguments]    ${namespace}    ${pod_num}
     [Documentation]    Verify the number of Kubernetes pods that are running in specified namespace is as expected
-    Run    export KUBECONFIG=${kubernetes_conf}
-    ${rc}    ${output}=    Run And Return Rc And Output    kubectl get pods -n ${namespace} | grep -i running | grep 1/1 | wc -l
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods -n ${namespace} | grep -i running | grep 1/1 | wc -l
     Should Be Equal As Integers    ${output}    ${pod_num}

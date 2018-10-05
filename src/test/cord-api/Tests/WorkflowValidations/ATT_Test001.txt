@@ -41,17 +41,21 @@ ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/../data/RealOLTDevice.json
 ${src_ip}          X.X.X.X
 ${src_gateway}     X.X.X.X
 ${src_user}        user
-${src_pass}        pass
+${src_pass}        ${EMPTY}
+${src_key}         ${EMPTY}
+${src_container_name}         ${EMPTY}
 ${src_iface}       eth0
-${dst_ip}          X.X.X.X
+${dst_ip}          ${EMPTY}
 ${dst_dp_iface}    eth0
 ${dst_dp_ip}       X.X.X.X
 ${dst_user}        user
-${dst_pass}        pass
+${dst_pass}        ${EMPTY}
+${dst_key}         ${EMPTY}
+${dst_container_name}         ${EMPTY}
 ${dst_gateway}     X.X.X.X
 ${olt_ip}          X.X.X.X
 ${olt_user}          user
-${olt_pass}          pass
+${olt_pass}          ${EMPTY}
 ${kubernetes_conf}    x.conf
 ${kubernetes_yml}    x.yml
 ${helm_dir}    ~/helm-charts
@@ -66,10 +70,10 @@ ONU in Correct Location + Successful Auth Request
     ...    Configuration of source server interface and execute dhclient on interface
     ...    Validate successful pings from src to dst
     [Setup]    None
-    Wait Until Keyword Succeeds    180s    10s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Send EAPOL Message    True    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
+    Send EAPOL Message    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
     Validate DHCP and Ping    True    True
@@ -80,7 +84,7 @@ ONU in Correct Location + Skip Auth
     ...    Configuration of the destination servers interface and start dhcpd
     ...    Configuration of source server interface and execute dhclient on interface
     ...    Validate failed DHCP and pings from src to dst
-    Wait Until Keyword Succeeds    180s    10s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Validate DHCP and Ping    False    False
@@ -99,10 +103,10 @@ ONU not in Whitelist + Failed Auth Request
     ${VoltDeviceList} =    Get Variable Value    ${vlist}
     ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
-    Wait Until Keyword Succeeds    180s    10s    Validate ONU States    UNKNOWN    DISABLED
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Send EAPOL Message    False    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}    wpa_supplicant.conf
+    Send EAPOL Message    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Validate DHCP and Ping    False    False
@@ -132,6 +136,7 @@ Setup
     Set Global Variable    ${vlist}    ${VoltDeviceList}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
+    Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${kubernetes_conf}
 
 Teardown
     [Documentation]    Performs any additional cleanup required
@@ -156,14 +161,14 @@ Create Models
 
 Clean Test Environment
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
-    Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [w]pa_supplicant
-    Run Keyword And Ignore Error    Kill Linux Process    ${src_ip}    ${src_user}    ${src_pass}    [d]hclient
-    Run Keyword And Ignore Error    Kill Linux Process    ${dst_ip}    ${dst_user}    ${dst_pass}    [d]hcpd
-    Delete IP Addresses from Interface on Remote Host    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
-    Delete Interface on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${s_tag}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${VOLT_SUBSCRIBER}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${VOLT_DEVICE}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects   ${ATT_WHITELIST}
+    Run Keyword And Ignore Error    Kill Linux Process    [w]pa_supplicant    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword And Ignore Error    Kill Linux Process    [d]hclient    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${dst_ip}' != '${EMPTY}'    Run Keyword And Ignore Error    Kill Linux Process    [d]hcpd    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}
+    Delete IP Addresses from Interface on Remote Host    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${dst_ip}' != '${EMPTY}'    Delete Interface on Remote Host    ${dst_dp_iface}.${s_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
@@ -187,23 +192,23 @@ Validate Subscriber Status
     Should Be Equal    ${status}    ${exepected_status}
 
 Validate DHCP and Ping
-    [Arguments]    ${dhcp_pass}    ${ping_pass}
-    Add Double Vlan Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}    ${s_tag}    ${c_tag}
-    Add IP Address on Interface on Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_ip}/24    ${dst_dp_iface}.${s_tag}.${c_tag}
-    Start DHCP Server on Remote Host    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_dp_iface}.${s_tag}.${c_tag}
-    Send Dhclient Request    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
-    Run Keyword If    '${dhcp_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check IPv4 Address on DHCP Client    True    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
-    Run Keyword If    '${dhcp_pass}' == 'False'    Sleep    10s
-    Run Keyword If    '${dhcp_pass}' == 'False'    Check IPv4 Address on DHCP Client    False    ${src_ip}    ${src_user}    ${src_pass}    ${src_iface}
-    Run Keyword If    '${ping_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Test Ping    PASS    ${src_ip}    ${src_user}    ${src_pass}    ${dst_dp_ip}    ${src_iface}
-    Run Keyword If    '${ping_pass}' == 'False'    Wait Until Keyword Succeeds    60s    5s    Test Ping    FAIL    ${src_ip}    ${src_user}    ${src_pass}    ${dst_dp_ip}    ${src_iface}
+    [Arguments]    ${dhcp_should_pass}    ${ping_should_pass}
+    Run Keyword If    '${dst_ip}' != '${EMPTY}'    Run Keywords
+    ...    Add Double Vlan Interface on Host    ${dst_dp_iface}    ${s_tag}    ${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}    AND
+    ...    Add IP Address on Interface on Host    ${dst_dp_ip}/24    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}    AND
+    ...    Start DHCP Server on Remote Host    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}
+    Send Dhclient Request    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check IPv4 Address on DHCP Client    True    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${dhcp_should_pass}' == 'False'    Check IPv4 Address on DHCP Client    False    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${ping_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    ...                                          ELSE    Wait Until Keyword Succeeds    60s    5s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
 
 Reinstall Voltha
-    Run    export KUBECONFIG=${kubernetes_conf}
-    Run    helm delete --purge voltha
-    Wait Until Keyword Succeeds    60s    10s    Helm Chart is Removed    ${kubernetes_conf}    voltha
-    Wait Until Keyword Succeeds    120s    10s    Kubernetes PODs in Namespace are Removed    ${kubernetes_conf}    voltha
-    ${rc}    ${output}=    Run And Return Rc And Output    helm install -n voltha -f ${kubernetes_yml} --set etcd-operator.customResources.createEtcdClusterCRD=false ${helm_dir}/voltha
-    ${rc}    ${output}=    Run And Return Rc And Output    helm upgrade -f ${kubernetes_yml} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${helm_dir}/voltha
-    Wait Until Keyword Succeeds    30s    5s    Kubernetes PODs in Namespace are Running    ${kubernetes_conf}    voltha    ${voltha_pod_num}
+    Run    ${export_kubeconfig}; helm delete --purge voltha
+    Wait Until Keyword Succeeds    60s    10s    Helm Chart is Removed    voltha
+    Wait Until Keyword Succeeds    120s    10s    Kubernetes PODs in Namespace are Removed    voltha
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; helm install -n voltha -f ${kubernetes_yml} --set etcd-operator.customResources.createEtcdClusterCRD=false ${helm_dir}/voltha
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; helm upgrade -f ${kubernetes_yml} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${helm_dir}/voltha
+    Wait Until Keyword Succeeds    60s    10s    Kubernetes PODs in Namespace are Running    voltha    ${voltha_pod_num}
     Sleep    10s

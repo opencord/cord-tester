@@ -23,27 +23,44 @@ Library           Collections
 Library           RequestsLibrary
 
 *** Keywords ***
-Run Command On Remote System
-    [Arguments]    ${ip}    ${cmd}    ${user}    ${pass}    ${prompt}=$    ${prompt_timeout}=60s
-    [Documentation]    SSH's into a remote host, executes command, and logs+returns output
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    ${output}=    SSHLibrary.Execute Command    ${cmd}
-    SSHLibrary.Close Connection
-    Log    ${output}
+Login And Run Command On Remote System
+    [Arguments]    ${cmd}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=~#
+    [Documentation]    SSH's into a remote host and executes a command and returns output. If container_name is specified, login to the container before executing the command
+    ${conn_id}    ${prompt}=    Login To Remote System    ${ip}    ${user}    ${pass}    ${key}    ${container_name}    ${prompt}    ${prompt_timeout}    ${container_prompt}
+    ${output}=    Run Command On Remote System    ${cmd}    ${conn_id}    ${user}    ${prompt}    ${pass}
+    Logout From Remote System    ${conn_id}
     [Return]    ${output}
 
-Run Sudo Command On Remote System
-    [Arguments]    ${ip}    ${cmd}    ${user}    ${pass}    ${prompt}=$    ${prompt_timeout}=60s
+Login To Remote System
+    [Arguments]    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=~#
+    [Documentation]    SSH's into a remote host and returns connection ID. If container_name is specified, login to the container before returning
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    ${cmd}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    ${prompt}
+    Run Keyword If    '${key}' != '${EMPTY}'    SSHLibrary.Login With Public Key    ${user}    ${key}
+    ...                                  ELSE    SSHLibrary.Login    ${user}    ${pass}
+    # Login to the lxc container
+    Run Keyword If    '${container_name}' != '${EMPTY}'    Run Keywords
+    ...    SSHLibrary.Write    lxc exec ${container_name} /bin/bash    AND
+    ...    SSHLibrary.Read Until    ${container_prompt}    AND
+    ...    SSHLibrary.Set Client Configuration    prompt=${container_prompt}
+    ${prompt}=    Set Variable If    '${container_name}' != '${EMPTY}'    ${container_prompt}     ${prompt}
+    [Return]    ${conn_id}    ${prompt}
+
+Logout From Remote System
+    [Arguments]    ${conn_id}
+    [Documentation]    Exit from the SSH session to a remote host
+    SSHLibrary.Switch Connection    ${conn_id}
     SSHLibrary.Close Connection
-    Log    ${result}
-    [Return]    ${result}
+
+Run Command On Remote System
+    [Arguments]    ${cmd}    ${conn_id}    ${user}    ${prompt}    ${pass}=${EMPTY}
+    [Documentation]    Executes a command on remote host and returns output
+    SSHLibrary.Switch Connection    ${conn_id}
+    SSHLibrary.Write    ${cmd}
+    ${output}=    SSHLibrary.Read Until Regexp    ${prompt}|password for ${user}:
+    Run Keyword If    'password for ${user}:' not in '''${output}'''    Return From Keyword    ${output}
+    SSHLibrary.Write    ${pass}
+    ${output}=    SSHlibrary.Read Until Prompt
+    [Return]    ${output}
 
 Execute Command on CIAB Server in Specific VM
     [Arguments]    ${system}    ${vm}    ${cmd}    ${user}=${VM_USER}    ${password}=${VM_PASS}    ${prompt}=$    ${use_key}=True    ${strip_line}=True
@@ -200,23 +217,29 @@ Get Service Owner Id
     [Return]    ${id}
 
 Kill Linux Process
-    [Arguments]    ${ip}    ${user}    ${pass}    ${process}
-    ${rc}=    Run Sudo Command On Remote System    ${ip}    sudo kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${user}    ${pass}
-    Should Contain    ${rc}    0
+    [Arguments]    ${process}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    ${rc}=    Login And Run Command On Remote System    sudo kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Should Be Equal As Integers    ${rc}    0
 
 Check Remote File Contents
-    [Arguments]    ${file_should_exist}    ${conn_id}    ${file_path}    ${file_name}    ${pattern}
-    SSHLibrary.Switch Connection    ${conn_id}
-    SSHLibrary.Get File    ${file_path}${file_name}    /tmp/
-    ${content}=    OperatingSystem.Get File    /tmp/${file_name}    encoding_errors=ignore
-    Run Keyword If    '${file_should_exist}' == 'True'    Should Contain    ${content}    ${pattern}
-    Run Keyword If    '${file_should_exist}' == 'False'    Should Not Contain    ${content}    ${pattern}
+    [Arguments]    ${file_should_exist}    ${file}    ${pattern}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}    ${prompt}=~$
+    ${output}=    Login And Run Command On Remote System    cat ${file} | grep '${pattern}'    ${ip}    ${user}    ${pass}    ${key}    ${container_name}    ${prompt}
+    Run Keyword If    '${file_should_exist}' == 'True'    Should Contain    ${output}    ${pattern}
+    ...                                           ELSE    Should Not Contain    ${output}    ${pattern}
+
+Check Ping
+    [Arguments]    ${ping_should_pass}    ${dst_ip}    ${iface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    ${result}=    Login And Run Command On Remote System    ping -I ${iface} -c 3 ${dst_ip}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Check Ping Result    ${ping_should_pass}    ${result}
 
 Check Remote System Reachability
-    [Arguments]    ${reachable}    ${ip}    ${prompt}=$    ${prompt_timeout}=60s
+    [Arguments]    ${reachable}    ${ip}
     [Documentation]    Check if the specified IP address is reachable or not
     ${result}=    Run    ping -c 3 -t 3 ${ip}
-    Log    ${result}
+    Check Ping Result    ${reachable}    ${result}
+
+Check Ping Result
+    [Arguments]    ${reachable}    ${result}
     Run Keyword If    '${reachable}' == 'True'    Should Contain    ${result}    64 bytes
     Run Keyword If    '${reachable}' == 'True'    Should Contain Any   ${result}    0% packet loss    0.0% packet loss
     Run Keyword If    '${reachable}' == 'True'    Should Not Contain Any    ${result}    100% packet loss    100.0% packet loss
