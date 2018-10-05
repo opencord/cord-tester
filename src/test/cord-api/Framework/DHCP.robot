@@ -20,32 +20,20 @@ Resource          utils/utils.robot
 
 *** Keywords ***
 Send Dhclient Request
-    [Arguments]    ${ip}    ${user}    ${pass}    ${iface}    ${prompt}=$    ${prompt_timeout}=60s
-    [Documentation]    SSH's into the RG (src) and executes a dhclient against a particular interface
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo dhclient -nw ${iface}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Close Connection
+    [Arguments]    ${iface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    [Documentation]    Executes a dhclient against a particular interface on the RG (src)
+    ${result}=    Login And Run Command On Remote System    sudo dhclient -nw ${iface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
     [Return]    ${result}
 
 Add Default Route to Dst Gateway
-    [Arguments]    ${ip}    ${user}    ${pass}    ${src_gateway}    ${dst_subnet}    ${iface}    ${prompt}=$    ${prompt_timeout}=60s
-    [Documentation]    SSH's into the RG (src) and adds an entry to the routing table
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo ip route add ${dst_subnet} via ${src_gateway} dev ${iface}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Close Connection
+    [Arguments]    ${src_gateway}    ${dst_subnet}    ${iface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    [Documentation]    Adds an entry to the routing table on the RG (src)
+    ${result}=    Login And Run Command On Remote System    sudo ip route add ${dst_subnet} via ${src_gateway} dev ${iface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
     [Return]    ${result}
 
 Check IPv4 Address on DHCP Client
-    [Arguments]    ${ip_should_exist}    ${ip}    ${user}    ${pass}    ${iface}
+    [Arguments]    ${ip_should_exist}    ${iface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
     [Documentation]    Check if the sepcified interface has an IPv4 address assigned
-    ${output}=    Run Command On Remote System    ${ip}    ifconfig ${iface}    ${user}    ${pass}
+    ${output}=    Login And Run Command On Remote System    ifconfig ${iface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
     Run Keyword If    '${ip_should_exist}' == 'True'    Should Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
     Run Keyword If    '${ip_should_exist}' == 'False'    Should Not Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b

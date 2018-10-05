@@ -20,29 +20,6 @@ Library           restApi.py
 Resource          ../../Framework/utils/utils.robot
 
 *** Keywords ***
-Send EAPOL Message
-    [Arguments]    ${auth_pass}    ${ip}    ${user}    ${pass}    ${iface}    ${conf_file}    ${prompt}=$    ${prompt_timeout}=60s
-    [Documentation]    SSH's into the RG (src) and executes a particular auth request via wpa_supplicant client. Requested packet should exist on src.
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo rm -f /tmp/wpa.log; sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    ${conn_id}    /tmp/    wpa.log    authentication completed successfully
-    Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
-    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    ${conn_id}    /tmp/    wpa.log    authentication completed successfully
-    SSHLibrary.Close Connection
-
-Delete IP Addresses from Interface on Remote Host
-    [Arguments]    ${ip}    ${user}    ${pass}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo ip addr flush dev ${interface}; echo $?
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Close Connection
-
 Subscriber Status Check
     [Arguments]    ${onu_device}
     [Documentation]    Returns Status from Subscribers List for a particular ONU device
@@ -81,60 +58,39 @@ Delete Subscriber
     ${api_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${id}
     Should Be True    ${api_result}
 
-Add Double Vlan Interface on Host
-    [Arguments]    ${ip}    ${user}    ${pass}    ${interface}    ${stag}    ${ctag}    ${prompt}=$    ${prompt_timeout}=60s
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo ip link add link ${interface} name ${interface}.${stag} type vlan id ${stag}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    SSHLibrary.Write    sudo ip link set ${interface}.${stag} up
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Write    sudo ip link add link ${interface}.${stag} name ${interface}.${stag}.${ctag} type vlan id ${ctag}
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Write    sudo ip link set ${interface}.${stag}.${ctag} up
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Write    ifconfig ${interface}.${stag}.${ctag}
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Close Connection
-
-Delete Interface on Remote Host
-    [Arguments]    ${ip}    ${user}    ${pass}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo ip link del ${interface}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    Read Until    ${prompt}
-    SSHLibrary.Close Connection
-
-Add Ip Address on Interface on Host
-    [Arguments]    ${ip}    ${user}    ${pass}    ${ip_address}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo ip addr add ${ip_address} dev ${interface}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    Read Until    ${prompt}
-    SSHLibrary.Close Connection
+Send EAPOL Message
+    [Arguments]    ${auth_pass}    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    [Documentation]    Executes a particular auth request on the RG via wpa_supplicant client. Requested packet should exist on src.
+    Login And Run Command On Remote System    sudo rm -f /tmp/wpa.log; sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
 
 Start DHCP Server on Remote Host
-    [Arguments]    ${ip}    ${user}    ${pass}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    ${prompt}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    ${result}=    Login And Run Command On Remote System    sudo dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
     Should Contain    ${result}    Listening on LPF/${interface}
-    SSHLibrary.Close Connection
+
+Delete IP Addresses from Interface on Remote Host
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    Login And Run Command On Remote System    sudo ip addr flush dev ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+
+Add Double Vlan Interface on Host
+    [Arguments]    ${interface}    ${stag}    ${ctag}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    Login And Run Command On Remote System    sudo ip link add link ${interface} name ${interface}.${stag} type vlan id ${stag}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag} up    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Login And Run Command On Remote System    sudo ip link add link ${interface}.${stag} name ${interface}.${stag}.${ctag} type vlan id ${ctag}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag}.${ctag} up    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Login And Run Command On Remote System    ifconfig ${interface}.${stag}.${ctag}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+
+Delete Interface on Remote Host
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    Login And Run Command On Remote System    sudo ip link del ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+
+Add Ip Address on Interface on Host
+    [Arguments]    ${ip_address}    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    Login And Run Command On Remote System    sudo ip addr add ${ip_address} dev ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
 
 Add Route to Remote Host
-    [Arguments]    ${ip}    ${user}    ${pass}    ${subnet}    ${gateway}    ${interface}    ${prompt}=$    ${prompt_timeout}=60s
-    ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    SSHLibrary.Login    ${user}    ${pass}
-    SSHLibrary.Write    sudo ip route add ${subnet} via ${gateway} dev ${interface}
-    Read Until    [sudo] password for ${user}:
-    SSHLibrary.Write    ${pass}
-    ${result}=    Read Until    ${prompt}
-    SSHLibrary.Close Connection
+    [Arguments]    ${subnet}    ${gateway}    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    Login And Run Command On Remote System    sudo ip route add ${subnet} via ${gateway} dev ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
