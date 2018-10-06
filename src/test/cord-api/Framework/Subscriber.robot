@@ -59,38 +59,38 @@ Delete Subscriber
     Should Be True    ${api_result}
 
 Send EAPOL Message
-    [Arguments]    ${auth_pass}    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
+    [Arguments]    ${auth_pass}    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
     [Documentation]    Executes a particular auth request on the RG via wpa_supplicant client. Requested packet should exist on src.
-    Login And Run Command On Remote System    sudo rm -f /tmp/wpa.log; sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
-    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Login And Run Command On Remote System    sudo rm -f /tmp/wpa.log; sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log    ${ip}    ${user}    ${pass}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_name}
     Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
-    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_name}
 
 Start DHCP Server on Remote Host
-    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
-    ${result}=    Login And Run Command On Remote System    sudo dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    ${result}=    Login And Run Command On Remote System    sudo dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
     Should Contain    ${result}    Listening on LPF/${interface}
 
 Delete IP Addresses from Interface on Remote Host
-    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
-    Login And Run Command On Remote System    sudo ip addr flush dev ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    sudo ip addr flush dev ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
 
 Add Double Vlan Interface on Host
-    [Arguments]    ${interface}    ${stag}    ${ctag}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
-    Login And Run Command On Remote System    sudo ip link add link ${interface} name ${interface}.${stag} type vlan id ${stag}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
-    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag} up    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
-    Login And Run Command On Remote System    sudo ip link add link ${interface}.${stag} name ${interface}.${stag}.${ctag} type vlan id ${ctag}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
-    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag}.${ctag} up    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
-    Login And Run Command On Remote System    ifconfig ${interface}.${stag}.${ctag}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    [Arguments]    ${interface}    ${stag}    ${ctag}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    sudo ip link add link ${interface} name ${interface}.${stag} type vlan id ${stag}    ${ip}    ${user}    ${pass}    ${container_name}
+    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag} up    ${ip}    ${user}    ${pass}    ${container_name}
+    Login And Run Command On Remote System    sudo ip link add link ${interface}.${stag} name ${interface}.${stag}.${ctag} type vlan id ${ctag}    ${ip}    ${user}    ${pass}    ${container_name}
+    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag}.${ctag} up    ${ip}    ${user}    ${pass}    ${container_name}
+    Login And Run Command On Remote System    ifconfig ${interface}.${stag}.${ctag}    ${ip}    ${user}    ${pass}    ${container_name}
 
 Delete Interface on Remote Host
-    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
-    Login And Run Command On Remote System    sudo ip link del ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    sudo ip link del ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
 
 Add Ip Address on Interface on Host
-    [Arguments]    ${ip_address}    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
-    Login And Run Command On Remote System    sudo ip addr add ${ip_address} dev ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    [Arguments]    ${ip_address}    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    sudo ip addr add ${ip_address} dev ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
 
 Add Route to Remote Host
-    [Arguments]    ${subnet}    ${gateway}    ${interface}    ${ip}    ${user}    ${pass}=${EMPTY}    ${key}=${EMPTY}    ${container_name}=${EMPTY}
-    Login And Run Command On Remote System    sudo ip route add ${subnet} via ${gateway} dev ${interface}    ${ip}    ${user}    ${pass}    ${key}    ${container_name}
+    [Arguments]    ${subnet}    ${gateway}    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    sudo ip route add ${subnet} via ${gateway} dev ${interface}    ${ip}    ${user}    ${pass}    ${container_name}

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 *** Settings ***
-Documentation     Test successful ping from end-end
+Documentation     Test various end-to-end scenarios with ATT workflow
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Setup        Create Models
@@ -35,31 +35,15 @@ Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${WHITELIST_PATHFILE}     ${CURDIR}/data/ATTWhiteList.json
-${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/ATTSubscriber.json
-${VOLT_DEVICE_PATHFILE}    ${CURDIR}/../data/RealOLTDevice.json
-${src_ip}          X.X.X.X
-${src_gateway}     X.X.X.X
-${src_user}        user
-${src_pass}        ${EMPTY}
-${src_key}         ${EMPTY}
-${src_container_name}         ${EMPTY}
-${src_iface}       eth0
-${dst_ip}          ${EMPTY}
-${dst_dp_iface}    eth0
-${dst_dp_ip}       X.X.X.X
-${dst_user}        user
-${dst_pass}        ${EMPTY}
-${dst_key}         ${EMPTY}
-${dst_container_name}         ${EMPTY}
-${dst_gateway}     X.X.X.X
-${olt_ip}          X.X.X.X
-${olt_user}          user
-${olt_pass}          ${EMPTY}
-${kubernetes_conf}    x.conf
-${kubernetes_yml}    x.yml
-${helm_dir}    ~/helm-charts
-${voltha_pod_num}    8
+${POD_NAME}                 flex-pod1-olt
+${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
+${HELM_CHARTS_DIR}          ~/helm-charts
+${WHITELIST_PATHFILE}       ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
+${SUBSCRIBER_PATHFILE}      ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
+${VOLT_DEVICE_PATHFILE}     ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
+${KUBERNETES_CONF}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
+${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
+${VOLTHA_POD_NUM}           8
 
 *** Test Cases ***
 ONU in Correct Location + Successful Auth Request
@@ -73,7 +57,7 @@ ONU in Correct Location + Successful Auth Request
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Send EAPOL Message    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Send EAPOL Message    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
     Validate DHCP and Ping    True    True
@@ -106,7 +90,7 @@ ONU not in Whitelist + Failed Auth Request
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Send EAPOL Message    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Send EAPOL Message    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Validate DHCP and Ping    False    False
@@ -136,7 +120,36 @@ Setup
     Set Global Variable    ${vlist}    ${VoltDeviceList}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
-    Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${kubernetes_conf}
+    Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
+    # Read variables from yaml file
+    ${src_ip}=    Evaluate    ${hosts}.get("src").get("ip")
+    ${src_user}=    Evaluate    ${hosts}.get("src").get("user")
+    ${src_pass}=    Evaluate    ${hosts}.get("src").get("pass")
+    ${src_container_name}=    Evaluate    ${hosts}.get("src").get("container_name")
+    ${src_iface}=    Evaluate    ${hosts}.get("src").get("dp_iface_name")
+    ${dst_ip}=    Evaluate    ${hosts}.get("dst").get("ip")
+    ${dst_user} =    Evaluate    ${hosts}.get("dst").get("user")
+    ${dst_pass}=    Evaluate    ${hosts}.get("dst").get("pass")
+    ${dst_container_name}=    Evaluate    ${hosts}.get("dst").get("container_name")
+    ${dst_dp_iface}=    Evaluate    ${hosts}.get("dst").get("dp_iface_name")
+    ${dst_dp_ip}=    Evaluate    ${hosts}.get("dst").get("dp_iface_ip_qinq")
+    ${olt_ip}=    Evaluate    ${olts}[0].get("ip")
+    ${olt_user}=    Evaluate    ${olts}[0].get("user")
+    ${olt_pass}=    Evaluate    ${olts}[0].get("pass")
+    Set Suite Variable    ${src_ip}
+    Set Suite Variable    ${src_user}
+    Set Suite Variable    ${src_pass}
+    Set Suite Variable    ${src_container_name}
+    Set Suite Variable    ${src_iface}
+    Set Suite Variable    ${dst_ip}
+    Set Suite Variable    ${dst_user}
+    Set Suite Variable    ${dst_pass}
+    Set Suite Variable    ${dst_container_name}
+    Set Suite Variable    ${dst_dp_iface}
+    Set Suite Variable    ${dst_dp_ip}
+    Set Suite Variable    ${olt_ip}
+    Set Suite Variable    ${olt_user}
+    Set Suite Variable    ${olt_pass}
 
 Teardown
     [Documentation]    Performs any additional cleanup required
@@ -147,25 +160,25 @@ Create Models
     [Documentation]    Re-create Subscriber, whitelist, and olt-device models to test
     Log    Re-creating objects
     #create attwhitelist
-    ${AttWhiteListList} =    Get Variable Value    ${alist}
+    ${AttWhiteListList}=    Get Variable Value    ${alist}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
     CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
     #create subscriber
-    ${SubscriberList} =    Get Variable Value    ${slist}
+    ${SubscriberList}=    Get Variable Value    ${slist}
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
     #create olt device
-    ${VoltDeviceList} =    Get Variable Value    ${vlist}
+    ${VoltDeviceList}=    Get Variable Value    ${vlist}
     ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
 
 Clean Test Environment
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
-    Run Keyword And Ignore Error    Kill Linux Process    [w]pa_supplicant    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
-    Run Keyword And Ignore Error    Kill Linux Process    [d]hclient    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
-    Run Keyword If    '${dst_ip}' != '${EMPTY}'    Run Keyword And Ignore Error    Kill Linux Process    [d]hcpd    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}
-    Delete IP Addresses from Interface on Remote Host    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
-    Run Keyword If    '${dst_ip}' != '${EMPTY}'    Delete Interface on Remote Host    ${dst_dp_iface}.${s_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}
+    Run Keyword And Ignore Error    Kill Linux Process    [w]pa_supplicant    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword And Ignore Error    Kill Linux Process    [d]hclient    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword If    '${dst_ip}' != '${None}'    Run Keyword And Ignore Error    Kill Linux Process    [d]hcpd    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}
+    Delete IP Addresses from Interface on Remote Host    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword If    '${dst_ip}' != '${None}'    Delete Interface on Remote Host    ${dst_dp_iface}.${s_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
@@ -193,22 +206,24 @@ Validate Subscriber Status
 
 Validate DHCP and Ping
     [Arguments]    ${dhcp_should_pass}    ${ping_should_pass}
-    Run Keyword If    '${dst_ip}' != '${EMPTY}'    Run Keywords
-    ...    Add Double Vlan Interface on Host    ${dst_dp_iface}    ${s_tag}    ${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}    AND
-    ...    Add IP Address on Interface on Host    ${dst_dp_ip}/24    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}    AND
-    ...    Start DHCP Server on Remote Host    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_key}    ${dst_container_name}
-    Send Dhclient Request    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
-    Run Keyword If    '${dhcp_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check IPv4 Address on DHCP Client    True    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${dst_ip}' != '${None}'    Run Keywords
+    ...    Add Double Vlan Interface on Host    ${dst_dp_iface}    ${s_tag}    ${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}    AND
+    ...    Add IP Address on Interface on Host    ${dst_dp_ip}/24    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}    AND
+    ...    Start DHCP Server on Remote Host    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}
+    Send Dhclient Request    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check IPv4 Address on DHCP Client    True    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
     Run Keyword If    '${dhcp_should_pass}' == 'False'    Sleep    10s
-    Run Keyword If    '${dhcp_should_pass}' == 'False'    Check IPv4 Address on DHCP Client    False    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
-    Run Keyword If    '${ping_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
-    ...                                          ELSE    Wait Until Keyword Succeeds    60s    5s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_key}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'False'    Check IPv4 Address on DHCP Client    False    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword If    '${ping_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    ...                                          ELSE    Wait Until Keyword Succeeds    60s    5s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
 
 Reinstall Voltha
     Run    ${export_kubeconfig}; helm delete --purge voltha
     Wait Until Keyword Succeeds    60s    10s    Helm Chart is Removed    voltha
     Wait Until Keyword Succeeds    120s    10s    Kubernetes PODs in Namespace are Removed    voltha
-    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; helm install -n voltha -f ${kubernetes_yml} --set etcd-operator.customResources.createEtcdClusterCRD=false ${helm_dir}/voltha
-    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; helm upgrade -f ${kubernetes_yml} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${helm_dir}/voltha
-    Wait Until Keyword Succeeds    60s    10s    Kubernetes PODs in Namespace are Running    voltha    ${voltha_pod_num}
+    Run    ${export_kubeconfig}; cd ${HELM_CHARTS_DIR}; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+    Run    ${export_kubeconfig}; cd ${HELM_CHARTS_DIR}; helm dep up voltha
+    Run    ${export_kubeconfig}; helm install -n voltha -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=false ${HELM_CHARTS_DIR}/voltha
+    Run    ${export_kubeconfig}; helm upgrade -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${HELM_CHARTS_DIR}/voltha
+    Wait Until Keyword Succeeds    60s    10s    Kubernetes PODs in Namespace are Running    voltha    ${VOLTHA_POD_NUM}
     Sleep    10s
