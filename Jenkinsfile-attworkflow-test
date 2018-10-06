@@ -18,12 +18,13 @@ node ("${TestNodeName}") {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf ${configBaseDir}"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
-                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
+                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
             stage('Download Cord-Tester Repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
-                    rm -rf cord-tester
+                    rm -rf helm-charts cord-tester
+                    git clone -b ${branch} ${cordRepoUrl}/helm-charts
                     git clone -b ${branch} ${cordRepoUrl}/cord-tester
                     """
                 }
@@ -47,7 +48,7 @@ node ("${TestNodeName}") {
                     sh """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
-                    pybot -d Log -T -l log-ATT_Test001 -v src_ip:${deployment_config.hosts.src.ip} -v src_gateway:${deployment_config.hosts.src.dp_iface_gateway} -v src_user:${deployment_config.hosts.src.user} -v src_pass:${deployment_config.hosts.src.pass} -v src_iface:${deployment_config.hosts.src.dp_iface_name} -v dst_ip:${deployment_config.hosts.dst.ip} -v dst_user:${deployment_config.hosts.dst.user} -v dst_pass:${deployment_config.hosts.dst.pass} -v dst_gateway:${deployment_config.hosts.dst.dp_iface_gateway} -v dst_dp_iface:${deployment_config.hosts.dst.dp_iface_name} -v dst_dp_ip:${deployment_config.hosts.dst.dp_iface_ip_qinq} -v olt_ip:${deployment_config.olts[0].ip} -v olt_user:${deployment_config.olts[0].user} -v olt_pass:${deployment_config.olts[0].pass} -v kubernetes_conf:$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf -v kubernetes_yml:$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml WorkflowValidations/ATT_Test001.txt || true
+                    pybot -d Log -T -l log-ATT_Test001 -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts WorkflowValidations/ATT_Test001.robot || true
                     """
                 }
             }
