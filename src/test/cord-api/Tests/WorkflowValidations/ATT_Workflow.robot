@@ -104,7 +104,6 @@ Remove Whitelist Entry
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
     Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
     Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}
-    Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    DISABLED
 
 *** Keywords ***
 Setup
