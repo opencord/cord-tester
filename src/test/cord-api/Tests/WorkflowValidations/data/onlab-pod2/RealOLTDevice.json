@@ -1,0 +1,16 @@
+{
+    "VOLTDeviceInfo" : [
+    {
+            "device_type": "openolt",
+            "host": "10.90.0.122",
+            "port": 9191,
+            "switch_datapath_id": "of:0000000000000002",
+            "switch_port": "1",
+            "outer_tpid": "0x8100",
+            "name": "SHAD OLT",
+            "uplink": "65536",
+            "volt_service_id": 2,
+            "nas_id": "NAS_ID"
+    }
+  ]
+}

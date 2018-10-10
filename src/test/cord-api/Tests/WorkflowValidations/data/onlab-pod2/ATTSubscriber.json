@@ -1,0 +1,14 @@
+{
+    "SubscriberInfo" : [
+     {
+            "name": "Sub_ALPHe3d1cfe3",
+            "s_tag": 222,
+            "c_tag": 111,
+            "onu_device": "ALPHe3d1cfe3",
+            "nas_port_id": "PON 1/1/03/1:1.1.1",
+            "circuit_id": "foo1",
+            "status": "pre-provisioned",
+            "remote_id": "bar1"
+     }
+  ]
+}
