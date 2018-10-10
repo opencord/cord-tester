@@ -19,9 +19,7 @@ ${server_port}        9101
 Validate Kubernetes Service Instance
     [Documentation]    Modify the demo-simpleexampleservice instance and validate webserver
     Wait Until Keyword Succeeds    120s    2s    Obtain SimpleExampleService SI
-    ${resp}=    CORD Get    /xosapi/v1/kubernetes/kubernetesserviceinstances/${k8_si_id}
-    ${k8_pod_ip}=    Get Json Value    ${resp.content}    /pod_ip
-    Set Suite Variable    ${k8_pod_ip}
+    Wait Until Keyword Succeeds    300s    2s    Get Kubernetes SI Pod IP
     Send Kafka Event    SimpleExampleEvent    {"service_instance": "My Simple Example Service Instance", "tenant_message": "world"}
     Wait Until Keyword Succeeds    60s    2s    Validate SI Message    world
     Wait Until Keyword Succeeds    120s    2s    Validate WebService Message    world
@@ -60,6 +58,11 @@ Obtain SimpleExampleService SI
     ${demo_si_id}=    Get From Dictionary    ${simpleexampleserviceinstance}    id
     Set Suite Variable    ${k8_si_id}
     Set Suite Variable    ${demo_si_id}
+
+Get Kubernetes SI Pod IP
+    ${resp}=    CORD Get    /xosapi/v1/kubernetes/kubernetesserviceinstances/${k8_si_id}
+    ${k8_pod_ip}=    Get Json Value    ${resp.content}    /pod_ip
+    Set Suite Variable    ${k8_pod_ip}
 
 Validate SI Message
     [Arguments]    ${message}
