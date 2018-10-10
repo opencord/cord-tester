@@ -48,7 +48,7 @@ Teardown
 
 Validate Webserver Gone
     ${output}=    Run    http ${k8_pod_ip}
-    Should Contain    ${output}    Failed to establish a new connection
+    Should Contain    ${output}    Request timed out
 
 Obtain SimpleExampleService SI
     ${resp}=    CORD Get    /xosapi/v1/simpleexampleservice/simpleexampleserviceinstances
