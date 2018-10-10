@@ -11,6 +11,7 @@ Suite Teardown    Teardown
 *** Variables ***
 ${cord_kafka}         cord-kafka
 ${xos_tosca}          xos-tosca
+${xos_tosca_port}     9102
 ${server_ip}          xos-chameleon
 ${server_port}        9101
 
@@ -39,7 +40,7 @@ Setup
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     #Create SimpleExampleServiceInstance from provided tosca recipes
     Run    git clone https://github.com/opencord/simpleexampleservice
-    ${output}=    Run    curl -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @simpleexampleservice/xos/examples/SimpleExampleServiceInstance.yaml http://${xos_tosca}:30007/run
+    ${output}=    Run    curl -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @simpleexampleservice/xos/examples/SimpleExampleServiceInstance.yaml http://${xos_tosca}:${xos_tosca_port}/run
     Should Contain    ${output}    Created models
 
 Teardown
