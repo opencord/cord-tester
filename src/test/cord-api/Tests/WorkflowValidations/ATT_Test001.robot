@@ -14,10 +14,10 @@
 
 *** Settings ***
 Documentation     Test various end-to-end scenarios with ATT workflow
-Suite Setup       Setup
-Suite Teardown    Teardown
-Test Setup        Create Models
-Test Teardown     Clean Test Environment
+Suite Setup       Setup Suite
+Suite Teardown    Teardown Suite
+Test Setup        Setup Test
+Test Teardown     Teardown Test
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -46,78 +46,250 @@ ${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
 ${VOLTHA_POD_NUM}           8
 
 *** Test Cases ***
-ONU in Correct Location + Successful Auth Request
+ONU in Correct Location
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
-    ...    Discovery of ONU Device after whitelist has been configured
-    ...    Sending of a successful 802.1x auth request
-    ...    Configuration of the destination servers interface and start dhcpd
-    ...    Configuration of source server interface and execute dhclient on interface
-    ...    Validate successful pings from src to dst
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
     [Setup]    None
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Send EAPOL Message    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Validate Authentication    True    wpa_supplicant.conf
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
     Validate DHCP and Ping    True    True
 
-ONU in Correct Location + Skip Auth
+ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
-    ...    Discovery of ONU Device after whitelist has been configured
-    ...    Configuration of the destination servers interface and start dhcpd
-    ...    Configuration of source server interface and execute dhclient on interface
-    ...    Validate failed DHCP and pings from src to dst
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Remove ONU from whitelist
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Add ONU to whitelist
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+    Clean Up Linux
+    Remove Whitelist
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    False    wpa_supplicant.conf
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Create Whitelist
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+
+ONU in Correct Location -> ONU in Wrong Location -> ONU in Correct Location
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Update whitelist with wrong ONU location
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Update whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+    Clean Up Linux
+    Update Whitelist with Wrong Location
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    False    wpa_supplicant.conf
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Update Whitelist with Correct Location
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+
+ONU in Correct Location -> Remove Subscriber -> Create Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Remove subscriber model
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Recreate subscriber model
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+    Clean Up Linux
+    Remove Subscriber
+    Validate Authentication    False    wpa_supplicant.conf
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Create Subscriber
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+
+ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location and skip provisioning subscriber
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Provision subscriber
+    ...    Validate successful authentication/DHCP/E2E ping
+    [Setup]    None
+    Create Whitelist
+    Create VOLT
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Validate Authentication    False    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Create Subscriber
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+
+ONU in Correct Location (Skip Authentication)
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location and skip RG authentication
+    ...    Validate failed authentication/DHCP/E2E ping
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Validate DHCP and Ping    False    False
 
-ONU not in Whitelist + Failed Auth Request
+ONU not in Whitelist
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
-    ...    Discovery of ONU Device that is not in the whitelist
-    ...    Sending a 802.1x auth request
-    ...    Configuration of the destination servers interface and start dhcpd
-    ...    Configuration of source server interface and execute dhclient on interface
-    ...    Validate failed DHCP and pings from src to dst
+    ...    Skip whitelist configuration for ONU
+    ...    Validate failed authentication/DHCP/E2E ping
     [Setup]    None
-    ${SubscriberList} =    Get Variable Value    ${slist}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
-    Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
-    ${VoltDeviceList} =    Get Variable Value    ${vlist}
-    ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
-    CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
+    Create Subscriber
+    Create VOLT
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Send EAPOL Message    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Validate Authentication    False    wpa_supplicant.conf
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
     Validate DHCP and Ping    False    False
 
+ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> Provision Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Skip whitelist configuration for ONU and subscriber provisioning
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Configure whitelist with correct ONU location
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Provision subscriber
+    ...    Validate successful authentication/DHCP/E2E ping
+    [Setup]    None
+    Create VOLT
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Validate Authentication    False    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Create Whitelist
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Validate Authentication    False    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Create Subscriber
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+
+ONU in Wrong Location
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with wrong ONU location
+    ...    Validate failed authentication/DHCP/E2E ping
+    Update Whitelist with Wrong Location
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    False    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate DHCP and Ping    False    False
+
+ONU with Wrong Location (Skip Subscriber Provisioning) -> ONU with Correct Location -> Provision Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with wrong ONU location and skip subscriber provisioning
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Configure whitelist with correct ONU location
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Provision subscriber
+    ...    Validate successful authentication/DHCP/E2E ping
+    [Setup]    None
+    [Tags]    Debug
+    Create VOLT
+    Create Whitelist
+    Update Whitelist with Wrong Location
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Validate Authentication    False    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Update Whitelist with Correct Location
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Validate Authentication    False    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Validate DHCP and Ping    False    False
+    Clean Up Linux
+    Create Subscriber
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
+    Validate Authentication    True    wpa_supplicant.conf
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
+    Validate DHCP and Ping    True    True
+
 *** Keywords ***
-Setup
+Setup Suite
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
     ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
-    Set Suite Variable    ${alist}    ${AttWhiteListList}
-    ${AttWhiteListList} =    Get Variable Value    ${alist}
+    Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
-    Log    ${onu_device}
     Set Global Variable    ${onu_device}
+    ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
+    Set Global Variable    ${onu_location}
     ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
-    Set Global Variable    ${slist}    ${SubscriberList}
-    ${SubscriberList} =    Get Variable Value    ${slist}
+    Set Global Variable    ${SubscriberList}
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
     ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
     ${VoltDeviceList}=    utils.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
-    Set Global Variable    ${vlist}    ${VoltDeviceList}
+    Set Global Variable    ${VoltDeviceList}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
     Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
@@ -151,34 +323,45 @@ Setup
     Set Suite Variable    ${olt_user}
     Set Suite Variable    ${olt_pass}
 
-Teardown
+Teardown Suite
     [Documentation]    Performs any additional cleanup required
     Log    Suite Teardown cleanup
     Delete All Sessions
 
-Create Models
+Setup Test
     [Documentation]    Re-create Subscriber, whitelist, and olt-device models to test
     Log    Re-creating objects
-    #create attwhitelist
-    ${AttWhiteListList}=    Get Variable Value    ${alist}
+    Create Whitelist
+    Create Subscriber
+    Create VOLT
+
+Create Whitelist
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
     CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
-    #create subscriber
-    ${SubscriberList}=    Get Variable Value    ${slist}
+
+Create Subscriber
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
-    #create olt device
-    ${VoltDeviceList}=    Get Variable Value    ${vlist}
+
+Create VOLT
     ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
 
-Clean Test Environment
+Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
+    Clean Up Linux
+    Clean Up XOS
+
+Clean Up Linux
+    [Documentation]    Kill processes and clean up interfaces on src+dst servers
     Run Keyword And Ignore Error    Kill Linux Process    [w]pa_supplicant    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
     Run Keyword And Ignore Error    Kill Linux Process    [d]hclient    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
     Run Keyword If    '${dst_ip}' != '${None}'    Run Keyword And Ignore Error    Kill Linux Process    [d]hcpd    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}
     Delete IP Addresses from Interface on Remote Host    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
     Run Keyword If    '${dst_ip}' != '${None}'    Delete Interface on Remote Host    ${dst_dp_iface}.${s_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_name}
+
+Clean Up XOS
+    [Documentation]    Clean up all XOS objects and reinstall voltha after OLT reboots
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
@@ -186,6 +369,18 @@ Clean Test Environment
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
     Wait Until Keyword Succeeds    300s    10s    Reinstall Voltha
+
+Remove Whitelist
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
+    CORD Delete    ${ATT_WHITELIST}    ${whitelist_id}
+
+Update Whitelist with Wrong Location
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
+    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 55 }    ${whitelist_id}
+
+Update Whitelist with Correct Location
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
+    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": ${onu_location} }    ${whitelist_id}
 
 Validate ONU States
     [Arguments]    ${expected_op_status}    ${expected_admin_status}
@@ -203,6 +398,14 @@ Validate Subscriber Status
     [Arguments]    ${exepected_status}
     ${status}    Subscriber Status Check    ${onu_device}
     Should Be Equal    ${status}    ${exepected_status}
+
+Validate Authentication
+    [Arguments]    ${auth_pass}    ${conf_file}
+    [Documentation]    Executes a particular auth request on the RG and verifies if it succeeds. auth_pass determines if authentication should pass
+    Send EAPOL Message    ${src_iface}    ${conf_file}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
+    Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_name}
 
 Validate DHCP and Ping
     [Arguments]    ${dhcp_should_pass}    ${ping_should_pass}
