@@ -294,6 +294,8 @@ class utils(object):
             return random.choice(['in', 'out'])
         if value == 'flavor':
             return random.choice(['m1.large', 'm1.medium', 'm1.small'])
+        if value == 'vlan_tag':
+            return random.choice(['555', '1-4096', 'ANY'])
         else:
             return None
 
