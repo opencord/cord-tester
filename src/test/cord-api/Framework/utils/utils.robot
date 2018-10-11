@@ -24,26 +24,38 @@ Library           RequestsLibrary
 
 *** Keywords ***
 Login And Run Command On Remote System
-    [Arguments]    ${cmd}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=~#
-    [Documentation]    SSH's into a remote host and executes a command and returns output. If container_name is specified, login to the container before executing the command
-    ${conn_id}    ${prompt}=    Login To Remote System    ${ip}    ${user}    ${pass}    ${container_name}    ${prompt}    ${prompt_timeout}    ${container_prompt}
-    ${output}=    Run Command On Remote System    ${cmd}    ${conn_id}    ${user}    ${prompt}    ${pass}
+    [Arguments]    ${cmd}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=#
+    [Documentation]    SSH's into a remote host (and logs into the container if container_type and container_name are specified), tries to switch to root user and executes a command and returns output
+    ${conn_id}    Login To Remote System    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}    ${prompt}    ${prompt_timeout}    ${container_prompt}
+    ${output}=    Run Command On Remote System    ${cmd}    ${conn_id}    ${user}    ${pass}
     Logout From Remote System    ${conn_id}
     [Return]    ${output}
 
 Login To Remote System
-    [Arguments]    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=~#
-    [Documentation]    SSH's into a remote host and returns connection ID. If container_name is specified, login to the container before returning
+    [Arguments]    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=#
+    [Documentation]    SSH's into a remote host (and logs into the container if container_type and container_name are specified) and returns connection ID
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
     Run Keyword If    '${pass}' != '${None}'    SSHLibrary.Login    ${user}    ${pass}
     ...                                 ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/id_rsa
     # Login to the lxc container
-    Run Keyword If    '${container_name}' != '${None}'    Run Keywords
+    Run Keyword If    '${container_type}' == 'LXC'    Run Keywords
     ...    SSHLibrary.Write    lxc exec ${container_name} /bin/bash    AND
     ...    SSHLibrary.Read Until    ${container_prompt}    AND
     ...    SSHLibrary.Set Client Configuration    prompt=${container_prompt}
-    ${prompt}=    Set Variable If    '${container_name}' != '${None}'    ${container_prompt}     ${prompt}
-    [Return]    ${conn_id}    ${prompt}
+    # Login to the k8s container
+    Run Keyword If    '${container_type}' == 'K8S'    Run Keywords
+    ...    SSHLibrary.Write    kubectl -n $(kubectl get pods --all-namespaces | grep ${container_name} | awk '{print $1}') exec ${container_name} -it /bin/bash    AND
+    ...    SSHLibrary.Read Until    ${container_prompt}    AND
+    ...    SSHLibrary.Set Client Configuration    prompt=${container_prompt}
+    # Try to switch to root user
+    ${conn}=    SSHLibrary.Get Connection    ${conn_id}
+    Run Keyword And Ignore Error    SSHLibrary.Write    sudo -s
+    ${output}=    SSHLibrary.Read Until Regexp    \#|${conn.prompt}|password for ${user}:
+    Run Keyword If    'password for ${user}:' not in '''${output}'''    Return From Keyword    ${conn_id}
+    SSHLibrary.Set Client Configuration    prompt=\#
+    SSHLibrary.Write    ${pass}
+    SSHLibrary.Read Until Prompt
+    [Return]    ${conn_id}
 
 Logout From Remote System
     [Arguments]    ${conn_id}
@@ -52,11 +64,12 @@ Logout From Remote System
     SSHLibrary.Close Connection
 
 Run Command On Remote System
-    [Arguments]    ${cmd}    ${conn_id}    ${user}    ${prompt}    ${pass}=${None}
+    [Arguments]    ${cmd}    ${conn_id}    ${user}    ${pass}=${None}
     [Documentation]    Executes a command on remote host and returns output
+    ${conn}=    SSHLibrary.Get Connection    ${conn_id}
     SSHLibrary.Switch Connection    ${conn_id}
     SSHLibrary.Write    ${cmd}
-    ${output}=    SSHLibrary.Read Until Regexp    ${prompt}|password for ${user}:
+    ${output}=    SSHLibrary.Read Until Regexp    ${conn.prompt}|password for ${user}:
     Run Keyword If    'password for ${user}:' not in '''${output}'''    Return From Keyword    ${output}
     SSHLibrary.Write    ${pass}
     ${output}=    SSHlibrary.Read Until Prompt
@@ -217,19 +230,19 @@ Get Service Owner Id
     [Return]    ${id}
 
 Kill Linux Process
-    [Arguments]    ${process}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    ${rc}=    Login And Run Command On Remote System    sudo kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${process}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    ${rc}=    Login And Run Command On Remote System    kill $(ps aux | grep '${process}' | awk '{print $2}'); echo $?    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Should Be Equal As Integers    ${rc}    0
 
 Check Remote File Contents
-    [Arguments]    ${file_should_exist}    ${file}    ${pattern}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}    ${prompt}=~$
-    ${output}=    Login And Run Command On Remote System    cat ${file} | grep '${pattern}'    ${ip}    ${user}    ${pass}    ${container_name}    ${prompt}
+    [Arguments]    ${file_should_exist}    ${file}    ${pattern}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$
+    ${output}=    Login And Run Command On Remote System    cat ${file} | grep '${pattern}'    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}    ${prompt}
     Run Keyword If    '${file_should_exist}' == 'True'    Should Contain    ${output}    ${pattern}
     ...                                           ELSE    Should Not Contain    ${output}    ${pattern}
 
 Check Ping
-    [Arguments]    ${ping_should_pass}    ${dst_ip}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    ${result}=    Login And Run Command On Remote System    ping -I ${iface} -c 3 ${dst_ip}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${ping_should_pass}    ${dst_ip}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    ${result}=    Login And Run Command On Remote System    ping -I ${iface} -c 3 ${dst_ip}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Check Ping Result    ${ping_should_pass}    ${result}
 
 Check Remote System Reachability

@@ -20,20 +20,20 @@ Resource          utils/utils.robot
 
 *** Keywords ***
 Send Dhclient Request
-    [Arguments]    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    [Arguments]    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Executes a dhclient against a particular interface on the RG (src)
-    ${result}=    Login And Run Command On Remote System    sudo dhclient -nw ${iface}    ${ip}    ${user}    ${pass}    ${container_name}
+    ${result}=    Login And Run Command On Remote System    dhclient -nw ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     [Return]    ${result}
 
 Add Default Route to Dst Gateway
-    [Arguments]    ${src_gateway}    ${dst_subnet}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    [Arguments]    ${src_gateway}    ${dst_subnet}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Adds an entry to the routing table on the RG (src)
-    ${result}=    Login And Run Command On Remote System    sudo ip route add ${dst_subnet} via ${src_gateway} dev ${iface}    ${ip}    ${user}    ${pass}    ${container_name}
+    ${result}=    Login And Run Command On Remote System    ip route add ${dst_subnet} via ${src_gateway} dev ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     [Return]    ${result}
 
 Check IPv4 Address on DHCP Client
-    [Arguments]    ${ip_should_exist}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    [Arguments]    ${ip_should_exist}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Check if the sepcified interface has an IPv4 address assigned
-    ${output}=    Login And Run Command On Remote System    ifconfig ${iface}    ${ip}    ${user}    ${pass}    ${container_name}
+    ${output}=    Login And Run Command On Remote System    ifconfig ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Run Keyword If    '${ip_should_exist}' == 'True'    Should Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
     Run Keyword If    '${ip_should_exist}' == 'False'    Should Not Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
