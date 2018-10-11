@@ -70,3 +70,9 @@ Delete Whitelist Entry
     [Documentation]    Sends a DELETE to delete an att whitelist in XOS
     ${api_result}=    restApi.ApiChameleonDelete    ATT_WHITELIST    ${id}
     Should Be True    ${api_result}
+
+Validate ATT Workflow Driver SI
+    [Arguments]    ${expected_status}    ${expected_auth_status}    ${onu_device}
+    ${onu_state}   ${authentication_status}   Service Instance Status Check    ${onu_device}
+    Should Be Equal    ${onu_state}    ${expected_status}
+    Should Be Equal    ${authentication_status}    ${expected_auth_status}
