@@ -13,7 +13,7 @@
 // limitations under the License.
 
 node ("${TestNodeName}") {
-    timeout (100) {
+    timeout (200) {
         try {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf ${configBaseDir}"
@@ -44,7 +44,7 @@ node ("${TestNodeName}") {
                 }
             }
             stage('Subscriber Validation and Ping Tests') {
-                timeout(30) {
+                timeout(180) {
                     sh """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
