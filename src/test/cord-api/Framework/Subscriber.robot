@@ -18,6 +18,7 @@ Library           OperatingSystem
 Library           SSHLibrary
 Library           restApi.py
 Resource          ../../Framework/utils/utils.robot
+Resource          ../../Framework/DHCP.robot
 
 *** Keywords ***
 Subscriber Status Check
@@ -58,36 +59,62 @@ Delete Subscriber
     ${api_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${id}
     Should Be True    ${api_result}
 
+Validate Subscriber Status
+    [Arguments]    ${exepected_status}    ${onu_device}
+    ${status}    Subscriber Status Check    ${onu_device}
+    Should Be Equal    ${status}    ${exepected_status}
+
 Send EAPOL Message
-    [Arguments]    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
+    [Arguments]    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Executes a particular auth request on the RG via wpa_supplicant client. Requested packet should exist on src.
-    Login And Run Command On Remote System    sudo rm -f /tmp/wpa.log; sudo wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log    ${ip}    ${user}    ${pass}    ${container_name}
+    Login And Run Command On Remote System    rm -f /tmp/wpa.log; wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+
+Validate Authentication
+    [Arguments]    ${auth_pass}    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    [Documentation]    Executes a particular auth request on the RG and verifies if it succeeds. auth_pass determines if authentication should pass
+    Send EAPOL Message    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Start DHCP Server on Remote Host
-    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    ${result}=    Login And Run Command On Remote System    sudo dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    ${result}=    Login And Run Command On Remote System    dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Should Contain    ${result}    Listening on LPF/${interface}
 
 Delete IP Addresses from Interface on Remote Host
-    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    Login And Run Command On Remote System    sudo ip addr flush dev ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    ip addr flush dev ${interface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Add Double Vlan Interface on Host
-    [Arguments]    ${interface}    ${stag}    ${ctag}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    Login And Run Command On Remote System    sudo ip link add link ${interface} name ${interface}.${stag} type vlan id ${stag}    ${ip}    ${user}    ${pass}    ${container_name}
-    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag} up    ${ip}    ${user}    ${pass}    ${container_name}
-    Login And Run Command On Remote System    sudo ip link add link ${interface}.${stag} name ${interface}.${stag}.${ctag} type vlan id ${ctag}    ${ip}    ${user}    ${pass}    ${container_name}
-    Login And Run Command On Remote System    sudo ip link set ${interface}.${stag}.${ctag} up    ${ip}    ${user}    ${pass}    ${container_name}
-    Login And Run Command On Remote System    ifconfig ${interface}.${stag}.${ctag}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${interface}    ${stag}    ${ctag}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    ip link add link ${interface} name ${interface}.${stag} type vlan id ${stag}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Login And Run Command On Remote System    ip link set ${interface}.${stag} up    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Login And Run Command On Remote System    ip link add link ${interface}.${stag} name ${interface}.${stag}.${ctag} type vlan id ${ctag}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Login And Run Command On Remote System    ip link set ${interface}.${stag}.${ctag} up    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Login And Run Command On Remote System    ifconfig ${interface}.${stag}.${ctag}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Delete Interface on Remote Host
-    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    Login And Run Command On Remote System    sudo ip link del ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    ip link del ${interface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Add Ip Address on Interface on Host
-    [Arguments]    ${ip_address}    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    Login And Run Command On Remote System    sudo ip addr add ${ip_address} dev ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${ip_address}    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    ip addr add ${ip_address} dev ${interface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Add Route to Remote Host
-    [Arguments]    ${subnet}    ${gateway}    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_name}=${None}
-    Login And Run Command On Remote System    sudo ip route add ${subnet} via ${gateway} dev ${interface}    ${ip}    ${user}    ${pass}    ${container_name}
+    [Arguments]    ${subnet}    ${gateway}    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    Login And Run Command On Remote System    ip route add ${subnet} via ${gateway} dev ${interface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+
+Validate DHCP and Ping
+    [Arguments]    ${dhcp_should_pass}    ${ping_should_pass}    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}=${None}    ${src_container_type}=${None}    ${src_container_name}=${None}    ${dst_dp_iface}=${None}    ${dst_ip}=${None}    ${dst_user}=${None}    ${dst_pass}=${None}    ${dst_container_type}=${None}    ${dst_container_name}=${None}
+    Run Keyword If    '${dst_ip}' != '${None}'    Run Keywords
+    ...    Add Double Vlan Interface on Host    ${dst_dp_iface}    ${s_tag}    ${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}    AND
+    ...    Add IP Address on Interface on Host    ${dst_dp_ip}/24    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}    AND
+    ...    Start DHCP Server on Remote Host    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
+    Send Dhclient Request    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check IPv4 Address on DHCP Client    True    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${dhcp_should_pass}' == 'False'    Check IPv4 Address on DHCP Client    False    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Run Keyword If    '${ping_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    ...                                          ELSE    Wait Until Keyword Succeeds    60s    5s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
