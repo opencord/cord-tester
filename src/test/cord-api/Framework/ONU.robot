@@ -58,3 +58,9 @@ Delete ONU Device
     [Documentation]    Sends a DELETE to delete an onu device in XOS
     ${api_result}=    restApi.ApiChameleonDelete    ONU_DEVICE    ${id}
     Should Be True    ${api_result}
+
+Validate ONU States
+    [Arguments]    ${expected_op_status}    ${expected_admin_status}    ${onu_device}
+    ${operational_status}    ${admin_status}    ONU Status Check    ${onu_device}
+    Should Be Equal    ${operational_status}    ${expected_op_status}
+    Should Be Equal    ${admin_status}    ${expected_admin_status}

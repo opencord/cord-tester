@@ -40,3 +40,14 @@ Kubernetes PODs in Namespace are Running
     [Documentation]    Verify the number of Kubernetes pods that are running in specified namespace is as expected
     ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods -n ${namespace} | grep -i running | grep 1/1 | wc -l
     Should Be Equal As Integers    ${output}    ${pod_num}
+
+Reinstall Voltha
+    Run    ${export_kubeconfig}; helm delete --purge voltha
+    Wait Until Keyword Succeeds    60s    10s    Helm Chart is Removed    voltha
+    Wait Until Keyword Succeeds    120s    10s    Kubernetes PODs in Namespace are Removed    voltha
+    Run    ${export_kubeconfig}; cd ${HELM_CHARTS_DIR}; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
+    Run    ${export_kubeconfig}; cd ${HELM_CHARTS_DIR}; helm dep up voltha
+    Run    ${export_kubeconfig}; helm install -n voltha -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=false ${HELM_CHARTS_DIR}/voltha
+    Run    ${export_kubeconfig}; helm upgrade -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${HELM_CHARTS_DIR}/voltha
+    Wait Until Keyword Succeeds    60s    10s    Kubernetes PODs in Namespace are Running    voltha    ${VOLTHA_POD_NUM}
+    Sleep    10s
