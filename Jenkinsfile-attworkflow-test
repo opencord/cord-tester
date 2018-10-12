@@ -52,13 +52,33 @@ node ("${TestNodeName}") {
                     """
                 }
             }
+            stage ('Display Kafka Events') {
+                timeout(5) {
+                    sh """
+                    CORD_KAFKA_IP=\$(kubectl exec cord-kafka-0 -- ip a | grep -oE "([0-9]{1,3}\\.){3}[0-9]{1,3}\\b" | grep 192)
+                    kafkacat -e -C -b \$CORD_KAFKA_IP -t onu.events -f 'Topic %t [%p] at offset %o: key %k: %s\n >0'
+                    kafkacat -e -C -b \$CORD_KAFKA_IP -t authentication.events -f 'Topic %t [%p] at offset %o: key %k: %s\n >0'
+                    kafkacat -e -C -b \$CORD_KAFKA_IP -t dhcp.events -f 'Topic %t [%p] at offset %o: key %k: %s\n >0'
+                    """
+                }
+            }
             stage('Publish test results') {
                 sh returnStdout: true, script: """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
                 mkdir RobotLogs/TestDoc || true
                 cp -r $WORKSPACE/cord-tester/src/test/robot/Log/* $WORKSPACE/RobotLogs || true
+                for pod in \$(kubectl get pods --no-headers | awk '{print \$1}');
+                do
+                  kubectl logs \$pod > $WORKSPACE/\$pod.log;
+                done
+                for pod in \$(kubectl get pods -n voltha --no-headers | awk '{print \$1}');
+                do
+                  kubectl logs \$pod > $WORKSPACE/\$pod.log;
+                done
                 cp -r $WORKSPACE/cord-tester/src/test/cord-api/Tests/Log/* $WORKSPACE/RobotLogs || true
+                sudo chown cord:cord $WORKSPACE/*log
                 """
+                archiveArtifacts artifacts: '*log'
                 step([$class: 'RobotPublisher',
                     disableArchiveOutput: false,
                     logFileName: 'RobotLogs/log*.html',
