@@ -88,8 +88,8 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    flavor
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
     {% elif f.name == "s_tag" -%}
-    ${json_{{ m.name | lower}}_{{ f.name }}_tmp}=    Generate Random Value    vlan_tag
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_tmp}"
+    ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    vlan_tag
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower}}_{{ f.name }}_1}"    
     {% else -%}
     ${json_{{ m.name | lower}}_{{ f.name }}_1}=    Generate Random Value    {{ f.type }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${json_{{ m.name | lower }}_{{ f.name }}_1}"
