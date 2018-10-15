@@ -21,6 +21,7 @@ Library           OperatingSystem
 Library           RequestsLibrary
 Library           utils/utils.py
 Library           restApi.py
+Resource          ../../Framework/utils/utils.robot
 
 *** Keywords ***
 Helm Chart is Removed
@@ -51,3 +52,25 @@ Reinstall Voltha
     Run    ${export_kubeconfig}; helm upgrade -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${HELM_CHARTS_DIR}/voltha
     Wait Until Keyword Succeeds    60s    10s    Kubernetes PODs in Namespace are Running    voltha    ${VOLTHA_POD_NUM}
     Sleep    10s
+
+Get Current Datetime On Kubernetes Node
+    [Arguments]    ${ip}    ${user}    ${pass}
+    ${result}=    Login And Run Command On Remote System    date +"%Y-%m-%dT%H:%M:%S.%NZ"    ${ip}    ${user}    ${pass}
+    ${result}=    Get Line    ${result}    0
+    [Return]    ${result}
+
+Log Kubernetes Container Log Since Time
+    [Arguments]    ${datetime}    ${container_name}
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl logs --timestamps --since-time=${datetime} ${container_name}
+    Log    ${output}
+
+Log Kubernetes Containers Logs Since Time
+    [Arguments]    ${datetime}    ${container_list}
+    : FOR    ${container_name}    IN    @{container_list}
+    \    Log Kubernetes Container Log Since Time     ${datetime}    ${container_name}
+
+Get Kubernetes POD Name By Prefix
+    [Arguments]    ${prefix}
+    [Documentation]    Return the first POD name that starts with the specified prefix
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods | grep '^${prefix}' | head -1 | awk '{print $1}'
+    [Return]    ${output}
