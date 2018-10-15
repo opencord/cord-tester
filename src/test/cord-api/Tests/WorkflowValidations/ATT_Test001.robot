@@ -76,6 +76,7 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     Validate DHCP and Ping    True    True    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
     Clean Up Linux
     Remove Whitelist
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     Validate Authentication    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
@@ -158,7 +159,7 @@ ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Validate DHCP and Ping    False    False    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
     Clean Up Linux
     Create Subscriber
@@ -212,7 +213,7 @@ ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> P
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Validate DHCP and Ping    False    False    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
     Clean Up Linux
     Create Subscriber
@@ -257,7 +258,7 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Validate DHCP and Ping    False    False    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
     Clean Up Linux
     Create Subscriber
@@ -309,6 +310,9 @@ Setup Suite
     ${olt_ip}=    Evaluate    ${olts}[0].get("ip")
     ${olt_user}=    Evaluate    ${olts}[0].get("user")
     ${olt_pass}=    Evaluate    ${olts}[0].get("pass")
+    ${k8s_node_ip}=    Evaluate    ${nodes}[0].get("ip")
+    ${k8s_node_user}=    Evaluate    ${nodes}[0].get("user")
+    ${k8s_node_pass}=    Evaluate    ${nodes}[0].get("pass")
     Set Suite Variable    ${src_ip}
     Set Suite Variable    ${src_user}
     Set Suite Variable    ${src_pass}
@@ -325,6 +329,17 @@ Setup Suite
     Set Suite Variable    ${olt_ip}
     Set Suite Variable    ${olt_user}
     Set Suite Variable    ${olt_pass}
+    Set Suite Variable    ${k8s_node_ip}
+    Set Suite Variable    ${k8s_node_user}
+    Set Suite Variable    ${k8s_node_pass}
+    @{container_list}=    Create List
+    ${container_name}=     Get Kubernetes POD Name By Prefix    onos
+    Append To List    ${container_list}    ${container_name}
+    ${container_name}=     Get Kubernetes POD Name By Prefix    xos-core
+    Append To List    ${container_list}    ${container_name}
+    Set Suite Variable    ${container_list}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
+    Set Suite Variable    ${datetime}
 
 Teardown Suite
     [Documentation]    Performs any additional cleanup required
@@ -334,6 +349,7 @@ Teardown Suite
 Setup Test
     [Documentation]    Re-create Subscriber, whitelist, and olt-device models to test
     Log    Re-creating objects
+    ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
     Create Whitelist
     Create Subscriber
     Create VOLT
@@ -342,6 +358,7 @@ Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
     Clean Up Linux
     Clean Up XOS
+    Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
 
 Clean Up Linux
     [Documentation]    Kill processes and clean up interfaces on src+dst servers
