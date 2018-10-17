@@ -15,7 +15,9 @@
 *** Settings ***
 Documentation     Test various E2E conditions for seba-in-a-box
 Suite Setup       Setup
-Suite Teardown    Teardown
+Suite Teardown    Delete All Sessions
+Test Setup        Setup Test
+Test Teardown     Test Cleanup
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -26,65 +28,239 @@ Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
 Resource          ../../Framework/Subscriber.robot
 Resource          ../../Framework/ATTWorkFlowDriver.robot
+Resource          ../../Framework/Kubernetes.robot
 Resource          ../../Framework/ONU.robot
 Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${WHITELIST_PATHFILE}     ${CURDIR}/data/SIABWhitelist.json
-${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/SIABSubscriber.json
+${WHITELIST_PATHFILE}      ${CURDIR}/data/SIABWhitelist.json
+${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/SIABSubscriber.json
 ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/SIABOLTDevice.json
+${export_kube_config}      export KUBECONFIG=/home/cord/.kube/config
+${kube_node_ip}            localhost
+${dst_host_ip}             172.18.0.10
 
 *** Test Cases ***
-Send Auth Request and Validate PING
-    [Documentation]    Validate successful pings from valid auth request
-    [Tags]    inittest
-    Execute EAPOL Request and Verify
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
-    Wait Until Keyword Succeeds    10s    2s    Validate ONU States    ACTIVE    ENABLED
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
-    Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
-
-Disable Subscriber
-    [Documentation]    Validate pings fail when subscriber disabled
-    [Tags]    disable
+ONU in Correct Location
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
     CORD Put    ${VOLT_SUBSCRIBER}    {"status":"disabled"}    ${subscriber_id}
-    Wait Until Keyword Succeeds    60s    2s    Ping From RG    FAIL
-
-Enable Subscriber
-    [Documentation]    Validate pings pass when subscriber enabled
-    [Tags]    enable
-    ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
+    Validate DHCP and Ping    True    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
     CORD Put    ${VOLT_SUBSCRIBER}    {"status":"enabled"}    ${subscriber_id}
-    Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
 
-Change Whitelist to Wrong Port Location
-    [Documentation]    Validate pings fail from when onu port location in whitelist is changed
-    [Tags]    negative
-    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
-    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 55 }    ${whitelist_id}
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth
-    Wait Until Keyword Succeeds    60s    2s    Ping From RG    FAIL
-    [Teardown]    Restart RG Pod
+ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Remove ONU from whitelist
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Add ONU to whitelist
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Remove Whitelist
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Create Whitelist
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
 
-Update Whitelist to Correct Port Location
-    [Documentation]    Validate pings pass from when whitelist updated to correct port location
-    [Tags]    update
-    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
-    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
-    Execute EAPOL Request and Verify
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled
-    Wait Until Keyword Succeeds    60s    2s    Ping From RG    PASS
-    [Teardown]    Restart RG Pod
+ONU in Correct Location -> ONU in Wrong Location -> ONU in Correct Location
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Update whitelist with wrong ONU location
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Update whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Update Whitelist with Wrong Location
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Update Whitelist with Correct Location
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU in Correct Location -> Remove Subscriber -> Create Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Remove subscriber model
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Recreate subscriber model
+    ...    Validate successful authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Remove Subscriber
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Create Subscriber
+    Wait Until Keyword Succeeds    90s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location and skip provisioning subscriber
+    ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
+    ...    Provision subscriber
+    ...    Validate successful authentication/DHCP/E2E ping
+    Remove Subscriber
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Create Subscriber
+    Wait Until Keyword Succeeds    90s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU in Correct Location (Skip Authentication)
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location and skip RG authentication
+    ...    Validate failed authentication/DHCP/E2E ping
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU not in Whitelist
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Skip whitelist configuration for ONU
+    ...    Validate failed authentication/DHCP/E2E ping
+    Remove Whitelist
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> Provision Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Skip whitelist configuration for ONU and subscriber provisioning
+    ...    Validate successful authentication but failed DHCP/E2E ping
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
+    ...    Provision subscriber
+    ...    Validate successful authentication/DHCP/E2E ping
+    Remove Whitelist
+    Remove Subscriber
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Create Whitelist
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Create Subscriber
+    Wait Until Keyword Succeeds    90s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU in Wrong Location
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with wrong ONU location
+    ...    Validate failed authentication/DHCP/E2E ping
+    Update Whitelist with Wrong Location
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+
+ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location -> Provision Subscriber
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with wrong ONU location and skip subscriber provisioning
+    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
+    ...    Provision subscriber
+    ...    Validate successful authentication/DHCP/E2E ping
+    Update Whitelist with Wrong Location
+    Remove Subscriber
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Update Whitelist with Correct Location
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
+    Restart RG Pod
+    Create Subscriber
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
 
 *** Keywords ***
 Setup
@@ -94,38 +270,56 @@ Setup
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
     ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
-    Set Suite Variable    ${alist}    ${AttWhiteListList}
-    ${AttWhiteListList} =    Get Variable Value    ${alist}
+    Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
-    ${onu_sn}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
-    Log    ${onu_sn}
-    Set Global Variable    ${onu_sn}
+    ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
+    Log    ${onu_device}
+    Set Global Variable    ${onu_device}
+    ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
+    Set Global Variable    ${onu_location}
     ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
-    Set Global Variable    ${slist}    ${SubscriberList}
-    ${SubscriberList} =    Get Variable Value    ${slist}
+    Set Global Variable    ${SubscriberList}
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
     ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
     ${VoltDeviceList}=    utils.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
-    Set Global Variable    ${vlist}    ${VoltDeviceList}
+    Set Global Variable    ${VoltDeviceList}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
-    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_sn}
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
     Set Suite Variable    ${whitelist_id}
-    ${att_si_id}=    Retrieve ATT Service Instance ID    ${onu_sn}
+    ${att_si_id}=    Retrieve ATT Service Instance ID    ${onu_device}
     Set Suite Variable    ${att_si_id}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     ## Validate ATT Workflow SI
-    Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING
+    Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    @{container_list}=    Create List
+    ${container_name}=     Get Kubernetes POD Name By Prefix    xos-core
+    Append To List    ${container_list}    ${container_name}
+    ${container_name}=     Get Kubernetes POD Name By Prefix    vcore
+    Append To List    ${container_list}    ${container_name} -n voltha
+    Set Suite Variable    ${container_list}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    cord    cord
+    Set Suite Variable    ${datetime}
 
-Teardown
-    [Documentation]    Restores ATT SI back to initial awaiting state
-    Log    Suite Teardown cleanup/restoring back to initial state
-    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
-    CORD Put    ${ATT_SERVICEINSTANCES}    {"authentication_state": "AWAITING"}    ${att_si_id}
-    Delete All Sessions
+Setup Test
+    ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     cord    cord
+    Set Suite Variable    ${datetime}
+    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    Set Suite Variable    ${RG_CONTAINER}
+
+Test Cleanup
+    [Documentation]    Restore back to initial state per each test
+    Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
+    Restart RG Pod
+    ${status}    ${whitelist_id}=    Run Keyword And Ignore Error    Retrieve Whitelist Entry    ${onu_device}
+    Run Keyword And Ignore Error    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
+    Run Keyword And Ignore Error    CORD Put    ${ATT_SERVICEINSTANCES}    {"authentication_state": "AWAITING"}    ${att_si_id}
+    Run Keyword And Ignore Error    CORD Put    ${ATT_SERVICEINSTANCES}    {"onu_state": "ENABLED"}    ${att_si_id}
+    Run Keyword And Ignore Error    Create Whitelist
+    Run Keyword And Ignore Error    Create Subscriber
 
 Restart RG Pod
     Run    kubectl -n voltha delete pod ${RG_CONTAINER}
@@ -133,43 +327,33 @@ Restart RG Pod
     Set Suite Variable    ${RG_CONTAINER}
     Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
 
-Validate ONU States
-    [Arguments]    ${expected_op_status}    ${expected_admin_status}
-    ${operational_status}    ${admin_status}    ONU Status Check    ${onu_sn}
-    Should Be Equal    ${operational_status}    ${expected_op_status}
-    Should Be Equal    ${admin_status}    ${expected_admin_status}
+Create Whitelist
+    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
+    ${resp}=    CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
+    ${whitelist_id}=    Get Json Value    ${resp.content}    /id
+    Set Global Variable    ${whitelist_id}
 
-Validate ATT Workflow Driver SI
-    [Arguments]    ${expected_status}    ${expected_auth_status}
-    ${onu_state}   ${authentication_status}   Service Instance Status Check    ${onu_sn}
-    Should Be Equal    ${onu_state}    ${expected_status}
-    Should Be Equal    ${authentication_status}    ${expected_auth_status}
+Remove Whitelist
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
+    CORD Delete    ${ATT_WHITELIST}    ${whitelist_id}
 
-Validate Subscriber Status
-    [Arguments]    ${exepected_status}
-    ${status}    Subscriber Status Check    ${onu_sn}
-    Should Be Equal    ${status}    ${exepected_status}
+Create Subscriber
+    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
+    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
 
-Execute EAPOL Request and Verify
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- rm -f wpa.log
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- wpa_supplicant -B -i eth0 -Dwired -c /etc/wpa_supplicant/wpa_supplicant.conf -f wpa.log
-    Wait Until Keyword Succeeds    30s    1s    Authentication Completed
+Remove Subscriber
+    ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
+    CORD Delete    ${VOLT_SUBSCRIBER}    ${subscriber_id}
 
-Authentication Completed
-    ${output}=    Run    kubectl -n voltha exec ${RG_CONTAINER} -- cat wpa.log
-    Should Contain    ${output}    authentication completed successfully
+Create VOLT
+    ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
+    CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
 
-Ping From RG
-    [Arguments]    ${status}
-    ${result}=    Run    kubectl -n voltha exec ${RG_CONTAINER} -- ping -c 5 172.18.0.10
-    Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    64 bytes
-    Run Keyword If    '${status}' == 'PASS'    Should Contain    ${result}    0% packet loss
-    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    100% packet loss
-    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    80% packet loss
-    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    60% packet loss
-    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    40% packet loss
-    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    20% packet loss
-    Run Keyword If    '${status}' == 'PASS'    Should Not Contain    ${result}    Destination Host Unreachable
-    Run Keyword If    '${status}' == 'FAIL'    Should Not Contain    ${result}    64 bytes
-    Run Keyword If    '${status}' == 'FAIL'    Should Contain    ${result}    100% packet loss
-    Log To Console    \n ${result}
+Update Whitelist with Wrong Location
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
+    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 55 }    ${whitelist_id}
+
+Update Whitelist with Correct Location
+    ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
+    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": ${onu_location} }    ${whitelist_id}
+
