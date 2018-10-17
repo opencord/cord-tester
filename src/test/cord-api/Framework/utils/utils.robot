@@ -28,6 +28,7 @@ Login And Run Command On Remote System
     [Documentation]    SSH's into a remote host (and logs into the container if container_type and container_name are specified), tries to switch to root user and executes a command and returns output
     ${conn_id}    Login To Remote System    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}    ${prompt}    ${prompt_timeout}    ${container_prompt}
     ${output}=    Run Command On Remote System    ${cmd}    ${conn_id}    ${user}    ${pass}
+    Log    ${output}
     Logout From Remote System    ${conn_id}
     [Return]    ${output}
 
