@@ -73,7 +73,7 @@ Validate Authentication
     [Arguments]    ${auth_pass}    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Executes a particular auth request on the RG and verifies if it succeeds. auth_pass determines if authentication should pass
     Send EAPOL Message    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
-    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    30s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    60s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
     Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
@@ -112,9 +112,16 @@ Validate DHCP and Ping
     ...    Add Double Vlan Interface on Host    ${dst_dp_iface}    ${s_tag}    ${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}    AND
     ...    Add IP Address on Interface on Host    ${dst_dp_ip}/24    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}    AND
     ...    Start DHCP Server on Remote Host    ${dst_dp_iface}.${s_tag}.${c_tag}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
-    Send Dhclient Request    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    Run Keyword If    '${dhcp_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check IPv4 Address on DHCP Client    True    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    Run Keyword If    '${dhcp_should_pass}' == 'False'    Sleep    10s
-    Run Keyword If    '${dhcp_should_pass}' == 'False'    Check IPv4 Address on DHCP Client    False    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    Run Keyword If    '${ping_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    5s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
-    ...                                          ELSE    Wait Until Keyword Succeeds    60s    5s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Run Keyword If    '${src_container_type}' != 'K8S'    Send Dhclient Request    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    ...                                          ELSE    Send Dhclient Request K8S
+    Run Keyword If    '${dhcp_should_pass}' == 'True'    Wait Until Keyword Succeeds    90s   5s    Check IPv4 Address on DHCP Client    True    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Run Keyword If    '${dhcp_should_pass}' == 'False'    Sleep    15s
+    Run Keyword If    '${dhcp_should_pass}' == 'False'   Check IPv4 Address on DHCP Client    False    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Run Keyword If    '${ping_should_pass}' == 'True'    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    ...                                          ELSE    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+
+Send Dhclient Request K8S
+    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
