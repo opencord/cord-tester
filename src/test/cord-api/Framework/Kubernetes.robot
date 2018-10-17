@@ -72,5 +72,5 @@ Log Kubernetes Containers Logs Since Time
 Get Kubernetes POD Name By Prefix
     [Arguments]    ${prefix}
     [Documentation]    Return the first POD name that starts with the specified prefix
-    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods | grep '^${prefix}' | head -1 | awk '{print $1}'
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep '${prefix}' | head -1 | awk '{print $2}'
     [Return]    ${output}

@@ -34,6 +34,7 @@ Add Default Route to Dst Gateway
 Check IPv4 Address on DHCP Client
     [Arguments]    ${ip_should_exist}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Check if the sepcified interface has an IPv4 address assigned
-    ${output}=    Login And Run Command On Remote System    ifconfig ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
-    Run Keyword If    '${ip_should_exist}' == 'True'    Should Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
-    Run Keyword If    '${ip_should_exist}' == 'False'    Should Not Match Regexp    ${output}    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b
+    ${output}=    Login And Run Command On Remote System    ip address show ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    ${ipv4_regex}=    Set Variable If    '${container_type}' != 'K8S'    \\b([0-9]{1,3}\\.){3}[0-9]{1,3}\\b    \\b(172)\.(18)(\.([0-9])){1,3}\\b
+    Run Keyword If    '${ip_should_exist}' == 'True'    Should Match Regexp    ${output}    ${ipv4_regex}
+    Run Keyword If    '${ip_should_exist}' == 'False'    Should Not Match Regexp    ${output}    ${ipv4_regex}
