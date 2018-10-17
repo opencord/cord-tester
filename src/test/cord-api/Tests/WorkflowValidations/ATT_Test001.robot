@@ -125,7 +125,7 @@ ONU in Correct Location -> Remove Subscriber -> Create Subscriber
     ...    Configure whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
     ...    Remove subscriber model
-    ...    Validate failed authentication/DHCP/E2E ping
+    ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
     ...    Recreate subscriber model
     ...    Validate successful authentication/DHCP/E2E ping
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
@@ -137,11 +137,12 @@ ONU in Correct Location -> Remove Subscriber -> Create Subscriber
     Validate DHCP and Ping    True    True    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
     Clean Up Linux
     Remove Subscriber
-    Validate Authentication    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Sleep    10s
+    Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
     Validate DHCP and Ping    False    False    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
     Clean Up Linux
     Create Subscriber
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
     Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
