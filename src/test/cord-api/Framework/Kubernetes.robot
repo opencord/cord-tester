@@ -60,14 +60,16 @@ Get Current Datetime On Kubernetes Node
     [Return]    ${result}
 
 Log Kubernetes Container Log Since Time
-    [Arguments]    ${datetime}    ${container_name}
-    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl logs --timestamps --since-time=${datetime} ${container_name}
+    [Arguments]    ${datetime}    ${container}
+    ${rc}    ${namespace}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep ' ${container}' | head -1 | awk '{print $1}'
+    ${rc}    ${container_name}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep ' ${container}' | head -1 | awk '{print $2}'
+    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl logs --timestamps -n ${namespace} --since-time=${datetime} ${container_name}
     Log    ${output}
 
 Log Kubernetes Containers Logs Since Time
-    [Arguments]    ${datetime}    ${container_list}
-    : FOR    ${container_name}    IN    @{container_list}
-    \    Log Kubernetes Container Log Since Time     ${datetime}    ${container_name}
+    [Arguments]    ${datetime}    ${containers}
+    : FOR    ${container}    IN    @{containers}
+    \    Log Kubernetes Container Log Since Time     ${datetime}    ${container}
 
 Get Kubernetes POD Name By Prefix
     [Arguments]    ${prefix}

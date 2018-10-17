@@ -333,10 +333,9 @@ Setup Suite
     Set Suite Variable    ${k8s_node_user}
     Set Suite Variable    ${k8s_node_pass}
     @{container_list}=    Create List
-    ${container_name}=     Get Kubernetes POD Name By Prefix    onos
-    Append To List    ${container_list}    ${container_name}
-    ${container_name}=     Get Kubernetes POD Name By Prefix    xos-core
-    Append To List    ${container_list}    ${container_name}
+    Append To List    ${container_list}    onos
+    Append To List    ${container_list}    xos-core
+    Append To List    ${container_list}    vcore
     Set Suite Variable    ${container_list}
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
     Set Suite Variable    ${datetime}
@@ -376,7 +375,6 @@ Clean Up XOS
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
-    Wait Until Keyword Succeeds    300s    10s    Reinstall Voltha
 
 Create Whitelist
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
@@ -397,6 +395,10 @@ Update Whitelist with Correct Location
 Create Subscriber
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
+
+Remove Subscriber
+    ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
+    CORD Delete    ${VOLT_SUBSCRIBER}    ${subscriber_id}
 
 Create VOLT
     ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
