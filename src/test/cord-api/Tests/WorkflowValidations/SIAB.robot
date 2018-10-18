@@ -251,7 +251,7 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Update Whitelist with Correct Location
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     cord    cord    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    cord    cord    K8S    ${RG_CONTAINER}
     Restart RG Pod
