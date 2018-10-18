@@ -296,10 +296,9 @@ Setup
     ## Validate ATT Workflow SI
     Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     @{container_list}=    Create List
-    ${container_name}=     Get Kubernetes POD Name By Prefix    xos-core
-    Append To List    ${container_list}    ${container_name}
-    ${container_name}=     Get Kubernetes POD Name By Prefix    vcore
-    Append To List    ${container_list}    ${container_name} -n voltha
+    Append To List    ${container_list}    att-workflow-driver-att-workflow-driver
+    Append To List    ${container_list}    xos-core
+    Append To List    ${container_list}    vcore
     Set Suite Variable    ${container_list}
     ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    cord    cord
     Set Suite Variable    ${datetime}
