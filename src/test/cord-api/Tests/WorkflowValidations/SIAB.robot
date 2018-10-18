@@ -296,7 +296,7 @@ Setup
     ## Validate ATT Workflow SI
     Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     @{container_list}=    Create List
-    Append To List    ${container_list}    att-workflow-driver-att-workflow-driver
+    Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    xos-core
     Append To List    ${container_list}    vcore
     Set Suite Variable    ${container_list}
