@@ -60,16 +60,17 @@ Get Current Datetime On Kubernetes Node
     [Return]    ${result}
 
 Log Kubernetes Container Log Since Time
-    [Arguments]    ${datetime}    ${container}
-    ${rc}    ${namespace}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep ' ${container}' | head -1 | awk '{print $1}'
-    ${rc}    ${container_name}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep ' ${container}' | head -1 | awk '{print $2}'
-    ${rc}    ${output}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl logs --timestamps -n ${namespace} --since-time=${datetime} ${container_name}
+    [Arguments]    ${datetime}    ${pod_prefix}
+    ${rc}    ${namespace}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep ' ${pod_prefix}' | head -1 | awk '{print $1}'
+    ${rc}    ${pod_name}=    Run And Return Rc And Output    ${export_kubeconfig}; kubectl get pods --all-namespaces | grep ' ${pod_prefix}' | head -1 | awk '{print $2}'
+    ${rc}    ${output}=    Run Keyword If    '${pod_prefix}' == 'onos'    Run And Return Rc And Output    ${export_kubeconfig}; kubectl logs --timestamps -n ${namespace} --since-time=${datetime} ${pod_name} -c onos
+    ...                                                           ELSE    Run And Return Rc And Output    ${export_kubeconfig}; kubectl logs --timestamps -n ${namespace} --since-time=${datetime} ${pod_name}
     Log    ${output}
 
 Log Kubernetes Containers Logs Since Time
-    [Arguments]    ${datetime}    ${containers}
-    : FOR    ${container}    IN    @{containers}
-    \    Log Kubernetes Container Log Since Time     ${datetime}    ${container}
+    [Arguments]    ${datetime}    ${pod_list}
+    : FOR    ${pod_prefix}    IN    @{pod_list}
+    \    Log Kubernetes Container Log Since Time     ${datetime}    ${pod_prefix}
 
 Get Kubernetes POD Name By Prefix
     [Arguments]    ${prefix}
