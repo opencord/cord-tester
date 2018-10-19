@@ -49,6 +49,7 @@ ONU in Correct Location
     ...    Configure whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
     [Tags]    stable    latest
+    [Setup]    None
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -305,6 +306,8 @@ Setup
     Set Suite Variable    ${att_si_id}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
+    ${OLT_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^olt-"|cut -d' ' -f1
+    Set Suite Variable    ${OLT_CONTAINER}
     ## Validate ATT Workflow SI
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     @{container_list}=    Create List
@@ -318,25 +321,34 @@ Setup
 Setup Test
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
     Set Suite Variable    ${datetime}
-    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
-    Set Suite Variable    ${RG_CONTAINER}
+    Create Whitelist
+    Create Subscriber
+    Create VOLT
+    ## Validate ATT Workflow SI
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
+    ${att_si_id}=    Retrieve ATT Service Instance ID    ${onu_device}
+    Run Keyword And Ignore Error    CORD Put    ${ATT_SERVICEINSTANCES}    {"onu_state": "ENABLED"}    ${att_si_id}
 
 Test Cleanup
     [Documentation]    Restore back to initial state per each test
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
     Restart RG Pod
-    ${status}    ${whitelist_id}=    Run Keyword And Ignore Error    Retrieve Whitelist Entry    ${onu_device}
-    Run Keyword And Ignore Error    CORD Put    ${ATT_WHITELIST}    {"pon_port_id": 1 }    ${whitelist_id}
-    Run Keyword And Ignore Error    CORD Put    ${ATT_SERVICEINSTANCES}    {"authentication_state": "AWAITING"}    ${att_si_id}
-    Run Keyword And Ignore Error    CORD Put    ${ATT_SERVICEINSTANCES}    {"onu_state": "ENABLED"}    ${att_si_id}
-    Run Keyword And Ignore Error    Create Whitelist
-    Run Keyword And Ignore Error    Create Subscriber
+    Restart OLT Pod
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
 
 Restart RG Pod
     Run    kubectl -n voltha delete pod ${RG_CONTAINER}
     ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
+
+Restart OLT Pod
+    Run    kubectl -n voltha delete pod ${OLT_CONTAINER}
+    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^olt-"|cut -d' ' -f1
+    Set Suite Variable    ${OLT_CONTAINER}
+    Run    kubectl wait -n voltha pod/${OLT_CONTAINER} --for condition=Ready --timeout=180s
 
 Create Whitelist
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
