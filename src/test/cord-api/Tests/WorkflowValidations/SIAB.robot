@@ -48,7 +48,7 @@ ONU in Correct Location
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
-    [Tags]    test1
+    [Tags]    stable    latest
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -72,6 +72,7 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     ...    Validate failed authentication/DHCP/E2E ping
     ...    Add ONU to whitelist
     ...    Validate successful authentication/DHCP/E2E ping
+    [Tags]    latest
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -102,6 +103,7 @@ ONU in Correct Location -> ONU in Wrong Location -> ONU in Correct Location
     ...    Validate failed authentication/DHCP/E2E ping
     ...    Update whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
+    [Tags]    latest
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -132,6 +134,7 @@ ONU in Correct Location -> Remove Subscriber -> Create Subscriber
     ...    Validate failed authentication/DHCP/E2E ping
     ...    Recreate subscriber model
     ...    Validate successful authentication/DHCP/E2E ping
+    [Tags]    latest
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -145,7 +148,7 @@ ONU in Correct Location -> Remove Subscriber -> Create Subscriber
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
-    Wait Until Keyword Succeeds    90s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
@@ -157,6 +160,7 @@ ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
     ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
     ...    Provision subscriber
     ...    Validate successful authentication/DHCP/E2E ping
+    [Tags]    latest
     Remove Subscriber
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
@@ -165,7 +169,7 @@ ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
-    Wait Until Keyword Succeeds    90s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
@@ -175,6 +179,7 @@ ONU in Correct Location (Skip Authentication)
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with correct ONU location and skip RG authentication
     ...    Validate failed authentication/DHCP/E2E ping
+    [Tags]    stable    latest
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -184,6 +189,7 @@ ONU not in Whitelist
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Skip whitelist configuration for ONU
     ...    Validate failed authentication/DHCP/E2E ping
+    [Tags]    stable    latest
     Remove Whitelist
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
@@ -201,6 +207,7 @@ ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> P
     ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
     ...    Provision subscriber
     ...    Validate successful authentication/DHCP/E2E ping
+    [Tags]    latest
     Remove Whitelist
     Remove Subscriber
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
@@ -216,7 +223,7 @@ ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> P
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
-    Wait Until Keyword Succeeds    90s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
@@ -226,6 +233,7 @@ ONU in Wrong Location
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with wrong ONU location
     ...    Validate failed authentication/DHCP/E2E ping
+    [Tags]    latest
     Update Whitelist with Wrong Location
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
@@ -243,6 +251,7 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     ...    Validate successful authentication (expected with the ONF pod setup) but failed DHCP/E2E ping
     ...    Provision subscriber
     ...    Validate successful authentication/DHCP/E2E ping
+    [Tags]    latest
     Update Whitelist with Wrong Location
     Remove Subscriber
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
@@ -297,7 +306,7 @@ Setup
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     ## Validate ATT Workflow SI
-    Wait Until Keyword Succeeds    90s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    xos-core
