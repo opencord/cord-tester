@@ -141,7 +141,7 @@ Validate Subscriber Service Chain
     Run Keyword If    '${expected}' == 'True'    Should Not Be Empty    ${slinks}    ELSE    Should Be Empty    ${sl}
 
 Validate Fabric CrossConnect SI
-    [Arguments]    ${stag}    ${expected}=${EMPTY}
+    [Arguments]    ${stag}    ${expected}=True
     ${resp}=    CORD Get    ${FABRIC_CROSSCONNECT_SERVICEINSTANCES}
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
@@ -151,4 +151,4 @@ Validate Fabric CrossConnect SI
     \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
     \    ${tag}=    Get From Dictionary    ${value}    s_tag
     \    Append To List    ${tags}    ${tag}
-    Run Keyword If    '${expected}' != '${EMPTY}'    List Should Contain Value    ${tags}    ${stag}    ELSE    List Should Not Contain Value    ${tags}    ${stag}
+    Run Keyword If    '${expected}' == 'True'    List Should Contain Value    ${tags}    ${stag}    ELSE    List Should Not Contain Value    ${tags}    ${stag}
