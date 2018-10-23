@@ -125,3 +125,30 @@ Send Dhclient Request K8S
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
+
+Validate Subscriber Service Chain
+    [Arguments]    ${serial_no}    ${expected}=True
+    ${resp}=    CORD Get    ${VOLT_SUBSCRIBER}
+    ${jsondata}=    To Json    ${resp.content}
+    Log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
+    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${sl}=    Get From Dictionary    ${value}    subscribed_links_ids
+    \    ${result}    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
+    \    ${sn}=    Get From Dictionary    ${value}    onu_device
+    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    Run Keyword If    '${expected}' == 'True'    Should Not Be Empty    ${slinks}    ELSE    Should Be Empty    ${sl}
+
+Validate Fabric CrossConnect SI
+    [Arguments]    ${stag}    ${expected}=${EMPTY}
+    ${resp}=    CORD Get    ${FABRIC_CROSSCONNECT_SERVICEINSTANCES}
+    ${jsondata}=    To Json    ${resp.content}
+    Log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
+    @{tags}=    Create List
+    : FOR    ${INDEX}    IN RANGE    0    ${length}
+    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+    \    ${tag}=    Get From Dictionary    ${value}    s_tag
+    \    Append To List    ${tags}    ${tag}
+    Run Keyword If    '${expected}' != '${EMPTY}'    List Should Contain Value    ${tags}    ${stag}    ELSE    List Should Not Contain Value    ${tags}    ${stag}
