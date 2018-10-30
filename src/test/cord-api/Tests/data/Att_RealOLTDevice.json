@@ -2,7 +2,7 @@
     "VOLTDeviceInfo" : [
     {
             "device_type": "openolt",
-            "host": "10.192.4.218",
+            "host": "10.192.4.206",
             "port": 9191,
             "switch_datapath_id": "of:0000cc37ab5b6da8",
             "dp_id": "of:0000cc37ab5b6da8",
