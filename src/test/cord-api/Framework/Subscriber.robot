@@ -138,7 +138,7 @@ Validate Subscriber Service Chain
     \    ${result}    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
     \    ${sn}=    Get From Dictionary    ${value}    onu_device
     \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
-    Run Keyword If    '${expected}' == 'True'    Should Not Be Empty    ${slinks}    ELSE    Should Be Empty    ${sl}
+    Run Keyword If    '${expected}' == 'True'    Should Be Equal As Integers    ${slinks}    1    ELSE    Should Be Empty    ${sl}
 
 Validate Fabric CrossConnect SI
     [Arguments]    ${stag}    ${expected}=True
