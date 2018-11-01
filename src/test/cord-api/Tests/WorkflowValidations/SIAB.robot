@@ -215,7 +215,6 @@ ONU not in Whitelist
     [Tags]    stable    latest    test7
     [Setup]    Simple Setup
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
-    Wait Until Keyword Succeeds    60s    2s    Create VOLT
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -236,7 +235,6 @@ ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> P
     ...    Validate successful authentication/DHCP/E2E ping
     [Tags]    latest    test8
     [Setup]    Simple Setup
-    Wait Until Keyword Succeeds    60s    2s    Create VOLT
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
@@ -284,7 +282,6 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     ...    Validate successful authentication/DHCP/E2E ping
     [Tags]    latest    test10
     [Setup]    Simple Setup
-    Wait Until Keyword Succeeds    60s    2s    Create VOLT
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
     Update Whitelist with Wrong Location
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
@@ -359,7 +356,6 @@ Setup Test
     Set Suite Variable    ${datetime}
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
-    Wait Until Keyword Succeeds    60s    2s    Create VOLT
     Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
