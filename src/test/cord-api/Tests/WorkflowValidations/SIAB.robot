@@ -376,7 +376,6 @@ Test Cleanup
     [Documentation]    Restore back to initial state per each test
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Restart RG Pod
 
