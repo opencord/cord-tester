@@ -143,7 +143,8 @@ Generate JSON Data
     ## Create req service owner for rcord subscriber and
     CORD Post    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
-    ${rcord_tmp_service_id}=    Set Suite Variable    ${id}
+    ${rcord_tmp_service_id}=    Set Variable    ${id}
+    Set Suite Variable    ${rcord_tmp_service_id}
     {% endif %}
     {% if  m.name  == "HippieOSSServiceInstance" -%}
     ## Create req service owner for hippie oss service instance
