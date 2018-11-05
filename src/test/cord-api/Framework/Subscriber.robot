@@ -122,9 +122,9 @@ Validate DHCP and Ping
 
 Send Dhclient Request K8S
     ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw -r
-    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -nw
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient -r
+    Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
 
 Validate Subscriber Service Chain
     [Arguments]    ${serial_no}    ${expected}=True
