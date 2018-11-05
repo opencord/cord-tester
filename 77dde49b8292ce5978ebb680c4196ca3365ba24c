@@ -46,6 +46,30 @@
       "revId": "77dde49b8292ce5978ebb680c4196ca3365ba24c",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "812753a4_04a97305",
+        "filename": "src/test/cord-api/Framework/Subscriber.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 125,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2018-11-05T22:52:08Z",
+      "side": 1,
+      "message": "Specifically, it takes 24m for the three \"stable\" tests to pass.  That seems a bit too long.",
+      "parentUuid": "8f86f234_9e1c42da",
+      "range": {
+        "startLine": 125,
+        "startChar": 4,
+        "endLine": 125,
+        "endChar": 18
+      },
+      "revId": "77dde49b8292ce5978ebb680c4196ca3365ba24c",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
