@@ -290,6 +290,7 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Update Whitelist with Correct Location
+    Reset ONU
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
@@ -297,6 +298,7 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
+    Reset ONU
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
@@ -427,3 +429,4 @@ Reset ONU
     CORD Put    /xosapi/v1/volt/onudevices   {"admin_state": "DISABLED" }     1
     Sleep    10
     CORD Put    /xosapi/v1/volt/onudevices   {"admin_state": "ENABLED" }     1
+    Sleep    10
