@@ -60,9 +60,9 @@ Delete Subscriber
     Should Be True    ${api_result}
 
 Validate Subscriber Status
-    [Arguments]    ${exepected_status}    ${onu_device}
+    [Arguments]    ${expected_status}    ${onu_device}    ${accepted_status}=${EMPTY}
     ${status}    Subscriber Status Check    ${onu_device}
-    Should Be Equal    ${status}    ${exepected_status}
+    Run Keyword If    '${accepted_status}' == '${EMPTY}'    Should Be Equal    ${status}    ${expected_status}    ELSE    Should Contain Any    ${status}    ${expected_status}    ${accepted_status}
 
 Send EAPOL Message
     [Arguments]    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
