@@ -130,7 +130,7 @@ node ("${TestNodeName}") {
                         waitUntil {
                             onos_completed = sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods | grep -i onos | grep -i running | grep 1/1 | wc -l
+                            kubectl get pods | grep -i onos | grep -i running | grep 2/2 | wc -l
                             """
                             return onos_completed.toInteger() == 1
                         }
