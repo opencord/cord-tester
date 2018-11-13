@@ -19,6 +19,36 @@ node ("${TestNodeName}") {
             sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
             deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
         }
+        stage('Clean up') {
+            timeout(10) {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
+                do
+                    echo "Purging chart: \${hchart}"
+                    helm delete --purge "\${hchart}"
+                done
+                """
+                timeout(5) {
+                    waitUntil {
+                        helm_deleted = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
+                        """
+                        return helm_deleted.toInteger() == 0
+                    }
+                }
+                timeout(5) {
+                    waitUntil {
+                        kubectl_deleted = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
+                        """
+                        return kubectl_deleted.toInteger() == 0
+                    }
+                }
+            }
+        }
         stage('Restart Fabric Switch processes') {
             for(int i=0; i < deployment_config.fabric_switches.size(); i++) {
                 timeout(5) {
