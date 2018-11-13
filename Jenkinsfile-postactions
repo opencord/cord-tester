@@ -17,7 +17,7 @@ node ("${TestNodeName}") {
         stage ("Parse deployment configuration file") {
             sh returnStdout: true, script: "rm -rf ${configBaseDir}"
             sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
-            deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
+            deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yml"
         }
         stage('Restart Fabric Switch processes') {
             for(int i=0; i < deployment_config.fabric_switches.size(); i++) {
