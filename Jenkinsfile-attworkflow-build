@@ -99,14 +99,30 @@ node ("${TestNodeName}") {
                         """
                     }
                 }
+                stage('Install etcd-cluster') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.0 -n etcd-operator stable/etcd-operator
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            etcd_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep etcd | grep -i running | grep 1/1 | wc -l
+                            """
+                            return etcd_running.toInteger() == 6
+                        }
+                    }
+                }
                 stage('Install voltha') {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                         helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
                         helm dep build voltha
-                        helm install -n voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcd-operator.customResources.createEtcdClusterCRD=false voltha
-                        helm upgrade -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ./voltha
+                        helm install -n voltha -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml voltha
                         """
                     }
                     timeout(10) {
