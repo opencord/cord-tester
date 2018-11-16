@@ -112,7 +112,7 @@ node ("${TestNodeName}") {
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods | grep etcd | grep -i running | grep 1/1 | wc -l
                             """
-                            return etcd_running.toInteger() == 6
+                            return etcd_running.toInteger() == 3
                         }
                     }
                 }
