@@ -80,11 +80,6 @@ Send Auth Request
     Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    1
     ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    APPROVED
 
-Send DHCP Request
-    [Documentation]    Validate that sending an dhcp request to update the subscriber's mac+ip address
-    Send Kafka Event    dhcp.events    {'macAddress': '${mac_address}','ipAddress': '${ip_address}', 'deviceId': '${deviceId}', 'portNumber': ${uniportno}}
-    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Settings    ${onu_serial_no}
-
 Send Denied Auth Request
     [Documentation]    Validate that denied auth request to the onu will disable the subscriber and remove a service chain
     Send Kafka Event    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}
