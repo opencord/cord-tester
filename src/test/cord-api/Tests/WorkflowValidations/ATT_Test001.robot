@@ -390,6 +390,7 @@ Clean Up XOS
     Wait Until Keyword Succeeds    30s    2s    Validate Subscriber Count    0
     Sleep    10s
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    Sleep    15s
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
