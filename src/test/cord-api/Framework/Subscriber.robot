@@ -152,3 +152,11 @@ Validate Fabric CrossConnect SI
     \    ${tag}=    Get From Dictionary    ${value}    s_tag
     \    Append To List    ${tags}    ${tag}
     Run Keyword If    '${expected}' == 'True'    List Should Contain Value    ${tags}    ${stag}    ELSE    List Should Not Contain Value    ${tags}    ${stag}
+
+Validate Subscriber Count
+    [Arguments]    ${expected_no}
+    ${resp}=    CORD Get    ${VOLT_SUBSCRIBER}
+    ${jsondata}=    To Json    ${resp.content}
+    Log    ${jsondata}
+    ${length}=    Get Length    ${jsondata['items']}
+    Should Be Equal As Integers    ${length}    ${expected_no}
