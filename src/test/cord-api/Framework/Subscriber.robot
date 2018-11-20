@@ -74,7 +74,7 @@ Validate Authentication
     [Documentation]    Executes a particular auth request on the RG and verifies if it succeeds. auth_pass determines if authentication should pass
     Send EAPOL Message    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Run Keyword If    '${auth_pass}' == 'True'    Wait Until Keyword Succeeds    120s    2s    Check Remote File Contents    True    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
-    Run Keyword If    '${auth_pass}' == 'False'    Sleep    10s
+    Run Keyword If    '${auth_pass}' == 'False'    Sleep    20s
     Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Start DHCP Server on Remote Host
