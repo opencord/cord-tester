@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "34a4db33_528108cd",
+        "filename": "src/test/cord-api/Tests/WorkflowValidations/ATT_Test001.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 53,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2018-11-28T21:31:08Z",
+      "side": 1,
+      "message": "uncomment this",
+      "range": {
+        "startLine": 53,
+        "startChar": 4,
+        "endLine": 53,
+        "endChar": 20
+      },
+      "revId": "fd42fb68bd7797e33169623087e27253ed28af94",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
