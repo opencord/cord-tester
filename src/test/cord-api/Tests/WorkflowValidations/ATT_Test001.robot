@@ -50,7 +50,7 @@ ONU in Correct Location
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
-    [Setup]    None
+    #[Setup]    None
     [Tags]    test1
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
@@ -387,10 +387,11 @@ Clean Up XOS
     [Documentation]    Clean up all XOS objects and reinstall voltha after OLT reboots
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
+    Sleep    20s
     Wait Until Keyword Succeeds    30s    2s    Validate Subscriber Count    0
     Sleep    10s
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
-    Sleep    15s
+    Sleep    20s
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
