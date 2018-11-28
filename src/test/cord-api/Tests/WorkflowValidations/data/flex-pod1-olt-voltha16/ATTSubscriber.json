@@ -1,0 +1,14 @@
+{
+    "SubscriberInfo" : [
+     {
+            "name": "My House-305",
+            "s_tag": 111,
+            "c_tag": 999,
+            "onu_device": "ALPHe3d1cfa7",
+            "nas_port_id": "PON 1/1/03/1:1.1.1",
+            "circuit_id": "foo1",
+            "status": "pre-provisioned",
+            "remote_id": "bar1"
+     }
+  ]
+}
