@@ -36,8 +36,8 @@ Login To Remote System
     [Arguments]    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=#
     [Documentation]    SSH's into a remote host (and logs into the container if container_type and container_name are specified) and returns connection ID
     ${conn_id}=    SSHLibrary.Open Connection    ${ip}    prompt=${prompt}    timeout=${prompt_timeout}
-    Run Keyword If    '${pass}' != '${None}'    SSHLibrary.Login    ${user}    ${pass}
-    ...                                 ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/id_rsa
+    Run Keyword If    '${use_key}' == 'False'    SSHLibrary.Login    ${user}    ${pass}
+    ...                                  ELSE    SSHLibrary.Login With Public Key    ${user}    %{HOME}/.ssh/id_rsa
     # Login to the lxc container
     Run Keyword If    '${container_type}' == 'LXC'    Run Keywords
     ...    SSHLibrary.Write    lxc exec ${container_name} /bin/bash    AND
