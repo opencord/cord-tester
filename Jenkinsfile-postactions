@@ -54,7 +54,7 @@ node ("${TestNodeName}") {
                 timeout(5) {
                     sh returnStdout: true, script: """
                     ssh-keyscan -H ${deployment_config.fabric_switches[i].ip} >> ~/.ssh/known_hosts
-                    sshpass -p ${deployment_config.fabric_switches[i].pass} ssh -l ${deployment_config.fabric_switches[i].user} ${deployment_config.fabric_switches[i].ip} 'service ofagentd restart' || true
+                    sshpass -p ${deployment_config.fabric_switches[i].pass} ssh -l ${deployment_config.fabric_switches[i].user} ${deployment_config.fabric_switches[i].ip} 'sudo reboot' || true
                     """
                 }
             }
