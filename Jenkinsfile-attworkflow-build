@@ -323,7 +323,7 @@ node ("${TestNodeName}") {
                         timeout(1) {
                             waitUntil {
                                 out_olt = sh returnStdout: true, script: """
-                                curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @bbsim-16.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @bbsim-${onuNumber}.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
                                 """
                                 return out_olt.toInteger() == 1
                             }
