@@ -48,8 +48,7 @@ Reinstall Voltha
     Wait Until Keyword Succeeds    120s    10s    Kubernetes PODs in Namespace are Removed    voltha
     Run    ${export_kubeconfig}; cd ${HELM_CHARTS_DIR}; helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
     Run    ${export_kubeconfig}; cd ${HELM_CHARTS_DIR}; helm dep up voltha
-    Run    ${export_kubeconfig}; helm install -n voltha -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=false ${HELM_CHARTS_DIR}/voltha
-    Run    ${export_kubeconfig}; helm upgrade -f ${KUBERNETES_YAML} --set etcd-operator.customResources.createEtcdClusterCRD=true voltha ${HELM_CHARTS_DIR}/voltha
+    Run    ${export_kubeconfig}; helm install -n voltha -f ${KUBERNETES_YAML}  ${HELM_CHARTS_DIR}/voltha
     Wait Until Keyword Succeeds    60s    10s    Kubernetes PODs in Namespace are Running    voltha    ${VOLTHA_POD_NUM}
     Sleep    10s
 
