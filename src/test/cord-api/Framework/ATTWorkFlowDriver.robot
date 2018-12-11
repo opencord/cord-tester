@@ -34,6 +34,16 @@ Service Instance Status Check
     ${authentication_state}=  Get From Dictionary    ${getJsonDict}   authentication_state
     [Return]    ${onu_state}    ${authentication_state}
 
+Service Instance DHCP State Check
+    [Arguments]    ${onu_device}
+    [Documentation]    Returns dhcp state value from att work flow driver for a particular ONU device
+    ${json_result}=    restApi.ApiGet    ATT_SERVICEINSTANCES
+    Log    ${json_result}
+    ${json_result_list}=    Get From dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
+    ${state}=  Get From Dictionary    ${getJsonDict}   dhcp_state
+    [Return]    ${state}
+
 Create Whitelist Entry
     [Arguments]    ${entry_list}    ${list_index}
     [Documentation]    Sends a POST to create an att whitelist in XOS
@@ -76,3 +86,8 @@ Validate ATT Workflow Driver SI
     ${onu_state}   ${authentication_status}   Service Instance Status Check    ${onu_device}
     Should Be Equal    ${onu_state}    ${expected_status}
     Should Be Equal    ${authentication_status}    ${expected_auth_status}
+
+Validate ATT Workflow Driver SI DHCP State
+    [Arguments]    ${expected_status}    ${onu_device}
+    ${dhcp_state}=   Service Instance DHCP State Check    ${onu_device}
+    Should Be Equal    ${dhcp_state}    ${expected_status}
