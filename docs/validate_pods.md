@@ -78,7 +78,7 @@ robot -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -
 
 **Validating AT&T workflow**
 
-Test scripts and input data for validating AT&T workflow are under `cord-tester/src/test/cord-api/Tests/WorkflowValidations`. The same test script e.g. `ATT_Test001.robot` works with different POD setups. Instead of hardcoding the POD specific variables in the test script, it relies on a separated configuration file which describes POD setup. To create a configuratino file for your POD please take a look at [this example](https://github.com/opencord/pod-configs/blob/master/deployment-configs/flex-pod1-olt.yaml).
+Test scripts and input data for validating AT&T workflow are under `cord-tester/src/test/cord-api/Tests/WorkflowValidations`. The same test script e.g. `ATT_Test001.robot` works with different POD setups. Instead of hardcoding the POD specific variables in the test script, it relies on a separated configuration file which describes POD setup. To create a configuration file for your POD please take a look at [this example](https://github.com/opencord/pod-configs/blob/master/deployment-configs/flex-pod1-olt.yaml).
 
 Input data are stored under `cord-tester/src/test/cord-api/Tests/WorkflowValidations/data/`. Please create a new folder with the name of your POD and copy and data files from e.g. `flex-pod1-olt` folder and edit them with the correct values on your POD.
 
@@ -92,3 +92,16 @@ robot -V PATH_TO_YOUR_POD_CONFIGURATION_FILE ATT_Test001.robot
  ```
 
 Note that `PATH_TO_YOUR_POD_CONFIGURATION_FILE` should point to the yaml file that describes your POD setup (see above).
+
+
+**Seba-in-a-Box Tests**
+
+Test scripts and input data for validating Seba-in-a-Box tests based on the ATT-Workflow profile are under `cord-tester/src/test/cord-api/Tests/WorkflowValidations/`. Test file:`SIAB.robot` Data files reside in the:`data/` directory. 
+
+These tests have the same test scenarios as the Physical Pod tests, however they are scripted differently as the system of a virtual seba deployment (Seba-in-a-Box) is vastly different from the physical pod. To execute these tests after successfully installing "Seba-in-a-Box", execute the following commands:
+
+```bash
+cd cord-tester/src/test/cord-api/
+source setup_venv.sh
+cd Tests/WorkflowValidations/ && robot -x notready SIAB.robot
+```
