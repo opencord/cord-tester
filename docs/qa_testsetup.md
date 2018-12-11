@@ -35,7 +35,7 @@ Most of the tests in cord-tester framework are written in `python` and
 
   ```bash
   cd cord-tester/src/test/robot/
-  pybot SanityK8POD.robot
+  robot SanityK8POD.robot
   ```
 
 ### Executing Control Plane Tests
@@ -60,7 +60,5 @@ Most of the tests in cord-tester framework are written in `python` and
 
   ```bash
   cd cord-tester/src/test/cord-api/Tests/
-  pybot <testcase.txt>
+  robot <testcase.txt>
   ```
-  For more detailed explanations of the cord-tester options please see [Running
-  Tests](running.md).

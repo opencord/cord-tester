@@ -24,7 +24,7 @@ To execute the test, perform the following from the client machine
 
 ```bash
 cd cord-tester/src/test/diag
-pybot SanityK8Pod.robot
+robot SanityK8Pod.robot
 ```
 
 ## Functional Tests
@@ -53,8 +53,8 @@ PASSWD = ''
 
 ```bash
 cd cord-tester/src/test/cord-api/Tests/
-pybot VOLTDevice_Test.txt
-pybot RCORDLite_E2ETest.txt 
+robot VOLTDevice_Test.txt
+robot RCORDLite_E2ETest.txt 
 ```
 
 ### Data Plane Tests
@@ -66,14 +66,14 @@ Data plane tests include validations of both top-down and zero-touch approaches 
 `Subscriber_StatusChecks.txt` validates subscriber status and end-to-end ping. Execute the following commands to run the test.
 ```bash
 cd cord-tester/src/test/cord-api/Tests/
-pybot -v init_state:disabled -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:PASS -e zerotouch Subscriber_StatusChecks.txt
+robot -v init_state:disabled -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:PASS -e zerotouch Subscriber_StatusChecks.txt
 ```
 Remember to change the values (ip, gateway, username, password, etc.) in the `Variables` section of the script to point the test to the source and destination hosts in your environment before running it.
 
 Similarly, run the follownig commands to validate zero-touch approach. Note that the arguments passed to the test script are different from the top-down approach.
 ```bash
 cd cord-tester/src/test/cord-api/Tests/
-pybot -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt
+robot -v init_state:awaiting-auth -v INITIAL_STATUS:FAIL -v ENABLE_STATUS:FAIL -v MACIP_STATUS:PASS Subscriber_StatusChecks.txt
 ```
 
 **Validating AT&T workflow**
@@ -88,7 +88,7 @@ After updating all these POD specific values, execute the following commands to 
 
 ```bash
 cd cord-tester/src/test/cord-api/Tests/WorkflowValidations
-pybot -V PATH_TO_YOUR_POD_CONFIGURATION_FILE ATT_Test001.robot
+robot -V PATH_TO_YOUR_POD_CONFIGURATION_FILE ATT_Test001.robot
  ```
 
 Note that `PATH_TO_YOUR_POD_CONFIGURATION_FILE` should point to the yaml file that describes your POD setup (see above).

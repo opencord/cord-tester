@@ -18,7 +18,7 @@ test bed.
 
 The following diagram shows how the test servers are interconnected
 
-![QA Jenkins Setup](images/qa_jenkinsetup_diag.png)
+![QA Jenkins Setup](images/SEBA-QA-Jenkins.png)
 
 * To view results from recent runs of the jenkins jobs, please view the
   [Jenkins dashboard](https://jenkins.opencord.org/)
