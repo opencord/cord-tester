@@ -139,7 +139,7 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -n onos -f configs/onos.yaml -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml onos
+                        helm install -n onos -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml onos
                         """
                     }
                     timeout(10) {
