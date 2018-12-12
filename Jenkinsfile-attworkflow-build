@@ -170,19 +170,19 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
-                stage('Install att-workflow') {
+                stage('Install seba-services profile') {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm dep update xos-profiles/att-workflow
-                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n att-workflow xos-profiles/att-workflow
+                        helm dep update xos-profiles/seba-services
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba-services xos-profiles/seba-services
                         """
                     }
                     timeout(10) {
                         waitUntil {
                             att_workflow_tosca_completed = sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods | grep -i att-workflow-tosca-loader | grep -i completed | wc -l
+                            kubectl get pods | grep -i seba-services-tosca-loader | grep -i completed | wc -l
                             """
                             return att_workflow_tosca_completed.toInteger() == 1
                         }
@@ -203,6 +203,24 @@ node ("${TestNodeName}") {
                             kubectl get pods | grep -i base-kubernetes-tosca-loader | grep -i completed | wc -l
                             """
                             return base_kubernetes_tosca_running.toInteger() == 1
+                        }
+                    }
+                }
+                stage('Install att workflow') {
+                    timeout(10) {
+                        sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                        helm dep update workflows/att-workflow
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n att-workflow workflows/att-workflow
+                        """
+                    }
+                    timeout(10) {
+                        waitUntil {
+                            att_workflow_tosca_completed = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods | grep -i att-workflow-tosca-loader | grep -i completed | wc -l
+                            """
+                            return att_workflow_tosca_completed.toInteger() == 1
                         }
                     }
                 }
