@@ -14,6 +14,12 @@ test bed.
 
 ![Test Beds](images/qa_testbed_diag.png)
 
+## Physical POD Topology
+
+Following diagram shows how the POD is configured for running system tests
+
+![QA Physical POD](images/flex-qa-pod.png)
+
 ## Jenkins Test Setup
 
 The following diagram shows how the test servers are interconnected
