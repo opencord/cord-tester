@@ -14,7 +14,7 @@ test bed.
 
 ![Test Beds](images/qa_testbed_diag.png)
 
-# Physical POD Topology
+## Physical POD Topology
 
 Following diagram shows how the POD is configured for running system tests
 
