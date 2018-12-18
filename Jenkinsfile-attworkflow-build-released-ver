@@ -70,7 +70,7 @@ node ("${TestNodeName}") {
             stage('Install CORD Platform') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n cord-platform --version 1.0.0 cord/cord-platform
+                helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n cord-platform --version 6.1.0 cord/cord-platform
                 """
                 timeout(1) {
                     waitUntil {
