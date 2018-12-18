@@ -117,14 +117,14 @@ node ("${TestNodeName}") {
                     waitUntil {
                         pods_running = sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods | grep -i running | wc -l
+                        kubectl get pods --all-namespaces | grep -i running | grep -E -v 'docker-registry|mavenrepo|ponnet|kube-system' | wc -l
                         """
-                        return pods_running.toInteger() == 42
+                        return pods_running.toInteger() == 51
                     }
                     waitUntil {
                         pods_completed = sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods | grep -i completed | wc -l
+                        kubectl get pods --all-namespaces | grep -i completed | grep -E -v 'docker-registry|mavenrepo|ponnet|kube-system' | wc -l
                         """
                         return pods_completed.toInteger() == 3
                     }
