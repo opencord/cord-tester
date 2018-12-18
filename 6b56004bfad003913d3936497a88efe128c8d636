@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "bb5afd1e_cede9a42",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 2
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2018-12-18T21:58:20Z",
+      "side": 1,
+      "message": "small note, I don\u0027t think we need \"dep update\" if we use upstream charts",
+      "range": {
+        "startLine": 111,
+        "startChar": 20,
+        "endLine": 111,
+        "endChar": 50
+      },
+      "revId": "6b56004bfad003913d3936497a88efe128c8d636",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
