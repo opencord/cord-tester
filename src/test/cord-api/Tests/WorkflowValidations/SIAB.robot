@@ -89,13 +89,15 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Reset SIAB Environment
     Remove Whitelist
+    Wait Until Keyword Succeeds    120s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Run Keyword And Ignore Error    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Service Chain    ${onu_device}    False
     Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${s_tag}    False
     Validate DHCP and Ping    True    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Reset SIAB Environment
+    Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
@@ -361,8 +363,9 @@ Setup Test
     Set Suite Variable    ${datetime}
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
+    Reset ONU
     Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    120s    2s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
@@ -372,6 +375,7 @@ Simple Setup
     Set Suite Variable    ${datetime}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
+    Reset ONU
 
 Test Cleanup
     [Documentation]    Restore back to initial state per each test
