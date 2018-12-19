@@ -303,7 +303,9 @@ Setup Suite
     ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
     ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
     ${VoltDeviceList}=    utils.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${VoltDeviceDict}=    utils.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
+    Set Global Variable    ${VoltDeviceDict}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
     Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
@@ -424,5 +426,4 @@ Remove Subscriber
     CORD Delete    ${VOLT_SUBSCRIBER}    ${subscriber_id}
 
 Create VOLT
-    ${VoltDeviceDict}=    utils.listToDict    ${VoltDeviceList}    0
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
