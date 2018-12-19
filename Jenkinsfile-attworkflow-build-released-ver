@@ -18,6 +18,7 @@ node ("${TestNodeName}") {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf ${configBaseDir}"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
             stage('Clean up') {
@@ -115,13 +116,10 @@ node ("${TestNodeName}") {
             stage('Check containers are running') {
                 timeout(20) {
                     waitUntil {
-                        pods_running = sh returnStdout: true, script: """
+                        sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods --all-namespaces | grep -i running | grep -E -v 'docker-registry|mavenrepo|ponnet|kube-system' | wc -l
+                        helm-repo-tools/wait_for_pods.sh
                         """
-                        return pods_running.toInteger() == 51
-                    }
-                    waitUntil {
                         pods_completed = sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl get pods --all-namespaces | grep -i completed | grep -E -v 'docker-registry|mavenrepo|ponnet|kube-system' | wc -l
