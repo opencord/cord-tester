@@ -4,6 +4,8 @@ Several jenkins based jobs are created to run tests on the following platforms
 
 * Physical POD
 
+* Seba-in-a-Box
+
 * VMs 
 
 ## Test Beds
