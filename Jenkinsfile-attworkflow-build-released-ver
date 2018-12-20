@@ -83,6 +83,21 @@ node ("${TestNodeName}") {
                     }
                 }
             }
+            stage('Wait for etcd-operator to be installed') {
+                timeout(10) {
+                    waitUntil {
+                        etcd_operator_installed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i etcd-operator | grep -i running | wc -l
+                        """
+                        crd_present = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get crd | grep -i etcd | wc -l
+                        """
+                        return etcd_operator_installed + crd_present.toInteger() == 6
+                    }
+                }
+            }
             stage('Install SEBA Profile') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
