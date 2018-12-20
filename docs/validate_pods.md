@@ -90,6 +90,13 @@ After updating all these POD specific values, execute the following commands to 
 cd cord-tester/src/test/cord-api/Tests/WorkflowValidations
 robot -V PATH_TO_YOUR_POD_CONFIGURATION_FILE ATT_Test001.robot
  ```
+Each scenario in ATT_Test001.robot is associated with `Tags` field, using which we can run a single scenario from the testcase as well.
+To execute a single scenario for the test
+
+```bash
+cd cord-tester/src/test/cord-api/Tests/WorkflowValidations
+robot -i test1 -V PATH_TO_YOUR_POD_CONFIGURATION_FILE ATT_Test001.robot
+ ```
 
 Note that `PATH_TO_YOUR_POD_CONFIGURATION_FILE` should point to the yaml file that describes your POD setup (see above).
 

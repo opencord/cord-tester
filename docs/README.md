@@ -1,15 +1,12 @@
 # Testing CORD
 
-CORD Tester is an automation framework that has been developed to test CORD.
-The framework currently includes extensions to test R-CORD Lite.
+CORD Tester is an automation framework that has been developed to test
+features of CORD.
 
-CORD Tester framework is typically deployed as one or more Docker containers,
-either on the CORD POD or adjacent to the POD and interacts with the POD
-through the interfaces. It is brought up with double vlan tagged interfaces
-to conduct dataplane traffic testing.
-
-The framework is modular, making it easy to test all the components that make
-up CORD. It supports both end-to-end tests and functional tests of individual
+CORD Tester framework can be installed on the POD directly or a standalone node
+that can access POD to run various tests. Cord-tester framework is modular,
+making it easy to test all the components that make up CORD.
+It supports both end-to-end tests, functional tests and api tests for SEBA
 components.  The suite of tests is constantly evolving with more features and
 tests.
 
