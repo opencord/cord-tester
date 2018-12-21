@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "8a59a292_773d53cb",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 2
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-12-21T23:10:44Z",
+      "side": 1,
+      "message": "change variable to \"bbsim_running\"",
+      "revId": "51ba28e1f756c93293ce4308fe15daccb24f3457",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5060c9e3_64fbb65e",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 2
+      },
+      "lineNbr": 339,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-12-21T23:10:44Z",
+      "side": 1,
+      "message": "\"bbsim_running\"",
+      "revId": "51ba28e1f756c93293ce4308fe15daccb24f3457",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
