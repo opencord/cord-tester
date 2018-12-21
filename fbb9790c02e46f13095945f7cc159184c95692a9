@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f44bfdf5_025a57c3",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 1
+      },
+      "lineNbr": 335,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2018-12-21T23:04:10Z",
+      "side": 1,
+      "message": "bbsim? Also, there is no bbsim tosca loader. You dont need to grep for anything after this. Its up to the user/operator to configure subscriber and whitelist for this.",
+      "revId": "fbb9790c02e46f13095945f7cc159184c95692a9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
