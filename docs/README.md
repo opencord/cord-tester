@@ -6,7 +6,7 @@ features of CORD.
 CORD Tester framework can be installed on the POD directly or a standalone node
 that can access POD to run various tests. Cord-tester framework is modular,
 making it easy to test all the components that make up CORD.
-It supports both end-to-end tests, functional tests and api tests for SEBA
+It supports end-to-end tests, functional tests and api tests for SEBA
 components.  The suite of tests is constantly evolving with more features and
 tests.
 
@@ -14,9 +14,9 @@ Few links below provide detailed information of System Test Guide, Test Plans
 and Test Results.
 
 * [System Test Guide](https://wiki.opencord.org/display/CORD/System+Test+Guide)
-* [System Test Plans](https://wiki.opencord.org/display/CORD/System+Test+Plans)
+* [System Test Plans](https://wiki.opencord.org/display/CORD/December+Release)
 * [System Test
-  Results](https://wiki.opencord.org/display/CORD/System+Test+Results)
+  Results](https://wiki.opencord.org/display/CORD/CORD+6.1)
 
 Additional information about the CORD Tester framework can be found on the
 GitHub:
