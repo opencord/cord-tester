@@ -16,7 +16,8 @@ node ("${TestNodeName}") {
     timeout (100) {
         try {
             stage ("Parse deployment configuration file") {
-                sh returnStdout: true, script: "rm -rf ${configBaseDir}"
+                sh returnStdout: true, script: "rm -rf helm-repo-tools ${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
@@ -48,15 +49,6 @@ node ("${TestNodeName}") {
                             return kubectl_deleted.toInteger() == 0
                         }
                     }
-                    // timeout(5) {
-                    //     waitUntil {
-                    //         kubectl_deleted = sh returnStdout: true, script: """
-                    //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                    //         kubectl get statefulset --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
-                    //         """
-                    //         return kubectl_deleted.toInteger() == 0
-                    //     }
-                    // }
                 }
             }
             stage('Add CORD repository') {
@@ -97,7 +89,7 @@ node ("${TestNodeName}") {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
-                    scripts/wait_for_pods.sh
+                    helm-repo-tools/wait_for_pods.sh
                     """
                 }
             }
@@ -106,7 +98,7 @@ node ("${TestNodeName}") {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
-                    scripts/wait_for_pods.sh
+                    helm-repo-tools/wait_for_pods.sh
                     """
                 }
             }
