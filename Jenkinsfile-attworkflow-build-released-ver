@@ -94,7 +94,7 @@ node ("${TestNodeName}") {
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl get crd | grep -i etcd | wc -l
                         """
-                        return etcd_operator_installed + crd_present.toInteger() == 6
+                        return etcd_operator_installed.toInteger() + crd_present.toInteger() == 6
                     }
                 }
             }
