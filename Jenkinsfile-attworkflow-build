@@ -123,8 +123,6 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
-                    helm dep build voltha
                     helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha
                     """
                 }
