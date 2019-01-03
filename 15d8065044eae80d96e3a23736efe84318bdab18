@@ -22,6 +22,30 @@
       "revId": "15d8065044eae80d96e3a23736efe84318bdab18",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "b2edeb6b_866408fe",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 2
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-01-03T18:56:10Z",
+      "side": 1,
+      "message": "will try once build+test completes",
+      "parentUuid": "1d5bd3b1_5a581f41",
+      "range": {
+        "startLine": 74,
+        "startChar": 78,
+        "endLine": 74,
+        "endChar": 79
+      },
+      "revId": "15d8065044eae80d96e3a23736efe84318bdab18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
