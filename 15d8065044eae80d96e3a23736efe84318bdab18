@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1d5bd3b1_5a581f41",
+        "filename": "Jenkinsfile-attworkflow-build",
+        "patchSetId": 2
+      },
+      "lineNbr": 74,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2019-01-03T18:52:42Z",
+      "side": 1,
+      "message": "If single quotes were used, would a single slash work?",
+      "range": {
+        "startLine": 74,
+        "startChar": 78,
+        "endLine": 74,
+        "endChar": 79
+      },
+      "revId": "15d8065044eae80d96e3a23736efe84318bdab18",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
