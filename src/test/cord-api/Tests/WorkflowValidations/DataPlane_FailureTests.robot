@@ -73,6 +73,33 @@ OLT Reboot
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}
 
+Fabric Switch Reboot
+    [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Reboots Fabric Switch
+    ...    Validate that pings fail
+    ...    Validate successful authentication/DHCP/E2E ping after OLT comes back up
+    #[Setup]    None
+    [Teardown]    None
+    [Tags]    fabric1
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Validate DHCP and Ping    True    True    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
+    # Reboot Fabric Switch
+    Login And Run Command On Remote System    sudo reboot    ${fabric_ip}    ${fabric_user}    ${fabric_pass}    prompt=#
+    Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${fabric_ip}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}
+    #Validate DHCP and Ping    False    False    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
+    Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${fabric_ip}
+    # Validate successful pings since Fabric Switch is Up
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}
 
 *** Keywords ***
 Setup Suite
