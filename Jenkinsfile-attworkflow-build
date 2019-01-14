@@ -88,7 +88,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging --version 1.1.0 cord/logging
                     helm-repo-tools/wait_for_pods.sh
                     """
                 }
@@ -97,7 +97,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring --version 1.0.0 cord/nem-monitoring
                     helm-repo-tools/wait_for_pods.sh
                     """
                 }
@@ -123,7 +123,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha
+                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 1.0.3 cord/voltha
                     """
                 }
                 timeout(10) {
@@ -140,7 +140,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 1.1.0 cord/onos
                     """
                 }
                 timeout(10) {
@@ -157,7 +157,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core --version 2.3.2 cord/xos-core
                     """
                 }
                 timeout(10) {
@@ -174,7 +174,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba-services cord/seba-services
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba-services --version 1.0.2 cord/seba-services
                     """
                 }
                 timeout(10) {
@@ -191,7 +191,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes cord/base-kubernetes
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes --version 1.0.2 cord/base-kubernetes
                     """
                 }
                 timeout(10) {
