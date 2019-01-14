@@ -66,7 +66,7 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -f examples/kafka-single.yaml --version 0.8.8 -n cord-kafka incubator/kafka
+                        helm install -f examples/kafka-single.yaml --version 0.13.3 -n cord-kafka incubator/kafka
                         """
                     }
                     timeout(10) {
@@ -103,7 +103,7 @@ node ("${TestNodeName}") {
                     timeout(10) {
                         sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.0 -n etcd-operator stable/etcd-operator
+                        helm install -f ../${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.3 -n etcd-operator stable/etcd-operator
                         """
                     }
                     timeout(10) {
