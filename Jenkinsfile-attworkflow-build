@@ -17,8 +17,8 @@ node ("${TestNodeName}") {
         try {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf helm-repo-tools ${configBaseDir}"
-                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
-                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
+                sh returnStdout: true, script: "git clone ${cordRepoUrl}/helm-repo-tools"
+                sh returnStdout: true, script: "git clone ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
             stage('Clean up') {
