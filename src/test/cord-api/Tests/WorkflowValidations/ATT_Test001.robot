@@ -374,7 +374,8 @@ Setup Test
 
 Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
-    Clean Up Linux
+    Run Keyword If    '${src_container_type}' != 'K8S'    Clean Up Linux
+    Run Keyword If    '${src_container_type}' == 'K8S'    Restart RG Pod
     Clean Up XOS
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
 
@@ -427,3 +428,9 @@ Remove Subscriber
 
 Create VOLT
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
+
+Restart RG Pod
+    Run    kubectl -n voltha delete pod ${RG_CONTAINER}
+    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    Set Suite Variable    ${RG_CONTAINER}
+    Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
