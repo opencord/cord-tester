@@ -240,7 +240,7 @@ node ("${TestNodeName}") {
                         timeout(10) {
                             sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                            helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n bbsim bbsim --set onus_per_pon_port=${onuNumber}
+                            helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n bbsim --version 1.0.0 cord/bbsim --set onus_per_pon_port=${onuNumber}
                             """
                         }
                         timeout(10) {
