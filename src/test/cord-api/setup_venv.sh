@@ -32,6 +32,6 @@ source "${VENVDIR}/bin/activate"
 pip install --upgrade pip
 pip install robotframework robotframework-requests robotframework-sshlibrary pexpect  \
     robotframework-httplibrary robotframework-kafkalibrary pygments pyyaml
-pip install requests
+pip install requests tinydb
 
 echo "CORD-TESTER virtualenv created. Run 'source ${VENVDIR}/bin/activate'."
