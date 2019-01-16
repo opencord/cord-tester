@@ -1,3 +1,9 @@
+# IDEs artifacts
+.idea
+
+# Virtual envs
+src/test/cord-api/venv-cord-tester/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
