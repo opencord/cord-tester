@@ -41,6 +41,16 @@ node ("${TestNodeName}") {
                             return helm_deleted.toInteger() == 0
                         }
                     }
+                    timout(5) {
+                        dir ("helm-charts") {
+                            stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
+                                sh returnStdout: true, script: """
+                                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                                kubectl delete -f mcord/cni-config/
+                                """
+                            }
+                        }
+                    }
                     timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
@@ -48,16 +58,6 @@ node ("${TestNodeName}") {
                             kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
                             """
                             return kubectl_deleted.toInteger() == 0
-                        }
-                    }
-                }
-                timout(5) {
-                    dir ("helm-charts") {
-                        stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
-                            sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                            kubectl delete -f mcord/cni-config/
-                            """
                         }
                     }
                 }
