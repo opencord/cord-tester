@@ -96,7 +96,7 @@ node ("${TestNodeName}") {
             stage("Install M-CORD Control Plane Services") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n mcord-control-plane -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
+                helm install -n mcord-control-plane -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --wait --timeout 3600 --debug cord/mcord-control-plane
                 """
             }
             
