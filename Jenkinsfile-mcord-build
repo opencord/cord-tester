@@ -18,6 +18,7 @@ node ("${TestNodeName}") {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf helm-repo-tools ${configBaseDir}"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-charts"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
@@ -50,6 +51,16 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
+                timout(5) {
+                    dir ("helm-charts") {
+                        stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
+                            sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                            kubectl delete -f mcord/cni-config/
+                            """
+                        }
+                    }
+                }
             }
             stage('Add Helm repositories') {
                 sh returnStdout: true, script: """
@@ -68,75 +79,99 @@ node ("${TestNodeName}") {
                     }
                 }
             }
-            stage('Install CORD Kafka') {
-                timeout(10) {
+            dir ("helm-charts") {
+                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install --version 0.8.8 --set configurationOverrides."offsets\\.topic\\.replication\\.factor"=1 --set configurationOverrides."log\\.retention\\.hours"=4 --set configurationOverrides."log\\.message\\.timestamp\\.type"="LogAppendTime" --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false -n cord-kafka incubator/kafka
-                    """
-                }
-                timeout(10) {
-                    waitUntil {
-                        kafka_instances_running = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
-                        """
-                        return kafka_instances_running.toInteger() == 2
-                    }
-                }
-            }
-            stage('Install Logging Infrastructure') {
-                timeout(10) {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
-                    helm-repo-tools/wait_for_pods.sh
+                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
+                    kubectl apply -f mcord/cni-config/
                     """
                 }
             }
-            stage('Install Monitoring Infrastructure') {
-                timeout(10) {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
-                    helm-repo-tools/wait_for_pods.sh
-                    """
-                }
+
+            stage("Install M-CORD Control Plane Services") {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm install -n mcord-control-plane -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
+                """
             }
-            stage('Install ONOS') {
-                timeout(10) {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
-                    """
-                }
-                timeout(10) {
-                    waitUntil {
-                        onos_completed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods | grep -i onos | grep -i running | grep 2/2 | wc -l
-                        """
-                        return onos_completed.toInteger() == 1
-                    }
-                }
+            
+            stage("Install M-CORD Data Plane Services") {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm install -n mcord-data-plane -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
+                """
             }
-            stage('Install xos-core') {
-                timeout(10) {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
-                    """
-                }
-                timeout(10) {
-                    waitUntil {
-                        xos_core_completed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
-                        """
-                        return xos_core_completed.toInteger() == 6
-                    }
-                }
-            }
+
+            // stage('Install CORD Kafka') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install --version 0.8.8 --set configurationOverrides."offsets\\.topic\\.replication\\.factor"=1 --set configurationOverrides."log\\.retention\\.hours"=4 --set configurationOverrides."log\\.message\\.timestamp\\.type"="LogAppendTime" --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false -n cord-kafka incubator/kafka
+            //         """
+            //     }
+            //     timeout(10) {
+            //         waitUntil {
+            //             kafka_instances_running = sh returnStdout: true, script: """
+            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+            //             kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+            //             """
+            //             return kafka_instances_running.toInteger() == 2
+            //         }
+            //     }
+            // }
+            // stage('Install Logging Infrastructure') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
+            //         helm-repo-tools/wait_for_pods.sh
+            //         """
+            //     }
+            // }
+            // stage('Install Monitoring Infrastructure') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
+            //         helm-repo-tools/wait_for_pods.sh
+            //         """
+            //     }
+            // }
+            // stage('Install ONOS') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+            //         """
+            //     }
+            //     timeout(10) {
+            //         waitUntil {
+            //             onos_completed = sh returnStdout: true, script: """
+            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+            //             kubectl get pods | grep -i onos | grep -i running | grep 2/2 | wc -l
+            //             """
+            //             return onos_completed.toInteger() == 1
+            //         }
+            //     }
+            // }
+            // stage('Install xos-core') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+            //         """
+            //     }
+            //     timeout(10) {
+            //         waitUntil {
+            //             xos_core_completed = sh returnStdout: true, script: """
+            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+            //             kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
+            //             """
+            //             return xos_core_completed.toInteger() == 6
+            //         }
+            //     }
+            // }
 
             if ( params.configurePod ) {
                 dir ("${configBaseDir}/${configToscaDir}/att-workflow") {
