@@ -46,7 +46,11 @@ node ("${TestNodeName}") {
                             stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
                                 sh returnStdout: true, script: """
                                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                                kubectl delete -f mcord/cni-config/
+                                kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml
+                                kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml
+                                kubectl delete -f mcord/cni-config/03-network-definition.yaml
+                                kubectl delete -f mcord/cni-config/02-network-crd.yaml
+                                kubectl delete -f mcord/cni-config/01-cni-service-account.yaml
                                 """
                             }
                         }
