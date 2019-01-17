@@ -41,7 +41,7 @@ node ("${TestNodeName}") {
                             return helm_deleted.toInteger() == 0
                         }
                     }
-                    timout(5) {
+                    timeout(5) {
                         dir ("helm-charts") {
                             stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
                                 sh returnStdout: true, script: """
