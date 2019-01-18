@@ -69,10 +69,20 @@ node ("${TestNodeName}") {
             stage('Add Helm repositories') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm init --upgrade --force-upgrade
                 helm repo add cord https://charts.opencord.org
                 helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
                 helm repo update
                 """
+                timeout(1) {
+                    waitUntil {
+                        tillerpod_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
+                        """
+                        return tillerpod_running.toInteger() == 1
+                    }
+                }
                 timeout(1) {
                     waitUntil {
                         cord_repo_present = sh returnStdout: true, script: """
