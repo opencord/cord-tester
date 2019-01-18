@@ -48,7 +48,6 @@ ONU in Correct Location
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
-    [Setup]    None
     [Tags]    stable    latest    test1
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
@@ -318,6 +317,19 @@ Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
+    Run Keyword And Ignore Error    Get Service Attributes
+    @{container_list}=    Create List
+    Append To List    ${container_list}    att-workflow-att-workflow-driver
+    Append To List    ${container_list}    seba-services-fabric-crossconnect
+    Append To List    ${container_list}    seba-services-rcord
+    Append To List    ${container_list}    seba-services-volt
+    Append To List    ${container_list}    xos-core
+    Append To List    ${container_list}    vcore
+    Set Suite Variable    ${container_list}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    ${local_user}    ${local_pass}
+    Set Suite Variable    ${datetime}
+
+Get Service Attributes
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
     ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
@@ -346,54 +358,58 @@ Setup
     Set Suite Variable    ${att_si_id}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
-    ## Validate ATT Workflow SI
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    @{container_list}=    Create List
-    Append To List    ${container_list}    att-workflow-att-workflow-driver
-    Append To List    ${container_list}    seba-services-fabric-crossconnect
-    Append To List    ${container_list}    seba-services-rcord
-    Append To List    ${container_list}    seba-services-volt
-    Append To List    ${container_list}    xos-core
-    Append To List    ${container_list}    vcore
-    Set Suite Variable    ${container_list}
-    ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    ${local_user}    ${local_pass}
-    Set Suite Variable    ${datetime}
 
 Teardown
-    Setup Test
     Delete All Sessions
 
 Setup Test
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
     Set Suite Variable    ${datetime}
+    Run Keyword And Ignore Error    Get Service Attributes
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
-    Reset ONU
+    #Wait Until Keyword Succeeds    60s    2s    Create VOLT
+    Wait Until Keyword Succeeds    120s    2s    Devices in ONOS + VOLTHA
+    Wait Until Keyword Succeeds    120s    2s    Reset ONU
     Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    120s    2s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
 
+Devices in ONOS + VOLTHA
+    [Arguments]    ${exists}=True
+    ${voltha_devices}=    Run    curl -s http://127.0.0.1:30125/api/v1/devices|jq '.items[].admin_state'|grep ENABLED|wc -l
+    Run Keyword If    '${exists}' == 'True'    Should Contain    ${voltha_devices}    2    ELSE    Should Contain    ${voltha_devices}    0
+    ${onos_devices}=    Run    curl -s -u karaf:karaf http://127.0.0.1:30120/onos/v1/devices|jq '.devices[].available'|grep true|wc -l
+    Run Keyword If    '${exists}' == 'True'    Should Contain    ${onos_devices}    2    ELSE    Should Contain    ${onos_devices}    1
+
 Simple Setup
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
     Set Suite Variable    ${datetime}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
-    Reset ONU
+    #Reset ONU
 
 Test Cleanup
     [Documentation]    Restore back to initial state per each test
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
+    Sleep    20s
+    Wait Until Keyword Succeeds    30s    2s    Validate Subscriber Count    0
+    Sleep    10s
+    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    Sleep    20s
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Restart RG Pod
+    Wait Until Keyword Succeeds    60s    2s    Devices in ONOS + VOLTHA    removed=True
 
 Restart RG Pod
     Run    kubectl -n voltha delete pod ${RG_CONTAINER}
     ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
-    Set Suite Variable    ${RG_CONTAINER}
     Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
+    Set Suite Variable    ${RG_CONTAINER}
 
 Create Whitelist
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
@@ -427,18 +443,27 @@ Update Whitelist with Correct Location
 Reset SIAB Environment
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
+    Sleep    20s
+    Wait Until Keyword Succeeds    30s    2s    Validate Subscriber Count    0
+    Sleep    10s
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    Sleep    20s
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Restart RG Pod
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
+    #Wait Until Keyword Succeeds    60s    2s    Create VOLT
+    Wait Until Keyword Succeeds    120    2s    Devices in ONOS + VOLTHA
     Reset ONU
     Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    120s    2s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
 
 Reset ONU
-    CORD Put    /xosapi/v1/volt/onudevices   {"admin_state": "DISABLED" }     1
+    ${onu_id}=    Retrieve ONU Device    ${onu_device}
+    CORD Put    /xosapi/v1/volt/onudevices   {"admin_state": "DISABLED" }     ${onu_id}
     Sleep    10
-    CORD Put    /xosapi/v1/volt/onudevices   {"admin_state": "ENABLED" }     1
+    CORD Put    /xosapi/v1/volt/onudevices   {"admin_state": "ENABLED" }     ${onu_id}
     Sleep    10
