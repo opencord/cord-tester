@@ -8,6 +8,7 @@
             "switch_port": "2",
             "outer_tpid": "0x8100",
             "name": "PONSIM OLT",
+            "dp_id": "of:0000aabbccddeeff",
             "uplink": "2",
             "volt_service_id": 2
     }
