@@ -19,7 +19,7 @@
 FROM python:2.7
 
 RUN pip install httpie robotframework robotframework-requests pexpect \
-     robotframework-httplibrary robotframework-ride robotframework-kafkalibrary pygments pyyaml && \
+     robotframework-sshlibrary robotframework-httplibrary robotframework-ride robotframework-kafkalibrary pygments pyyaml && \
     pip install -U requests && rm -rf /var/lib/apt/lists/*
 
 RUN  mkdir -p /src/cord-api
@@ -44,5 +44,5 @@ LABEL org.label-schema.schema-version=$org_label_schema_schema_version \
       org.label-schema.build-date=$org_label_schema_build_date \
       org.opencord.vcs-commit-date=$org_opencord_vcs_commit_date
 
-ENTRYPOINT ["pybot", "-L", "TRACE", "-d", "Log", "-T"]
+ENTRYPOINT ["robot", "-d", "Log", "-T"]
 CMD ["Ch_ServiceTest.txt"]
