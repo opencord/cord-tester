@@ -44,14 +44,14 @@ Validate ONU States
     [Documentation]    Validates All ONU Device states are "enabled" and "active"
     [Tags]    onustates
     : FOR    ${onu}    IN    @{serial_numbers}
-    \    Validate ONU States    ACTIVE    ENABLED    ${onu}
+    \    Wait Until Keyword Succeeds    120s    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
 
 Validate ATT WF Driver SIs
     [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
     [Tags]    serviceinstances
     : FOR    ${onu}    IN    @{serial_numbers}
     \    Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
-    \    Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI DHCP State    DHCPDISCOVER    ${onu}
+    \    Wait Until Keyword Succeeds    120s    2s    Validate ATT Workflow Driver SI DHCP State    DHCPACK    ${onu}
 
 *** Keywords ***
 Setup
