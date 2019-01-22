@@ -32,17 +32,13 @@ Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${export_kube_config}      export KUBECONFIG=/home/%{USER}/.kube/config
-${kube_node_ip}            localhost
-${dst_host_ip}             172.18.0.10
-${local_user}              %{USER}
-${local_pass}              %{USER}
+${number_of_onus}    16
 
 *** Test Cases ***
 ONUs Discovered
     [Documentation]    Validates All ONU Devices are discovered and retrieve SNs
     [Tags]    onudiscovery
-    Wait Until Keyword Succeeds    120s    5s    Validate Number of ONU Devices    16
+    Wait Until Keyword Succeeds    120s    5s    Validate Number of ONU Devices    ${number_of_onus}
 
 Validate ONU States
     [Documentation]    Validates All ONU Device states are "enabled" and "active"
