@@ -57,7 +57,7 @@ Validate ATT WF Driver SIs
 Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
-    Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
+    Create Session    ${server_ip}    http://%{SERVER_IP}:%{SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
 
 Teardown
     Delete All Sessions
