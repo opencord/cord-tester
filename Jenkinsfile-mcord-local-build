@@ -93,6 +93,26 @@ node ("${TestNodeName}") {
                     }
                 }
             }
+
+            stage('Install etcd-cluster') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.3 -n etcd-operator stable/etcd-operator
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcdNodePort=32379 cord/etcd-cluster
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        etcd_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep etcd | grep -i running | grep 1/1 | wc -l
+                        """
+                        return etcd_running.toInteger() == 6
+                    }
+                }
+            }
+
             dir ("helm-charts") {
                 stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
                     sh returnStdout: true, script: """
