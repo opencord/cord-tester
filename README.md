@@ -1,3 +1,5 @@
+##DO NOT MERGE: testing patch
+
 # cord-tester
 CORD Automated Tester Suite
 
