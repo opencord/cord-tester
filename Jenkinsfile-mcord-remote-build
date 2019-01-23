@@ -1,0 +1,252 @@
+// Copyright 2017-present Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+node ("${TestNodeName}") {
+    timeout (100) {
+        try {
+            stage ("Parse deployment configuration file") {
+                sh returnStdout: true, script: "rm -rf helm-charts helm-repo-tools ${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-charts"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
+                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
+            }
+            stage('Clean up') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
+                    do
+                        echo "Purging chart: \${hchart}"
+                        helm delete --purge "\${hchart}"
+                    done
+                    """
+                    timeout(5) {
+                        waitUntil {
+                            helm_deleted = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
+                            """
+                            return helm_deleted.toInteger() == 0
+                        }
+                    }
+                    timeout(5) {
+                        dir ("helm-charts") {
+                            stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
+                                sh returnStdout: true, script: """
+                                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                                kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml
+                                kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml
+                                kubectl delete -f mcord/cni-config/03-network-definition.yaml
+                                kubectl delete -f mcord/cni-config/02-network-crd.yaml
+                                kubectl delete -f mcord/cni-config/01-cni-service-account.yaml
+                                """
+                            }
+                        }
+                    }
+                    timeout(5) {
+                        waitUntil {
+                            kubectl_deleted = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                            kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
+                            """
+                            return kubectl_deleted.toInteger() == 0
+                        }
+                    }
+                }
+            }
+            stage('Add Helm repositories') {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm init --upgrade --force-upgrade
+                helm repo add cord https://charts.opencord.org
+                helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+                helm repo update
+                """
+                timeout(1) {
+                    waitUntil {
+                        tillerpod_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
+                        """
+                        return tillerpod_running.toInteger() == 1
+                    }
+                }
+                timeout(1) {
+                    waitUntil {
+                        cord_repo_present = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        helm repo list | grep cord | wc -l
+                        """
+                        return cord_repo_present.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Install etcd-cluster') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.3 -n etcd-operator stable/etcd-operator
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcdNodePort=32379 cord/etcd-cluster
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        etcd_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep etcd | grep -i running | grep 1/1 | wc -l
+                        """
+                        return etcd_running.toInteger() == 6
+                    }
+                }
+            }
+
+            dir ("helm-charts") {
+                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
+                    kubectl apply -f mcord/cni-config/
+                    sleep 5
+                    """
+                }
+            }
+
+            stage("Install M-CORD Control Plane Services") {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
+                """
+            }
+            
+            stage("Install M-CORD Data Plane Services") {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm install -n mcord-data-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
+                """
+            }
+
+            // stage('Install CORD Kafka') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install --version 0.8.8 --set configurationOverrides."offsets\\.topic\\.replication\\.factor"=1 --set configurationOverrides."log\\.retention\\.hours"=4 --set configurationOverrides."log\\.message\\.timestamp\\.type"="LogAppendTime" --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false -n cord-kafka incubator/kafka
+            //         """
+            //     }
+            //     timeout(10) {
+            //         waitUntil {
+            //             kafka_instances_running = sh returnStdout: true, script: """
+            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+            //             kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+            //             """
+            //             return kafka_instances_running.toInteger() == 2
+            //         }
+            //     }
+            // }
+            // stage('Install Logging Infrastructure') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
+            //         helm-repo-tools/wait_for_pods.sh
+            //         """
+            //     }
+            // }
+            // stage('Install Monitoring Infrastructure') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
+            //         helm-repo-tools/wait_for_pods.sh
+            //         """
+            //     }
+            // }
+            // stage('Install ONOS') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+            //         """
+            //     }
+            //     timeout(10) {
+            //         waitUntil {
+            //             onos_completed = sh returnStdout: true, script: """
+            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+            //             kubectl get pods | grep -i onos | grep -i running | grep 2/2 | wc -l
+            //             """
+            //             return onos_completed.toInteger() == 1
+            //         }
+            //     }
+            // }
+            // stage('Install xos-core') {
+            //     timeout(10) {
+            //         sh returnStdout: true, script: """
+            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+            //         """
+            //     }
+            //     timeout(10) {
+            //         waitUntil {
+            //             xos_core_completed = sh returnStdout: true, script: """
+            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+            //             kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
+            //             """
+            //             return xos_core_completed.toInteger() == 6
+            //         }
+            //     }
+            // }
+
+            if ( params.configurePod ) {
+                dir ("${configBaseDir}/${configToscaDir}/att-workflow") {
+                    stage('Configure R-CORD - Fabric and whitelist') {
+                        timeout(1) {
+                            waitUntil {
+                                out_fabric = sh returnStdout: true, script: """
+                                curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_fabric.toInteger() == 1
+                            }
+                        }
+                    }
+                    stage('Configure R-CORD - Subscriber') {
+                        timeout(1) {
+                            waitUntil {
+                                out_subscriber = sh returnStdout: true, script: """
+                                curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_subscriber.toInteger() == 1
+                            }
+                        }
+                    }
+                    stage('Configure R-CORD - OLT') {
+                        timeout(1) {
+                            waitUntil {
+                                out_olt = sh returnStdout: true, script: """
+                                curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_olt.toInteger() == 1
+                            }
+                        }
+                    }
+                }
+            }
+            currentBuild.result = 'SUCCESS'
+        } catch (err) {
+            currentBuild.result = 'FAILURE'
+            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+        }
+        echo "RESULT: ${currentBuild.result}"
+    }
+}
