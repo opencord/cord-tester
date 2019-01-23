@@ -15,14 +15,15 @@
 node ("${TestNodeName}") {
     timeout (100) {
         try {
+            stage ("Cleanup") {
+                sh returnStdout: true, script: """
+                    rm -rf c3po
+                """
+            }
             stage ("Download the source code") {
-                withCredentials([sshUserPrivateKey(credentialsId: 'ae7c1502-7d2d-4eed-8627-cafb6f68f44f', keyFileVariable: 'KEY')]) {
-                    sh returnStdout: true, script: """
-                        chmod 600 $KEY && eval `ssh-agent -s` && ssh-add $KEY &&
-                        ssh-keyscan -p 7999 ilpm.intel-research.net >> ~/.ssh/known_hosts &&
-                        git clone -b ${branch} ssh://onf@ilpm.intel-research.net:7999/vccbbw/c3po.git
-                    """
-                }
+                sh returnStdout: true, script: """
+                    git clone https://onf@ilpm.intel-research.net/bitbucket/scm/vccbbw/c3po.git
+                """
             }
             currentBuild.result = 'SUCCESS'
         } catch (err) {
