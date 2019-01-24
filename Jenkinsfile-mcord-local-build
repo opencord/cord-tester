@@ -46,11 +46,11 @@ node ("${TestNodeName}") {
                             stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
                                 sh returnStdout: true, script: """
                                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                                kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml
-                                kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml
-                                kubectl delete -f mcord/cni-config/03-network-definition.yaml
-                                kubectl delete -f mcord/cni-config/02-network-crd.yaml
-                                kubectl delete -f mcord/cni-config/01-cni-service-account.yaml
+                                kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml || true
+                                kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml || true
+                                kubectl delete -f mcord/cni-config/03-network-definition.yaml || true
+                                kubectl delete -f mcord/cni-config/02-network-crd.yaml || true
+                                kubectl delete -f mcord/cni-config/01-cni-service-account.yaml || true
                                 """
                             }
                         }
@@ -59,7 +59,7 @@ node ("${TestNodeName}") {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
+                            kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet|test' | wc -l
                             """
                             return kubectl_deleted.toInteger() == 0
                         }
