@@ -27,7 +27,7 @@ node ("${TestNodeName}") {
             }
             stage ("We want to try something new") {
                 sh returnStdout: true, script: """
-                    mkdir letstry
+                    itswrong
                 """
             }
             currentBuild.result = 'SUCCESS'
