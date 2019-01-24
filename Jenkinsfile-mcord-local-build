@@ -138,23 +138,23 @@ node ("${TestNodeName}") {
                 """
             }
 
-            // stage('Install CORD Kafka') {
-            //     timeout(10) {
-            //         sh returnStdout: true, script: """
-            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-            //         helm install --version 0.8.8 --set configurationOverrides."offsets\\.topic\\.replication\\.factor"=1 --set configurationOverrides."log\\.retention\\.hours"=4 --set configurationOverrides."log\\.message\\.timestamp\\.type"="LogAppendTime" --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false -n cord-kafka incubator/kafka
-            //         """
-            //     }
-            //     timeout(10) {
-            //         waitUntil {
-            //             kafka_instances_running = sh returnStdout: true, script: """
-            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-            //             kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
-            //             """
-            //             return kafka_instances_running.toInteger() == 2
-            //         }
-            //     }
-            // }
+            stage('Install CORD Kafka') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install --version 0.8.8 --set configurationOverrides."offsets\\.topic\\.replication\\.factor"=1 --set configurationOverrides."log\\.retention\\.hours"=4 --set configurationOverrides."log\\.message\\.timestamp\\.type"="LogAppendTime" --set replicas=1 --set persistence.enabled=false --set zookeeper.replicaCount=1 --set zookeeper.persistence.enabled=false -n cord-kafka incubator/kafka
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        kafka_instances_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep cord-kafka | grep -i running | grep 1/1 | wc -l
+                        """
+                        return kafka_instances_running.toInteger() == 2
+                    }
+                }
+            }
             // stage('Install Logging Infrastructure') {
             //     timeout(10) {
             //         sh returnStdout: true, script: """
@@ -173,44 +173,61 @@ node ("${TestNodeName}") {
             //         """
             //     }
             // }
-            // stage('Install ONOS') {
-            //     timeout(10) {
-            //         sh returnStdout: true, script: """
-            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-            //         helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
-            //         """
-            //     }
-            //     timeout(10) {
-            //         waitUntil {
-            //             onos_completed = sh returnStdout: true, script: """
-            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-            //             kubectl get pods | grep -i onos | grep -i running | grep 2/2 | wc -l
-            //             """
-            //             return onos_completed.toInteger() == 1
-            //         }
-            //     }
-            // }
-            // stage('Install xos-core') {
-            //     timeout(10) {
-            //         sh returnStdout: true, script: """
-            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
-            //         """
-            //     }
-            //     timeout(10) {
-            //         waitUntil {
-            //             xos_core_completed = sh returnStdout: true, script: """
-            //             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-            //             kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
-            //             """
-            //             return xos_core_completed.toInteger() == 6
-            //         }
-            //     }
-            // }
+            stage('Install ONOS') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        onos_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i onos | grep -i running | grep 2/2 | wc -l
+                        """
+                        return onos_completed.toInteger() == 1
+                    }
+                }
+            }
+            stage('Install xos-core') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        xos_core_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
+                        """
+                        return xos_core_completed.toInteger() == 6
+                    }
+                }
+            }
+            stage('Install M-CORD Profile') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n mcord cord/mcord
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        tosca_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i mcord-tosca-loader | grep -i completed | wc -l
+                        """
+                        return tosca_completed.toInteger() == 1
+                    }
+                }
+            }
 
             if ( params.configurePod ) {
-                dir ("${configBaseDir}/${configToscaDir}/att-workflow") {
-                    stage('Configure R-CORD - Fabric and whitelist') {
+                dir ("${configBaseDir}/${configToscaDir}/mcord") {
+                    stage('Configure MCORD - Fabric') {
                         timeout(1) {
                             waitUntil {
                                 out_fabric = sh returnStdout: true, script: """
@@ -220,26 +237,26 @@ node ("${TestNodeName}") {
                             }
                         }
                     }
-                    stage('Configure R-CORD - Subscriber') {
-                        timeout(1) {
-                            waitUntil {
-                                out_subscriber = sh returnStdout: true, script: """
-                                curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                                """
-                                return out_subscriber.toInteger() == 1
-                            }
-                        }
-                    }
-                    stage('Configure R-CORD - OLT') {
-                        timeout(1) {
-                            waitUntil {
-                                out_olt = sh returnStdout: true, script: """
-                                curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                                """
-                                return out_olt.toInteger() == 1
-                            }
-                        }
-                    }
+                    // stage('Configure R-CORD - Subscriber') {
+                    //     timeout(1) {
+                    //         waitUntil {
+                    //             out_subscriber = sh returnStdout: true, script: """
+                    //             curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                    //             """
+                    //             return out_subscriber.toInteger() == 1
+                    //         }
+                    //     }
+                    // }
+                    // stage('Configure R-CORD - OLT') {
+                    //     timeout(1) {
+                    //         waitUntil {
+                    //             out_olt = sh returnStdout: true, script: """
+                    //             curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                    //             """
+                    //             return out_olt.toInteger() == 1
+                    //         }
+                    //     }
+                    // }
                 }
             }
             currentBuild.result = 'SUCCESS'
