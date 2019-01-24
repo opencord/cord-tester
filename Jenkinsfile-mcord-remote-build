@@ -42,20 +42,6 @@ node ("${TestNodeName}") {
                         }
                     }
                     timeout(5) {
-                        dir ("helm-charts") {
-                            stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
-                                sh returnStdout: true, script: """
-                                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                                kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml
-                                kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml
-                                kubectl delete -f mcord/cni-config/03-network-definition.yaml
-                                kubectl delete -f mcord/cni-config/02-network-crd.yaml
-                                kubectl delete -f mcord/cni-config/01-cni-service-account.yaml
-                                """
-                            }
-                        }
-                    }
-                    timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
@@ -113,29 +99,22 @@ node ("${TestNodeName}") {
                 }
             }
 
-            dir ("helm-charts") {
-                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
-                    kubectl apply -f mcord/cni-config/
-                    sleep 5
-                    """
-                }
-            }
-
             stage("Install M-CORD Control Plane Services") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
                 """
             }
-            
-            stage("Install M-CORD Data Plane Services") {
-                sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n mcord-data-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
-                """
+
+            stage('Check M-CORD Control Plane available') {
+                timeout(20) {
+                    control_plane = sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    kubectl -n epc get pods | grep Running | grep 1/1 | wc -l
+                    """
+                    // We have 4 pods: cassandra, hss, mme and ngic-cp
+                    return control_plane.toInteger() == 4
+                }
             }
 
             // stage('Install CORD Kafka') {

@@ -124,6 +124,7 @@ node ("${TestNodeName}") {
                 }
             }
 
+            // In current development progress, we prefered to keep this for testing eNodeB's functionality
             stage("Install M-CORD Control Plane Services") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
