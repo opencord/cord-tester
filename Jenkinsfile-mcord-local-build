@@ -125,11 +125,13 @@ node ("${TestNodeName}") {
             }
 
             // In current development progress, we prefered to keep this for testing eNodeB's functionality
-            stage("Install M-CORD Control Plane Services") {
-                sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
-                """
+            if ( params.installEpcControlPlane ) {
+                stage("Install M-CORD Control Plane Services") {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
+                    """
+                }
             }
             
             stage("Install M-CORD Data Plane Services") {
@@ -226,6 +228,80 @@ node ("${TestNodeName}") {
                 }
             }
 
+            // SEBA Begin
+            stage('Install SEBA Profile') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba cord/seba-services --set fabric.enabled=false --set onos-service.enabled=false 
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        tosca_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i seba-services-tosca-loader | grep -i completed | wc -l
+                        """
+                        return tosca_completed.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Install base-kubernetes') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes cord/base-kubernetes
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        base_kubernetes_tosca_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i base-kubernetes-tosca-loader | grep -i completed | wc -l
+                        """
+                        return base_kubernetes_tosca_running.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Install att workflow') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set att-workflow-driver.kafkaService=cord-kafka -n att-workflow --version 1.0.2 cord/att-workflow
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        att_workflow_tosca_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i att-workflow-tosca-loader | grep -i completed | wc -l
+                        """
+                        return att_workflow_tosca_completed.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Install voltha') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        voltha_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods -n voltha | grep -i running | grep 1/1 | wc -l
+                        """
+                        return voltha_completed.toInteger() == 8
+                    }
+                }
+            }
+            // SEBA end
+
             if ( params.configurePod ) {
                 dir ("${configBaseDir}/${configToscaDir}/mcord") {
                     stage('Configure MCORD - Fabric') {
@@ -238,26 +314,38 @@ node ("${TestNodeName}") {
                             }
                         }
                     }
-                    // stage('Configure R-CORD - Subscriber') {
-                    //     timeout(1) {
-                    //         waitUntil {
-                    //             out_subscriber = sh returnStdout: true, script: """
-                    //             curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                    //             """
-                    //             return out_subscriber.toInteger() == 1
-                    //         }
-                    //     }
-                    // }
-                    // stage('Configure R-CORD - OLT') {
-                    //     timeout(1) {
-                    //         waitUntil {
-                    //             out_olt = sh returnStdout: true, script: """
-                    //             curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
-                    //             """
-                    //             return out_olt.toInteger() == 1
-                    //         }
-                    //     }
-                    // }
+                }
+                dir ("${configBaseDir}/${configToscaDir}/att-workflow") {
+                    stage('Configure SEBA - Fabric and whitelist') {
+                        timeout(1) {
+                            waitUntil {
+                                out_fabric = sh returnStdout: true, script: """
+                                curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_fabric.toInteger() == 1
+                            }
+                        }
+                    }
+                    stage('Configure SEBA - Subscriber') {
+                        timeout(1) {
+                            waitUntil {
+                                out_subscriber = sh returnStdout: true, script: """
+                                curl -s -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_subscriber.toInteger() == 1
+                            }
+                        }
+                    }
+                    stage('Configure SEBA - OLT') {
+                        timeout(1) {
+                            waitUntil {
+                                out_olt = sh returnStdout: true, script: """
+                                curl -H 'xos-username:admin@opencord.org' -H 'xos-password:letmein' -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run | grep -i "created models" | wc -l
+                                """
+                                return out_olt.toInteger() == 1
+                            }
+                        }
+                    }
                 }
             }
             currentBuild.result = 'SUCCESS'
