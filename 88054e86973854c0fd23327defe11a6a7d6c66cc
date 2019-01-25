@@ -22,6 +22,30 @@
       "revId": "88054e86973854c0fd23327defe11a6a7d6c66cc",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "18626e4f_274dfca5",
+        "filename": "Jenkinsfile-mcord-local-build",
+        "patchSetId": 1
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2019-01-25T19:42:27Z",
+      "side": 1,
+      "message": "correct, in this way if the pods are not there the build won\u0027t fail",
+      "parentUuid": "8b406ca2_06e82bca",
+      "range": {
+        "startLine": 49,
+        "startChar": 98,
+        "endLine": 49,
+        "endChar": 102
+      },
+      "revId": "88054e86973854c0fd23327defe11a6a7d6c66cc",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }
