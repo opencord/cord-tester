@@ -99,7 +99,7 @@ node ("${TestNodeName}") {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.3 -n etcd-operator stable/etcd-operator
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcdNodePort=32379 cord/etcd-cluster
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcdNodePort=32379 -n etcd cord/etcd-cluster
                     """
                 }
                 timeout(10) {
