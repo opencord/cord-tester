@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-node ("${TestNodeName}") {
+node ("${intel-101}") {
     timeout (100) {
         try {
             stage ("Cleanup") {
