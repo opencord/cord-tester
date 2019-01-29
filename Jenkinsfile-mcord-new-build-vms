@@ -31,7 +31,10 @@ node ("${intel-101}") {
                 """
             }
            stage ("Ssh to ngic-dp1") {
-		sh ssh -t root@ngic-dp1 "cd /home/ngic-rtc/dp; bash"
+		sh ssh -t root@ngic-dp1 "cd /home/ngic-rtc/dp;./run.sh"
+		}
+	   stage ("Ssh to ngic-cp1") {
+		sh ssh -t root@ngic-cp1 "cd /home/ngic-rtc/cp;./run.sh" 
 		}
             currentBuild.result = 'SUCCESS'
         } catch (err) {
