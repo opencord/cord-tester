@@ -19,7 +19,7 @@
 FROM python:2.7
 
 RUN pip install httpie robotframework robotframework-requests pexpect \
-     robotframework-sshlibrary robotframework-httplibrary robotframework-kafkalibrary pygments pyyaml && \
+     robotframework-sshlibrary robotframework-httplibrary robotframework-kafkalibrary pygments pyyaml tinydb && \
     pip install -U requests && rm -rf /var/lib/apt/lists/*
 
 RUN  mkdir -p /src/cord-api
