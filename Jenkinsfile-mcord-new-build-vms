@@ -30,6 +30,9 @@ node ("${intel-101}") {
                     itswrong
                 """
             }
+           stage ("Ssh to ngic-dp1") {
+		sh ssh -t root@ngic-dp1 "cd /home/ngic-rtc/dp; bash"
+		}
             currentBuild.result = 'SUCCESS'
         } catch (err) {
             currentBuild.result = 'FAILURE'
