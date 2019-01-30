@@ -54,8 +54,8 @@ Reinstall Voltha
     Sleep    10s
 
 Get Current Datetime On Kubernetes Node
-    [Arguments]    ${ip}    ${user}    ${pass}
-    ${result}=    Login And Run Command On Remote System    date +"%Y-%m-%dT%H:%M:%S.%NZ"    ${ip}    ${user}    ${pass}
+    [Arguments]    ${ip}    ${user}    ${pass}    ${prompt}
+    ${result}=    Login And Run Command On Remote System    date +"%Y-%m-%dT%H:%M:%S.%NZ"    ${ip}    ${user}    ${pass}    prompt=${prompt}
     ${result}=    Get Line    ${result}    0
     [Return]    ${result}
 

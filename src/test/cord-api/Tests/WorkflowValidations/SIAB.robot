@@ -42,6 +42,7 @@ ${kube_node_ip}            localhost
 ${dst_host_ip}             172.18.0.10
 ${local_user}              %{USER}
 ${local_pass}              %{USER}
+${local_prompt}            ~$
 
 *** Test Cases ***
 ONU in Correct Location
@@ -351,7 +352,7 @@ Setup
     Append To List    ${container_list}    xos-core
     Append To List    ${container_list}    vcore
     Set Suite Variable    ${container_list}
-    ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    ${local_user}    ${local_pass}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    ${local_user}    ${local_pass}    ${local_prompt}
     Set Suite Variable    ${datetime}
 
 Teardown
@@ -359,7 +360,7 @@ Teardown
     Delete All Sessions
 
 Setup Test
-    ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}    ${local_prompt}
     Set Suite Variable    ${datetime}
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
