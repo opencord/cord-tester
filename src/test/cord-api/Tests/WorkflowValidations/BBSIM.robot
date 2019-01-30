@@ -58,9 +58,21 @@ Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${server_ip}    http://%{SERVER_IP}:%{SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
+    Set Suite Variable    ${datetime}
+    @{container_list}=    Create List
+    Append To List    ${container_list}    att-workflow-att-workflow-driver
+    Append To List    ${container_list}    seba-services-volt
+    Append To List    ${container_list}    seba-services-rcord
+    Append To List    ${container_list}    seba-services-fabric-crossconnect
+    Append To List    ${container_list}    seba-services-onos-service
+    Append To List    ${container_list}    xos-core
+    Append To List    ${container_list}    vcore
+    Set Suite Variable    ${container_list}
 
 Teardown
     Delete All Sessions
+    Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
 
 Validate Number of ONU Devices
     [Arguments]    ${expected_onus}
