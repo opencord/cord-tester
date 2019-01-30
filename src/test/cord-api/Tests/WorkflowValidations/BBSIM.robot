@@ -58,9 +58,26 @@ Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${server_ip}    http://%{SERVER_IP}:%{SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
+    @{container_list}=    Create List
+    Append To List    ${container_list}    att-workflow-att-workflow-driver
+    Append To List    ${container_list}    seba-services-volt
+    Append To List    ${container_list}    seba-services-rcord
+    Append To List    ${container_list}    seba-services-fabric-crossconnect
+    Append To List    ${container_list}    seba-services-onos-service
+    Append To List    ${container_list}    xos-core
+    Append To List    ${container_list}    vcore
+    Set Suite Variable    ${container_list}
 
 Teardown
     Delete All Sessions
+    Get Pod Logs
+
+Get Pod Logs
+    : FOR    ${pod}    IN    @{container_list}
+    \    ${full_pod_name}=    Run    kubectl get pods --all-namespaces | grep '${pod}' | head -1 | awk '{print $2}'
+    \    ${namespace}=    Run    kubectl get pods --all-namespaces | grep ' ${pod}' | head -1 | awk '{print $1}'
+    \    ${output}=    Run    kubectl logs --timestamps -n ${namespace} ${full_pod_name}
+    \    Log    ${output}
 
 Validate Number of ONU Devices
     [Arguments]    ${expected_onus}
