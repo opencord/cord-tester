@@ -180,7 +180,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos --version 1.1.0
                     """
                 }
                 timeout(10) {
@@ -197,7 +197,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core --version 2.3.3
                     """
                 }
                 timeout(10) {
@@ -233,7 +233,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba cord/seba-services --set fabric.enabled=false --set onos-service.enabled=false 
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba cord/seba-services --set fabric.enabled=false --set onos-service.enabled=false --version 1.0.5
                     """
                 }
                 timeout(10) {
@@ -251,7 +251,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes cord/base-kubernetes
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes cord/base-kubernetes --version 1.0.2
                     """
                 }
                 timeout(10) {
@@ -287,7 +287,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha
+                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha --set etcd.cluster.enabled=false --version 1.0.3
                     """
                 }
                 timeout(10) {
