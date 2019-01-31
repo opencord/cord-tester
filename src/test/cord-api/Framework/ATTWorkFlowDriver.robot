@@ -32,7 +32,8 @@ Service Instance Status Check
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
     ${onu_state}=  Get From Dictionary    ${getJsonDict}   onu_state
     ${authentication_state}=  Get From Dictionary    ${getJsonDict}   authentication_state
-    [Return]    ${onu_state}    ${authentication_state}
+    ${status_message}=  Get From Dictionary    ${getJsonDict}   status_message
+    [Return]    ${onu_state}    ${authentication_state}    ${status_message}
 
 Service Instance DHCP State Check
     [Arguments]    ${onu_device}
@@ -82,10 +83,11 @@ Delete Whitelist Entry
     Should Be True    ${api_result}
 
 Validate ATT Workflow Driver SI
-    [Arguments]    ${expected_status}    ${expected_auth_status}    ${onu_device}
-    ${onu_state}   ${authentication_status}   Service Instance Status Check    ${onu_device}
+    [Arguments]    ${expected_status}    ${expected_auth_status}    ${onu_device}    ${expected_status_message}=${EMPTY}
+    ${onu_state}   ${authentication_status}   ${status_message}    Service Instance Status Check    ${onu_device}
     Should Be Equal    ${onu_state}    ${expected_status}
     Should Be Equal    ${authentication_status}    ${expected_auth_status}
+    Run Keyword If    '${expected_status_message}' != '${EMPTY}'    Should Be Equal    ${status_message}    ${expected_status_message}
 
 Validate ATT Workflow Driver SI DHCP State
     [Arguments]    ${expected_status}    ${onu_device}
