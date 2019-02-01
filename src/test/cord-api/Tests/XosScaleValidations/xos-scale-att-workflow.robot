@@ -66,6 +66,8 @@ Activate ONUs
     \   Send Kafka Event    onu.events    ${e}
     ${start} =   Get Time
     Wait Until Keyword Succeeds    ${timeout}    5s    Validate ATT_SI Number    ${events}
+    # need to increase modelpolicy creation timeout
+    Wait Until Keyword Succeeds    ${timeout}    5s    ModelPolicy completed
     ${end} =   Get Time
     Log To Console      Test started at: ${start}
     Log To Console      Test ended at: ${end}
@@ -83,15 +85,15 @@ Validate ATT_SI Number
     ${total} =    Get Length    ${events}
     Log To Console      ${length} Service Instances created, expecting ${total}
     Should Be Equal    ${length}    ${total}
-    ModelPolicy completed   ${jsondata['items']}
 
 ModelPolicy completed
     [Documentation]     Check that model_policies had run for all the items in the list
-    [Arguments]     ${list}
-    # NOTE we assume that here we get res.content["items"]
     # TODO print something to the console to notify the user that this test is still running
-    : FOR   ${i}  IN  @{list}
-    \   Should Be Equal As Integers     ${i["policy_code"]}     1
+    ${res} =   CORD Get    /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
+    ${jsondata} =    To Json    ${res.content}
+    : FOR   ${i}  IN  @{jsondata['items']}
+    \   Should Be Equal As Integers     ${i['policy_code']}     1
+    \   Log To Console    \n Waiting for model_policies to run for all Service Instance
 
 Setup
     ${target} =     Evaluate    ${num_olts} * ${num_pon_ports} * ${num_onus}
