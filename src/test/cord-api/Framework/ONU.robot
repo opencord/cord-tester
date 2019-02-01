@@ -47,7 +47,6 @@ Retrieve ONU Device
     [Documentation]    Returns the onu device id based on the onu's serial number
     ${json_result}=    restApi.ApiGet    ONU_DEVICE
     Log    ${json_result}
-    Log To Console    ${json_result}
     ${json_result_list}=    Get From dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${serial_number}
     ${id}=    Get From Dictionary    ${getJsonDict}   id

@@ -164,7 +164,6 @@ ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
     [Setup]    None
     [Tags]    test5
     Create Whitelist
-    Create VOLT
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Validate Authentication    True    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
@@ -195,7 +194,6 @@ ONU not in Whitelist
     [Setup]    None
     [Tags]    test7
     Create Subscriber
-    Create VOLT
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -214,7 +212,6 @@ ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> P
     ...    Validate successful authentication/DHCP/E2E ping
     [Setup]    None
     [Tags]    test8
-    Create VOLT
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Validate Authentication    False    ${src_iface}    wpa_supplicant.conf    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
@@ -259,7 +256,6 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     ...    Validate successful authentication/DHCP/E2E ping
     [Setup]    None
     [Tags]    test10
-    Create VOLT
     Create Whitelist
     Update Whitelist with Wrong Location
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
@@ -295,6 +291,8 @@ Setup Suite
     ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
     Set Global Variable    ${onu_device}
+    ${onu_device_id}=    Retrieve ONU Device    ${onu_device}
+    Set Global Variable    ${onu_device_id}
     ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
     ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
@@ -370,7 +368,6 @@ Setup Test
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
     Create Whitelist
     Create Subscriber
-    Create VOLT
 
 Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
@@ -392,14 +389,11 @@ Clean Up XOS
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Sleep    20s
     Wait Until Keyword Succeeds    30s    2s    Validate Subscriber Count    0
-    Sleep    10s
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
     Sleep    20s
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
-    Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
-    Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
-    Sleep    15s
+    # must re-enable onu as it gets disabled when no subscribers are on it
+    CORD Put    /xosapi/v1/volt/onudevices    {"admin_state": "ENABLED" }    ${onu_device_id}
 
 Create Whitelist
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
