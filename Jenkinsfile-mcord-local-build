@@ -125,6 +125,13 @@ node ("${TestNodeName}") {
             }
 
             // In current development progress, we prefered to keep this for testing eNodeB's functionality
+            stage("Install M-CORD Data Plane Services") {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm install -n mcord-data-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
+                """
+            }
+
             if ( params.installEpcControlPlane ) {
                 stage("Install M-CORD Control Plane Services") {
                     sh returnStdout: true, script: """
@@ -133,11 +140,11 @@ node ("${TestNodeName}") {
                     """
                 }
             }
-            
-            stage("Install M-CORD Data Plane Services") {
+
+            stage("Install M-CORD BBU Services") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n mcord-data-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
+                helm install -n mcord-bbu --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-bbu
                 """
             }
 
