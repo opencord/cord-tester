@@ -20,7 +20,7 @@ pipeline {
 		parallel {
 		stage("Lisitng the VM") {
 		    steps {
-			sh "id"
+			sh "virsh list --all"
 			}
 				}
 			stage("Connecting to ngic-dp1") {
@@ -43,8 +43,13 @@ pipeline {
 					sh "ssh c3po-mme1 sh test.sh"
 					}
 				}
-			}
+		        stage("Connecting to polaris") {
+					steps { 
+					sh "ssh polaris sh test.sh"
+					}
+				}
+		    }
 		}
 	}
-	}
+}
 
