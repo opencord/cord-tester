@@ -195,7 +195,7 @@ node ("${TestNodeName}") {
                 stage("Install M-CORD Control Plane Services") {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    ngic_sriov=$(kubectl exec -n epc ngic-dp-0 ifconfig s1u-net | grep 'inet addr' | cut -d: -f2 | awk '{print $1}')
+                    ngic_sriov=\$(kubectl exec -n epc ngic-dp-0 ifconfig s1u-net | grep 'inet addr' | cut -d: -f2 | awk '{print \$1}')
                     helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane --set spgwu_s1u_ip=$ngic_sriov
                     """
                 }
