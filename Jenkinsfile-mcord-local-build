@@ -153,6 +153,18 @@ node ("${TestNodeName}") {
                 }
             }
 
+            
+            dir ("helm-charts") {
+                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
+                    kubectl apply -f mcord/cni-config/
+                    sleep 5
+                    """
+                }
+            }
+
             stage('Install etcd-cluster') {
                 timeout(10) {
                     sh returnStdout: true, script: """
@@ -169,17 +181,6 @@ node ("${TestNodeName}") {
                         """
                         return etcd_running.toInteger() == 6
                     }
-                }
-            }
-
-            dir ("helm-charts") {
-                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
-                    kubectl apply -f mcord/cni-config/
-                    sleep 5
-                    """
                 }
             }
 
