@@ -399,7 +399,7 @@ Clean Up XOS
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
-    Sleep    15s
+    Sleep    300s
 
 Create Whitelist
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
