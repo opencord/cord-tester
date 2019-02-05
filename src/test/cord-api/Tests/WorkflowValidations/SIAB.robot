@@ -335,6 +335,7 @@ Subscriber Service Chain Created
 No Subscriber Service Chain
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Service Chain    ${onu_device}    False
     Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${s_tag}    False
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect Removed from ONOS
 
 Simple Setup
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
@@ -399,3 +400,7 @@ Reset SIAB Environment
     Subscriber Ready to Authenticate
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
+
+Validate XConnect Removed from ONOS
+    ${output}=    Run    http -a karaf:karaf GET http://127.0.0.1:30120/onos/segmentrouting/xconnect
+    Should Contain   ${output}    {"xconnects":[]}
