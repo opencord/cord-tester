@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "49228d28_0b5af4ee",
+        "filename": "Jenkinsfile-mcord-new-build-vms",
+        "patchSetId": 1
+      },
+      "lineNbr": 33,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2019-02-06T21:35:01Z",
+      "side": 1,
+      "message": "same comment of the previous patch. And also, you should either wait to merge the first one before creating a new one out of master, or amend the change on the first  one",
+      "range": {
+        "startLine": 14,
+        "startChar": 0,
+        "endLine": 33,
+        "endChar": 3
+      },
+      "revId": "8bfe1e9c0b057cb3d49fa7bf32932f5b4eb233a3",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
