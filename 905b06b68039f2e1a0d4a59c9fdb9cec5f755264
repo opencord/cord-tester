@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3a6d6e1b_e7104798",
+        "filename": "Jenkinsfile-mcord-new-build-vms",
+        "patchSetId": 1
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1000000
+      },
+      "writtenOn": "2019-02-06T21:20:25Z",
+      "side": 1,
+      "message": "this is pipeline declarative style. You should not use it.\nPlease, use the same syntax used in the other scripts...",
+      "range": {
+        "startLine": 14,
+        "startChar": 0,
+        "endLine": 46,
+        "endChar": 4
+      },
+      "revId": "905b06b68039f2e1a0d4a59c9fdb9cec5f755264",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
