@@ -331,11 +331,12 @@ Subscriber Service Chain Created
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Service Chain    ${onu_device}    True
     Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${s_tag}    True
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    True
 
 No Subscriber Service Chain
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Service Chain    ${onu_device}    False
     Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${s_tag}    False
-    Wait Until Keyword Succeeds    60s    2s    Validate XConnect Removed from ONOS
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    False
 
 Simple Setup
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
@@ -401,6 +402,8 @@ Reset SIAB Environment
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
 
-Validate XConnect Removed from ONOS
-    ${output}=    Run    http -a karaf:karaf GET http://127.0.0.1:30120/onos/segmentrouting/xconnect
-    Should Contain   ${output}    {"xconnects":[]}
+Validate XConnect in ONOS
+    [Arguments]    ${exists}=True
+    ${rc}=    Run And Return RC    http -a karaf:karaf GET http://127.0.0.1:30120/onos/segmentrouting/xconnect|jq -r '.xconnects[].vlanId'|grep 222
+    Run Keyword If    '${exists}' == 'True'    Should Be Equal As Integers    ${rc}    0
+    ...                                           ELSE    Should Be Equal As Integers    ${rc}    1
