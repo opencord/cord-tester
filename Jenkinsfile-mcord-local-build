@@ -41,20 +41,25 @@ node ("${TestNodeName}") {
                             return helm_deleted.toInteger() == 0
                         }
                     }
-                    timeout(5) {
-                        dir ("helm-charts") {
-                            stage("Cleanup SR-IOV CNI and SR-IOV Network Device Plugin") {
-                                sh returnStdout: true, script: """
-                                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                                kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml || true
-                                kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml || true
-                                kubectl delete -f mcord/cni-config/03-network-definition.yaml || true
-                                kubectl delete -f mcord/cni-config/02-network-crd.yaml || true
-                                kubectl delete -f mcord/cni-config/01-cni-service-account.yaml || true
-                                """
+
+                    // In Multi-cluster scenario, we only need to install SR-IOV on data plane cluster
+                    if ( ! params.installEpcControlPlane ) {
+                        timeout(5) {
+                            dir ("helm-charts") {
+                                stage("Cleanup SR-IOV Network Device Plugin Daemonset") {
+                                    sh returnStdout: true, script: """
+                                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                                    kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml || true
+                                    kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml || true
+                                    kubectl delete -f mcord/cni-config/03-network-definition.yaml || true
+                                    kubectl delete -f mcord/cni-config/02-network-crd.yaml || true
+                                    kubectl delete -f mcord/cni-config/01-cni-service-account.yaml || true
+                                    """
+                                }
                             }
                         }
                     }
+
                     timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
@@ -66,6 +71,7 @@ node ("${TestNodeName}") {
                     }
                 }
             }
+
             // OLT Software START
             if ( params.reinstallOlt ) {
                 stage('Reinstall OLT software') {
@@ -101,6 +107,7 @@ node ("${TestNodeName}") {
                         }
                     }
                 }
+
                 stage('Restart OLT processes') {
                     for(int i=0; i < deployment_config.olts.size(); i++) {
                         timeout(5) {
@@ -124,7 +131,8 @@ node ("${TestNodeName}") {
                     }
                 }
             }
-            // OLT Software END
+
+            // Start to deploy etcd clusters and M-CORD Services
             stage('Add Helm repositories') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
@@ -153,60 +161,109 @@ node ("${TestNodeName}") {
                 }
             }
 
-            
-            dir ("helm-charts") {
-                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
-                    kubectl apply -f mcord/cni-config/
-                    sleep 5
-                    """
-                }
-            }
-
             stage('Install etcd-cluster') {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --version 0.8.3 -n etcd-operator stable/etcd-operator
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcdNodePort=32379 -n etcd cord/etcd-cluster
                     """
                 }
                 timeout(10) {
                     waitUntil {
-                        etcd_running = sh returnStdout: true, script: """
+                        etcd_operator_running = sh returnStdout: true, script: """
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                        kubectl get pods | grep etcd | grep -i running | grep 1/1 | wc -l
+                        kubectl get pods | grep etcd-operator | grep -i running | grep 1/1 | wc -l
                         """
-                        return etcd_running.toInteger() == 6
+                        return etcd_operator_running.toInteger() == 3
+                    }
+                }
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set etcdNodePort=32379 --set clusterSize=1 -n etcd cord/etcd-cluster
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        etcd_cluster_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep etcd-cluster | grep -i running | grep 1/1 | wc -l
+                        """
+                        return etcd_cluster_running.toInteger() == 4
                     }
                 }
             }
 
-            // In current development progress, we prefered to keep this for testing eNodeB's functionality
+            dir ("helm-charts") {
+                stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    kubectl apply -f mcord/cni-config/02-network-crd.yaml
+                    """
+
+                    timeout(1) {
+                        waitUntil {
+                            network_crd_exist = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                            kubectl get crd | grep network-attachment-definitions | wc -l
+                            """
+                            return network_crd_exist.toInteger() == 1
+                        }
+                    }
+
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    kubectl apply -f mcord/cni-config/
+                    """
+
+                    // Because of SR-IOV daemonset will restart the kubelet and containerd, so we need to wait tiller up.
+                    timeout(1) {
+                        waitUntil {
+                            tillerpod_running = sh returnStdout: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                            kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
+                            """
+                            return tillerpod_running.toInteger() == 1
+                        }
+                    }
+
+                    // Sometimes tillerpod is up, but it's not ready to accept deployment yet, let's wait.
+                    timeout(1) {
+                        waitUntil {
+                            helm_client_working = sh returnStatus: true, script: """
+                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                            helm ls
+                            """
+                            return helm_client_working == 0
+                        }
+                    }
+                }
+            }
+
+            // Deploy Sequence: EPC Data plane > vBBU > EPC Control plane
             stage("Install M-CORD Data Plane Services") {
-                sh returnStdout: true, script: """
+                mcord_dataplane_working = sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm install -n mcord-data-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
                 """
             }
 
-            if ( params.installEpcControlPlane ) {
-                stage("Install M-CORD Control Plane Services") {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    ngic_sriov=\$(kubectl exec -n epc ngic-dp-0 ifconfig s1u-net | grep 'inet addr' | cut -d: -f2 | awk '{print \$1}')
-                    helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane --set spgwu_s1u_ip=$ngic_sriov
-                    """
-                }
-            }
-
             stage("Install M-CORD BBU Services") {
-                sh returnStdout: true, script: """
+                mcord_bbu_working = sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm install -n mcord-bbu --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-bbu
                 """
+            }
+
+            if ( params.installEpcControlPlane ) {
+                stage("Install M-CORD Control Plane Services") {
+                    mcord_controlplane_working = sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    ngic_sriov=\$(kubectl exec -n epc ngic-dp-0 ifconfig s1u-net | grep 'inet addr' | cut -d: -f2 | awk '{print \$1}')
+                    bbu_eth0=\$(kubectl -n epc get pods accelleran-0 --template={{.status.podIP}})
+                    helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane --set accelleran_hostname=$bbu_eth0 --set spgwu_s1u_ip=$ngic_sriov
+                    """
+                }
             }
 
             stage('Install CORD Kafka') {
@@ -261,6 +318,25 @@ node ("${TestNodeName}") {
                     }
                 }
             }
+
+            stage('Install ONOS progRAN') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos-progran --version 1.2.1
+                    """
+                }
+                timeout(10) {
+                    waitUntil {
+                        onos_progran_completed = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl get pods | grep -i onos-progran | grep -i running | grep 2/2 | wc -l
+                        """
+                        return onos_progran_completed.toInteger() == 1
+                    }
+                }
+            }
+
             stage('Install xos-core') {
                 timeout(10) {
                     sh returnStdout: true, script: """
