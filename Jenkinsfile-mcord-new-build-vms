@@ -12,29 +12,68 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-node ("${TestNodeName}") {
-    timeout (100) {
-        try {
-            stage ("Cleanup") {
-                sh returnStdout: true, script: """
-                    rm -rf c3po
-                """
-            }
-            stage ("Download the source code") {
-                sh returnStdout: true, script: """
-                    git clone https://onf@ilpm.intel-research.net/bitbucket/scm/vccbbw/c3po.git
-                """
-            }
-            stage ("We want to try something new") {
-                sh returnStdout: true, script: """
-                    itswrong
-                """
-            }
-            currentBuild.result = 'SUCCESS'
-        } catch (err) {
-            currentBuild.result = 'FAILURE'
-            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+node("intel-102") {
+  timeout (120) {
+    try {
+      stage("Cleanup") {
+        sh returnStdout: true, script: """
+        ssh c3po-mme1 "killall mme-app"
+        """
+        // TODO add kill and cleanup steps
+      }
+      stage("Lisitng the VM") {
+        sh returnStdout: true, script: """
+        virsh list --all
+        """
+        timeout(1) {
+          waitUntil {
+            running_vms = sh returnStdout: true, script: """
+            virsh list --all | grep "c3po-mme1\|c3po-hss1\|ngic-cp1\|ngic-dp1\|c3po-dbn1" | grep -i running | wc -l
+            """
+            return running_vms.toInteger() >= 5
+          }
         }
-        echo "RESULT: ${currentBuild.result}"
+      }
+      stage("Connecting to ngic-dp1") {
+        sh returnStdout: true, script: """
+        ssh ngic-dp1 "test.sh"
+        """
+      }
+      stage("Connecting to ngic-cp1") {
+        sh returnStdout: true, script: """
+        sleep 10;
+        ssh ngic-cp1 "test.sh"
+        """
+      }
+      stage("Connecting to c3po-hss1") {
+        sh returnStdout: true, script: """
+        ssh c3po-hss1 "test.sh"
+        """
+      }
+      stage("Connecting to c3po-mme1") {
+        sh returnStdout: true, script: """
+        ssh c3po-mme1 "test.sh"
+        """
+      }
+      stage("Connecting to Polaris") {
+        sh returnStdout: true, script: """
+        ssh polaris "> test-output.log"
+        ssh polaris "test.sh > test-output.log"
+        """
+        timeout(10) {
+          waitUntil {
+            test_output = sh returnStdout: true, script: """
+            ssh polaris "cat test-output.log | grep -i SUCCESS | wc -l"
+            """
+            return test_output.toInteger() >= 1
+          }
+        }
+      }
+      currentBuild.result = 'SUCCESS'
+    } catch (err) {
+      currentBuild.result = 'FAILURE'
+      step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
     }
+    echo "RESULT: ${currentBuild.result}"
+  }
 }
