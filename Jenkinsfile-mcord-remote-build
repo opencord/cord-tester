@@ -18,6 +18,7 @@ node ("${TestNodeName}") {
             stage ("Parse deployment configuration file") {
                 sh returnStdout: true, script: "rm -rf helm-charts helm-repo-tools ${configBaseDir}"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-charts"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
@@ -79,19 +80,39 @@ node ("${TestNodeName}") {
                 }
             }
 
+            
+
             stage("Install M-CORD Control Plane Services") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-control-plane
+                helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set spgwu_s1u_ip=${dataplane_s1u_ip} --set accelleran_hostname=${accelleran_bbu_ip} cord/mcord-control-plane
                 """
 
                 timeout(20) {
                     control_plane = sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    kubectl -n epc get pods | grep Running | grep 1/1 | wc -l
+                    kubectl -n epc get pods | grep -i running | grep 1/1 | wc -l
                     """
                     // We have 4 pods: cassandra, hss, mme and ngic-cp
                     return control_plane.toInteger() == 4
+                }
+            }
+
+            // TODO: Use --namespace wowz to create the namespace
+            stage("Install CDN Remote Services") {
+                sh returnStdout: true, script: """
+                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                helm install -n cdn-remote cord/mcord-cdn-remote
+                """
+
+                timeout(3) {
+                    waitUntil {
+                        mcord_remote_cdn_working = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl -n wowz get pods -o wide | grep -i running | grep 1/1 | wc -l
+                        """
+                        return mcord_remote_cdn_working.toInteger() == 1
+                    }
                 }
             }
 
