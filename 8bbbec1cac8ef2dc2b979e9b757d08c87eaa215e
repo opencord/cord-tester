@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "639af8f4_9942bc8f",
+        "filename": "src/test/cord-api/Tests/WorkflowValidations/data/flex-ocp-cord-voltha16/ATTWhiteList.json",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2019-02-12T19:47:07Z",
+      "side": 1,
+      "message": "000000000ac014ce",
+      "range": {
+        "startLine": 5,
+        "startChar": 30,
+        "endLine": 5,
+        "endChar": 46
+      },
+      "revId": "8bbbec1cac8ef2dc2b979e9b757d08c87eaa215e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
