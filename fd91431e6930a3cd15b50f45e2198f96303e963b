@@ -1,0 +1,140 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "47eb720a_608785d8",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 14,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "Insert new line to make it prettier :)",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0ad758da_0c26038b",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 20,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "Insert new line",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ffa789f1_1fbd66e0",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "New line after end of each test case",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d2bf236b_60250deb",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "You can remove the status check here becuase it already checks in \"CORD Post\"",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "dec51b9c_0df61c25",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "Remove status check",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "0063a7ca_c44c23ba",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 75,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "New line",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "355c53de_45185a2b",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "New line after each keyword also",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5ec62e63_78e18c1d",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-service-migrations.robot",
+        "patchSetId": 7
+      },
+      "lineNbr": 102,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-13T22:40:57Z",
+      "side": 1,
+      "message": "remove status check",
+      "revId": "fd91431e6930a3cd15b50f45e2198f96303e963b",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
