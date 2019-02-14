@@ -249,7 +249,7 @@ Check Ping
 Check Remote System Reachability
     [Arguments]    ${reachable}    ${ip}
     [Documentation]    Check if the specified IP address is reachable or not
-    ${result}=    Run    ping -c 3 -t 3 ${ip}
+    ${result}=    Run    ping -c 3 ${ip}
     Check Ping Result    ${reachable}    ${result}
 
 Check Ping Result
