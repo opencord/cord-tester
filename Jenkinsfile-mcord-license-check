@@ -18,14 +18,6 @@ node ("${TestNodeName}") {
             stage ("Cleanup") {
                 sh returnStdout: true, script: "rm -rf *"
             }
-            stage ("Add private keys") {
-                withCredentials([sshUserPrivateKey(credentialsId: '315e1f56-7193-464e-8af1-97bf7b1ee541', keyFileVariable: 'KEY')]) {
-                    sh returnStdout: true, script: """
-                    chmod 600 $KEY && eval `ssh-agent -s` && ssh-add $KEY &&
-                    ssh-keyscan github.com >> ~/.ssh/known_hosts
-                    """
-                }
-            }
             for(int i=0; i < repos.size(); i++) {
                 stage ("Check repos ${repos[i]}") {
                     checkRepo(repos[i])
@@ -41,9 +33,13 @@ node ("${TestNodeName}") {
 }
 
 def checkRepo(repo) {
-        sh returnStdout: true, script: """
+        withCredentials([sshUserPrivateKey(credentialsId: '315e1f56-7193-464e-8af1-97bf7b1ee541', keyFileVariable: 'KEY')]) {
+            sh returnStdout: true, script: """
+            chmod 600 $KEY && eval `ssh-agent -s` && ssh-add $KEY &&
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
             git clone -b ${branch} git@github.com:omec-project/${repo}.git
-        """
+            """
+        }
         hub_detect("--detect.source.path=${repo} --detect.project.name=${prefix}-${repo} --detect.project.version.name=${branch} --snippet-matching --full-snippet-scan")
 }
 
