@@ -42,5 +42,3 @@ def checkRepo(repo) {
         }
         hub_detect("--detect.source.path=${repo} --detect.project.name=${prefix}-${repo} --detect.project.version.name=${branch} --snippet-matching --full-snippet-scan")
 }
-
-
