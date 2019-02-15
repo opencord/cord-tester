@@ -137,8 +137,8 @@ Ensure Service Unloaded
 
 Unload Service
     [Documentation]    Unload the service
-    Log    Unloading Service
-    ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7
+    Log    Unloading Service, with table purge
+    ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7    cleanup_behavior=2
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
     Should Be Equal As Strings    ${resp.status_code}    200
