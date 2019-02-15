@@ -31,7 +31,8 @@ echo "Installing python requirements in virtualenv with pip"
 source "${VENVDIR}/bin/activate"
 pip install --upgrade pip
 pip install cryptography==2.4.2 robotframework robotframework-requests robotframework-sshlibrary  \
-    pexpect robotframework-httplibrary robotframework-kafkalibrary pygments pyyaml
+    pexpect robotframework-httplibrary robotframework-kafkalibrary pygments pyyaml \
+    robotframework-databaselibrary psycopg2
 pip install requests tinydb
 
 echo "CORD-TESTER virtualenv created. Run 'source ${VENVDIR}/bin/activate'."
