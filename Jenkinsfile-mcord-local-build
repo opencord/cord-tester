@@ -153,7 +153,7 @@ node ("${TestNodeName}") {
                 }
             }
 
-            
+
             dir ("helm-charts") {
                 stage('Install SR-IOV CNI and SR-IOV Network Device Plugin') {
                     sh returnStdout: true, script: """
@@ -235,15 +235,15 @@ node ("${TestNodeName}") {
             //         """
             //     }
             // }
-            // stage('Install Monitoring Infrastructure') {
-            //     timeout(10) {
-            //         sh returnStdout: true, script: """
-            //         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-            //         helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
-            //         helm-repo-tools/wait_for_pods.sh
-            //         """
-            //     }
-            // }
+            stage('Install Monitoring Infrastructure') {
+                timeout(10) {
+                    sh returnStdout: true, script: """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring --version 1.0.1
+                    helm-repo-tools/wait_for_pods.sh
+                    """
+                }
+            }
             stage('Install ONOS') {
                 timeout(10) {
                     sh returnStdout: true, script: """
