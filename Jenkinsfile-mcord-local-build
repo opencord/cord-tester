@@ -20,7 +20,6 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-charts"
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
-                //sh returnStdout: true, script: "cd ${configBaseDir}; git fetch https://gerrit.opencord.org/pod-configs refs/changes/02/12902/1 && git checkout FETCH_HEAD; cd -"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
             stage('Clean up') {
@@ -44,22 +43,22 @@ node ("${TestNodeName}") {
                     }
 
                     // In Multi-cluster scenario, we only need to install SR-IOV on data plane cluster
-                    if ( ! params.installEpcControlPlane ) {
-                        timeout(5) {
-                            dir ("helm-charts") {
-                                stage("Cleanup SR-IOV Network Device Plugin Daemonset") {
-                                    sh returnStdout: true, script: """
-                                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                                    kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml || true
-                                    kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml || true
-                                    kubectl delete -f mcord/cni-config/03-network-definition.yaml || true
-                                    kubectl delete -f mcord/cni-config/02-network-crd.yaml || true
-                                    kubectl delete -f mcord/cni-config/01-cni-service-account.yaml || true
-                                    """
-                                }
-                            }
-                        }
-                    }
+                    // if ( ! params.installEpcControlPlane ) {
+                    //     timeout(5) {
+                    //         dir ("helm-charts") {
+                    //             stage("Cleanup SR-IOV Network Device Plugin Daemonset") {
+                    //                 sh returnStdout: true, script: """
+                    //                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    //                 kubectl delete -f mcord/cni-config/05-sriov-device-plugin.yaml || true
+                    //                 kubectl delete -f mcord/cni-config/04-sriov-device-plugin-configmap.yaml || true
+                    //                 kubectl delete -f mcord/cni-config/03-network-definition.yaml || true
+                    //                 kubectl delete -f mcord/cni-config/02-network-crd.yaml || true
+                    //                 kubectl delete -f mcord/cni-config/01-cni-service-account.yaml || true
+                    //                 """
+                    //             }
+                    //         }
+                    //     }
+                    // }
 
                     timeout(5) {
                         waitUntil {
@@ -221,10 +220,10 @@ node ("${TestNodeName}") {
                         }
                     }
 
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    kubectl apply -f mcord/cni-config/
-                    """
+                    // sh returnStdout: true, script: """
+                    // export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    // kubectl apply -f mcord/cni-config/
+                    // """
 
                     // Because of SR-IOV daemonset will restart the kubelet and containerd, so we need to wait tiller up.
                     timeout(1) {
@@ -256,6 +255,16 @@ node ("${TestNodeName}") {
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm install -n mcord-data-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-data-plane
                 """
+
+                timeout (10) {
+                    waitUntil {
+                        mcord_dataplane_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl -n epc get pods | grep ngic-dp | grep -i running | grep 1/1 | wc -l
+                        """
+                        return mcord_dataplane_running.toInteger() == 1
+                    }
+                }
             }
 
             stage("Install M-CORD BBU Services") {
@@ -263,6 +272,16 @@ node ("${TestNodeName}") {
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm install -n mcord-bbu --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/mcord-bbu
                 """
+
+                timeout (10) {
+                    waitUntil {
+                        mcord_bbu_running = sh returnStdout: true, script: """
+                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
+                        kubectl -n epc get pods | grep accelleran | grep -i running | grep 3/3 | wc -l
+                        """
+                        return mcord_bbu_running.toInteger() == 1
+                    }
+                }
             }
 
             // if ( params.installEpcControlPlane ) {
