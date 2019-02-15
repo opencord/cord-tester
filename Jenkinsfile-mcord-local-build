@@ -373,6 +373,12 @@ node ("${TestNodeName}") {
                         return onos_progran_completed.toInteger() == 1
                     }
                 }
+                timeout(2) {
+                  sh returnStdout: true, script: """
+                  sshpass -p karaf ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 30116 -l karaf ${deployment_config.nodes[0].ip} 'app deactivate org.onosproject.progran'
+                  sshpass -p karaf ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 30116 -l karaf ${deployment_config.nodes[0].ip} 'app activate org.onosproject.progran'
+                  """
+                }
             }
 
             stage('Install xos-core') {
