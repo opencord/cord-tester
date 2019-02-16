@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "86aad379_1154de63",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-remove-service.robot",
+        "patchSetId": 6
+      },
+      "lineNbr": 78,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-16T01:39:25Z",
+      "side": 1,
+      "message": "Can you add a test case above when you expect these tables to exist?",
+      "revId": "08494a948cea803dfea9f060964c88d1e9fcc626",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ea940c9a_55fbe018",
+        "filename": "src/test/cord-api/Tests/XosScaleValidations/xos-remove-service.robot",
+        "patchSetId": 6
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-02-16T01:39:25Z",
+      "side": 1,
+      "message": "Add a \"disconnect from database\" line here. That may not be the exact syntax",
+      "revId": "08494a948cea803dfea9f060964c88d1e9fcc626",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
