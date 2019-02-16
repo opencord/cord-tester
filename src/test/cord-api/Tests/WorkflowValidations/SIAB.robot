@@ -41,7 +41,7 @@ ${export_kube_config}      export KUBECONFIG=/home/%{USER}/.kube/config
 ${kube_node_ip}            localhost
 ${dst_host_ip}             172.18.0.10
 ${local_user}              %{USER}
-${local_pass}              %{USER}
+${local_pass}              ${None}
 
 *** Test Cases ***
 ONU in Correct Location
@@ -307,12 +307,18 @@ Setup
     Append To List    ${container_list}    xos-core
     Append To List    ${container_list}    vcore
     Set Suite Variable    ${container_list}
+    Setup SSH Keys to Localhost
     ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    ${local_user}    ${local_pass}
     Set Suite Variable    ${datetime}
 
 Teardown
     Setup Test
     Delete All Sessions
+
+Setup SSH Keys to Localhost
+    Run    yes y | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+    Run    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+    Run    chmod og-wx ~/.ssh/authorized_keys
 
 Setup Test
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
