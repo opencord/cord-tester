@@ -101,7 +101,7 @@ node ("${TestNodeName}") {
             stage("Install CDN Remote Services") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n cdn-remote cord/mcord-cdn-remote -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml
+                helm install -n cdn-remote cord/mcord-cdn-remote-free -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml
                 """
 
                 timeout(3) {

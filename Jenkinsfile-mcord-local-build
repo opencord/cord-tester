@@ -318,7 +318,7 @@ node ("${TestNodeName}") {
                 mcord_local_cdn_working =  sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 ngic_sgi_net_ip=\$(kubectl exec -n epc ngic-dp-0 ifconfig sgi-net | grep 'inet addr' | cut -d: -f2 | awk '{print \$1}')
-                helm install -n cdn-local --set remote_ip="10.90.0.152" --set spgwu_sgiip=\$ngic_sgi_net_ip --namespace epc cord/mcord-cdn-local
+                helm install -n cdn-local -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set spgwu_sgiip=\$ngic_sgi_net_ip cord/mcord-cdn-local-free
                 """
             }
 
