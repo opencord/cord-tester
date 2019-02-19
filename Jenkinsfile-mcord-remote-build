@@ -34,7 +34,7 @@ node ("${TestNodeName}") {
                         waitUntil {
                             tillerpod_running = sh returnStdout: true, script: """
                             export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
+                            kubectl -n kube-system get pods | grep tiller-deploy | grep Running | grep 1/1 | wc -l
                             """
                             return tillerpod_running.toInteger() == 1
                         }
@@ -48,6 +48,7 @@ node ("${TestNodeName}") {
                         helm delete --purge "\${hchart}"
                     done
                     """
+
                     timeout(5) {
                         waitUntil {
                             helm_deleted = sh returnStdout: true, script: """
@@ -124,7 +125,7 @@ node ("${TestNodeName}") {
                         export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl -n wowz get pods -o wide | grep -i running | grep 1/1 | wc -l
                         """
-                        return mcord_remote_cdn_working.toInteger() == 1
+                        return mcord_remote_cdn_working.toInteger() == 2
                     }
                 }
             }
