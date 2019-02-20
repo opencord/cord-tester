@@ -29,6 +29,7 @@ Ensure Clean Environment
     ${output}=    Run    helm ls | grep simpleexampleservice | wc -l
     Should Be Equal As Integers    ${output}    0
     ${resp} =    Get Request    ${SERVER_IP}    uri=/xosapi/v1/simpleexampleservice/simpleexampleservices
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    404
 
 Install SimpleExampleService
@@ -75,6 +76,7 @@ Unload Service While Dirty
     ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    409
 
 Unload Service Automatic Cleanup
@@ -84,9 +86,11 @@ Unload Service Automatic Cleanup
     ${data}=    Evaluate    json.dumps(${data})    json
     # The first time it should delete the model, and may return a TRYAGAIN
     ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     # Try it a second time, just in case deletion was in progress, should succeed this time
     ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
 
 Verify Service Stopped
@@ -160,6 +164,7 @@ Validate Service Not Running
 Validate Service Not Served
     # endpoint should not be served
     ${resp} =    Get Request    ${SERVER_IP}    uri=/xosapi/v1/simpleexampleservice/simpleexampleservices
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    404
     # wait for the core to be up
     ${resp} =   CORD Get    /xosapi/v1/core/users
@@ -178,6 +183,7 @@ Ensure Service Unloaded
     [Documentation]    Unload the service if it is loaded.
     Wait Until Keyword Succeeds    200s    2s    CORD Get    /xosapi/v1/core/users
     ${resp}=   Get Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/load_status
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
     ${length}=    Get Length   ${jsondata['services']}
@@ -191,5 +197,6 @@ Unload Service
     ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7    cleanup_behavior=2
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     Log    Successfully Unloaded
