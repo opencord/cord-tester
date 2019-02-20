@@ -28,6 +28,7 @@ Ensure Clean Environment
     ${output}=    Run    helm ls | grep simpleexampleservice | wc -l
     Should Be Equal As Integers    ${output}    0
     ${resp} =    Get Request    ${SERVER_IP}    uri=/xosapi/v1/simpleexampleservice/simpleexampleservices
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    404
 
 Install initial version
@@ -128,6 +129,7 @@ Ensure Service Unloaded
     [Documentation]    Unload the service if it is loaded.
     Wait Until Keyword Succeeds    200s    2s    CORD Get    /xosapi/v1/core/users
     ${resp}=   Get Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/load_status
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
     ${length}=    Get Length   ${jsondata['services']}
@@ -140,6 +142,8 @@ Unload Service
     Log    Unloading Service, with table purge
     ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7    cleanup_behavior=2
     ${data}=    Evaluate    json.dumps(${data})    json
+    Log    ${data}
     ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
+    Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     Log    Successfully Unloaded
