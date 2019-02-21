@@ -82,16 +82,8 @@ Unload Service While Dirty
 Unload Service Automatic Cleanup
     [Documentation]    Unload the service
     [Tags]    test8
-    ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7    cleanup_behavior=1
-    ${data}=    Evaluate    json.dumps(${data})    json
-    # The first time it should delete the model, and may return a TRYAGAIN
-    ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
-    Log    ${resp.content}
-    Should Be Equal As Strings    ${resp.status_code}    200
-    # Try it a second time, just in case deletion was in progress, should succeed this time
-    ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
-    Log    ${resp.content}
-    Should Be Equal As Strings    ${resp.status_code}    200
+    # May have to do this multiple times to wait for cleanup to complete
+    Wait Until Keyword Succeeds    ${timeout}    5s     Unload With Automatic Cleanup
 
 Verify Service Stopped
     [Documentation]    Make sure the core has stopped serving the service
@@ -200,3 +192,13 @@ Unload Service
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     Log    Successfully Unloaded
+
+Unload With Automatic Cleanup
+    ${data}=    Create Dictionary    name=simpleexampleservice    version=1.1.7    cleanup_behavior=1
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Post Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/unload_models    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${jsondata}=    To Json    ${resp.content}
+    # Verify it is in SUCCESS_NOTHING_CHANGED state
+    Should Be Equal As Strings    ${jsondata["status"]}    1
