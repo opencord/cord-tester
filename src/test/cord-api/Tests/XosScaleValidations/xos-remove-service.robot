@@ -59,7 +59,7 @@ Create Model
     ${data}=    Create Dictionary    name=${model_name}    service_message=initial
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    CORD Post    /xosapi/v1/simpleexampleservice/simpleexampleservices    ${data}
-    ${json_content}=    Evaluate    json.loads('''${resp.content}''')    json
+    ${json_content}=    To Json    ${resp.content}
     ${model_id}=    Get From Dictionary    ${json_content}    id
     Set Suite Variable    ${model_id}
     Set Suite Variable    ${model_name}
@@ -201,4 +201,4 @@ Unload With Automatic Cleanup
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
     # Verify it is in SUCCESS_NOTHING_CHANGED state
-    Should Be Equal As Strings    ${jsondata["status"]}    1
+    Should Be Equal As Strings    ${jsondata["status"]}    SUCCESS_NOTHING_CHANGED

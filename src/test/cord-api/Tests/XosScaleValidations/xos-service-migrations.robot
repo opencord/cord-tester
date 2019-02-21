@@ -44,7 +44,7 @@ Create Model
     ${data}=    Create Dictionary    name=${model_name}    service_message=initial
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    CORD Post    /xosapi/v1/simpleexampleservice/simpleexampleservices    ${data}
-    ${json_content}=    Evaluate    json.loads('''${resp.content}''')    json
+    ${json_content}=    To Json    ${resp.content}
     ${model_id}=    Get From Dictionary    ${json_content}    id
     Set Suite Variable    ${model_id}
     Set Suite Variable    ${model_name}
