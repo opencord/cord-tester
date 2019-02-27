@@ -27,3 +27,20 @@ Openolt is Up
     [Arguments]    ${ip}    ${user}    ${pass}    ${prompt}=~#
     [Documentation]    Verify that openolt process is started and ready to connect to voltha
     Check Remote File Contents    True    /var/log/openolt.log    oper_state: up    ${ip}    ${user}    ${pass}    prompt=${prompt}
+
+OLT Status Check
+    [Arguments]    ${olt_device}
+    [Documentation]    Returns "operational_status" and "admin_status" of a particular OLT device from "olt device list"
+    ${json_result}=    restApi.ApiGet    VOLT_DEVICE
+    Log    ${json_result}
+    ${json_result_list}=    Get From dictionary    ${json_result}    items
+    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    host    ${olt_device}
+    ${operational_status}=  Get From Dictionary    ${getJsonDict}   oper_status
+    ${admin_status}=  Get From Dictionary    ${getJsonDict}   admin_state
+    [Return]    ${operational_status}    ${admin_status}
+
+Validate OLT States
+    [Arguments]    ${expected_op_status}    ${expected_admin_status}    ${olt_device}
+    ${operational_status}    ${admin_status}    OLT Status Check    ${olt_device}
+    Should Be Equal    ${operational_status}    ${expected_op_status}
+    Should Be Equal    ${admin_status}    ${expected_admin_status}

@@ -372,6 +372,7 @@ Setup Test
     Create Whitelist
     Create Subscriber
     Create VOLT
+    Wait Until Keyword Succeeds    200s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
 
 Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
