@@ -372,7 +372,7 @@ Setup Test
     Create Whitelist
     Create Subscriber
     Create VOLT
-    Wait Until Keyword Succeeds    200s    15s    Validate ONU States    ACTIVE    ENABLED    ${olt_ip}
+    Wait Until Keyword Succeeds    200s    15s    Validate OLT States    ACTIVE    ENABLED    ${olt_ip}
 
 Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
