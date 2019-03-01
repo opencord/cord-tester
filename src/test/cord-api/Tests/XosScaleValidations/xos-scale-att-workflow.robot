@@ -66,8 +66,43 @@ Activate ONUs
     \   Send Kafka Event    onu.events    ${e}
     ${start} =   Get Time
     Wait Until Keyword Succeeds    ${timeout}    5s    Validate ATT_SI Number    ${events}
-    # need to increase modelpolicy creation timeout
     Wait Until Keyword Succeeds    ${timeout}    5s    ModelPolicy completed
+    ${end} =   Get Time
+    Log To Console      Test started at: ${start}
+    Log To Console      Test ended at: ${end}
+    ${duration} =       Subtract Date From Date    ${end}   ${start}
+    Log To Console      Test duration: ${duration}
+
+Authenticate Subscribers
+    [Documentation]    Send authentication events for all the ONUs and waits for the model_policies of ATT Workflow Driver Service Instances to have completed
+    ${events} =     Generate Auth Events
+    : FOR   ${e}  IN  @{events}
+    \   Send Kafka Event    authentication.events    ${e}
+    ${start} =   Get Time
+    Wait Until Keyword Succeeds    ${timeout}    5s    AuthCompleted
+    # FIXME are we setting policy_code to 0 when updating?
+    Wait Until Keyword Succeeds    ${timeout}    5s    ModelPolicy completed
+    # TODO validate that:
+    # - subscriber status has changed
+    # - vOLT SI have been created and policed (we can't test sync'ed without a backend)
+    # - fabric-xconnect have been created and policed (we can't test sync'ed without a backend)
+    ${end} =   Get Time
+    Log To Console      Test started at: ${start}
+    Log To Console      Test ended at: ${end}
+    ${duration} =       Subtract Date From Date    ${end}   ${start}
+    Log To Console      Test duration: ${duration}
+
+DHCP Subscribers
+    [Documentation]    Send dhcp events for all the ONUs and waits for the model_policies of ATT Workflow Driver Service Instances to have completed
+    ${events} =     Generate Dhcp Events
+    : FOR   ${e}  IN  @{events}
+    \   Send Kafka Event    dhcp.events    ${e}
+    ${start} =   Get Time
+    Wait Until Keyword Succeeds    ${timeout}    5s    DHCPCompleted
+    # FIXME are we setting policy_code to 0 when updating?
+    Wait Until Keyword Succeeds    ${timeout}    5s    ModelPolicy completed
+    # TODO validate that:
+    # - subscriber has an IP address
     ${end} =   Get Time
     Log To Console      Test started at: ${start}
     Log To Console      Test ended at: ${end}
@@ -86,14 +121,29 @@ Validate ATT_SI Number
     Log To Console      ${length} Service Instances created, expecting ${total}
     Should Be Equal    ${length}    ${total}
 
-ModelPolicy completed
-    [Documentation]     Check that model_policies had run for all the items in the list
-    # TODO print something to the console to notify the user that this test is still running
+DHCPCompleted
+    [Documentation]     Check that all ATT_SI have an ip address
     ${res} =   CORD Get    /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
     ${jsondata} =    To Json    ${res.content}
+    Log To Console      Checking DHCP
+    : FOR   ${i}  IN  @{jsondata['items']}
+    \   Should Not Be Empty     ${i['ip_address']}
+
+AuthCompleted
+    [Documentation]     Check that all ATT_SI have status=authenticated
+    ${res} =   CORD Get    /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
+    ${jsondata} =    To Json    ${res.content}
+    Log To Console      Checking Authentication
+    : FOR   ${i}  IN  @{jsondata['items']}
+    \   Should Be Equal     ${i['authentication_state']}     APPROVED
+
+ModelPolicy completed
+    [Documentation]     Check that model_policies had run for all the items in the list
+    ${res} =   CORD Get    /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
+    ${jsondata} =    To Json    ${res.content}
+    Log To Console      Checking ModelPolicy
     : FOR   ${i}  IN  @{jsondata['items']}
     \   Should Be Equal As Integers     ${i['policy_code']}     1
-    \   Log To Console    \n Waiting for model_policies to run for all Service Instance
 
 Setup
     ${target} =     Evaluate    ${num_olts} * ${num_pon_ports} * ${num_onus}
@@ -113,6 +163,7 @@ Setup
 Teardown
     [Documentation]    Delete all models created
     Log     Teardown
+    Log To Console      Teardown
     Delete OLTs
     Delete Whitelist
     Delete ServiceInstances
