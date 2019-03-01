@@ -68,6 +68,7 @@ class devices(object):
                 'switch_datapath_id': 'of:0000000000000001',
                 'switch_port': str(index),
                 'of_id': 'of:000000%s' % index,
+                'dp_id': 'of:000000%s' % index,
             }
             # logger.info('Created OLT %s' % olt, also_console=True)
             olts.append(olt)
@@ -102,9 +103,9 @@ class devices(object):
 
         ports = []
         for olt in self.olts.all():
-            for index in range(1, int(num_pon) +1):
+            for index in range(1, int(num_pon) + 1):
                 port = {
-                    'name': 'Test PonPort %s' % index,
+                    'name': 'Test PonPort %s Olt %s' % (index, olt['id']),
                     'port_no': index,
                     'olt_device_id': olt['id']
                 }
@@ -216,6 +217,30 @@ class devices(object):
             events.append(ev)
         return events
 
+    def generate_auth_events(self):
+        events = []
+        for onu in self.onus.all():
+            ev = {
+                'authenticationState': "APPROVED",
+                'deviceId': self._find_olt_by_onu(onu)['dp_id'],
+                'portNumber': self._find_uni_by_onu(onu)['port_no'],
+            }
+            events.append(ev)
+        return events
+
+    def generate_dhcp_events(self):
+        events = []
+        for onu in self.onus.all():
+            ev = {
+                'deviceId': self._find_olt_by_onu(onu)['dp_id'],
+                'portNumber': self._find_uni_by_onu(onu)['port_no'],
+                "macAddress": "aa:bb:cc:ee:ff",
+                "ipAddress": "10.10.10.10",
+                "messageType": "DHCPACK"
+            }
+            events.append(ev)
+        return events
+
 ###############################################################
 #                             HELPERS                         #
 ###############################################################
@@ -226,6 +251,7 @@ class devices(object):
         return self.uni_ports.search(Uni.onu_device_id == onu['id'])[0]
 
     def _find_pon_port_by_onu(self, onu):
+        # this does not care about the olt id...
         PonPort = Query()
         return self.pon_ports.search(PonPort.id == onu['pon_port_id'])[0]
 
