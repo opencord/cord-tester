@@ -23,6 +23,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
+#Library           ~/voltha/tests/atests/common/testCaseUtils.py
 Library           ../../Framework/utils/utils.py
 Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
@@ -376,6 +377,8 @@ Setup Test
 
 Teardown Test
     [Documentation]    Delete xos objects, kills processes and cleans up interfaces on src+dst servers
+    #Get VOLTHA Status
+    #Get ONOS Status
     Clean Up Linux
     Clean Up XOS
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
