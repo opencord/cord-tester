@@ -68,6 +68,7 @@ class devices(object):
                 'switch_datapath_id': 'of:0000000000000001',
                 'switch_port': str(index),
                 'of_id': 'of:000000%s' % index,
+                'dp_id': 'of:000000%s' % index,
             }
             # logger.info('Created OLT %s' % olt, also_console=True)
             olts.append(olt)
@@ -212,6 +213,30 @@ class devices(object):
                 'serial_number': onu['serial_number'],
                 'uni_port_id': self._find_uni_by_onu(onu)['port_no'],
                 'of_dpid': self._find_olt_by_onu(onu)['of_id'],
+            }
+            events.append(ev)
+        return events
+
+    def generate_auth_events(self):
+        events = []
+        for onu in self.onus.all():
+            ev = {
+                'authenticationState': "APPROVED",
+                'deviceId': self._find_olt_by_onu(onu)['of_id'],
+                'portNumber': self._find_uni_by_onu(onu)['port_no'],
+            }
+            events.append(ev)
+        return events
+
+    def generate_dhcp_events(self):
+        events = []
+        for onu in self.onus.all():
+            ev = {
+                'deviceId': self._find_olt_by_onu(onu)['of_id'],
+                'portNumber': self._find_uni_by_onu(onu)['port_no'],
+                "macAddress": "aa:bb:cc:ee:ff",
+                "ipAddress": "10.10.10.10",
+                "messageType": "DHCPACK"
             }
             events.append(ev)
         return events
