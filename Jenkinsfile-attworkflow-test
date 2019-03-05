@@ -23,7 +23,7 @@ node ("${TestNodeName}") {
             stage('Download Cord-Tester and Voltha Repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
-                    rm -rf helm-charts cord-tester
+                    rm -rf helm-charts cord-tester voltha
                     git clone -b ${branch} ${cordRepoUrl}/helm-charts
                     git clone -b ${branch} ${cordRepoUrl}/cord-tester
                     git clone -b ${branch} ${cordRepoUrl}/voltha
