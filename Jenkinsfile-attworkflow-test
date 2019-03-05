@@ -20,12 +20,13 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
-            stage('Download Cord-Tester Repo') {
+            stage('Download Cord-Tester and Voltha Repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
                     rm -rf helm-charts cord-tester
                     git clone -b ${branch} ${cordRepoUrl}/helm-charts
                     git clone -b ${branch} ${cordRepoUrl}/cord-tester
+                    git clone -b ${branch} ${cordRepoUrl}/voltha
                     """
                 }
             }
