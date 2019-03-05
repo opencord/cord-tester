@@ -14,16 +14,13 @@ Suite Teardown    Teardown
 *** Variables ***
 ${xos_chameleon_url}    xos-chameleon
 ${xos_chameleon_port}   9101
-${cord_kafka}           cord-kafka
-
+${cord_kafka}           %{CORD_KAFKA_IP}
 ${num_olts}             1
 ${num_pon_ports}        1
 ${num_onus}             1
-
 ${timeout}              300s
 
 *** Test Cases ***
-
 Check OLTs Created
     ${res} =   CORD Get    /xosapi/v1/volt/oltdevices
     ${jsondata} =    To Json    ${res.content}
