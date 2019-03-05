@@ -209,7 +209,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set att-workflow-driver.kafkaService=cord-kafka -n att-workflow --version 1.0.2 cord/att-workflow
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set att-workflow-driver.kafkaService=cord-kafka -n att-workflow cord/att-workflow
                     """
                 }
                 timeout(10) {
