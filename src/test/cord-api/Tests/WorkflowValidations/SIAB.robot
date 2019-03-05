@@ -23,6 +23,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
+Library           /home/cord/voltha/tests/atests/common/testCaseUtils.py
 Library           ../../Framework/utils/utils.py
 Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
@@ -30,6 +31,7 @@ Resource          ../../Framework/Subscriber.robot
 Resource          ../../Framework/ATTWorkFlowDriver.robot
 Resource          ../../Framework/Kubernetes.robot
 Resource          ../../Framework/ONU.robot
+Resource         ../../Framework/OLT.robot
 Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
@@ -347,6 +349,8 @@ Simple Setup
 
 Test Cleanup
     [Documentation]    Restore back to initial state per each test
+    Get VOLTHA Status
+    Get ONOS Status
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Wait Until Keyword Succeeds    30s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
