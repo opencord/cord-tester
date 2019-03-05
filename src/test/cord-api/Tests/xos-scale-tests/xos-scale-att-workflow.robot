@@ -14,16 +14,12 @@ Suite Teardown    Teardown
 *** Variables ***
 ${xos_chameleon_url}    xos-chameleon
 ${xos_chameleon_port}   9101
-${cord_kafka}           cord-kafka
-
 ${num_olts}             1
 ${num_pon_ports}        1
 ${num_onus}             1
-
 ${timeout}              300s
 
 *** Test Cases ***
-
 Check OLTs Created
     ${res} =   CORD Get    /xosapi/v1/volt/oltdevices
     ${jsondata} =    To Json    ${res.content}
@@ -146,6 +142,7 @@ ModelPolicy completed
 
 Setup
     # TODO remove all JSON files that a previous run may have left around
+    ${cord_kafka}=    Get Environment Variable    CORD_KAFKA_IP    cord-kafka
     ${target} =     Evaluate    ${num_olts} * ${num_pon_ports} * ${num_onus}
     Log     Testing with ${target} ONUs
     Log To Console      Testing with ${target} ONUs
