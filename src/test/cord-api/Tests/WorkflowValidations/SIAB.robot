@@ -23,7 +23,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           /home/cord/voltha/tests/atests/common/testCaseUtils.py
+Library           %{HOME}/voltha/tests/atests/common/testCaseUtils.py
 Library           ../../Framework/utils/utils.py
 Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
