@@ -56,13 +56,16 @@ Get VOLTHA Status
     \    ${logical_device_id}=    Get From Dictionary    ${value}    of_id
     Set Suite Variable    ${olt_device_id}
     Set Suite Variable    ${logical_device_id}
+    testCaseUtils.send_command_to_voltha_cli    /tmp    voltha_devices.log    devices    host=${server_ip}
     testCaseUtils.send_command_to_voltha_cli    /tmp    logical_devices.log    logical_device ${logical_device_id}    voltha_logical_ports.log    ports    voltha_logical_flows.log    flow    host=${server_ip}
     testCaseUtils.send_command_to_voltha_cli    /tmp    devices.log    device ${olt_device_id}    voltha_olt_ports.log    ports    voltha_olt_flows.log    flows    host=${server_ip}
-    ${devices}=    Get Binary File    /tmp/voltha_olt_flows.log
+    ${voltha_devices_log}=    Get Binary File    /tmp/voltha_devices.log
+    ${devices_flows}=    Get Binary File    /tmp/voltha_olt_flows.log
     ${device_ports}=    Get Binary File    /tmp/voltha_olt_ports.log
     ${logical_devices}=    Get Binary File    /tmp/voltha_logical_flows.log
     ${l_device_ports}=    Get Binary File    /tmp/voltha_logical_ports.log
-    Log    ${devices}
+    Log    ${voltha_devices_log}
+    Log    ${devices_flows}
     Log    ${device_ports}
     Log    ${logical_devices}
     Log    ${l_device_ports}
@@ -72,7 +75,7 @@ Get ONOS Status
     ${onos_apps}    Get Binary File    /tmp/onos_apps.log
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_devices.log    devices    host=${server_ip}
     ${onos_devices}    Get Binary File    /tmp/onos_devices.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_ports.log    ports -e    host=${server_ip}
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_ports.log    ports   host=${server_ip}
     ${onos_ports}    Get Binary File    /tmp/onos_ports.log
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_flows.log    flows -s    host=${server_ip}
     ${onos_flows}    Get Binary File    /tmp/onos_flows.log
