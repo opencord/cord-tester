@@ -86,6 +86,7 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     Wait Until Keyword Succeeds    120s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU not found in whitelist
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+    Sleep    60
     Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     No Subscriber Service Chain
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
