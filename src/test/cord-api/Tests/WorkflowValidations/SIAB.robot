@@ -23,7 +23,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ${WORKSPACE_DIR}/voltha/tests/atests/common/testCaseUtils.py
+Library           ${VOLTHA_DIR}/tests/atests/common/testCaseUtils.py
 Library           ../../Framework/utils/utils.py
 Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
@@ -36,7 +36,7 @@ Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${WORKSPACE_DIR}           /home/cord
+${VOLTHA_DIR}              ~/cord/incubator/voltha
 ${WHITELIST_PATHFILE}      ${CURDIR}/data/SIABWhitelist.json
 ${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/SIABSubscriber.json
 ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/SIABOLTDevice.json
