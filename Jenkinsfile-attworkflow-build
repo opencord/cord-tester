@@ -54,7 +54,7 @@ node ("${TestNodeName}") {
             stage('Add Helm repositories') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm repo add cord https://charts.opencord.org
+                helm repo add cord ${helmRepoUrl}
                 helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
                 helm repo update
                 """
