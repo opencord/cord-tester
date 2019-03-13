@@ -353,7 +353,7 @@ Setup Suite
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt
     Append To List    ${container_list}    seba-services-rcord
-    Append To List    ${container_list}    seba-services-onos
+    Append To List    ${container_list}    onos
     Append To List    ${container_list}    seba-services-fabric-crossconnect
     Append To List    ${container_list}    xos-core
     Append To List    ${container_list}    vcore
