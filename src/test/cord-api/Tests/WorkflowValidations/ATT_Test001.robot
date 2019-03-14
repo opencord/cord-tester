@@ -370,6 +370,7 @@ Setup Test
     [Documentation]    Re-create Subscriber, whitelist, and olt-device models to test
     Log    Re-creating objects
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
+    Set Suite Variable    ${datetime}
     Create Whitelist
     Create Subscriber
     Create VOLT
