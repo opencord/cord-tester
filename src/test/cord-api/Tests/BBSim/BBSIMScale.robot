@@ -83,10 +83,10 @@ Setup
     Set Suite Variable    ${container_list}
 
 Teardown
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
-    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
+    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
+    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
+    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Delete All Sessions
     #Get Pod Logs
 
