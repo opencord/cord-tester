@@ -23,7 +23,21 @@ class bbsim_utils(object):
         :return: List of subscribers to POST
         """
         subscribers = []
-        for index in range(1, int(num_subs) + 1):
+        for index in xrange(1, int(num_subs) + 1):
+            sub = {
+                "name" : "Sub_BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)-1),
+                "status" : "pre-provisioned",
+                "c_tag" : ctag_start + int(index)-1,
+                "s_tag" : stag,
+                "onu_device" : "BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)-1),
+                "circuit_id" : "circuit" + '{0:02x}'.format(int(index)-1),
+                "remote_id" : "remote" + '{0:02x}'.format(int(index)-1),
+                "nas_port_id" : "PON 2/1/01/1:1.1." + '{0:0x}'.format(int(index)-1)
+            }
+            subscribers.append(sub)
+            if index == 10:
+                break
+        for index in range(11, int(num_subs) + 1):
             sub = {
                 "name" : "Sub_BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)-1),
                 "status" : "pre-provisioned",
