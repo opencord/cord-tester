@@ -48,19 +48,9 @@ class bbsim_utils(object):
         for index in range(1, int(num_onus) + 1):
             onu = {
                 "serial_number": "BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)-1),
-                "device_id" : "of:000000000ac004ce",
+                "device_id" : "of:0000626273696d76",
                 "pon_port_id" : 536870913,
                 "owner_id" : att_service_id
             }
             whitelists.append(onu)
         return whitelists
-
-#test=whitelists()
-#wls = test.generate_whitelists(64, 1, 1)
-#for i in wls:
-#    print i
-
-#test=bbsim_utils()
-#subs = test.generate_subscribers(16, 1)
-#for i in subs:
-#    print i

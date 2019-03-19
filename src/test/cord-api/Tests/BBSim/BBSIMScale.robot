@@ -83,10 +83,10 @@ Setup
     Set Suite Variable    ${container_list}
 
 Teardown
-    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
-    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
-    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
-    #Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Delete All Sessions
     #Get Pod Logs
 
@@ -137,6 +137,14 @@ CORD Post
     [Arguments]    ${service}    ${data}
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    Post Request    XOS    uri=${service}    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    [Return]    ${resp}
+
+CORD Delete
+    [Documentation]    Make a DELETE call to the CORD controller
+    [Arguments]    ${service}    ${data_id}
+    ${resp}=    Delete Request    XOS    uri=${service}/${data_id}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     [Return]    ${resp}
