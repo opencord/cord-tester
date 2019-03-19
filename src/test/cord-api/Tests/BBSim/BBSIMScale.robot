@@ -45,31 +45,25 @@ Create Subscriber and Whitelist for ONUs
     CORD Post    ${VOLT_DEVICE}    {'device_type': 'openolt', 'host': 'bbsim.voltha.svc', 'port': 50060, 'switch_datapath_id': 'of:0000000000000002', 'switch_port': '3', 'outer_tpid': '0x8100', 'uplink': '65536', 'nas_id': 'NAS_ID', 'serial_number': 'bbsim.voltha.svc:50060', 'volt_service_id': ${volt_service_id}}
     @{subscribers}=    Generate Subscribers    ${number_of_onus}    ${rcord_service_id}
     : FOR    ${subscriber}    IN    @{subscribers}
-    \    Log To Console    ${subscriber}
     \    CORD Post    ${VOLT_SUBSCRIBER}    ${subscriber}
     @{whitelists}=    Generate Whitelists    ${number_of_onus}    ${att_workflow_service_id}
     : FOR    ${whitelist}    IN    @{whitelists}
-    \    Log To Console    ${whitelist}
     \    CORD Post    ${ATT_WHITELIST}    ${whitelist}
 
-ONUs Discovered
+Validate ONUs in VOLTHA
+    [Tags]    voltha
+    Wait Until Keyword Succeeds    120s    5s    Validate Voltha    ${number_of_onus}
+
+Validate ONUs in XOS
     [Documentation]    Validates All ONU Devices are discovered and retrieve SNs
     [Tags]    onudiscovery
     Wait Until Keyword Succeeds    120s    5s    Validate Number of ONU Devices    ${number_of_onus}
 
-Validate ONU States
+Validate ONU States in XOS
     [Documentation]    Validates All ONU Device states are "enabled" and "active"
     [Tags]    onustates
     : FOR    ${onu}    IN    @{serial_numbers}
     \    Wait Until Keyword Succeeds    120s    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
-
-Validate ATT WF Driver SIs
-    [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
-    [Tags]    serviceinstances    notready
-    : FOR    ${onu}    IN    @{serial_numbers}
-    \    Wait Until Keyword Succeeds    180s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
-    \    Wait Until Keyword Succeeds    240s    2s    Validate ATT Workflow Driver SI DHCP State    DHCPACK    ${onu}
-
 
 *** Keywords ***
 Setup
@@ -78,6 +72,7 @@ Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${server_ip}    http://${server_ip}:${port}    auth=${AUTH}    headers=${HEADERS}
+    Create Session    voltha    http://${server_ip}:30125    headers=${HEADERS}
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt
@@ -92,7 +87,7 @@ Teardown
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_SUBSCRIBER}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${VOLT_DEVICE}
-     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
+    Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_SERVICEINSTANCES}
     Delete All Sessions
     #Get Pod Logs
 
@@ -106,8 +101,19 @@ Get Pod Logs
 Validate Number of ONU Devices
     [Arguments]    ${expected_onus}
     ${resp}=    CORD Get    ${ONU_DEVICE}
+    Validate ONUs in Response    ${resp}    ${expected_onus}
+
+Validate Voltha
+    [Arguments]    ${expected_onus}
+    ${resp}=    Get Request    voltha    api/v1/devices
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    Validate ONUs in Response    ${resp}    ${expected_onus}
+
+Validate ONUs in Response
+    [Arguments]    ${resp}    ${expected_onus}
     ${jsondata}=    To Json    ${resp.content}
-    Log    ${jsondata}
+    Should Not Be Empty    ${jsondata['items']}
     ${length}=    Get Length    ${jsondata['items']}
     @{serial_numbers}=    Create List
     : FOR    ${INDEX}    IN RANGE    0    ${length}
@@ -118,4 +124,3 @@ Validate Number of ONU Devices
     Set Suite Variable    ${serial_numbers}
     ${length_of_bbsim_onus}=    Get Length    ${serial_numbers}
     Should Be Equal as Integers    ${length_of_bbsim_onus}    ${expected_onus}
-
