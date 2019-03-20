@@ -16,7 +16,7 @@
 Documentation     Test various E2E conditions for seba-in-a-box
 Suite Setup       Setup
 Suite Teardown    Teardown
-Test Teardown     Debug Tests
+#Test Teardown     Debug Tests
 Library           Collections
 Library           String
 Library           OperatingSystem
