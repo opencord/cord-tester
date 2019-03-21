@@ -35,6 +35,7 @@ Variables         ../../Properties/RestApiProperties.py
 *** Variables ***
 ${number_of_onus}    16
 ${timeout}           300s
+${olt_sn}            bbsim.voltha.svc:50060
 
 *** Test Cases ***
 Create Subscriber and Whitelist for ONUs
@@ -43,7 +44,7 @@ Create Subscriber and Whitelist for ONUs
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
     ${rcord_service_id}=    Get Service Owner Id    /xosapi/v1/rcord/rcordservices
-    CORD Post    ${VOLT_DEVICE}    {'device_type': 'openolt', 'host': 'bbsim.voltha.svc', 'port': 50060, 'switch_datapath_id': 'of:0000000000000002', 'switch_port': '3', 'outer_tpid': '0x8100', 'uplink': '65536', 'nas_id': 'NAS_ID', 'serial_number': 'bbsim.voltha.svc:50060', 'volt_service_id': ${volt_service_id}}
+    CORD Post    ${VOLT_DEVICE}    {'device_type': 'openolt', 'host': 'bbsim.voltha.svc', 'port': 50060, 'switch_datapath_id': 'of:0000000000000002', 'switch_port': '3', 'outer_tpid': '0x8100', 'uplink': '65536', 'nas_id': 'NAS_ID', 'serial_number': '${olt_sn}', 'volt_service_id': ${volt_service_id}}
     @{subscribers}=    Generate Subscribers    ${number_of_onus}    ${rcord_service_id}
     : FOR    ${subscriber}    IN    @{subscribers}
     \    CORD Post    ${VOLT_SUBSCRIBER}    ${subscriber}
@@ -202,7 +203,7 @@ OLT Device in ONOS
     \    ${sn}=    Get From Dictionary    ${value}    serial
     \    ${dpid}=    Get From Dictionary    ${value}    id
     Should Be Equal As Strings    ${dpid}    of:0000626273696d76
-    Should Be Equal As Strings    ${sn}    bbsim.voltha.svc:50060
+    Should Be Equal As Strings    ${sn}    ${olt_sn}
 
 Execute ONOS Command
     [Arguments]    ${cmd}
