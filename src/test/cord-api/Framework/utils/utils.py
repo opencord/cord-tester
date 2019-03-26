@@ -279,13 +279,13 @@ class utils(object):
             dnames.append(names.copy())
         return dnames
 
-    def generate_random_value(self, value):
+    def generate_random_value(self, value, max_length=10, min_int=1, max_int=10000):
         if value == 'string':
-                return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(10))
+                return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(max_length))
         if value == 'bool':
                 return random.choice([True, False])
         if value == 'int32' or value == 'uint32':
-                return random.randint(1,10000)
+                return random.randint(min_int,max_int)
         if value == 'float':
             return random.uniform(1,10)
         if value == 'role':
@@ -296,6 +296,8 @@ class utils(object):
             return random.choice(['m1.large', 'm1.medium', 'm1.small'])
         if value == 'vlan_tag':
             return random.choice(['555', '1-4096', 'ANY'])
+        if value == 'ip_address':
+            return ".".join(str(random.randint(0, 255)) for _ in range(4))
         else:
             return None
 
