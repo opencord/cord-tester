@@ -32,7 +32,9 @@ class bbsim_utils(object):
                 "onu_device" : "BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)-1),
                 "circuit_id" : "circuit" + '{0:02x}'.format(int(index)-1),
                 "remote_id" : "remote" + '{0:02x}'.format(int(index)-1),
-                "nas_port_id" : "PON 2/1/01/1:1.1." + '{0:0x}'.format(int(index)-1)
+                "nas_port_id" : "PON 2/1/01/1:1.1." + '{0:0x}'.format(int(index)-1),
+		"upstream_bps_id" : 1,
+                "downstream_bps_id" : 1
             }
             subscribers.append(sub)
             if index == 10:
@@ -46,7 +48,9 @@ class bbsim_utils(object):
                 "onu_device" : "BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)-1),
                 "circuit_id" : "circuit" + '{0:02x}'.format(int(index)-1),
                 "remote_id" : "remote" + '{0:02x}'.format(int(index)-1),
-                "nas_port_id" : "PON 2/1/01/1:1.1." + str(pon_id) + '{0:02x}'.format(int(index)-1)
+                "nas_port_id" : "PON 2/1/01/1:1.1." + str(pon_id) + '{0:02x}'.format(int(index)-1),
+                "upstream_bps_id" : 1,
+                "downstream_bps_id" : 1
             }
             subscribers.append(sub)
         return subscribers
