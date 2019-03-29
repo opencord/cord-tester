@@ -152,12 +152,12 @@ Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json    allow_modify_feedback=True
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
-    @{model_A_fields}=    Create List    service_message    service_secret
-    @{model_B_fields}=    Create List    service_message    service_secret    new_field
+    @{model_A_fields}=    Create List    service_message
+    @{model_B_fields}=    Create List    service_message    new_field
     @{model_B_only_fields}=    Create List    new_field
-    @{model_C_fields}=    Create List    service_message    service_secret    renamed_new_field
+    @{model_C_fields}=    Create List    service_message    renamed_new_field
     @{model_C_only_fields}=    Create List    renamed_new_field
-    @{model_D_fields}=    Create List    service_message    service_secret
+    @{model_D_fields}=    Create List    service_message
 
     Set Suite Variable    @{model_A_fields}
 
