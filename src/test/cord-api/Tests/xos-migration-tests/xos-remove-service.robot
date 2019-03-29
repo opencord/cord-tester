@@ -110,8 +110,8 @@ Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${HEADERS}    Create Dictionary    Content-Type=application/json    allow_modify_feedback=True
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
-    @{model_A_fields}=    Create List    service_message    service_secret
-    @{model_B_fields}=    Create List    service_message    service_secret    new_field
+    @{model_A_fields}=    Create List    service_message
+    @{model_B_fields}=    Create List    service_message    new_field
     @{model_B_only_fields}=    Create List    new_field
 
     ${db_addr}=    Run    kubectl get services | grep -i xos-db | awk '{print $3}'
