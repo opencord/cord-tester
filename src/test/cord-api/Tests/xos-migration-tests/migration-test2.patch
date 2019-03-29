@@ -1,0 +1,16 @@
+*** xos/synchronizer/models/simpleexampleservice.orig	Fri Mar 29 09:26:15 2019
+--- xos/synchronizer/models/simpleexampleservice.xproto	Fri Mar 29 09:41:09 2019
+***************
+*** 10,15 ****
+--- 10,20 ----
+          max_length = 254];
+      optional string service_secret = 2 [
+          help_text = "Service Secret to place in a file"];
++ 
++     required string new_field = 3 [
++         help_text = "New field to test data migration",
++         db_index = False,
++         default = "new_stuff"];
+  }
+  
+  // Note: Named ColorNew to prevent name collision with ExampleService's Color.
