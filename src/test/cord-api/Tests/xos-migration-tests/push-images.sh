@@ -1,0 +1,4 @@
+docker push xosproject/simpleexampleservice-synchronizer:migration-test1
+docker push xosproject/simpleexampleservice-synchronizer:migration-test2
+docker push xosproject/simpleexampleservice-synchronizer:migration-test3
+docker push xosproject/simpleexampleservice-synchronizer:migration-test4
