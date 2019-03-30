@@ -210,9 +210,9 @@ class devices(object):
         for onu in self.onus.all():
             ev = {
                 'status': 'activated',
-                'serial_number': onu['serial_number'],
-                'uni_port_id': self._find_uni_by_onu(onu)['port_no'],
-                'of_dpid': self._find_olt_by_onu(onu)['of_id'],
+                'serialNumber': onu['serial_number'],
+                'portNumber': str(self._find_uni_by_onu(onu)['port_no']),
+                'deviceId': self._find_olt_by_onu(onu)['of_id'],
             }
             events.append(ev)
         return events

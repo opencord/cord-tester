@@ -59,17 +59,17 @@ Create Two ONU Devices
 
 Activate Non-Whitelisted ONU
     [Documentation]    Validate that activating an ONU not in whitelist sets onu device to DISABLED
-    Send Kafka Event    onu.events    {'status': 'activated','serial_number': '${onu_invalid_sn}','uni_port_id': ${uniportno}, 'of_dpid': '${deviceId}'}
+    Send Kafka Event    onu.events    {'status': 'activated','serialNumber': '${onu_invalid_sn}','portNumber': ${uniportno}, 'deviceId': '${deviceId}'}
     Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    DISABLED
 
 Activate Whitelisted ONU in Wrong Location
     [Documentation]    Validate that activating an ONU in the whitelist but in the wrong location DISABLES the onu device
-    Send Kafka Event    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': 52, 'of_dpid': 'wrongofdpid'}
+    Send Kafka Event    onu.events    {'status': 'activated', 'serialNumber': '${onu_serial_no}','portNumber': 52, 'deviceId': 'wrongofdpid'}
     Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_serial_no}    DISABLED
 
 Activate Whitelisted ONU
     [Documentation]    Validate that activating an ONU in the whitelist creates a attworkflow-driver-serviceinstance
-    Send Kafka Event    onu.events    {'status': 'activated','serial_number': '${onu_serial_no}','uni_port_id': ${uniportno}, 'of_dpid': '${deviceId}'}
+    Send Kafka Event    onu.events    {'status': 'activated','serialNumber': '${onu_serial_no}','portNumber': ${uniportno}, 'deviceId': '${deviceId}'}
     ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    AWAITING
     Wait Until Keyword Succeeds    60s    5s    Validate ONU Device Status    ${onu_serial_no}    ENABLED
 
