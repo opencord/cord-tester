@@ -319,7 +319,7 @@ Teardown
     Delete All Sessions
 
 Setup Test
-    ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
+    ${datetime}=    Run    date +"%Y-%m-%dT%H:%M:%S.%NZ"
     Set Suite Variable    ${datetime}
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
@@ -343,7 +343,7 @@ No Subscriber Service Chain
     Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    False
 
 Simple Setup
-    ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}     ${local_user}    ${local_pass}
+    ${datetime}=    Run    date +"%Y-%m-%dT%H:%M:%S.%NZ"
     Set Suite Variable    ${datetime}
     ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
