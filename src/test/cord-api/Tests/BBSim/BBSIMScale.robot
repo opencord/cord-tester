@@ -60,8 +60,8 @@ Validate ONUs in VOLTHA
 Validate OLT and AAA-Users in ONOS
     [Documentation]    Verify olt devices in ONOS and all onus are authenticated via AAA app
     [Tags]    onos
-    Wait Until Keyword Succeeds    3s    1s    OLT Device in ONOS
-    #Wait Until Keyword Succeeds    ${timeout}    5s    Verify Number of AAA-Users    ${number_of_onus}
+    Wait Until Keyword Succeeds    ${timeout}    1s    OLT Device in ONOS
+    Wait Until Keyword Succeeds    ${timeout}    5s    Verify Number of AAA-Users    ${number_of_onus}
 
 Validate ONUs in XOS
     [Documentation]    Validates All ONU Devices are discovered in XOS
