@@ -35,7 +35,7 @@ Variables         ../../Properties/RestApiProperties.py
 *** Variables ***
 ${number_of_onus}    16
 ${timeout}           300s
-${olt_sn}            bbsim.voltha.svc:50060
+${olt_sn}             bbsim.voltha.svc:50060
 
 *** Test Cases ***
 Create Subscriber and Whitelist for ONUs
@@ -60,8 +60,8 @@ Validate ONUs in VOLTHA
 Validate OLT and AAA-Users in ONOS
     [Documentation]    Verify olt devices in ONOS and all onus are authenticated via AAA app
     [Tags]    onos
-    Wait Until Keyword Succeeds    ${timeout}    5s    OLT Device in ONOS
-    Wait Until Keyword Succeeds    ${timeout}    5s    Verify Number of AAA-Users    ${number_of_onus}
+    Wait Until Keyword Succeeds    3s    1s    OLT Device in ONOS
+    #Wait Until Keyword Succeeds    ${timeout}    5s    Verify Number of AAA-Users    ${number_of_onus}
 
 Validate ONUs in XOS
     [Documentation]    Validates All ONU Devices are discovered in XOS
@@ -77,8 +77,8 @@ Validate ONU States in XOS
 Validate Hosts and DHCP Allocations in ONOS
     [Documentation]    Verify number of hosts in ONOS match number of onus and verify number of DHCP allocations
     [Tags]    onosdhcp
+    Wait Until Keyword Succeeds    ${timeout}    5s    Validate Hosts in ONOS    ${number_of_onus}
     Wait Until Keyword Succeeds    ${timeout}    5s    Validate DHCP Allocations    ${number_of_onus}
-    #Wait Until Keyword Succeeds    ${timeout}    5s    Validate Hosts in ONOS    ${number_of_onus}
 
 Validate ATT WF Driver SIs
     [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
