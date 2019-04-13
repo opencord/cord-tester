@@ -35,7 +35,7 @@ Variables         ../../Properties/RestApiProperties.py
 *** Variables ***
 ${number_of_onus}    16
 ${timeout}           300s
-${olt_sn}             bbsim.voltha.svc:50060
+${olt_sn}            BBSIMOLT000
 
 *** Test Cases ***
 Create Subscriber and Whitelist for ONUs
@@ -77,7 +77,7 @@ Validate ONU States in XOS
 Validate Hosts and DHCP Allocations in ONOS
     [Documentation]    Verify number of hosts in ONOS match number of onus and verify number of DHCP allocations
     [Tags]    onosdhcp
-    Wait Until Keyword Succeeds    ${timeout}    5s    Validate Hosts in ONOS    ${number_of_onus}
+    #Wait Until Keyword Succeeds    ${timeout}    5s    Validate Hosts in ONOS    ${number_of_onus}
     Wait Until Keyword Succeeds    ${timeout}    5s    Validate DHCP Allocations    ${number_of_onus}
 
 Validate ATT WF Driver SIs
