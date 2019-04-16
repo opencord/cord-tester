@@ -349,9 +349,9 @@ node ("${TestNodeName}") {
             }
             currentBuild.result = 'SUCCESS'
         } catch (err) {
-            printLn err
             currentBuild.result = 'FAILURE'
             step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+            throw err
         }
         echo "RESULT: ${currentBuild.result}"
     }
