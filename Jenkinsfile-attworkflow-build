@@ -85,23 +85,25 @@ node ("${TestNodeName}") {
                     }
                 }
             }
-            stage('Install Logging Infrastructure') {
-                timeout(10) {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
-                    helm-repo-tools/wait_for_pods.sh
-                    """
-                }
-            }
-            stage('Install Monitoring Infrastructure') {
-                timeout(10) {
-                    sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
-                    helm-repo-tools/wait_for_pods.sh
-                    """
-                }
+            if ( params.installMonitoringAndLogging ) {
+              stage('Install Logging Infrastructure') {
+                  timeout(10) {
+                      sh returnStdout: true, script: """
+                      export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                      helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set elasticsearch.cluster.env.MINIMUM_MASTER_NODES="1" --set elasticsearch.client.replicas=1 --set elasticsearch.master.replicas=2 --set elasticsearch.master.persistence.enabled=false --set elasticsearch.data.replicas=1 --set elasticsearch.data.persistence.enabled=false -n logging cord/logging
+                      helm-repo-tools/wait_for_pods.sh
+                      """
+                  }
+              }
+              stage('Install Monitoring Infrastructure') {
+                  timeout(10) {
+                      sh returnStdout: true, script: """
+                      export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                      helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n nem-monitoring cord/nem-monitoring
+                      helm-repo-tools/wait_for_pods.sh
+                      """
+                  }
+              }
             }
             stage('Install etcd-cluster') {
                 timeout(10) {
@@ -347,6 +349,7 @@ node ("${TestNodeName}") {
             }
             currentBuild.result = 'SUCCESS'
         } catch (err) {
+            printLn err
             currentBuild.result = 'FAILURE'
             step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
         }
