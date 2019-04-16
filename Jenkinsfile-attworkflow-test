@@ -53,6 +53,15 @@ node ("${TestNodeName}") {
                     """
                 }
             }
+            stage('DataPlane Failure Tests') {
+                timeout(180) {
+                    sh """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
+                    robot --removekeywords wuks -d Log -T -l log-DataPlane_FailureTests -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts WorkflowValidations/DataPlane_FailureTests.robot || true
+                    """
+                }
+            }
             stage('Publish test results') {
                 sh returnStdout: true, script: """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
