@@ -160,3 +160,24 @@ Validate Subscriber Count
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
     Should Be Equal As Integers    ${length}    ${expected_no}
+
+Subscriber Ready to Authenticate
+    Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}    ONU has been validated - Awaiting Authentication
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+
+Subscriber Service Chain Created
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}    ONU has been validated - Authentication succeeded
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${s_tag}    True
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    True
+
+No Subscriber Service Chain
+    Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${s_tag}    False
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    False
+
+Validate XConnect in ONOS
+    [Arguments]    ${exists}=True
+    ${rc}=    Run And Return RC    http -a karaf:karaf GET http://${server_ip}:30120/onos/segmentrouting/xconnect|jq -r '.xconnects[].vlanId'|grep ${s_tag}
+    Run Keyword If    '${exists}' == 'True'    Should Be Equal As Integers    ${rc}    0
+    ...                                           ELSE    Should Be Equal As Integers    ${rc}    1
