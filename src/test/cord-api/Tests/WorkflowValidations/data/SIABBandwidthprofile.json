@@ -1,0 +1,20 @@
+{
+    "BandwidthprofileInfo" : [
+     {
+            "name": "SIAB_Upstream_TP",
+            "cir": 111,
+            "cbs": 222,
+            "eir": 333,
+            "ebs": 444,
+            "air": 555
+     },
+     {
+            "name": "SIAB_Downstream_TP",
+            "cir": 555,
+            "cbs": 444,
+            "eir": 333,
+            "ebs": 222,
+            "air": 111
+     }
+  ]
+}
