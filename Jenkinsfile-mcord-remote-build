@@ -23,17 +23,20 @@ node ("${TestNodeName}") {
 
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
+
+            // Define KUBECONFIG & HELMCONFIG environment variable to use in steps
+            env.KUBECONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf"
+            env.HELMCONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml"
+
             stage('Clean up') {
                 timeout(10) {
                     sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     helm init --upgrade --force-upgrade
                     """
 
                     timeout(1) {
                         waitUntil {
                             tillerpod_running = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl -n kube-system get pods | grep tiller-deploy | grep Running | grep 1/1 | wc -l
                             """
                             return tillerpod_running.toInteger() == 1
@@ -41,7 +44,6 @@ node ("${TestNodeName}") {
                     }
 
                     sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
                     do
                         echo "Purging chart: \${hchart}"
@@ -52,7 +54,6 @@ node ("${TestNodeName}") {
                     timeout(5) {
                         waitUntil {
                             helm_deleted = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
                             """
                             return helm_deleted.toInteger() == 0
@@ -61,8 +62,7 @@ node ("${TestNodeName}") {
                     timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
-                            kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
+                            kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet|cadvisor|node-exporter' | wc -l
                             """
                             return kubectl_deleted.toInteger() == 0
                         }
@@ -71,7 +71,6 @@ node ("${TestNodeName}") {
             }
             stage('Add Helm repositories') {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm repo add cord https://charts.opencord.org
                 helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
                 helm repo update
@@ -79,7 +78,6 @@ node ("${TestNodeName}") {
                 timeout(1) {
                     waitUntil {
                         tillerpod_running = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
                         """
                         return tillerpod_running.toInteger() == 1
@@ -88,7 +86,6 @@ node ("${TestNodeName}") {
                 timeout(1) {
                     waitUntil {
                         cord_repo_present = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm repo list | grep cord | wc -l
                         """
                         return cord_repo_present.toInteger() == 1
@@ -98,13 +95,11 @@ node ("${TestNodeName}") {
 
             stage("Install M-CORD Control Plane Services") {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n mcord-control-plane --namespace epc -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set spgwu_s1u_ip=${dataplane_s1u_ip} --set accelleran_hostname=${accelleran_bbu_ip} cord/mcord-control-plane
+                helm install -n mcord-control-plane --namespace epc -f $HELMCONFIG --set spgwu_s1u_ip=${dataplane_s1u_ip} --set accelleran_hostname=${accelleran_bbu_ip} --set spgwu_s11_ip=${spgwu_s11_ip} cord/mcord-control-plane
                 """
 
                 timeout(20) {
                     control_plane = sh returnStdout: true, script: """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     kubectl -n epc get pods | grep -i running | grep 1/1 | wc -l
                     """
                     // We have 4 pods: cassandra, hss, mme and ngic-cp
@@ -115,14 +110,12 @@ node ("${TestNodeName}") {
             // TODO: Use --namespace wowz to create the namespace
             stage("Install CDN Remote Services") {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -n cdn-remote cord/mcord-cdn-remote -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml
+                helm install -n cdn-remote cord/mcord-cdn-remote -f $HELMCONFIG
                 """
 
                 timeout(3) {
                     waitUntil {
                         mcord_remote_cdn_working = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl -n wowz get pods -o wide | grep -i running | grep 1/1 | wc -l
                         """
                         return mcord_remote_cdn_working.toInteger() == 2
