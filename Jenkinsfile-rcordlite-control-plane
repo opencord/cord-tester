@@ -19,7 +19,10 @@ node ("${TestNodeName}") {
             sh returnStdout: true, script: 'git clone -b ${branch} ${configRepoUrl}'
             deployment_config = readYaml file: "${configRepoBaseDir}${configRepoFile}"
         }
-        
+
+        // Define KUBECONFIG environment variable to use in steps
+        env.KUBECONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf"
+
         stage('Export pod config') {
             timeout(10) {
                 try {
@@ -38,7 +41,6 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: """
                 rm -rf helm-charts cord-tester
                 git clone -b ${branch} ${cordRepoUrl}/helm-charts
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
                 do
                     echo "Purging chart: \${hchart}"
@@ -48,7 +50,6 @@ node ("${TestNodeName}") {
                 timeout(5) {
                     waitUntil {
                         helm_deleted = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
                         """
                         return helm_deleted.toInteger() == 0
@@ -57,7 +58,6 @@ node ("${TestNodeName}") {
                 timeout(5) {
                     waitUntil {
                         kubectl_deleted = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
                         """
                         return kubectl_deleted.toInteger() == 0
@@ -84,7 +84,7 @@ node ("${TestNodeName}") {
                 try {
                     sh """
                     export KUBECONFIG=/home/cord/${deployment_config.pod_config}
-                    cd /home/cord/helm-charts/voltha  
+                    cd /home/cord/helm-charts/voltha
                     helm repo add incubator https://kubernetes-charts-incubator.storage.googleapis.com/
                     helm dep build
                     cd /home/cord/helm-charts

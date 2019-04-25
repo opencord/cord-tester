@@ -21,11 +21,15 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
+
+            // Define KUBECONFIG & HELMCONFIG environment variable to use in steps
+            env.KUBECONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf"
+            env.HELMCONFIG="${configBaseDir}/${configKubernetesDir}/${configFileName}.yml"
+
             stage('Clean up') {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     rm -rf cord-tester
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
                     do
                         echo "Purging chart: \${hchart}"
@@ -35,7 +39,6 @@ node ("${TestNodeName}") {
                     timeout(5) {
                         waitUntil {
                             helm_deleted = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
                             """
                             return helm_deleted.toInteger() == 0
@@ -44,7 +47,6 @@ node ("${TestNodeName}") {
                     timeout(5) {
                         waitUntil {
                             kubectl_deleted = sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                             kubectl get pods --all-namespaces --no-headers | grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet' | wc -l
                             """
                             return kubectl_deleted.toInteger() == 0
@@ -54,14 +56,12 @@ node ("${TestNodeName}") {
             }
             stage('Add CORD repository') {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm repo add cord https://charts.opencord.org
                 helm repo update
                 """
                 timeout(1) {
                     waitUntil {
                         cord_repo_present = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm repo list | grep cord | wc -l
                         """
                         return cord_repo_present.toInteger() == 1
@@ -70,13 +70,11 @@ node ("${TestNodeName}") {
             }
             stage('Install CORD Platform') {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n cord-platform --version 6.1.0 cord/cord-platform
+                helm install -f $HELMCONFIG -n cord-platform --version 6.1.0 cord/cord-platform
                 """
                 timeout(1) {
                     waitUntil {
                         cord_helm_installed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm ls | grep -i cord-platform | wc -l
                         """
                         return cord_helm_installed.toInteger() == 1
@@ -87,11 +85,9 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     waitUntil {
                         etcd_operator_installed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl get pods | grep -i etcd-operator | grep -i running | wc -l
                         """
                         crd_present = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl get crd | grep -i etcd | wc -l
                         """
                         return etcd_operator_installed.toInteger() + crd_present.toInteger() == 6
@@ -100,13 +96,11 @@ node ("${TestNodeName}") {
             }
             stage('Install SEBA Profile') {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba --version 1.0.0 cord/seba
+                helm install -f $HELMCONFIG -n seba --version 1.0.0 cord/seba
                 """
                 timeout(1) {
                     waitUntil {
                         seba_helm_installed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm ls | grep -i seba | wc -l
                         """
                         return seba_helm_installed.toInteger() == 1
@@ -115,13 +109,11 @@ node ("${TestNodeName}") {
             }
             stage('Install ATT workflow') {
                 sh returnStdout: true, script: """
-                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n att-workflow --version 1.0.2 cord/att-workflow
+                helm install -f $HELMCONFIG -n att-workflow --version 1.0.2 cord/att-workflow
                 """
                 timeout(1) {
                     waitUntil {
                         attworkflow_helm_installed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm ls | grep -i att-workflow | wc -l
                         """
                         return attworkflow_helm_installed.toInteger() == 1
@@ -132,11 +124,9 @@ node ("${TestNodeName}") {
                 timeout(20) {
                     waitUntil {
                         sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         helm-repo-tools/wait_for_pods.sh
                         """
                         pods_completed = sh returnStdout: true, script: """
-                        export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                         kubectl get pods --all-namespaces | grep -i completed | grep -E -v 'docker-registry|mavenrepo|ponnet|kube-system' | wc -l
                         """
                         return pods_completed.toInteger() == 3
@@ -239,14 +229,12 @@ node ("${TestNodeName}") {
                     stage('Install BBSim') {
                         timeout(10) {
                             sh returnStdout: true, script: """
-                            export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                            helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n bbsim --version 1.0.0 cord/bbsim --set onus_per_pon_port=${onuNumber}
+                            helm install -f $HELMCONFIG -n bbsim --version 1.0.0 cord/bbsim --set onus_per_pon_port=${onuNumber}
                             """
                         }
                         timeout(10) {
                             waitUntil {
                                 base_kubernetes_tosca_running = sh returnStdout: true, script: """
-                                export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf &&
                                 kubectl get pods -n voltha | grep -i bbsim | wc -l
                                 """
                                 return base_kubernetes_tosca_running.toInteger() == 1

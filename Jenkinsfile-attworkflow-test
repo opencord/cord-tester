@@ -20,6 +20,10 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
                 deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
             }
+
+            // Define KUBECONFIG environment variable to use in steps
+            env.KUBECONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf"
+
             stage('Download Cord-Tester and Voltha Repo') {
                 timeout(2) {
                     sh returnStdout: true, script: """
@@ -33,7 +37,6 @@ node ("${TestNodeName}") {
             stage('Test Configurations') {
                 timeout(10) {
                     sh """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Properties/
                     sed -i \"s/^\\(SERVER_IP = \\).*/\\1\'${deployment_config.nodes[0].ip}\'/\" RestApiProperties.py
                     sed -i \"s/^\\(SERVER_PORT = \\).*/\\1\'30006\'/\" RestApiProperties.py
@@ -47,7 +50,6 @@ node ("${TestNodeName}") {
             stage('Subscriber Validation and Ping Tests') {
                 timeout(180) {
                     sh """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     robot --removekeywords wuks -d Log -T -l log-ATT_Test001 -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts WorkflowValidations/ATT_Test001.robot || true
                     """
@@ -56,7 +58,6 @@ node ("${TestNodeName}") {
             stage('DataPlane Failure Tests') {
                 timeout(180) {
                     sh """
-                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
                     robot --removekeywords wuks -d Log -T -l log-DataPlane_FailureTests -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts WorkflowValidations/DataPlane_FailureTests.robot || true
                     """
