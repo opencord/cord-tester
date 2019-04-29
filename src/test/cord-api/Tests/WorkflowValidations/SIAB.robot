@@ -37,7 +37,7 @@ Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${VOLTHA_DIR}              ~/cord/incubator/voltha
-${WHILELIST_FILENAME}      SIABWhitelist
+${WHITELIST_FILENAME}      SIABWhitelist
 ${SUBSCRIBER_FILENAME}     SIABSubscriber
 ${OLT_DEVICE_FILENAME}     SIABOLTDevice
 ${WHITELIST_PATHFILE}      ${CURDIR}/data/${WHITELIST_FILENAME}.json
