@@ -1,0 +1,270 @@
+*** Settings ***
+Documentation     Setup and Teardown Functionality for XOS API Tests
+Library           Collections
+Library           String
+Library           OperatingSystem
+Library           XML
+Library           RequestsLibrary
+Library		      HttpLibrary.HTTP
+Library           ../Framework/utils/utils.py
+Library           ../Framework/restApi.py
+Variables         ../Properties/RestApiProperties.py
+
+*** Variables ***
+${test_string}        teststring
+${test_string2}       teststring2
+${test_float}         3.14
+${test_role}          admin
+${test_direction}     in
+${test_flavor}        m1.small
+${test_vlan_tag}      1000
+${test_email}         testuser@opencord.org
+${test_int32}         100
+${test_uint32}        100
+${test_ip_address}    2.2.2.2
+
+*** Keywords ***
+Verify API Functionality
+    [Arguments]    ${type}    ${endpoint}    ${data}=${EMPTY}    ${data_id}=${EMPTY}    ${key}=${EMPTY}
+    Run Keyword If    "${type}" == "RETRIEVE"    CORD Get    ${endpoint}    ${data_id}    ${data}    ${key}
+    Run Keyword If    "${type}" == "CREATE"   CORD Post    ${endpoint}    ${data}
+    Run Keyword If    "${type}" == "UPDATE"   CORD Put    ${endpoint}    ${data}    ${data_id}
+    Run Keyword If    "${type}" == "DELETE"    CORD Delete    ${endpoint}    ${data_id}
+
+CORD Get
+    [Documentation]    Make a GET call to the CORD controller
+    [Arguments]    ${service}    ${id}    ${value}    ${key}
+    ${resp}=    Get Request    ${SERVER_IP}    ${service}/${id}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${updated_value}=    Run Keyword If    '${key}' != 'null'    Get Json Value    ${resp.content}    /${key}
+    ${updated_value}=    Run Keyword If    '${key}' != 'null'    Remove String    ${updated_value}    "
+    Run Keyword If    '${key}' != 'null'    Should Contain    "${value}"    ${updated_value}
+    [Return]    ${resp}
+
+CORD Post
+    [Documentation]    Make a POST call to the CORD controller
+    [Arguments]    ${service}    ${data}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Post Request    ${SERVER_IP}    uri=${service}    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${id}
+    [Return]    ${resp}
+
+CORD Put
+    [Documentation]    Make a PUT call to the CORD controller
+    [Arguments]    ${service}    ${data}    ${data_id}
+    ${data}=    Evaluate    json.dumps(${data})    json
+    ${resp}=    Put Request    ${SERVER_IP}    uri=${service}/${data_id}    data=${data}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${id}
+    [Return]    ${resp}
+
+CORD Delete
+    [Documentation]    Make a DELETE call to the CORD controller
+    [Arguments]    ${service}    ${data_id}
+    ${resp}=    Delete Request    ${SERVER_IP}    uri=${service}/${data_id}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    [Return]    ${resp}
+
+Generate JSON Data
+    {%- for m in proto.messages -%}
+    {%- if m.name not in  ['XOSBase'] -%}
+    {% autoescape false %}
+    {% endautoescape %}
+    ${json_{{ m.name | lower }}_1}=    Set Variable    { }
+    ${json_{{ m.name | lower }}_amend_1}=    Set Variable    { }
+    ${json_{{ m.name | lower}}_amend_key}=    Set Variable    null
+    Set Suite Variable    ${json_{{ m.name | lower}}_amend_key}
+    # set required fields for {{ m.name | lower }} object
+    {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
+    {% if f.modifier == "required" and f.options.blank != "True" -%}
+    {% if not f.options.default -%}
+    {% if f.link -%}
+    ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_role}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_direction}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_flavor}"
+    {% elif f.name == "s_tag" and m.name == "BNGPortMapping" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_vlan_tag}"
+    {% else -%}
+    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_{{ f.type }}}"
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
+    {% else -%}
+    {% if loop.index0 == 0 -%}
+    ${json_{{ m.name | lower}}_amend_key}=    Set Variable    {{ f.name }}
+    ${json_{{ m.name | lower }}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /{{ f.name }}    "${test_{{ f.type }}}"
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endfor -%}
+    {% if  m.name  == "User" -%}
+    ${json_{{ m.name | lower}}_email}=    Set Variable    testuser@opencord.org
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email}"
+    ${json_{{ m.name | lower}}_email_amend_1}=    Set Variable    testuseramend@opencord.org
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /email    "${json_{{ m.name | lower }}_email_amend_1}"
+    {% endif %}
+    {% if  m.name  == "Site" -%}
+    ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    {% endif %}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /constraints    "${test_string}"
+    {% endif %}
+    {% if  m.name  == "Slice" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "testloginbase"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "testloginbase2"
+    {% endif -%}
+    {% if  m.name  == "ProgranServiceInstance" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${test_string}"
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /CellIndividualOffset    "1"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "${test_string}"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /CellIndividualOffset    "1"
+    {% endif %}
+    {% if  m.name  == "RCORDSubscriber" -%}
+    ## Create req service owner for rcord subscriber and
+    CORD Post    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    ${rcord_tmp_service_id}=    Set Variable    ${id}
+    Set Suite Variable    ${rcord_tmp_service_id}
+    {% endif %}
+    {% if  m.name  == "HippieOSSServiceInstance" -%}
+    ## Create req service owner for hippie oss service instance
+    CORD Post    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
+    {% if  m.name  == "MCordSubscriberInstance" -%}
+    ## Create req service owner for hippie oss service instance
+    CORD Post    /xosapi/v1/mcord/mcordsubscriberservices    {"name": "testmcordservice"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    {% endif %}
+    {% if  m.name  == "AddressManagerServiceInstance" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /public_ip    "2.2.2.2"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /public_ip    "3.3.3.3"
+    {% endif %}
+    {% if  m.name  == "RCORDIpAddress" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /ip    "2.2.2.2"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /ip    "3.3.3.3"
+    {% endif %}
+    ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
+    ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
+    Set Suite Variable    ${json_{{ m.name | lower }}_1}
+    Set Suite Variable    ${json_{{ m.name | lower }}_amend_1}
+    {% endif -%}
+    {% endfor %}
+
+{% for m in proto.messages %}
+{%- if m.name not in  ['XOSBase'] -%}
+Create {{ m.name }}
+    ##Creating {{ m.name | lower }} object
+    ${json_{{ m.name | lower }}_tmp}=    Set Variable    { }
+    # set required fields for {{ m.name | lower }} object
+    {% for f in m.fields + xproto_base_fields(m, proto.message_table) -%}
+    {% if f.link -%}
+    {% if f.modifier == "required" and f.options.blank != "True"-%}
+    # create dependent {{ f.options.model }}
+    ${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
+    {% endif -%}
+    {% else -%}
+    {% if f.modifier == "required" and f.options.blank != "True"-%}
+    {% if not f.options.default -%}
+    {% if m.name == "User" and f.name == "email" -%}
+    ${json_user_tmp}=   Set Json Value    ${json_user_tmp}   /email    "${test_email}"
+    {% else -%}
+    {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_float}"
+    {% elif f.name == "name" -%}
+    ${json_{{ m.name | lower}}_name_tmp}=   Generate Random Value    {{ f.type }}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_name_tmp}"
+    {% elif f.name == "role" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_role}"
+    {% elif f.name == "direction" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_direction}"
+    {% elif f.name == "flavor" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_flavor}"
+    {% elif f.name == "s_tag" and m.name == "BNGPortMapping" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_vlan_tag}"
+    {% else -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_{{ f.type }}}"
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endif -%}
+    {% endfor -%}
+    {% if  m.name  == "Site" -%}
+    ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase3
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    {% endif %}
+    {% if  m.name  == "Flavor" -%}
+    ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    {% endif %}
+    {% if  m.name  == "ServiceGraphConstraint" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /contraints    "${test_string}"
+    {% endif %}
+    {% if  m.name  == "Slice" -%}
+    ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower}}_name}"
+    {% endif -%}
+    {% if  m.name  == "Network" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
+    {% endif %}
+    {% if  m.name  == "RCORDSubscriber" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /owner_id    ${rcord_tmp_service_id}
+    {% endif %}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true    
+    ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
+    ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
+    ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
+    Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
+    [Return]    ${id_{{ m.name | lower }}_tmp}
+{% endif %}
+{% endfor -%}
+
+Setup Tests
+    [Documentation]    Find all dependent objects per model and create them and store them for later use
+    {% for m in proto.messages %}
+    {%- if m.name not in  ['XOSBase'] -%}
+    ${model}=    Set Variable    {{ m.name | lower }}s
+    @{dependent_{{ m.name | lower }}_ids}=    Create List    ${model}
+    Set Suite Variable    @{dependent_{{ m.name | lower }}_ids}
+    {% endif -%}
+    {% endfor -%}
+    @{dependent_models}=    Create List
+    Set Suite Variable    ${dependent_models}
+    ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
+    ${HEADERS}    Create Dictionary    Content-Type=application/json
+    Create Session    ${SERVER_IP}    http://${SERVER_IP}:${SERVER_PORT}    auth=${AUTH}    headers=${HEADERS}
+    Generate JSON Data
+
+Teardown Tests
+    [Documentation]    Delete all dependent objects created in Setup
+    {% for m in proto.messages %}
+    {%- if m.name not in  ['XOSBase'] -%}
+    ${len}=    Get Length    ${dependent_{{ m.name | lower }}_ids}
+    : FOR    ${INDEX}    IN RANGE    1    ${len}
+    \    Run Keyword And Ignore Error    CORD Delete    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/${dependent_{{ m.name | lower }}_ids[0]}    ${dependent_{{ m.name | lower }}_ids[${INDEX}]}
+    {% endif -%}
+    {% endfor -%}
+    Delete All Sessions
