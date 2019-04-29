@@ -1,0 +1,13 @@
+{
+    "SubscriberInfo" : [
+     {
+            "name": "QQClient",
+            "s_tag": 222,
+            "c_tag": 111,
+            "onu_device": "PSMO12345678",
+            "status": "pre-provisioned",
+            "upstream_bps_id": 2,
+            "downstream_bps_id": 2
+     }
+  ]
+}

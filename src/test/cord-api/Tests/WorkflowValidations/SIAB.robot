@@ -37,9 +37,12 @@ Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${VOLTHA_DIR}              ~/cord/incubator/voltha
-${WHITELIST_PATHFILE}      ${CURDIR}/data/SIABWhitelist.json
-${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/SIABSubscriber.json
-${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/SIABOLTDevice.json
+${WHILELIST_FILENAME}      SIABWhitelist
+${SUBSCRIBER_FILENAME}     SIABSubscriber
+${OLT_DEVICE_FILENAME}     SIABOLTDevice
+${WHITELIST_PATHFILE}      ${CURDIR}/data/${WHITELIST_FILENAME}.json
+${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/${SUBSCRIBER_FILENAME}.json
+${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${OLT_DEVICE_FILENAME}.json
 ${export_kube_config}      export KUBECONFIG=/home/%{USER}/.kube/config
 ${kube_node_ip}            localhost
 ${dst_host_ip}             172.18.0.10
