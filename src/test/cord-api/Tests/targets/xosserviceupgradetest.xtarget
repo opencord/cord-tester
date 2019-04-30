@@ -48,4 +48,3 @@ Verify Data Model
     ${jsondata}=    To Json    ${resp.content}
     Log    ${data}
     ${test_result}=    utils.compare_list_of_dicts    ${list1}    ${jsondata['items']}
-    Should Be True    ${test_result}
