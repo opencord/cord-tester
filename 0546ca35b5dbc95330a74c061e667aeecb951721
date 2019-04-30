@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "debeb13f_1a223761",
+        "filename": "src/test/cord-api/Tests/xos-backup-tests/xos-backup.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-04-30T18:49:23Z",
+      "side": 1,
+      "message": "Always add a status_code check after each REST API. This will make it easier to debug any failures. The report will show something like \"404\" !\u003d to \"200\"..... as opposed to something like, \"dictionary did not contain key \u0027id\u0027\"",
+      "revId": "0546ca35b5dbc95330a74c061e667aeecb951721",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "223ae305_605be703",
+        "filename": "src/test/cord-api/Tests/xos-backup-tests/xos-backup.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 64,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-04-30T18:49:23Z",
+      "side": 1,
+      "message": "Can you add one more check in this test case to verify the model got updated ?.... either do another \"CORD Get\" on /xosapi/v1/core/flavors, or just validate the response from the \"CORD Put\" operation to make sure the flavor got updated to \"two\"",
+      "revId": "0546ca35b5dbc95330a74c061e667aeecb951721",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "35e806cd_a2fa8934",
+        "filename": "src/test/cord-api/Tests/xos-backup-tests/xos-backup.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 98,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-04-30T18:49:23Z",
+      "side": 1,
+      "message": "Why do you have this WUKS (wait until keyword succeeds) here? This keyword, \"Ensure Backup Created\" is already wrapped around a WUKS",
+      "revId": "0546ca35b5dbc95330a74c061e667aeecb951721",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "e7141985_58bd014f",
+        "filename": "src/test/cord-api/Tests/xos-backup-tests/xos-backup.robot",
+        "patchSetId": 5
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1000162
+      },
+      "writtenOn": "2019-04-30T18:49:23Z",
+      "side": 1,
+      "message": "Why WUKS here ?",
+      "revId": "0546ca35b5dbc95330a74c061e667aeecb951721",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
