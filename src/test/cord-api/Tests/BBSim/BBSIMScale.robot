@@ -74,13 +74,14 @@ Validate ONU States in XOS
     : FOR    ${onu}    IN    @{serial_numbers}
     \    Wait Until Keyword Succeeds    ${timeout}    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
 
-Validate DHCP Allocations in ONOS
-    [Documentation]    Verify number of DHCP allocations in ONOS to match number of ONUs
+Validate Hosts and DHCP Allocations in ONOS
+    [Documentation]    Verify number of hosts in ONOS match number of onus and verify number of DHCP allocations
     [Tags]    onosdhcp
+    #Wait Until Keyword Succeeds    ${timeout}    5s    Validate Hosts in ONOS    ${number_of_onus}
     Wait Until Keyword Succeeds    ${timeout}    5s    Validate DHCP Allocations    ${number_of_onus}
 
 Validate ATT WF Driver SIs
-    [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpack"
+    [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
     [Tags]    serviceinstances
     : FOR    ${onu}    IN    @{serial_numbers}
     \    Wait Until Keyword Succeeds    ${timeout}    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
