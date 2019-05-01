@@ -5,97 +5,62 @@ Library           HttpLibrary.HTTP
 Library           Collections
 Library           String
 Library           OperatingSystem
+Resource          ../../Framework/utils/utils.robot
 Suite Setup       Setup
 Suite Teardown    Teardown
+Test Template     Send Event and Verify
 
 *** Variables ***
 ${cord_kafka}         cord-kafka
 ${server_ip}          xos-chameleon
 ${server_port}        9101
 ${subscriber_api}     /xosapi/v1/rcord/rcordsubscribers
+${att_wf_api}         /xosapi/v1/att-workflow-driver/attworkflowdriverservices
+${volt_api}           /xosapi/v1/volt/voltservices
 ${att_si_api}         /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
+${att_whitelist_api}  /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries
 ${onu_device_api}     /xosapi/v1/volt/onudevices
+${olt_api}            /xosapi/v1/volt/oltdevices
+${pon_ports_api}      /xosapi/v1/volt/ponports
+${uni_ports_api}      /xosapi/v1/volt/uniports
 ${onu_serial_no}      onudevice123
 ${onu_invalid_sn}     invalid_serial_no
-${mac_address}        00:AA:00:00:00:01
-${ip_address}         192.168.3.5
 ${deviceId}           of:robot_test
 ${ponportno}          10
 ${uniportno}          100
+${mac_address}        00:AA:00:00:00:01
+${ip_address}         192.168.3.5
 
 *** Test Cases ***
-Create Two ONU Devices
-    [Documentation]    Create two onu devices to be tested for valid/invalid paths
-    ${resp}=    CORD Get    /xosapi/v1/volt/voltservices
-    ${jsondata}=    To Json    ${resp.content}
-    ${voltservice}=    Get From List    ${jsondata['items']}    0
-    ${voltservice_id}=    Get From Dictionary    ${voltservice}    id
-    ${resp}=    CORD Get    /xosapi/v1/att-workflow-driver/attworkflowdriverservices
-    ${jsondata}=    To Json    ${resp.content}
-    ${attworkflowservice}=    Get From List    ${jsondata['items']}    0
-    ${attworkflowservice_id}=    Get From Dictionary    ${attworkflowservice}    id
-    Set Suite Variable    ${attworkflowservice_id}
-    ${resp}=    CORD Post    /xosapi/v1/rcord/rcordsubscribers    {"onu_device": "${onu_serial_no}", "status": "pre-provisioned"}
-    ${subscriber_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${subscriber_id}
-    ${resp}=    CORD Post    /xosapi/v1/volt/oltdevices    {"volt_service_id": ${voltservice_id}, "name": "testoltdevice1", "device_type": "ponism", "host": "172.17.0.1", "port": 50060, "switch_port": "1", "dp_id": "${deviceId}", "outer_tpid": "0x8100", "uplink": "128"}
-    ${oltdevice_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${oltdevice_id}
-    ${resp}=    CORD Post    /xosapi/v1/volt/ponports    {"olt_device_id": ${oltdevice_id}, "port_no": "${ponportno}", "name": "testponport1"}
-    ${ponport_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${ponport_id}
-    ${resp}=    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "${onu_serial_no}", "pon_port_id": ${ponport_id}, "vendor": "abcdefg"}
-    ${onu_device1_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${onu_device1_id}
-    ${resp}=    CORD Post    /xosapi/v1/volt/uniports    {"onu_device_id": "${onu_device1_id}", "port_no": ${uniportno}, "name": "testuniport"}
-    ${uni_port_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${uni_port_id}
-    ${resp}=    CORD Post    /xosapi/v1/volt/onudevices    {"serial_number": "${onu_invalid_sn}", "pon_port_id": ${ponport_id}, "vendor": "abcdefg"}
-    ${onu_device2_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${onu_device2_id}
-    ${resp}=    CORD Post    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    {"serial_number": "${onu_serial_no}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
-    ${whitelist_entry_id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${whitelist_entry_id}
-
-Activate Non-Whitelisted ONU
+Activate Non-Whitelisted ONU    onu.events    {'status': 'activated', 'serial_number': '${onu_invalid_sn}','uni_port_id': 100, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_invalid_sn}    onu_state=DISABLED
     [Documentation]    Validate that activating an ONU not in whitelist sets onu device to DISABLED
-    Send Kafka Event    onu.events    {'status': 'activated','serialNumber': '${onu_invalid_sn}','portNumber': '${uniportno}', 'deviceId': '${deviceId}'}
-    Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    DISABLED
 
-Activate Whitelisted ONU in Wrong Location
+Activate Whitelisted ONU in Wrong Location    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': 52, 'of_dpid': 'wrongofdpid'}    onu_serial_number=${onu_serial_no}    onu_state=DISABLED
     [Documentation]    Validate that activating an ONU in the whitelist but in the wrong location DISABLES the onu device
-    Send Kafka Event    onu.events    {'status': 'activated', 'serialNumber': '${onu_serial_no}','portNumber': '52', 'deviceId': 'wrongofdpid'}
-    Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_serial_no}    DISABLED
 
-Activate Whitelisted ONU
+Activate Whitelisted ONU    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': ${uniportno}, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_serial_no}    onu_state=ENABLED
     [Documentation]    Validate that activating an ONU in the whitelist creates a attworkflow-driver-serviceinstance
-    Send Kafka Event    onu.events    {'status': 'activated','serialNumber': '${onu_serial_no}','portNumber': '${uniportno}', 'deviceId': '${deviceId}'}
-    ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    AWAITING
-    Wait Until Keyword Succeeds    60s    5s    Validate ONU Device Status    ${onu_serial_no}    ENABLED
 
-Send Auth Request
+Send Auth Request    authentication.events    {'authenticationState': 'APPROVED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}    onu_serial_number=${onu_serial_no}    subscriber_state=enabled    service_instance_state=APPROVED    service_instance_count=1    service_instance_dhcp_state=AWAITING
     [Documentation]    Validate that sending an auth request to the onu will enable the subscriber and create a service chain
-    Send Kafka Event    authentication.events    {'authenticationState': 'APPROVED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}
-    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Status    ${onu_serial_no}    enabled
-    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Service Chain    ${onu_serial_no}    1
-    ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    APPROVED
 
-Send Denied Auth Request
+Send DHCP Request    dhcp.events    {'macAddress': '${mac_address}','ipAddress': '${ip_address}', 'deviceId': '${deviceId}', 'portNumber': ${uniportno}, 'messageType': 'DHCPACK'}    onu_serial_number=${onu_serial_no}    service_instance_state=APPROVED    service_instance_dhcp_state=DHCPACK
+    [Documentation]    Validate that sending an dhcp request to update the subscriber's mac+ip address
+
+Send Denied Auth Request    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}    onu_serial_number=${onu_serial_no}    subscriber_state=auth-failed    service_instance_state=DENIED    service_instance_dhcp_state=DHCPACK
     [Documentation]    Validate that denied auth request to the onu will disable the subscriber and remove a service chain
-    Send Kafka Event    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}
-    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
-    Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}
-    ${att_wf_driver_si_id}=    Wait Until Keyword Succeeds    30s    5s    Get ATT Service Instance ID    ${onu_serial_no}    DENIED
 
 Create New Whitelist Entry
     [Documentation]    Validate that creating a new whitelist entry for the "invalid" onu device will enable the onu
-    ${resp}=    CORD Post    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    {"serial_number": "${onu_invalid_sn}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
+    [Template]    None
+    ${resp}=    CORD Post    ${att_whitelist_api}    {"serial_number": "${onu_invalid_sn}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
     ${whitelist_entry2_id}=    Get Json Value    ${resp.content}    /id
     Set Suite Variable    ${whitelist_entry2_id}
     Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    ENABLED
 
 Remove Whitelist Entry
     [Documentation]    Validate that removing a whitelist entry for an onu device will disable the subscriber and remove it's service chain
+    [Template]    None
     CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry_id}
     Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Status    ${onu_serial_no}    auth-failed
     Wait Until Keyword Succeeds    120s    5s    Validate Subscriber Service Chain    ${onu_serial_no}
@@ -108,13 +73,59 @@ Setup
     ${auth} =    Create List    admin@opencord.org    letmein
     ${HEADERS}    Create Dictionary    Content-Type=application/json
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
+    Create OLT, ONU, Subscribers, and Whitelists
 
 Teardown
     [Documentation]    Delete all models created
     CORD Get    /xosapi/v1/rcord/rcordsubscribers
-    CORD Delete    /xosapi/v1/rcord/rcordsubscribers    ${subscriber_id}
-    Wait Until Keyword Succeeds    60s    5s    CORD Delete    /xosapi/v1/volt/oltdevices    ${oltdevice_id}
-    CORD Delete    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries    ${whitelist_entry2_id}
+    Clean Up Objects    ${subscriber_api}
+    Clean Up Objects    ${att_si_api}
+    Clean Up Objects    ${subscriber_api}
+    Wait Until Keyword Succeeds    60s    1s    Clean Up Objects    ${olt_api}
+    Clean Up Objects    ${att_whitelist_api}
+
+Create OLT, ONU, Subscribers, and Whitelists
+    [Documentation]    Create two onu devices to be tested for valid/invalid paths
+    ${resp}=    CORD Get    ${volt_api}
+    ${jsondata}=    To Json    ${resp.content}
+    ${voltservice}=    Get From List    ${jsondata['items']}    0
+    ${voltservice_id}=    Get From Dictionary    ${voltservice}    id
+    ${resp}=    CORD Get    ${att_wf_api}
+    ${jsondata}=    To Json    ${resp.content}
+    ${attworkflowservice}=    Get From List    ${jsondata['items']}    0
+    ${attworkflowservice_id}=    Get From Dictionary    ${attworkflowservice}    id
+    Set Suite Variable    ${attworkflowservice_id}
+    ${resp}=    CORD Post    ${subscriber_api}    {"onu_device": "${onu_serial_no}", "status": "pre-provisioned"}
+    ${subscriber_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${subscriber_id}
+    ${resp}=    CORD Post    ${olt_api}    {"volt_service_id": ${voltservice_id}, "name": "testoltdevice1", "device_type": "ponism", "host": "172.17.0.1", "port": 50060, "switch_port": "1", "dp_id": "${deviceId}", "outer_tpid": "0x8100", "uplink": "128"}
+    ${oltdevice_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${oltdevice_id}
+    ${resp}=    CORD Post    ${pon_ports_api}    {"olt_device_id": ${oltdevice_id}, "port_no": "${ponportno}", "name": "testponport1"}
+    ${ponport_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${ponport_id}
+    ${resp}=    CORD Post    ${onu_device_api}    {"serial_number": "${onu_serial_no}", "pon_port_id": ${ponport_id}, "vendor": "abcdefg"}
+    ${onu_device1_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${onu_device1_id}
+    ${resp}=    CORD Post    ${uni_ports_api}    {"onu_device_id": "${onu_device1_id}", "port_no": ${uniportno}, "name": "testuniport"}
+    ${uni_port_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${uni_port_id}
+    ${resp}=    CORD Post    ${onu_device_api}    {"serial_number": "${onu_invalid_sn}", "pon_port_id": ${ponport_id}, "vendor": "abcdefg"}
+    ${onu_device2_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${onu_device2_id}
+    ${resp}=    CORD Post    ${att_whitelist_api}    {"serial_number": "${onu_serial_no}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
+    ${whitelist_entry_id}=    Get Json Value    ${resp.content}    /id
+    Set Suite Variable    ${whitelist_entry_id}
+
+Send Event and Verify
+    [Arguments]    ${topic}    ${event}    ${onu_serial_number}=${EMPTY}    ${onu_state}=${EMPTY}    ${subscriber_state}=${EMPTY}    ${service_instance_state}=${EMPTY}    ${service_instance_count}=${EMPTY}    ${service_instance_dhcp_state}=${EMPTY}
+    Send Kafka Event    ${topic}    ${event}
+    Run Keyword If    '${topic}' == 'onu.events'    Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_serial_number}    ${onu_state}
+    Run Keyword If    '${topic}' == 'authentication.events'    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Status    ${onu_serial_number}    ${subscriber_state}
+    Run Keyword If    '${topic}' == 'authentication.events'    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Service Chain    ${onu_serial_number}    ${service_instance_count}
+    Run Keyword If    '${topic}' == 'authentication.events'    Wait Until Keyword Succeeds    30s    5s    Validate ATT Service Instance    ${onu_serial_number}    ${service_instance_state}    ${service_instance_dhcp_state}
+    Run Keyword If    '${topic}' == 'dhcp.events'    Wait Until Keyword Succeeds    30s    5s    Validate ATT Service Instance    ${onu_serial_number}    ${service_instance_state}    ${service_instance_dhcp_state}
+    Run Keyword If    '${topic}' == 'dhcp.events'    Wait Until Keyword Succeeds    30s    5s    Validate Subscriber Settings    ${onu_serial_number}
 
 Send Kafka Event
     [Documentation]    Send event
@@ -124,36 +135,9 @@ Send Kafka Event
     Send    ${topic}    ${event}
     Flush
 
-CORD Get
-    [Documentation]    Make a GET call to XOS
-    [Arguments]    ${service}
-    ${resp}=    Get Request    ${server_ip}    ${service}
-    Log    ${resp.content}
-    Should Be Equal As Strings    ${resp.status_code}    200
-    [Return]    ${resp}
-
-CORD Post
-    [Documentation]    Make a POST call to XOS
-    [Arguments]    ${service}    ${data}
-    ${data}=    Evaluate    json.dumps(${data})    json
-    ${resp}=    Post Request    ${server_ip}    uri=${service}    data=${data}
-    Log    ${resp.content}
-    Should Be Equal As Strings    ${resp.status_code}    200
-    ${id}=    Get Json Value    ${resp.content}    /id
-    Set Suite Variable    ${id}
-    [Return]    ${resp}
-
-CORD Delete
-    [Documentation]    Make a DELETE call to the CORD controller
-    [Arguments]    ${service}    ${data_id}
-    ${resp}=    Delete Request    ${SERVER_IP}    uri=${service}/${data_id}
-    Log    ${resp.content}
-    Should Be Equal As Strings    ${resp.status_code}    200
-    [Return]    ${resp}
-
-Get ATT Service Instance ID
-    [Documentation]    Returns the id of the newly created onu's att workflow service instance
-    [Arguments]    ${serial_no}    ${auth_state}
+Validate ATT Service Instance
+    [Documentation]    Validates the states in the ATT-WF-SI per onu
+    [Arguments]    ${serial_no}    ${auth_state}    ${dhcp_state}
     ${resp}=    Get Request    ${server_ip}    ${att_si_api}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -167,9 +151,10 @@ Get ATT Service Instance ID
     \    ${id}=    Get From Dictionary    ${value}    id
     \    ${sn}=    Get From Dictionary    ${value}    serial_number
     \    ${as}=    Get From Dictionary    ${value}    authentication_state
+    \    ${dp}=    Get From Dictionary    ${value}    dhcp_state
     \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    Should Be Equal    ${dp}    ${dhcp_state}
     Should Be Equal    ${as}    ${auth_state}
-    [Return]    ${id}
 
 Validate Subscriber Status
     [Arguments]    ${serial_no}    ${expected_status}
@@ -196,7 +181,8 @@ Validate Subscriber Service Chain
     \    ${result}    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
     \    ${sn}=    Get From Dictionary    ${value}    onu_device
     \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
-    Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Be Equal As Integers    ${slinks}    ${expected_no_sc}    ELSE    Should Be Empty    ${sl}
+    Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Not Be Equal As Strings    ${result}    FAIL
+    Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Not Be Empty    ${result}    ELSE    Should Be Empty    ${sl}
 
 Validate ONU Device Status
     [Arguments]    ${serial_no}    ${expected_status}
@@ -220,8 +206,6 @@ Validate Subscriber Settings
     : FOR    ${INDEX}    IN RANGE    0    ${length}
     \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
     \    ${macAddress}=    Get From Dictionary    ${value}    mac_address
-    \    ${ipAddress}=    Get From Dictionary    ${value}    ip_address
     \    ${sn}=    Get From Dictionary    ${value}    onu_device
     \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
     Should Be Equal    ${macAddress}    ${mac_address}
-    Should Be Equal    ${ipAddress}    ${ip_address}
