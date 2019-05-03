@@ -72,7 +72,7 @@ Setup
     Connect Producer    ${cord_kafka}:9092    dhcp.events
     ${auth} =    Create List    admin@opencord.org    letmein
     ${HEADERS}    Create Dictionary    Content-Type=application/json
-    Create Session    ${server_ip}    http://${xos_chameleon_url}:${xos_chameleon_port}    auth=${AUTH}    headers=${HEADERS}
+    Create Session    ${xos_chameleon_url}    http://${xos_chameleon_url}:${xos_chameleon_port}    auth=${AUTH}    headers=${HEADERS}
     Create OLT, ONU, Subscribers, and Whitelists
 
 Teardown
@@ -138,7 +138,7 @@ Send Kafka Event
 Validate ATT Service Instance
     [Documentation]    Validates the states in the ATT-WF-SI per onu
     [Arguments]    ${serial_no}    ${auth_state}    ${dhcp_state}
-    ${resp}=    Get Request    ${server_ip}    ${att_si_api}
+    ${resp}=    Get Request    ${xos_chameleon_url}    ${att_si_api}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ## validate sn exists
