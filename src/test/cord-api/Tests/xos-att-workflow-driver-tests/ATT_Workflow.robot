@@ -11,7 +11,6 @@ Suite Teardown    Teardown
 Test Template     Send Event and Verify
 
 *** Variables ***
-${cord_kafka}         cord-kafka
 ${server_ip}          xos-chameleon
 ${server_port}        9101
 ${subscriber_api}     /xosapi/v1/rcord/rcordsubscribers
@@ -67,6 +66,7 @@ Remove Whitelist Entry
 
 *** Keywords ***
 Setup
+    ${cord_kafka}=    Get Environment Variable    CORD_KAFKA_IP    cord-kafka
     Connect Producer    ${cord_kafka}:9092    onu.events
     Connect Producer    ${cord_kafka}:9092    authentication.events
     Connect Producer    ${cord_kafka}:9092    dhcp.events
