@@ -11,24 +11,24 @@ Suite Teardown    Teardown
 Test Template     Send Event and Verify
 
 *** Variables ***
-${server_ip}          xos-chameleon
-${server_port}        9101
-${subscriber_api}     /xosapi/v1/rcord/rcordsubscribers
-${att_wf_api}         /xosapi/v1/att-workflow-driver/attworkflowdriverservices
-${volt_api}           /xosapi/v1/volt/voltservices
-${att_si_api}         /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
-${att_whitelist_api}  /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries
-${onu_device_api}     /xosapi/v1/volt/onudevices
-${olt_api}            /xosapi/v1/volt/oltdevices
-${pon_ports_api}      /xosapi/v1/volt/ponports
-${uni_ports_api}      /xosapi/v1/volt/uniports
-${onu_serial_no}      onudevice123
-${onu_invalid_sn}     invalid_serial_no
-${deviceId}           of:robot_test
-${ponportno}          10
-${uniportno}          100
-${mac_address}        00:AA:00:00:00:01
-${ip_address}         192.168.3.5
+${xos_chameleon_url}      xos-chameleon
+${xos_chameleon_port}     30006
+${subscriber_api}         /xosapi/v1/rcord/rcordsubscribers
+${att_wf_api}             /xosapi/v1/att-workflow-driver/attworkflowdriverservices
+${volt_api}               /xosapi/v1/volt/voltservices
+${att_si_api}             /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
+${att_whitelist_api}      /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries
+${onu_device_api}         /xosapi/v1/volt/onudevices
+${olt_api}                /xosapi/v1/volt/oltdevices
+${pon_ports_api}          /xosapi/v1/volt/ponports
+${uni_ports_api}          /xosapi/v1/volt/uniports
+${onu_serial_no}          onudevice123
+${onu_invalid_sn}         invalid_serial_no
+${deviceId}               of:robot_test
+${ponportno}              10
+${uniportno}              100
+${mac_address}            00:AA:00:00:00:01
+${ip_address}             192.168.3.5
 
 *** Test Cases ***
 Activate Non-Whitelisted ONU    onu.events    {'status': 'activated', 'serial_number': '${onu_invalid_sn}','uni_port_id': 100, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_invalid_sn}    onu_state=DISABLED
@@ -72,7 +72,7 @@ Setup
     Connect Producer    ${cord_kafka}:9092    dhcp.events
     ${auth} =    Create List    admin@opencord.org    letmein
     ${HEADERS}    Create Dictionary    Content-Type=application/json
-    Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
+    Create Session    ${server_ip}    http://${xos_chameleon_url}:${xos_chameleon_port}    auth=${AUTH}    headers=${HEADERS}
     Create OLT, ONU, Subscribers, and Whitelists
 
 Teardown
