@@ -43,7 +43,7 @@ ${OLT_DEVICE_FILENAME}     SIABOLTDevice
 ${WHITELIST_PATHFILE}      ${CURDIR}/data/${WHITELIST_FILENAME}.json
 ${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/${SUBSCRIBER_FILENAME}.json
 ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${OLT_DEVICE_FILENAME}.json
-${export_kube_config}      export KUBECONFIG=/home/%{USER}/.kube/config
+${export_kube_config}      export KUBECONFIG=%{HOME}/.kube/config
 ${kube_node_ip}            localhost
 ${dst_host_ip}             172.18.0.10
 ${local_user}              %{USER}
