@@ -138,8 +138,7 @@ Send Kafka Event
 Validate ATT Service Instance
     [Documentation]    Validates the states in the ATT-WF-SI per onu
     [Arguments]    ${serial_no}    ${auth_state}    ${dhcp_state}
-    ${resp}=    Get Request    ${xos_chameleon_url}    ${att_si_api}
-    Log    ${resp.content}
+    ${resp}=    CORD Get    ${att_si_api}
     Should Be Equal As Strings    ${resp.status_code}    200
     ## validate sn exists
     Should Contain    ${resp.content}    ${serial_no}
