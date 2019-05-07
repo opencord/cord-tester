@@ -11,8 +11,8 @@ Suite Teardown    Teardown
 Test Template     Send Event and Verify
 
 *** Variables ***
-${xos_chameleon_url}      xos-chameleon
-${xos_chameleon_port}     30006
+${server_ip}              xos-chameleon
+${server_port}            30006
 ${subscriber_api}         /xosapi/v1/rcord/rcordsubscribers
 ${att_wf_api}             /xosapi/v1/att-workflow-driver/attworkflowdriverservices
 ${volt_api}               /xosapi/v1/volt/voltservices
@@ -72,7 +72,7 @@ Setup
     Connect Producer    ${cord_kafka}:9092    dhcp.events
     ${auth} =    Create List    admin@opencord.org    letmein
     ${HEADERS}    Create Dictionary    Content-Type=application/json
-    Create Session    ${xos_chameleon_url}    http://${xos_chameleon_url}:${xos_chameleon_port}    auth=${AUTH}    headers=${HEADERS}
+    Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     Create OLT, ONU, Subscribers, and Whitelists
 
 Teardown
