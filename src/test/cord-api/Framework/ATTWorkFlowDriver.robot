@@ -22,6 +22,9 @@ Library           RequestsLibrary
 Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
+*** Variable ***
+${ONU_STATE_VAR}    onu_state
+
 *** Keywords ***
 Service Instance Status Check
     [Arguments]    ${onu_device}
@@ -30,7 +33,7 @@ Service Instance Status Check
     Log    ${json_result}
     ${json_result_list}=    Get From dictionary    ${json_result}    items
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
-    ${onu_state}=  Get From Dictionary    ${getJsonDict}   onu_state
+    ${onu_state}=  Get From Dictionary    ${getJsonDict}   ${ONU_STATE_VAR}
     ${authentication_state}=  Get From Dictionary    ${getJsonDict}   authentication_state
     ${status_message}=  Get From Dictionary    ${getJsonDict}   status_message
     [Return]    ${onu_state}    ${authentication_state}    ${status_message}
