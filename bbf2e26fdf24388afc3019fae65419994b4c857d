@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "33cc47bd_011d5114",
+        "filename": "src/test/cord-api/Framework/ATTWorkFlowDriver.robot",
+        "patchSetId": 1
+      },
+      "lineNbr": 36,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2019-05-10T21:44:16Z",
+      "side": 1,
+      "message": "Shouldn\u0027t this be ONU_STATE_VAR to match definition above?",
+      "range": {
+        "startLine": 36,
+        "startChar": 61,
+        "endLine": 36,
+        "endChar": 70
+      },
+      "revId": "bbf2e26fdf24388afc3019fae65419994b4c857d",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
