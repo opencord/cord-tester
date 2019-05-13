@@ -65,7 +65,7 @@ OLT Reboot
     # Reboot OLT
     Login And Run Command On Remote System    sudo reboot    ${olt_ip}    ${olt_user}    ${olt_pass}   prompt=#
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
     # Validate successful pings since the OLT is Up

@@ -23,7 +23,7 @@ Library           ../Framework/utils/utils.py
 Library           ../Framework/restApi.py
 
 *** Variable ***
-${ONU_STATE_VAR}    onu_state
+${ONU_STATE_VAR}    admin_onu_state
 
 *** Keywords ***
 Service Instance Status Check
