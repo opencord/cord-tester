@@ -79,7 +79,16 @@ Get ONOS Status
     ${onos_ports}    Get Binary File    /tmp/onos_ports.log
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_flows.log    flows -s    host=${server_ip}
     ${onos_flows}    Get Binary File    /tmp/onos_flows.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_meters.log    meters    host=${server_ip}
+    ${onos_meters}    Get Binary File    /tmp/onos_meters.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_prog_subscribers.log    volt-programmed-subscribers    host=${server_ip}
+    ${onos_volt_prog_subscribers}    Get Binary File    /tmp/onos_volt_prog_subscribers.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_prog_meters.log    volt-programmed-meters    host=${server_ip}
+    ${onos_volt_prog_meters}    Get Binary File    /tmp/onos_volt_prog_meters.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_ports}
     Log    ${onos_flows}
+    Log    ${onos_meters}
+    Log    ${onos_volt_prog_subscribers}
+    Log    ${onos_volt_prog_meters}
