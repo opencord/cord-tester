@@ -164,6 +164,10 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /ip    "2.2.2.2"
     ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /ip    "3.3.3.3"
     {% endif %}
+    {% if  m.name  == "ONUDevice" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /serial_number    "testserialnumber"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /serial_number    "amendserialnumber"
+    {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
