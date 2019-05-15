@@ -238,6 +238,10 @@ Create {{ m.name }}
     {% if  m.name  == "RCORDSubscriber" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /owner_id    ${rcord_tmp_service_id}
     {% endif %}
+    {% if  m.name  == "ONUDevice" -%}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /serial_number    "testserialnumber"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /serial_number    "amendserialnumber"
+    {% endif %}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true    
     ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
