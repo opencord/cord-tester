@@ -86,7 +86,9 @@ Generate JSON Data
     {% if f.modifier == "required" and f.options.blank != "True" -%}
     {% if not f.options.default -%}
     {% if f.link -%}
-    ${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    ## check if dependent model exists, if not, create it
+    ${tmp_{{ f.options.model | lower }}_id}=    Create Dependent Model    {{ f.options.model }}
+    #${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
     {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
     ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
@@ -181,7 +183,10 @@ Create {{ m.name }}
     {% if f.link -%}
     {% if f.modifier == "required" and f.options.blank != "True"-%}
     # create dependent {{ f.options.model }}
-    ${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    ## check if dependent model exists, if not, create it
+    ${dependent_{{ f.options.model | lower }}_id}=    Create Dependent Model    {{ f.options.model }}
+    #${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
+    #${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
     {% endif -%}
     {% else -%}
@@ -233,7 +238,7 @@ Create {{ m.name }}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /owner_id    ${rcord_tmp_service_id}
     {% endif %}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true    
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true
     ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
     ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get Json Value    ${resp.content}    /id
@@ -241,6 +246,12 @@ Create {{ m.name }}
     [Return]    ${id_{{ m.name | lower }}_tmp}
 {% endif %}
 {% endfor -%}
+
+Create Dependent Model
+    [Arguments]    ${model}
+    ${result}    ${id}=    Run Keyword And Ignore Error    Create ${model}
+    ${model_id}=    Set Variable If    "${result}" == "PASS"    ${id}    1
+    [Return]    ${model_id}
 
 Setup Tests
     [Documentation]    Find all dependent objects per model and create them and store them for later use
@@ -268,3 +279,4 @@ Teardown Tests
     {% endif -%}
     {% endfor -%}
     Delete All Sessions
+
