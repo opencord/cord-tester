@@ -55,7 +55,7 @@ ONU in Correct Location
     ...    Configure whitelist with correct ONU location
     ...    Validate successful authentication/DHCP/E2E ping
     [Setup]    None
-    [Tags]    stable    latest    test1
+    [Tags]    stable    latest    test1    multicast
     Subscriber Ready to Authenticate
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
@@ -269,6 +269,24 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+
+Multicast Join Fails -> Authenticate, run DHCP -> Multicast Join Succeeds
+    [Documentation]    Validates Multicast Connectivity and object states for the given scenario:
+    ...    (Assumes multicast server upstream of BNG)
+    ...    (Assumes pimd server running on BNG)
+    ...    Configure whitelist with correct ONU location
+    ...    Run multicast client on RG
+    ...    Validate that no multicast traffic flowing yet
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    Run multicast client on RG
+    ...    Validate that multicast traffic is flowing E2E
+    [Tags]    latest    test11    multicast
+    Subscriber Ready to Authenticate
+    Validate Multicast    False    eth0    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Subscriber Service Chain Created
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Multicast    True    eth0    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
 *** Keywords ***
 Setup
