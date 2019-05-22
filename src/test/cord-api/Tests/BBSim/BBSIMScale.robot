@@ -179,7 +179,7 @@ CORD Delete
 
 Verify Number of AAA-Users
     [Arguments]    ${expected_onus}
-    ${aaa_users}=    Execute ONOS Command    aaa-users | wc -l
+    ${aaa_users}=    Execute ONOS Command    aaa-users | grep AUTHORIZED | wc -l
     Should Contain    ${aaa_users}    ${expected_onus}
 
 Validate Hosts in ONOS
@@ -189,7 +189,7 @@ Validate Hosts in ONOS
 
 Validate DHCP Allocations
     [Arguments]    ${expected_onus}
-    ${allocations}=    Execute ONOS Command    dhcpl2relay-allocations | wc -l
+    ${allocations}=    Execute ONOS Command    dhcpl2relay-allocations | grep DHCPACK | wc -l
     Should Contain    ${allocations}    ${expected_onus}
 
 OLT Device in ONOS
