@@ -270,6 +270,22 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
+ONU in Correct Location -> Test Multicast
+    [Documentation]    Validates Multicast Connectivity and object states for the given scenario:
+    ...    Configure whitelist with correct ONU location
+    ...    Validate successful authentication/DHCP/E2E ping
+    ...    (Assumes multicast server upstream of BNG)
+    ...    (Assumes pimd server running on BNG)
+    ...    Starts multicast client on RG
+    ...    Validate multicast traffic flowing E2E
+    [Setup]    None
+    [Tags]    multicast notready
+    Subscriber Ready to Authenticate
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Subscriber Service Chain Created
+    Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Multicast    True    eth0    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+
 *** Keywords ***
 Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
