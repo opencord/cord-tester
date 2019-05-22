@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "016b683f_5fe104b6",
+        "filename": "src/test/cord-api/Tests/targets/xosstaticlibrary.xtarget",
+        "patchSetId": 1
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1000007
+      },
+      "writtenOn": "2019-05-22T23:15:40Z",
+      "side": 1,
+      "message": "The error can be many things, I don\u0027t think we should ignore errors in general.\nI would say we should check if the Service already exists and in case return that.",
+      "range": {
+        "startLine": 262,
+        "startChar": 29,
+        "endLine": 262,
+        "endChar": 57
+      },
+      "revId": "593a149eb010add2d941b338b3aadb08da4bc486",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
