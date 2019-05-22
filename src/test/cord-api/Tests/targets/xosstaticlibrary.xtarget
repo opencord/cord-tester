@@ -142,20 +142,20 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /CellIndividualOffset    "1"
     {% endif %}
     {% if  m.name  == "RCORDSubscriber" -%}
-    ## Create req service owner for rcord subscriber and
-    CORD Post    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
+    ## Create req service owner for rcord subscriber
+    Create Dependent Owner Model    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
     ${rcord_tmp_service_id}=    Set Variable    ${id}
     Set Suite Variable    ${rcord_tmp_service_id}
     {% endif %}
     {% if  m.name  == "HippieOSSServiceInstance" -%}
     ## Create req service owner for hippie oss service instance
-    CORD Post    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
+    Create Dependent Owner Model    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
     {% endif %}
     {% if  m.name  == "MCordSubscriberInstance" -%}
     ## Create req service owner for hippie oss service instance
-    CORD Post    /xosapi/v1/mcord/mcordsubscriberservices    {"name": "testmcordservice"}
+    Create Dependent Owner Model    /xosapi/v1/mcord/mcordsubscriberservices    {"name": "testmcordservice"}
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
     {% endif %}
     {% if  m.name  == "AddressManagerServiceInstance" -%}
@@ -256,6 +256,26 @@ Create Dependent Model
     ${result}    ${id}=    Run Keyword And Ignore Error    Create ${model}
     ${model_id}=    Set Variable If    "${result}" == "PASS"    ${id}    1
     [Return]    ${model_id}
+
+Create Dependent Owner Model
+    [Arguments]    ${model}    ${data}
+    ${condition}    ${modelId}=    Check If Model Exists    ${model}
+    ${resp}=    Run Keyword Unless    ${condition}    CORD Post    ${model}    ${data}
+    ${id}=    Run Keyword Unless    ${condition}    Get Json Value    ${resp.content}    /id
+    ${model_id}=    Set Variable If    ${condition}    ${modelId}    ${id}
+    [Return]    ${model_id}
+
+Check If Model Exists
+    [Arguments]    ${service}
+    ${resp}=    Get Request    ${SERVER_IP}    ${service}
+    Log    ${resp.content}
+    Should Be Equal As Strings    ${resp.status_code}    200
+    ${jsondata}=    To Json    ${resp.content}
+    ${length}=    Get Length    ${jsondata['items']}
+    ${value}=    Run Keyword If    ${length}    Get From List    ${jsondata['items']}    0
+    ${modelId}=    Run Keyword If    ${length}    Get From Dictionary    ${value}    id
+    Run Keyword If    ${length}    Return From Keyword    True    ${modelId}
+    [Return]    False    ${NONE}
 
 Setup Tests
     [Documentation]    Find all dependent objects per model and create them and store them for later use
