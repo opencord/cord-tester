@@ -77,6 +77,18 @@ Validate Authentication
     Run Keyword If    '${auth_pass}' == 'False'    Sleep    20s
     Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    False    /tmp/wpa.log    authentication completed successfully    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
+Run Multicast Client
+    [Arguments]    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    [Documentation]    Executes mcjoin (a simple multicast client) on the RG.
+    Login And Run Command On Remote System    rm -f /tmp/mcjoin.log; timeout 10 mcjoin -c 5 -i eth0 > /tmp/mcjoin.log || true    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+
+Validate Multicast
+    [Arguments]    ${auth_pass}    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
+    [Documentation]    Executes a particular auth request on the RG and verifies if it succeeds. auth_pass determines if authentication should pass
+    Run Multicast Client    ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'True'    Check Remote File Contents    True    /tmp/mcjoin.log    Received total: 5 packets    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    Run Keyword If    '${auth_pass}' == 'False'    Check Remote File Contents    True    /tmp/mcjoin.log    Received total: 0 packets    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+
 Start DHCP Server on Remote Host
     [Arguments]    ${interface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     ${result}=    Login And Run Command On Remote System    dhcpd -cf /etc/dhcp/dhcpd.conf ${interface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
