@@ -259,3 +259,17 @@ Check Ping Result
     Run Keyword If    '${reachable}' == 'True'    Should Not Contain Any    ${result}    100% packet loss    100.0% packet loss
     Run Keyword If    '${reachable}' == 'False'    Should Not Contain    ${result}    64 bytes
     Run Keyword If    '${reachable}' == 'False'    Should Contain Any    ${result}    100% packet loss    100.0% packet loss
+
+Set Deployment Config Variables
+    [Documentation]    Parses through the given deployment config and sets all the "src" and "dst" variables
+    ${source}=    Evaluate    ${hosts}.get("src")
+    ${length_src}=    Get Length    ${source}
+    ${src}=    Set Variable    src
+    : FOR    ${INDEX}    IN RANGE    0    ${length_src}
+    \    Set Suite Variable    ${${src}${INDEX}}    ${source[${INDEX}]}
+    ${destination}=    Evaluate    ${hosts}.get("dst")
+    ${length_dst}=    Get Length    ${destination}
+    ${dst}=    Set Variable    dst
+    : FOR    ${INDEX}    IN RANGE    0    ${length_dst}
+    \    Set Suite Variable    ${${dst}${INDEX}}    ${destination[${INDEX}]}
+
