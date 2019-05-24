@@ -5,6 +5,12 @@
             "device_id" : "of:000000000a5a0072",
             "pon_port_id" : 536870912,
             "owner_id" : "1"
+    },
+    {
+            "serial_number": "ISKT71e80080",
+            "device_id" : "of:000000000a5a0072",
+            "pon_port_id" : 536870912,
+            "owner_id" : "1"
     }
   ]
 }
