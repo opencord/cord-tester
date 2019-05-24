@@ -67,17 +67,17 @@ ONU in Correct Location with two ONUs
     Validate Authentication    True    ${src0['dp_iface_name']}    wpa_supplicant.conf    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${src0['onu']}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${src0['onu']}
-    Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${s_tag}    ${c_tag}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
+    Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${src0['s_tag]}    ${src0['c_tag']}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
     #Second ONU
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${src1['onu']}
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${src0['onu']}
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${src0['onu']}
-    Validate Authentication    True    ${src0['dp_iface_name']}    wpa_supplicant.conf    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
-    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${src0['onu']}
-    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${src0['onu']}
-    Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${s_tag}    ${c_tag}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${src1['onu']}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${src1['onu']}
+    Validate Authentication    True    ${src1['dp_iface_name']}    wpa_supplicant.conf    ${src1['ip']}    ${src1['user']}    ${src1['pass']}    ${src1['container_type']}    ${src1['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${src1['onu']}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${src1['onu']}
+    Validate DHCP and Ping    True    True    ${src1['dp_iface_name']}    ${src1['s_tag']}    ${src1['c_tag']}    ${dst1['dp_iface_ip_qinq']}    ${src1['ip']}    ${src1['user']}    ${src1['pass']}    ${src1['container_type']}    ${src1['container_name']}    ${dst1['dp_iface_name']}    ${dst1['ip']}    ${dst1['user']}    ${dst1['pass']}    ${dst1['container_type']}    ${dst1['container_name']}
     # Validate that the first ONU can still ping
-    Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${s_tag}    ${c_tag}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
+    Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${src0['s_tag]}    ${src0['c_tag']}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
 
 *** Keywords ***
 Setup Suite

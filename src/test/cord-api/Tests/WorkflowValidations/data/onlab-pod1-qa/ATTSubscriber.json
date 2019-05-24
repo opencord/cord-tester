@@ -11,6 +11,18 @@
             "remote_id": "bar2",
             "upstream_bps_id": 1,
             "downstream_bps_id": 1
+     },
+     {
+            "name": "Sub_ISKra",
+            "s_tag": 111,
+            "c_tag": 113,
+            "onu_device": "ISKT71e80080",
+            "nas_port_id": "PON 1/1/04/1:1.1.1",
+            "circuit_id": "foo3",
+            "status": "pre-provisioned",
+            "remote_id": "bar3",
+            "upstream_bps_id": 2,
+            "downstream_bps_id": 2
      }
   ]
 }
