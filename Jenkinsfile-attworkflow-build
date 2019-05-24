@@ -126,7 +126,7 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha
+                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha --version 1.0.4
                     """
                 }
                 timeout(10) {
