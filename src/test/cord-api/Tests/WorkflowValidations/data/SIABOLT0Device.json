@@ -1,0 +1,15 @@
+{
+    "VOLTDeviceInfo" : [
+    {
+            "device_type": "ponsim_olt",
+            "host": "olt0.voltha.svc",
+            "port": 50060,
+            "switch_datapath_id": "of:0000000000000001",
+            "switch_port": "2",
+            "outer_tpid": "0x8100",
+            "name": "PONSIM OLT",
+            "uplink": "2",
+            "volt_service_id": 2
+    }
+  ]
+}

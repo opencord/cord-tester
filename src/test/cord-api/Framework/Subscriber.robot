@@ -133,7 +133,7 @@ Validate DHCP and Ping
     ...                                          ELSE    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst_dp_ip}    ${src_iface}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}
 
 Send Dhclient Request K8S
-    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg[0-]"|cut -d' ' -f1
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- sed -i 's/timeout 300;/timeout 30;/' /etc/dhcp/dhclient.conf
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- ifconfig eth0 0.0.0.0
     Run    kubectl -n voltha exec ${RG_CONTAINER} -- dhclient
