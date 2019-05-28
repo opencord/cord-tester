@@ -319,7 +319,7 @@ Setup
     Set Suite Variable    ${whitelist_id}
     ${att_si_id}=    Retrieve ATT Service Instance ID    ${onu_device}
     Set Suite Variable    ${att_si_id}
-    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg[0-]"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     ## Validate ATT Workflow SI
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
@@ -366,7 +366,7 @@ No Subscriber Service Chain
 Simple Setup
     ${datetime}=    Run    date +"%Y-%m-%dT%H:%M:%S.%NZ"
     Set Suite Variable    ${datetime}
-    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg[0-]"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
 
 Test Cleanup
@@ -384,7 +384,7 @@ Test Cleanup
 
 Restart RG Pod
     Run    kubectl -n voltha delete pod ${RG_CONTAINER}
-    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    ${RG_CONTAINER}=    Wait Until Keyword Succeeds    60s    1s    Run    kubectl -n voltha get pod|grep "^rg[0-]"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
     Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
 
@@ -426,7 +426,7 @@ Reset SIAB Environment
     Wait Until Keyword Succeeds    60s    2s    Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Create Whitelist
     Subscriber Ready to Authenticate
-    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg-"|cut -d' ' -f1
+    ${RG_CONTAINER}=    Run    kubectl -n voltha get pod|grep "^rg[0-]"|cut -d' ' -f1
     Set Suite Variable    ${RG_CONTAINER}
 
 Validate XConnect in ONOS
