@@ -1,0 +1,10 @@
+{
+    "AttWhiteListInfo" : [
+    {
+            "serial_number": "PSMO00000000",
+            "device_id" : "of:0000d0d3e158fede",
+            "pon_port_id" : 1,
+            "owner_id" : "1"
+    }
+  ]
+}
