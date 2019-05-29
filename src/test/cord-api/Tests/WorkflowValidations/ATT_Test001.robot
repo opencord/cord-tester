@@ -332,6 +332,12 @@ Setup Suite
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
     Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
+    ${olt_ip}=    Evaluate    ${olts}[0].get("ip")
+    ${olt_user}=    Evaluate    ${olts}[0].get("user")
+    ${olt_pass}=    Evaluate    ${olts}[0].get("pass")
+    ${k8s_node_ip}=    Evaluate    ${nodes}[0].get("ip")
+    ${k8s_node_user}=    Evaluate    ${nodes}[0].get("user")
+    ${k8s_node_pass}=    Evaluate    ${nodes}[0].get("pass")
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt
