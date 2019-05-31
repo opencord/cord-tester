@@ -36,7 +36,7 @@ Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${POD_NAME}                 onlab-pod1-qa
+${POD_NAME}                 flex-pod1-olt
 ${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
 ${HELM_CHARTS_DIR}          ~/helm-charts
 ${WHITELIST_PATHFILE}       ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
@@ -94,6 +94,12 @@ Setup Suite
     Set Global Variable    ${onu_location}
     ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
     Set Global Variable    ${SubscriberList}
+    Set Suite Variable    ${olt_ip}
+    Set Suite Variable    ${olt_user}
+    Set Suite Variable    ${olt_pass}
+    Set Suite Variable    ${k8s_node_ip}
+    Set Suite Variable    ${k8s_node_user}
+    Set Suite Variable    ${k8s_node_pass}
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
     ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
@@ -104,6 +110,12 @@ Setup Suite
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
     Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
+    ${olt_ip}=    Evaluate    ${olts}[0].get("ip")
+    ${olt_user}=    Evaluate    ${olts}[0].get("user")
+    ${olt_pass}=    Evaluate    ${olts}[0].get("pass")
+    ${k8s_node_ip}=    Evaluate    ${nodes}[0].get("ip")
+    ${k8s_node_user}=    Evaluate    ${nodes}[0].get("user")
+    ${k8s_node_pass}=    Evaluate    ${nodes}[0].get("pass")
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt
@@ -162,7 +174,7 @@ Clean Up XOS
 
 Create Whitelist
     [Arguments]    ${index_id}
-    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
+    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    ${index_id}
     CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
 
 Remove Whitelist
@@ -183,11 +195,11 @@ Update Whitelist with Correct Location
 
 Create Subscriber
     [Arguments]    ${index_id}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${index_id}0
+    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${index_id}
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
 
 Remove Subscriber
-    [Arugments]    ${c_tag}
+    [Arguments]    ${c_tag}
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
     CORD Delete    ${VOLT_SUBSCRIBER}    ${subscriber_id}
 
@@ -195,7 +207,7 @@ Create VOLT
     CORD Post    ${VOLT_DEVICE}    ${VoltDeviceDict}
 
 Update ONU AdminState
-    [Arguments]    ${new_admin_state}
-    ${onudevice_id}=    Retrieve ONU Device    ${src0['onu']}
+    [Arguments]    ${onu_device}    ${new_admin_state}
+    ${onudevice_id}=    Retrieve ONU Device    ${onu_device}
     CORD Put    ${VOLT_DEVICE}    ${"admin_state": ${new_admin_state} }    ${onudevice_id}
 
