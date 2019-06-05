@@ -48,7 +48,7 @@ ${VOLTHA_POD_NUM}           8
 
 *** Test Cases ***
 ONU in Correct Location with two ONUs
-    [Documentation]    Test with two ONUs
+    [Documentation]    Test with two ONUs(same s-tag) - authenticate/dhcp/ping on both the ONUs
     ...    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with correct first ONU location
     ...    Validate successful authentication/DHCP/E2E ping
@@ -56,6 +56,7 @@ ONU in Correct Location with two ONUs
     ...    Validate successful authentication/DHCP/E2E ping for the second ONU
     ...    Validates that the first ONU can still ping
     #[Setup]    None
+    [Teardown]    None
     [Tags]    multipleONU-test1
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${src0['onu']}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${src0['onu']}
@@ -72,6 +73,22 @@ ONU in Correct Location with two ONUs
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${src1['onu']}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${src1['onu']}
     Validate DHCP and Ping    True    True    ${src1['dp_iface_name']}    ${src1['s_tag']}    ${src1['c_tag']}    ${dst1['dp_iface_ip_qinq']}    ${src1['ip']}    ${src1['user']}    ${src1['pass']}    ${src1['container_type']}    ${src1['container_name']}    ${dst1['dp_iface_name']}    ${dst1['ip']}    ${dst1['user']}    ${dst1['pass']}    ${dst1['container_type']}    ${dst1['container_name']}
+    # Validate that the first ONU can still ping
+    Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${src0['s_tag']}    ${src0['c_tag']}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
+
+Deletion of one ONU from the whitelist while other ONU exists
+    [Documentation]    Test with two ONUs(same s-tag) - delete one ONU from the whitelist
+    ...    Validates E2E Ping Connectivity and object states for the given scenario:
+    ...    After validating authentication/dhcp/ping from the above tests
+    ...    Delete the second ONU from the whitelist
+    ...    Validate that pings fail on the second ONU
+    ...    Validate that the first ONU can still ping
+    #[Setup]    None
+    [Tags]    multipleONU-test2
+    #Second ONU
+    Remove Whitelist    $[src1['onu']}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${src1['onu']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst1['dst_iface_ip_qinq']}    ${src1['dp_iface_name']}    ${src1['ip']}    ${src1['user']}    ${src1['pass']}
     # Validate that the first ONU can still ping
     Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${src0['s_tag']}    ${src0['c_tag']}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
 
