@@ -36,7 +36,7 @@ Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${POD_NAME}                 flex-pod1-olt
+${POD_NAME}                 onlab-pod1-qa
 ${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
 ${HELM_CHARTS_DIR}          ~/helm-charts
 ${WHITELIST_PATHFILE}       ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
@@ -55,12 +55,8 @@ ONU in Correct Location with two ONUs
     ...    Configure whitelist with correct details for the second ONU location
     ...    Validate successful authentication/DHCP/E2E ping for the second ONU
     ...    Validates that the first ONU can still ping
-    [Setup]    None
+    #[Setup]    None
     [Tags]    multipleONU-test1
-    #Create WhiteList    0
-    #Create WhiteList    1
-    #Create Subscriber    0
-    #Create Subscriber    1
     Wait Until Keyword Succeeds    300s    15s    Validate ONU States    ACTIVE    ENABLED    ${src0['onu']}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${src0['onu']}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${src0['onu']}
@@ -90,16 +86,11 @@ Setup Suite
     Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
+    Set Suite Variable    ${att_workflow_service_id}
     ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
     ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
     Set Global Variable    ${SubscriberList}
-    Set Suite Variable    ${olt_ip}
-    Set Suite Variable    ${olt_user}
-    Set Suite Variable    ${olt_pass}
-    Set Suite Variable    ${k8s_node_ip}
-    Set Suite Variable    ${k8s_node_user}
-    Set Suite Variable    ${k8s_node_pass}
     ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
     ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
     ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
@@ -109,13 +100,20 @@ Setup Suite
     Set Global Variable    ${VoltDeviceDict}
     Set Suite Variable    ${s_tag}
     Set Suite Variable    ${c_tag}
-    Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
     ${olt_ip}=    Evaluate    ${olts}[0].get("ip")
     ${olt_user}=    Evaluate    ${olts}[0].get("user")
     ${olt_pass}=    Evaluate    ${olts}[0].get("pass")
     ${k8s_node_ip}=    Evaluate    ${nodes}[0].get("ip")
     ${k8s_node_user}=    Evaluate    ${nodes}[0].get("user")
     ${k8s_node_pass}=    Evaluate    ${nodes}[0].get("pass")
+    Set Suite Variable    ${olt_ip}
+    Set Suite Variable    ${olt_ip}
+    Set Suite Variable    ${olt_user}
+    Set Suite Variable    ${olt_pass}
+    Set Suite Variable    ${k8s_node_ip}
+    Set Suite Variable    ${k8s_node_user}
+    Set Suite Variable    ${k8s_node_pass}
+    Set Global Variable    ${export_kubeconfig}    export KUBECONFIG=${KUBERNETES_CONF}
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt
@@ -139,8 +137,10 @@ Setup Test
     Log    Re-creating objects
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
     Set Suite Variable    ${datetime}
-    Create Whitelist
-    Create Subscriber
+    Create Whitelist   0
+    Create Whitelist   1
+    Create Subscriber   0
+    Create Subscriber   1
     Create VOLT
     Wait Until Keyword Succeeds    200s    15s    Validate OLT States    ACTIVE    ENABLED    ${olt_ip}
 
@@ -175,12 +175,12 @@ Clean Up XOS
 Create Whitelist
     [Arguments]    ${index_id}
     ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    ${index_id}
+    ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
 
 Remove Whitelist
     [Arguments]    ${onu_device}
     ${whitelist_id}=    Retrieve Whitelist Entry    ${onu_device}
-    #${whitelist_id}=    Retrieve Whitelist Entry    ${src0['onu']}
     CORD Delete    ${ATT_WHITELIST}    ${whitelist_id}
 
 Update Whitelist with Wrong Location
@@ -199,7 +199,7 @@ Create Subscriber
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
 
 Remove Subscriber
-    [Arguments]    ${c_tag}
+    [Arguments]   ${c_tag}
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
     CORD Delete    ${VOLT_SUBSCRIBER}    ${subscriber_id}
 
