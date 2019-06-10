@@ -89,7 +89,7 @@ Validate ATT WF Driver SIs
 
 *** Keywords ***
 Setup
-    ${server_ip}=    Get Environment Variable    SERVER_IP    localhost
+    ${server_ip}=    Get Environment Variable    SERVER_IP    127.0.0.1
     ${port}=    Get Environment Variable    SERVER_PORT    30001
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
     ${voltha_auth}=    Create List    voltha    admin
