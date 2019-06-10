@@ -124,7 +124,6 @@ Setup Suite
     ${k8s_node_user}=    Evaluate    ${nodes}[0].get("user")
     ${k8s_node_pass}=    Evaluate    ${nodes}[0].get("pass")
     Set Suite Variable    ${olt_ip}
-    Set Suite Variable    ${olt_ip}
     Set Suite Variable    ${olt_user}
     Set Suite Variable    ${olt_pass}
     Set Suite Variable    ${k8s_node_ip}

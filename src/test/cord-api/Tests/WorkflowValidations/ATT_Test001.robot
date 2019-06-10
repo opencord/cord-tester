@@ -338,6 +338,12 @@ Setup Suite
     ${k8s_node_ip}=    Evaluate    ${nodes}[0].get("ip")
     ${k8s_node_user}=    Evaluate    ${nodes}[0].get("user")
     ${k8s_node_pass}=    Evaluate    ${nodes}[0].get("pass")
+    Set Suite Variable    ${olt_ip}
+    Set Suite Variable    ${olt_user}
+    Set Suite Variable    ${olt_pass}
+    Set Suite Variable    ${k8s_node_ip}
+    Set Suite Variable    ${k8s_node_user}
+    Set Suite Variable    ${k8s_node_pass}
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt
