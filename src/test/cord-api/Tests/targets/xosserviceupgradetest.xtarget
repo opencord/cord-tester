@@ -37,10 +37,22 @@ Get {{ m.name }}    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xpro
 
 *** Keywords ***
 Setup
+    @{models}=    Create List
+    {% for m in proto.messages %}
+    {%- if xproto_unquote(m.options.app_label) != "core" -%}
+    {%- if m.name not in  ['XOSBase'] -%}
+    {% autoescape false %}
+    {% endautoescape %}
+    Append To List    ${models}    {{ xproto_pluralize(m) | lower }}
+    {% endif -%}
+    {% endif -%}
+    {% endfor %}
+    Set Suite Variable    ${models}
     Setup Tests
 
 Verify Data Model
-    [Arguments]    ${endpoint}    ${data}
+    [Arguments]    ${endpoint}    ${data}    ${model}
+    Return From Keyword If    List Should Not Contain Value    ${models}    ${model}
     ${list1}=    Create List    ${data}
     ${resp}=    Get Request    ${SERVER_IP}    ${endpoint}
     Log    ${resp.content}
