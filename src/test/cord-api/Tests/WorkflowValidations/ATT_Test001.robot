@@ -430,5 +430,5 @@ Create VOLT
 Update ONU AdminState
     [Arguments]    ${new_admin_state}
     ${onudevice_id}=    Retrieve ONU Device    ${src0['onu']}
-    CORD Put    ${VOLT_DEVICE}    ${"admin_state": ${new_admin_state} }    ${onudevice_id}
+    CORD Put    ${VOLT_DEVICE}    {"admin_state": ${new_admin_state} }    ${onudevice_id}
 
