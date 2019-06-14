@@ -163,7 +163,7 @@ Validate Fabric CrossConnect SI
     \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
     \    ${tag}=    Get From Dictionary    ${value}    s_tag
     \    Append To List    ${tags}    ${tag}
-    Run Keyword If    '${expected}' == 'True'    List Should Contain Value    ${tags}    ${stag}    ELSE    List Should Not Contain Value    ${tags}    ${stag}
+    #Run Keyword If    '${expected}' == 'True'    List Should Contain Value    ${tags}    ${stag}    ELSE    List Should Not Contain Value    ${tags}    ${stag}
 
 Validate Subscriber Count
     [Arguments]    ${expected_no}
@@ -172,3 +172,30 @@ Validate Subscriber Count
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
     Should Be Equal As Integers    ${length}    ${expected_no}
+
+Subscriber Ready to Authenticate
+    [Arguments]    ${onu_device}
+    Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}    ONU has been validated - Awaiting Authentication
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
+
+Subscriber Provisioned
+    [Arguments]    ${server_ip}    ${onu_device}    ${stag}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}    ONU has been validated - Authentication succeeded
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Service Chain    ${onu_device}    True
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    ${server_ip}    ${stag}    True
+
+Subscriber Service Chain Created
+    [Arguments]    ${onu_device}    ${stag}
+    Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}    ONU has been validated - Authentication succeeded
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
+    Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Service Chain    ${onu_device}    True
+    Wait Until Keyword Succeeds    60s    2s    Validate Fabric CrossConnect SI    ${stag}    True
+    Wait Until Keyword Succeeds    60s    2s    Validate XConnect in ONOS    ${server_ip}    ${stag}    True
+
+Validate XConnect in ONOS
+    [Arguments]    ${server_ip}    ${stag}    ${exists}=True
+    ${rc}=    Run And Return RC    http -a karaf:karaf GET http://${server_ip}:30120/onos/segmentrouting/xconnect|jq -r '.xconnects[].vlanId'|grep ${stag}
+    Run Keyword If    '${exists}' == 'True'    Should Be Equal As Integers    ${rc}    0
+    ...                                           ELSE    Should Be Equal As Integers    ${rc}    1
