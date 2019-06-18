@@ -162,8 +162,8 @@ node ("${TestNodeName}") {
             }
           }
 
-          // Before Start to deploy services, we need to take 3 seconds wait
-          sh returnStdout: true, script: "sleep 3"
+          // Before Start to deploy services, we need to take 10 seconds wait
+          sh returnStdout: true, script: "sleep 10"
         }
       }
 
@@ -181,6 +181,53 @@ node ("${TestNodeName}") {
             """
             return mcord_services_running.toInteger() == 5
           }
+        }
+      }
+
+      stage("Deploy CDN-Remote Services") {
+        cdn_remote_service_deployed = sh returnStatus: true, script: """
+        helm install -f $HELMCONFIG -n cdn-remote --set remote_streaming.antmedia_ip=${deployment_config.nodes[0].ip} \
+        --set stream_name=360 --set remote_streaming.video_quality=360 cord/cdn-remote
+        """
+        return cdn_remote_service_deployed == 0
+
+        timeout (3) {
+            waitUntil {
+            // Are AntMedia server and ffMPEG containers ready?
+            cdn_remote_service_running = sh returnStdout: true, script: """
+            kubectl get statefulset.apps -o json | jq '.items[].metadata.name' | grep -E 'antmedia|remote-streaming' | wc -l
+            """
+            return cdn_remote_service_running.toInteger() == 2
+            }
+        }
+      }
+
+      stage("Deploy CDN-Local Services") {
+        //Is SPGW-U ready?
+        timeout(3) {
+            waitUntil {
+                spgwu_running = sh returnStdout: true, script: """
+                kubectl get pods | grep spgwu | grep Running | grep 1/1 | wc -l
+                """
+                return spgwu_running.toInteger() == 1
+            }
+        }
+
+        cdn_local_service_deployed = sh returnStatus: true, script: """
+        spgwu_ip=\$(kubectl exec -it spgwu-0  -- ip -4 addr show dev sgi-net | grep inet | awk '{print \$2}' | awk -F '/' '{print \$1}');
+        helm install -f $HELMCONFIG -n cdn-local --set remote_ip=${deployment_config.nodes[0].ip} --set stream_name=360 \
+        --set spgwu_sgiip=\$spgwu_ip cord/cdn-local
+        """
+        return cdn_local_service_deployed == 0
+
+        timeout(3) {
+            waitUntil {
+                // Is NGINX ready?
+                cdn_local_service_running = sh returnStdout: true, script: """
+                kubectl get statefulset.apps -o json | jq '.items[].metadata.name' | grep -E 'nginx-rtmp' | wc -l
+                """
+                return cdn_local_service_running.toInteger() == 1
+            }
         }
       }
 
