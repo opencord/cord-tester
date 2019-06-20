@@ -9,8 +9,8 @@
             "circuit_id": "foo2",
             "status": "pre-provisioned",
             "remote_id": "bar2",
-            "upstream_bps_id": 1,
-            "downstream_bps_id": 1
+            "upstream_bps_id": 2,
+            "downstream_bps_id": 2
      },
      {
             "name": "Sub_ISKra",
