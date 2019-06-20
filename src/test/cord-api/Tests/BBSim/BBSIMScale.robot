@@ -66,7 +66,7 @@ Validate OLT and AAA-Users in ONOS
 Validate ONUs in XOS
     [Documentation]    Validates All ONU Devices are discovered in XOS
     [Tags]    onudiscovery
-    Wait Until Keyword Succeeds    ${timeout}    5s    Validate Number of ONU Devices    ${number_of_onus}
+    Wait Until Keyword Succeeds    ${timeout}    60s    Validate Number of ONU Devices    ${number_of_onus}
 
 Validate ONU States in XOS
     [Documentation]    Validates All ONU Device states are "enabled" and "active"
@@ -78,7 +78,7 @@ Validate Hosts and DHCP Allocations in ONOS
     [Documentation]    Verify number of hosts in ONOS match number of onus and verify number of DHCP allocations
     [Tags]    onosdhcp
     #Wait Until Keyword Succeeds    ${timeout}    5s    Validate Hosts in ONOS    ${number_of_onus}
-    Wait Until Keyword Succeeds    ${timeout}    5s    Validate DHCP Allocations    ${number_of_onus}
+    Wait Until Keyword Succeeds    ${timeout}    60s    Validate DHCP Allocations    ${number_of_onus}
 
 Validate ATT WF Driver SIs
     [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
