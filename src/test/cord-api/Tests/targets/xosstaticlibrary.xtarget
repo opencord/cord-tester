@@ -170,6 +170,12 @@ Generate JSON Data
     ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /serial_number    "testserialnumber"
     ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /serial_number    "amendserialnumber"
     {% endif %}
+    {% if  m.name  == "TechnologyProfile" -%}
+    ${json_profile}=    Set Variable    {\\\"test\\\":\\\"test\\\"}
+    ${json_profile2}=    Set Variable    {\\\"test2\\\":\\\"test2\\\"}
+    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /profile_value    "${json_profile}"
+    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /profile_value    "${json_profile2}"
+    {% endif %}
     ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
     ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
@@ -240,6 +246,9 @@ Create {{ m.name }}
     {% endif %}
     {% if  m.name  == "RCORDSubscriber" -%}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /owner_id    ${rcord_tmp_service_id}
+    {% endif %}
+    {% if  m.name  == "TechnologyProfile" -%}
+    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /profile_value    {'testprofile':'profiletest'}
     {% endif %}
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
     ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true
