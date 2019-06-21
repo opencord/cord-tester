@@ -7,7 +7,8 @@
             "onu_device": "PSMO00000000",
             "status": "pre-provisioned",
             "upstream_bps_id": 2,
-            "downstream_bps_id": 2
+            "downstream_bps_id": 2,
+            "tech_profile_id": 64
      }
   ]
 }
