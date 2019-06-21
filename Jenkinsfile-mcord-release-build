@@ -162,7 +162,11 @@ node ("${TestNodeName}") {
             }
           }
 
+<<<<<<< HEAD
           // Before Start to deploy services, we need to take 10 seconds wait
+=======
+          // Before Start to deploy services, we need to take 3 seconds wait
+>>>>>>> 75b00bd... Add CDN deployment code in M-CORD Release Jenkins
           sh returnStdout: true, script: "sleep 10"
         }
       }
@@ -343,3 +347,4 @@ node ("${TestNodeName}") {
     echo "RESULT: ${currentBuild.result}"
   }
 }
+
