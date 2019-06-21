@@ -276,7 +276,7 @@ node ("${TestNodeName}") {
 
       stage('Install xos-core') {
         sh returnStdout: true, script: """
-        helm install -f $HELMCONFIG -n xos-core cord/xos-core --version 2.3.3
+        helm install -f $HELMCONFIG -n xos-core cord/xos-core
         """
 
         timeout(3) {
@@ -290,7 +290,7 @@ node ("${TestNodeName}") {
       }
       stage('Install M-CORD Profile') {
         sh returnStdout: true, script: """
-        helm install -f $HELMCONFIG -n mcord cord/mcord --version 1.0.11
+        helm install -f $HELMCONFIG -n mcord cord/mcord
         """
 
         timeout(5) {
@@ -305,7 +305,7 @@ node ("${TestNodeName}") {
 
       stage('Install base-kubernetes') {
         sh returnStdout: true, script: """
-        helm install -f $HELMCONFIG -n base-kubernetes cord/base-kubernetes --version 1.0.2
+        helm install -f $HELMCONFIG -n base-kubernetes cord/base-kubernetes
         """
 
         timeout(5) {
@@ -343,3 +343,4 @@ node ("${TestNodeName}") {
     echo "RESULT: ${currentBuild.result}"
   }
 }
+
