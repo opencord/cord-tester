@@ -24,7 +24,7 @@ Library           RequestsLibrary
 
 *** Keywords ***
 Login And Run Command On Remote System
-    [Arguments]    ${cmd}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=15s    ${container_prompt}=#
+    [Arguments]    ${cmd}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$    ${prompt_timeout}=50s    ${container_prompt}=#
     [Documentation]    SSH's into a remote host (and logs into the container if container_type and container_name are specified), tries to switch to root user and executes a command and returns output
     ${conn_id}    Login To Remote System    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}    ${prompt}    ${prompt_timeout}    ${container_prompt}
     ${output}=    Run Command On Remote System    ${cmd}    ${conn_id}    ${user}    ${pass}
