@@ -22,7 +22,8 @@ Resource          utils/utils.robot
 Send Dhclient Request
     [Arguments]    ${iface}    ${ip}    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     [Documentation]    Executes a dhclient against a particular interface on the RG (src)
-    ${result}=    Login And Run Command On Remote System    dhclient -nw ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    #${result}=    Login And Run Command On Remote System    dhclient -nw ${iface}    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
+    ${result}=    Login And Run Command On Remote System    dhclient -d ${iface} \n    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     [Return]    ${result}
 
 Add Default Route to Dst Gateway
