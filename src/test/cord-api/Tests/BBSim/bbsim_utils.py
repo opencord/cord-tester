@@ -27,15 +27,15 @@ class bbsim_utils(object):
             sub = {
                 "name" : "Sub_BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)),
                 "status" : "pre-provisioned",
-                "c_tag" : ctag_start + int(index)-1,
+                "c_tag" : ctag_start + int(index),
                 "s_tag" : stag,
                 "onu_device" : "BBSM" + str("00000") + str(pon_id) + '{0:02x}'.format(int(index)),
                 "circuit_id" : "circuit" + '{0:02x}'.format(int(index)),
                 "remote_id" : "remote" + '{0:02x}'.format(int(index)),
                 "nas_port_id" : "PON 2/1/01/1:1.1." + '{0:0x}'.format(int(index)),
-	        "upstream_bps_id" : 1,
+	            "upstream_bps_id" : 1,
                 "downstream_bps_id" : 1,
-		"tech_profile_id" : 64
+                "tech_profile_id" : 64
             }
             subscribers.append(sub)
             if index == 10:
@@ -52,7 +52,7 @@ class bbsim_utils(object):
                 "nas_port_id" : "PON 2/1/01/1:1.1." + str(pon_id) + '{0:02x}'.format(int(index)),
                 "upstream_bps_id" : 1,
                 "downstream_bps_id" : 1,
-		"tech_profile_id" : 64
+                "tech_profile_id" : 64
             }
             subscribers.append(sub)
         return subscribers
