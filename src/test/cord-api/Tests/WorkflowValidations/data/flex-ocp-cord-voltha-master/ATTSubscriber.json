@@ -8,6 +8,7 @@
             "nas_port_id": "PON 1/1/03/1:1.1.1",
             "circuit_id": "foo1",
             "status": "pre-provisioned",
+            "tech_profile_id": 64,
             "remote_id": "bar1",
             "upstream_bps_id": 1,
             "downstream_bps_id": 1
