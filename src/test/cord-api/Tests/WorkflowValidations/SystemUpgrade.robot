@@ -22,7 +22,6 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           /home/ubuntu/voltha/tests/atests/common/testCaseUtils.py
 Library           ../../Framework/utils/utils.py
 Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
@@ -40,7 +39,7 @@ ${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
 ${HELM_CHARTS_DIR}          ~/helm-charts
 ${KUBERNETES_CONF}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
 ${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
-${onos_tag}                 1.13.9-rc4
+${onos_tag}                 1.13.9
 ${voltha_tag}               voltha-1.7
 
 *** Test Cases ***
@@ -124,14 +123,14 @@ Validate Pod Running
 Upgrade Service
     [Arguments]    ${service}
     ${rc}=    Run    ${export_kubeconfig}; kubectl delete pod $(kubectl get pods | grep seba-services-tosca | head -1 | awk '{print $1}')
-    ${rc}=    Run    ${export_kubeconfig}; kubectl delete pod $(kubectl get jobs | grep seba-services-tosca | head -1 | awk '{print $1}')
+    ${rc}=    Run    ${export_kubeconfig}; kubectl delete job $(kubectl get jobs | grep seba-services-tosca | head -1 | awk '{print $1}')
     ${rc}=    Run And Return RC    helm dep update ${HELM_CHARTS_DIR}/xos-profiles/seba-services
     Should Be Equal As Integers    ${rc}    0
-    ${rc}=    Run And Return RC    helm upgrade --set ${service}.image.tag=master seba-services ${HELM_CHARTS_DIR}/xos-profiles/seba-services
+    ${rc}=    Run And Return RC    helm upgrade --recreate-pods --set ${service}.image.tag=master seba-services ${HELM_CHARTS_DIR}/xos-profiles/seba-services
     Wait Until Keyword Succeeds    60s    5s    Validate Service Running    ${service}    1/1
 
 Upgrade ONOS
-    ${rc}=    Run And Return RC    helm upgrade --set images.onos.tag=${onos_tag} onos ${HELM_CHARTS_DIR}/onos
+    ${rc}=    Run And Return RC    helm upgrade --recreate-pods --set images.onos.tag=${onos_tag} onos ${HELM_CHARTS_DIR}/onos
     Should Be Equal As Integers    ${rc}    0
     Wait Until Keyword Succeeds    60s    5s    Validate Service Running    onos    2/2
 
@@ -170,3 +169,4 @@ Clean Up Linux
     Run Keyword If    '${dst0['ip']}' != '${None}'    Run Keyword And Ignore Error    Kill Linux Process    [d]hcpd    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
     Delete IP Addresses from Interface on Remote Host    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Run Keyword If    '${dst0['ip']}' != '${None}'    Delete Interface on Remote Host    ${dst0['dp_iface_name']}.${src0['s_tag']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
+
