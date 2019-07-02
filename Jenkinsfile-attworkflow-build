@@ -55,6 +55,7 @@ node ("${TestNodeName}") {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
                 helm repo add cord ${helmRepoUrl}
+                git clone https://gerrit.opencord.org/helm-charts
                 helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
                 helm repo update
                 """
@@ -126,7 +127,10 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha --version 1.0.4
+                    cd helm-charts
+                    helm dep update voltha
+                    #helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/voltha --version 1.0.5
+                    helm install -n voltha -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml voltha
                     """
                 }
                 timeout(10) {
@@ -143,7 +147,10 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+                    cd helm-charts
+                    helm dep update onos
+                    #helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml cord/onos
+                    helm install -n onos -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml onos
                     """
                 }
                 timeout(10) {
@@ -160,7 +167,10 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+                    cd helm-charts
+                    helm dep update xos-core
+                    #helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core cord/xos-core
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n xos-core xos-core
                     """
                 }
                 timeout(10) {
@@ -177,7 +187,10 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba-services cord/seba-services
+                    cd helm-charts
+                    helm dep update xos-profiles/seba-services
+                    #helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba-services cord/seba-services
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba-services xos-profiles/seba-services
                     """
                 }
                 timeout(10) {
@@ -194,7 +207,10 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes cord/base-kubernetes
+                    cd helm-charts
+                    helm dep update xos-profiles/base-kubernets
+                    #helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes cord/base-kubernetes
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n base-kubernetes xos-profiles/base-kubernetes
                     """
                 }
                 timeout(10) {
@@ -211,7 +227,10 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     sh returnStdout: true, script: """
                     export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set att-workflow-driver.kafkaService=cord-kafka -n att-workflow cord/att-workflow
+                    cd helm-charts
+                    helm dep update workflows/att-workflow
+                    #helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set att-workflow-driver.kafkaService=cord-kafka -n att-workflow cord/att-workflow
+                    helm install -f $WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml --set att-workflow-driver.kafkaService=cord-kafka -n att-workflow workflows/att-workflow
                     """
                 }
                 timeout(10) {
