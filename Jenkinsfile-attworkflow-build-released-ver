@@ -71,7 +71,7 @@ node ("${TestNodeName}") {
             stage('Install CORD Platform') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n cord-platform --version 6.1.0 cord/cord-platform
+                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n cord-platform --version 7.0.0 cord/cord-platform
                 """
                 timeout(1) {
                     waitUntil {
@@ -101,7 +101,7 @@ node ("${TestNodeName}") {
             stage('Install SEBA Profile') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba --version 1.0.0 cord/seba
+                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n seba --version 2.0.0-alpha1 cord/seba
                 """
                 timeout(1) {
                     waitUntil {
@@ -116,7 +116,7 @@ node ("${TestNodeName}") {
             stage('Install ATT workflow') {
                 sh returnStdout: true, script: """
                 export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
-                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n att-workflow --version 1.0.2 cord/att-workflow
+                helm install -f ${configBaseDir}/${configKubernetesDir}/${configFileName}.yml -n att-workflow --version 1.2.4 cord/att-workflow
                 """
                 timeout(1) {
                     waitUntil {
