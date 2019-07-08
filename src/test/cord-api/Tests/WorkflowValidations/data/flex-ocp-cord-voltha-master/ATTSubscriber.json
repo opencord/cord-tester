@@ -10,7 +10,8 @@
             "status": "pre-provisioned",
             "remote_id": "bar1",
             "upstream_bps_id": 1,
-            "downstream_bps_id": 1
+            "downstream_bps_id": 1,
+            "tech_profile_id" : 64
      }
   ]
 }

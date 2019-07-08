@@ -10,7 +10,8 @@
             "status": "pre-provisioned",
             "remote_id": "bar2",
             "upstream_bps_id": 2,
-            "downstream_bps_id": 2
+            "downstream_bps_id": 2,
+            "tech_profile_id" : 64
      },
      {
             "name": "Sub_ISKra",
@@ -22,7 +23,8 @@
             "status": "pre-provisioned",
             "remote_id": "bar3",
             "upstream_bps_id": 2,
-            "downstream_bps_id": 2
+            "downstream_bps_id": 2,
+            "tech_profile_id" : 64
      }
   ]
 }
