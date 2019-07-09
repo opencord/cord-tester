@@ -4,7 +4,11 @@
 
 * Tests can be run directly from your local machine or from a different VM by exporting the
   configuration file for the target CORD servers.
-  
+
+## Prerequisites
+
+* Python Virtual-Env
+
 * Download the `cord-tester` repo using the following command:
 
   ```bash
@@ -14,10 +18,14 @@
 * Before executing any tests, proper modules need to be installed which can be
   done using the following command:
 
-  ```bash
-  cd cord-tester/src/test/setup
-  sudo ./prerequisites.sh --cord
-  ```
+## How to install
+
+```shell
+git clone https://github.com/opencord/cord-tester.git
+cd cord-tester
+cd src/test/cord-api/
+source setup.venv.sh
+```
 
 ## Executing Tests
 
@@ -31,12 +39,6 @@ Most of the tests in cord-tester framework are written in `python` and
   ```
   Assuming that `cord-pod1.conf` file is present in `/home/cord` directory
 
-* Executing a sample test
-
-  ```bash
-  cd cord-tester/src/test/robot/
-  robot SanityK8POD.robot
-  ```
 
 ### Executing Control Plane Tests
 
