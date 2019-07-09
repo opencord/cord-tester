@@ -302,7 +302,7 @@ node ("${TestNodeName}") {
           }
         }
       }
-
+/*
       stage('Install base-kubernetes') {
         sh returnStdout: true, script: """
         helm install -f $HELMCONFIG -n base-kubernetes cord/base-kubernetes
@@ -317,7 +317,7 @@ node ("${TestNodeName}") {
           }
         }
       }
-
+*/
       if ( params.configurePod ) {
         dir ("${configBaseDir}/${configToscaDir}/mcord") {
           stage('Configure MCORD - Fabric') {
