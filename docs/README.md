@@ -14,13 +14,10 @@ Few links below provide detailed information of System Test Guide, Test Plans
 and Test Results.
 
 * [System Test Guide](https://wiki.opencord.org/display/CORD/System+Test+Guide)
-* [System Test Plans](https://wiki.opencord.org/display/CORD/SEBA+1.0+Release)
-* [System Test
-  Results](https://wiki.opencord.org/display/CORD/CORD+6.1)
+* [System Test Plans](https://wiki.opencord.org/display/CORD/SEBA+2.0+Release)
+* [System Test Results](https://wiki.opencord.org/pages/viewpage.action?pageId=24150020)
 
 Additional information about the CORD Tester framework can be found on the
 GitHub:
-
-* [Prerequisites](https://github.com/opencord/cord-tester/blob/master/src/test/setup/prerequisites.sh)
 
 * [Source Code](https://github.com/opencord/cord-tester)

@@ -1,4 +1,4 @@
-# cord-tester
+# Cord-Tester
 CORD Automated Tester Suite
 
 The CORD Automated Tester Suite (CATS) is an extensible end-to-end system test suite
