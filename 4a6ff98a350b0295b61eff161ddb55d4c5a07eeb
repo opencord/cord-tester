@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6c0bc809_dc0cd6dc",
+        "filename": "docs/qa_testsetup.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2019-07-10T05:39:18Z",
+      "side": 1,
+      "message": "might link to this, and fix the name to match: https://pypi.org/project/virtualenv/",
+      "range": {
+        "startLine": 10,
+        "startChar": 9,
+        "endLine": 10,
+        "endChar": 20
+      },
+      "revId": "4a6ff98a350b0295b61eff161ddb55d4c5a07eeb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "9dbb94e3_3821b26b",
+        "filename": "docs/validate_pods.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 8,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2019-07-10T05:39:18Z",
+      "side": 1,
+      "message": "Duplicated immediate below after the deletion?",
+      "range": {
+        "startLine": 8,
+        "startChar": 0,
+        "endLine": 8,
+        "endChar": 18
+      },
+      "revId": "4a6ff98a350b0295b61eff161ddb55d4c5a07eeb",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
