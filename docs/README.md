@@ -14,7 +14,7 @@ Few links below provide detailed information of System Test Guide, Test Plans
 and Test Results.
 
 * [System Test Guide](https://wiki.opencord.org/display/CORD/System+Test+Guide)
-* [System Test Plans](https://wiki.opencord.org/display/CORD/December+Release)
+* [System Test Plans](https://wiki.opencord.org/display/CORD/SEBA+1.0+Release)
 * [System Test
   Results](https://wiki.opencord.org/display/CORD/CORD+6.1)
 
