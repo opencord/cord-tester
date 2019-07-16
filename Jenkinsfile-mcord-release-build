@@ -153,6 +153,41 @@ node ("${TestNodeName}") {
             }
           }
 
+          // verification: sriov pods will be deployed for each machine
+          timeout (1) {
+              waitUntil {
+                  num_sriov_pods = sh returnStdout: true, script: """
+                  kubectl get pods -n kube-system | grep sriov | wc -l
+                  """
+                  return num_sriov_pods.toInteger() == deployment_config.nodes.size()
+              }
+          }
+
+          // redeployment procedure for sriov pod
+          // Sometimes a SR-IOV pod encounters "MountVolume.Setup failed". To resolve it, the SR-IOV pod need to be removed and redployed.
+          max_retry_index = 100;
+          for (int i = 0; i<max_retry_index; i++) {
+              sh returnStdout: true, script: "sleep 10"
+
+              sh script: """
+              init_num_sriov=\$(kubectl get pods -n kube-system | grep sriov | grep Init | wc -l);
+              for pod in \$(kubectl get pods -n kube-system | grep sriov | grep Init | awk '{print \$1}');
+              do
+                echo \$pod is initializing
+                num_err_msgs=\$(kubectl describe pods \$pod -n kube-system | grep -E 'MountVolume.SetUp failed' | wc -l)
+                if [ \$num_err_msgs > 0 ]; then
+                    kubectl delete pod \$pod -n kube-system --force --grace-period=0
+                fi
+              done
+              """
+              sriov_all_ready = sh returnStdout: true, script: """
+              kubectl get pods -n kube-system | grep sriov | grep Init | wc -l;
+              """
+              if (sriov_all_ready.toInteger() == 0) {
+                  break;
+              }
+          }
+
           // Sometimes tillerpod is up, but it's not ready to accept deployment yet
           // use helm ls to make sure it's ready.
           timeout(1) {
