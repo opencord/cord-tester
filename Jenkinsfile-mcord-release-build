@@ -167,7 +167,7 @@ node ("${TestNodeName}") {
           // Sometimes a SR-IOV pod encounters "MountVolume.Setup failed". To resolve it, the SR-IOV pod need to be removed and redployed.
           max_retry_index = 100;
           for (int i = 0; i<max_retry_index; i++) {
-              sh returnStdout: true, script: "sleep 10"
+              sh returnStdout: true, script: "sleep 30"
 
               sh script: """
               init_num_sriov=\$(kubectl get pods -n kube-system | grep sriov | grep Init | wc -l);
@@ -181,9 +181,9 @@ node ("${TestNodeName}") {
               done
               """
               sriov_all_ready = sh returnStdout: true, script: """
-              kubectl get pods -n kube-system | grep sriov | grep Init | wc -l;
+              kubectl get pods -n kube-system | grep sriov | grep Running | wc -l
               """
-              if (sriov_all_ready.toInteger() == 0) {
+              if (sriov_all_ready.toInteger() == deployment_config.nodes.size()) {
                   break;
               }
           }
