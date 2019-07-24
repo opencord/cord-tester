@@ -360,7 +360,7 @@ node ("${TestNodeName}") {
               waitUntil {
                 out_fabric = sh returnStdout: true, script: """
                 curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST \
-                --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run |\
+                --data-binary @${configFileName}-fabric-cavium.yaml http://${deployment_config.nodes[0].ip}:30007/run |\
                  grep -i "created models" | wc -l
                 """
                 return out_fabric.toInteger() == 1
