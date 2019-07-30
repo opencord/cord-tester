@@ -62,6 +62,20 @@ node ("${TestNodeName}") {
                     """
                 }
             }
+            stage('System Upgrade Tests') {
+                timeout(180) {
+                    sh """
+                    export KUBECONFIG=$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf
+                    ## re-push tosca to ensure environment state
+                    cd $WORKSPACE/${configBaseDir}/${configToscaDir}/att-workflow
+                    curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-fabric.yaml http://${deployment_config.nodes[0].ip}:30007/run || true
+                    curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run || true
+                    curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run || true
+                    cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
+                    robot --removekeywords wuks -d Log -T -l log-DataPlane_FailureTests -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts -e notready WorkflowValidations/SystemUpgrade.robot || true
+                    """
+                }
+            }
             stage('Publish test results') {
                 sh returnStdout: true, script: """
                 if [ -d RobotLogs ]; then rm -r RobotLogs; fi; mkdir RobotLogs;
