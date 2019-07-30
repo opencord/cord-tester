@@ -72,7 +72,7 @@ node ("${TestNodeName}") {
                     curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-subscriber.yaml http://${deployment_config.nodes[0].ip}:30007/run || true
                     curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST --data-binary @${configFileName}-olt.yaml http://${deployment_config.nodes[0].ip}:30007/run || true
                     cd $WORKSPACE/cord-tester/src/test/cord-api/Tests/
-                    robot --removekeywords wuks -d Log -T -l log-DataPlane_FailureTests -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts -e notready WorkflowValidations/SystemUpgrade.robot || true
+                    robot --removekeywords wuks -d Log -T -l log-SystemUpgrade -V $WORKSPACE/${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml -v POD_NAME:${configFileName} -v KUBERNETES_CONFIGS_DIR:$WORKSPACE/${configBaseDir}/${configKubernetesDir} -v HELM_CHARTS_DIR:$WORKSPACE/helm-charts -e notready WorkflowValidations/SystemUpgrade.robot || true
                     """
                 }
             }
