@@ -174,7 +174,7 @@ node ("${TestNodeName}") {
               for pod in \$(kubectl get pods -n kube-system | grep sriov | grep Init | awk '{print \$1}');
               do
                 echo \$pod is initializing
-                num_err_msgs=\$(kubectl describe pods \$pod -n kube-system | grep -E 'MountVolume.SetUp failed' | wc -l)
+                num_err_msgs=\$(kubectl describe pods \$pod -n kube-system | tail -4 | grep -E 'MountVolume.SetUp failed' | wc -l)
                 if [ \$num_err_msgs > 0 ]; then
                     kubectl delete pod \$pod -n kube-system --force --grace-period=0
                 fi
