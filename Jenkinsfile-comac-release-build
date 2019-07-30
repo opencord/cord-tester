@@ -1,0 +1,411 @@
+// Copyright 2019-present Open Networking Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+node ("${TestNodeName}") {
+    timeout (100) {
+        try {
+            // Start Jenkins steps from here
+            stage ("Parse deployment configuration files") {
+                sh returnStdout: true, script: "rm -rf helm-charts helm-repo-tools ${configBaseDir}"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-repo-tools"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/helm-charts"
+                sh returnStdout: true, script: "git clone -b ${branch} ${cordRepoUrl}/${configBaseDir}"
+                deployment_config = readYaml file: "${configBaseDir}/${configDeploymentDir}/${configFileName}.yaml"
+            }
+
+            // Define KUBECONFIG & HELMCONFIG environment variable to use in steps
+            env.KUBECONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.conf"
+            env.HELMCONFIG="$WORKSPACE/${configBaseDir}/${configKubernetesDir}/${configFileName}.yml"
+
+            stage('Clean up') {
+                timeout(10) {
+                    // Force helm client to reload server pod, otherwise it'll possible fail on version compatible issue.
+                    sh returnStdout: true, script: "helm init --upgrade --force-upgrade"
+
+                    timeout(1) {
+                        waitUntil {
+                            tillerpod_running = sh returnStdout: true, script: """
+                            kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
+                            """
+                            return tillerpod_running.toInteger() == 1
+                        }
+                    }
+
+                    // Deleted all of charts
+                    sh returnStdout: true, script: """
+                    for hchart in \$(helm list -q | grep -E -v 'docker-registry|mavenrepo|ponnet');
+                    do
+                        echo "Purging chart: \${hchart}"
+                        helm delete --purge "\${hchart}"
+                    done
+                    """
+
+                    timeout(3) {
+                        waitUntil {
+                            charts_deleted = sh returnStdout: true, script: """
+                            helm ls -q | grep -E -v 'docker-registry|mavenrepo|ponnet' | wc -l
+                            """
+                            return charts_deleted.toInteger() == 0
+                        }
+                    }
+
+                    timeout(3) {
+                        waitUntil {
+                            allpods_deleted = sh returnStdout: true, script: """
+                            kubectl get pods --all-namespaces --no-headers |\
+                            grep -E -v 'kube-system|docker-registry|mavenrepo|ponnet|test' | wc -l
+                            """
+                            return allpods_deleted.toInteger() == 0
+                        }
+                    }
+                }
+            }
+
+            stage('Add Helm repositories') {
+                sh returnStdout: true, script: """
+                helm repo add cord https://charts.opencord.org
+                helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
+                helm repo update
+                """
+
+                timeout(1) {
+                    waitUntil {
+                        tillerpod_running = sh returnStdout: true, script: """
+                        kubectl -n kube-system get pods | grep tiller-deploy | grep Running | wc -l
+                        """
+                        return tillerpod_running.toInteger() == 1
+                    }
+                }
+
+                timeout(1) {
+                    waitUntil {
+                        cord_repo_present = sh returnStdout: true, script: """
+                        helm repo list | grep cord | wc -l
+                        """
+                        return cord_repo_present.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Install CORD Platform') {
+                sh returnStdout: true, script: """
+                helm install -f $HELMCONFIG -n cord-platform --version 7.0.0 cord/cord-platform
+                """
+
+                timeout(1) {
+                    waitUntil {
+                        cord_helm_installed = sh returnStdout: true, script: """
+                        helm ls | grep -i cord-platform | wc -l
+                        """
+                        return cord_helm_installed.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Wait for etcd-operator to be installed') {
+                timeout(10) {
+                    waitUntil {
+                        etcd_operator_installed = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i etcd-operator | grep -i running | wc -l
+                        """
+                        crd_present = sh returnStdout: true, script: """
+                        kubectl get crd | grep -i etcd | wc -l
+                        """
+                        return etcd_operator_installed.toInteger() + crd_present.toInteger() == 6
+                    }
+                }
+            }
+
+            stage('Verify that CORD Kafka service is ready') {
+                timeout(3) {
+                    waitUntil {
+                        kafka_instances_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep cord-platform-kafka | grep -i running | grep 1/1 | wc -l
+                        """
+                        return kafka_instances_running.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Verify that CORD Zookeeper service is ready') {
+                timeout(3) {
+                    waitUntil {
+                        zookeeper_instances_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep cord-platform-zookeeper | grep -i running | grep 1/1 | wc -l
+                        """
+                        return zookeeper_instances_running.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Verify that XOS is ready') {
+                timeout(3) {
+                    waitUntil {
+                        xos_core_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i xos | grep -i running | grep 1/1 | wc -l
+                        """
+                        return xos_core_running.toInteger() == 6
+                    }
+                }
+            }
+
+            stage('Verify that NEM is ready') {
+                // prometheus
+                timeout(10) {
+                    waitUntil {
+                        prometheus_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i prometheus | grep -i running | grep -e "1/1" -e "2/2" | wc -l
+                        """
+                        return prometheus_running.toInteger() == 6
+                    }
+                }
+                // grafana
+                timeout(10) {
+                    waitUntil {
+                        grafana_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i grafana | grep -i running | grep 2/2 | wc -l
+                        """
+                        return grafana_running.toInteger() == 1
+                    }
+                }
+
+                // kpi-exporter
+                timeout(10) {
+                    waitUntil {
+                        kpiexporter_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i kpi-exporter | grep -v Running | wc -l
+                        """
+                        return kpiexporter_running.toInteger() == 0
+                    }
+                }
+            }
+
+            stage('Verify that Logging is ready') {
+                // elasticsearch
+                elasticsearch_running = sh returnStdout: true, script: """
+                kubectl get pods | grep -i elasticsearch | grep -v Running | wc -l
+                """
+                return elasticsearch_running.toInteger() == 0
+
+                // kibana
+                kibana_running = sh returnStdout: true, script: """
+                kubectl get pods | grep -i kibana | grep -i running | grep 1/1 | wc -l
+                """
+                return kibana_running.toInteger() == 1
+
+                // logstash
+                logstash_running = sh returnStdout: true, script: """
+                kubectl get pods | grep -i logstash | grep -i running | grep 1/1 | wc -l
+                """
+                return logstash_running.toInteger() == 1
+            }
+
+
+            stage('Install COMAC-Platform') {
+                sh returnStdout: true, script: """
+                kubectl delete crd network-attachment-definitions.k8s.cni.cncf.io || true
+                helm install -n comac-platform --set mcord-setup.sriov_vfio.devicepci=04:00.0 --set mcord-setup.sriov_netdevice.devicepci=04:00.0 --version 0.0.2 cord/comac-platform
+                """
+            }
+
+            stage('Verify and redploying OMEC-CNI when problem happens') {
+                // verification
+                timeout(1) {
+                    waitUntil {
+                        network_definition_crd_exist = sh returnStdout: true, script: """
+                        kubectl get crd -o json | jq -r '.items[].spec | select(.group=="k8s.cni.cncf.io").names.kind' |\
+                        grep -E 'NetworkAttachmentDefinition' | wc -l
+                        """
+                        return network_definition_crd_exist.toInteger() == 1
+                    }
+                }
+
+                // verification: mcord-setup pods will be deployed for each machine
+                timeout (1) {
+                    waitUntil {
+                        num_sriov_pods = sh returnStdout: true, script: """
+                        kubectl get pods -n kube-system | grep sriov | wc -l
+                        """
+                        return num_sriov_pods.toInteger() == deployment_config.nodes.size()
+                    }
+                }
+
+                // redeployment: facing "MountVolume.Setup failed", mcord-setup will be redeployed
+                max_retry_index = 100;
+                for (int i = 0; i<max_retry_index; i++) {
+                    // warming-up period
+                    sh returnStdout: true, script: "sleep 30"
+
+                    sh script: """
+                    init_num_sriov=\$(kubectl get pods -n kube-system | grep sriov | grep Init | wc -l);
+                    for pod in \$(kubectl get pods -n kube-system | grep sriov | grep Init | awk '{print \$1}');
+                    do
+                        echo \$pod is initializing
+                        num_err_msgs=\$(kubectl describe pods \$pod -n kube-system | tail -4 | grep -E 'MountVolume.SetUp failed' | wc -l)
+                        if [ \$num_err_msgs > 0 ]; then
+                            kubectl delete pod \$pod -n kube-system --force --grace-period=0
+                        fi
+                    done
+                    """
+
+                    sriov_all_ready = sh returnStdout: true, script: """
+                    kubectl get pods -n kube-system | grep sriov | grep Running | wc -l
+                    """
+                    if (sriov_all_ready.toInteger() == deployment_config.nodes.size()) {
+                        break;
+                    }
+                }
+
+                // verification: tillerpod
+                // Sometimes tillerpod is up, but it's not ready to accept deployment yet
+                // use helm ls to make sure it's ready.
+                timeout(1) {
+                    waitUntil {
+                        helm_client_working = sh returnStatus: true, script: "helm ls"
+                        return helm_client_working == 0
+                    }
+                }
+
+                // Before Start to deploy services, we need to take 10 seconds wait
+                // Cooling down period
+                sh returnStdout: true, script: "sleep 10"
+            }
+
+            stage('Wait for etcd-cluster to be installed') {
+                timeout(10) {
+                    waitUntil {
+                        etcd_cluster_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep etcd-cluster | grep -i running | grep 1/1 | wc -l
+                        """
+                        return etcd_cluster_running.toInteger() == 1
+                    }
+                }
+            }
+
+
+            stage('Verify that M-CORD Profile is ready') {
+                timeout(10) {
+                    waitUntil {
+                        mcord_tosca_completed = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i comac-platform-mcord-tosca-loader | grep -i completed | wc -l
+                        """
+                        return mcord_tosca_completed.toInteger() == 1
+                    }
+                }
+            }
+
+            stage('Verify that base-kubernetes is ready') {
+
+                timeout(5) {
+                    waitUntil {
+                        base_kubernetes_tosca_completed = sh returnStdout: true, script: """
+                        kubectl get pods | grep -i comac-platform-base-kubernetes-tosca-loader | grep -i completed | wc -l
+                        """
+                        return base_kubernetes_tosca_completed.toInteger() == 1
+                    }
+                }
+            }
+
+            stage("Deploy M-CORD Services") {
+                sh returnStatus: true, script: """
+                helm install -f $HELMCONFIG --set mme.type=openmme --set mme.conf.mme.mcc.dig1=3 --set mme.conf.mme.mcc.dig2=0 --set mme.conf.mme.mcc.dig3=2 --set mme.conf.mme.mnc.dig1=7 --set mme.conf.mme.mnc.dig2=2 --set mme.conf.mme.mnc.dig3=0 --set enb.host=119.0.0.10 -n mcord-services cord/mcord-services
+                """
+
+                timeout (3) {
+                    waitUntil {
+                        // We should have 5 statefulsets: hss, hssdb, mme, spgwc, spgwu
+                        mcord_services_running = sh returnStdout: true, script: """
+                        kubectl get statefulset.apps -o json | jq '.items[].metadata.name' | grep -v cord-platform | wc -l
+                        """
+                        return mcord_services_running.toInteger() == 5
+                    }
+                }
+            }
+
+            stage("Deploy CDN-Remote Services") {
+                sh returnStatus: true, script: """
+                helm install -f $HELMCONFIG -n cdn-remote --set remote_streaming.antmedia_ip=${deployment_config.nodes[0].ip} \
+                --set stream_name=360 --set remote_streaming.video_quality=360 cord/cdn-remote
+                """
+
+                timeout (3) {
+                    waitUntil {
+                        // Are AntMedia server and ffMPEG containers ready?
+                        cdn_remote_service_running = sh returnStdout: true, script: """
+                        kubectl get statefulset.apps -o json | jq '.items[].metadata.name' | grep -E 'antmedia|remote-streaming' | wc -l
+                        """
+                        return cdn_remote_service_running.toInteger() == 2
+                    }
+                }
+
+            }
+
+            stage("Deploy CDN-Local Services") {
+                //Is SPGW-U ready?
+                timeout(3) {
+                    waitUntil {
+                        spgwu_running = sh returnStdout: true, script: """
+                        kubectl get pods | grep spgwu | grep Running | grep 1/1 | wc -l
+                        """
+                        return spgwu_running.toInteger() == 1
+                    }
+                }
+
+                cdn_local_service_deployed = sh returnStatus: true, script: """
+                spgwu_ip=\$(kubectl exec -it spgwu-0  -- ip -4 addr show dev sgi-net | grep inet | awk '{print \$2}' | awk -F '/' '{print \$1}');
+                helm install -f $HELMCONFIG -n cdn-local --set remote_ip=${deployment_config.nodes[0].ip} --set stream_name=360 \
+                --set spgwu_sgiip=\$spgwu_ip cord/cdn-local
+                """
+                return cdn_local_service_deployed == 0
+
+                timeout(3) {
+                    waitUntil {
+                        // Is NGINX ready?
+                        cdn_local_service_running = sh returnStdout: true, script: """
+                        kubectl get statefulset.apps -o json | jq '.items[].metadata.name' | grep -E 'nginx-rtmp' | wc -l
+                        """
+                        return cdn_local_service_running.toInteger() == 1
+                    }
+                }
+
+            }
+
+            // To-Do: SEBA profile and VNF deployment codes will be added
+
+            if ( params.configurePod ) {
+                dir ("${configBaseDir}/${configToscaDir}/mcord") {
+                    stage('Configure MCORD - Fabric') {
+                        timeout(1) {
+                            waitUntil {
+                                out_fabric = sh returnStdout: true, script: """
+                                curl -s -H "xos-username:admin@opencord.org" -H "xos-password:letmein" -X POST \
+                                --data-binary @${configFileName}-fabric-cavium.yaml http://${deployment_config.nodes[0].ip}:30007/run |\
+                                grep -i "created models" | wc -l
+                                """
+                                return out_fabric.toInteger() == 1
+                            }
+                        }
+                    }
+                }
+            }
+
+            currentBuild.result = 'SUCCESS'
+        } catch (err) {
+            println err.message
+            currentBuild.result = 'FAILURE'
+            step([$class: 'Mailer', notifyEveryUnstableBuild: true, recipients: "${notificationEmail}", sendToIndividuals: false])
+        }
+        echo "RESULT: ${currentBuild.result}"
+    }
+}
