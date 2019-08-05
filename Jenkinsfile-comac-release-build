@@ -165,9 +165,9 @@ node ("${TestNodeName}") {
                 timeout(10) {
                     waitUntil {
                         prometheus_running = sh returnStdout: true, script: """
-                        kubectl get pods | grep -i prometheus | grep -i running | grep -e "1/1" -e "2/2" | wc -l
+                        kubectl get pods | grep -i prometheus | grep -v Running | wc -l
                         """
-                        return prometheus_running.toInteger() == 6
+                        return prometheus_running.toInteger() == 0
                     }
                 }
                 // grafana
