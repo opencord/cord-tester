@@ -95,7 +95,7 @@ Create OLT, ONU, Subscribers, and Whitelists
     ${attworkflowservice}=    Get From List    ${jsondata['items']}    0
     ${attworkflowservice_id}=    Get From Dictionary    ${attworkflowservice}    id
     Set Suite Variable    ${attworkflowservice_id}
-    ${resp}=    CORD Post    ${subscriber_api}    {"onu_device": "${onu_serial_no}", "status": "pre-provisioned"}
+    ${resp}=    CORD Post    ${subscriber_api}    {"onu_device": "${onu_serial_no}", "status": "pre-provisioned", "upstream_bps": 1, "downstream_bps": 1, "tech_profile_id": 1}
     ${subscriber_id}=    Get Json Value    ${resp.content}    /id
     Set Suite Variable    ${subscriber_id}
     ${resp}=    CORD Post    ${olt_api}    {"volt_service_id": ${voltservice_id}, "name": "testoltdevice1", "device_type": "ponism", "host": "172.17.0.1", "port": 50060, "switch_port": "1", "dp_id": "${deviceId}", "outer_tpid": "0x8100", "uplink": "128"}
