@@ -70,7 +70,8 @@ Get VOLTHA Status
     Log    ${logical_devices}
     Log    ${l_device_ports}
 
-Get ONOS Status
+Get ONOS Statu
+    [Arguments]    ${server_ip}=${None}
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_apps.log    apps -a -s    host=${server_ip}
     ${onos_apps}    Get Binary File    /tmp/onos_apps.log
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_devices.log    devices    host=${server_ip}
