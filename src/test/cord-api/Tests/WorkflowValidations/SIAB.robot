@@ -372,7 +372,7 @@ Simple Setup
 Test Cleanup
     [Documentation]    Restore back to initial state per each test
     Get VOLTHA Status
-    Get ONOS Status
+    Get ONOS Status    ${kube_node_ip}
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Wait Until Keyword Succeeds    30s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
