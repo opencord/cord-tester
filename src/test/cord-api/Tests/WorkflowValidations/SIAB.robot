@@ -44,7 +44,7 @@ ${WHITELIST_PATHFILE}      ${CURDIR}/data/${WHITELIST_FILENAME}.json
 ${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/${SUBSCRIBER_FILENAME}.json
 ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${OLT_DEVICE_FILENAME}.json
 ${export_kube_config}      export KUBECONFIG=%{HOME}/.kube/config
-${kube_node_ip}            localhost
+${kube_node_ip}            127.0.0.1
 ${dst_host_ip}             172.18.0.10
 ${local_user}              %{USER}
 ${local_pass}              ${None}
@@ -332,7 +332,7 @@ Setup
     Append To List    ${container_list}    vcore
     Set Suite Variable    ${container_list}
     Setup SSH Keys to Localhost
-    ${datetime}=    Get Current Datetime On Kubernetes Node    localhost    ${local_user}    ${local_pass}
+    ${datetime}=    Get Current Datetime On Kubernetes Node    ${kube_node_ip}    ${local_user}    ${local_pass}
     Set Suite Variable    ${datetime}
 
 Teardown
@@ -372,7 +372,7 @@ Simple Setup
 Test Cleanup
     [Documentation]    Restore back to initial state per each test
     Get VOLTHA Status
-    Get ONOS Status
+    Get ONOS Status    ${kube_node_ip}
     Log Kubernetes Containers Logs Since Time    ${datetime}    ${container_list}
     Wait Until Keyword Succeeds    60s    2s    Clean Up Objects    ${ATT_WHITELIST}
     Wait Until Keyword Succeeds    30s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
