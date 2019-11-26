@@ -86,10 +86,25 @@ Get ONOS Status
     ${onos_volt_prog_subscribers}    Get Binary File    /tmp/onos_volt_prog_subscribers.log
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_prog_meters.log    volt-programmed-meters    host=${server_ip}
     ${onos_volt_prog_meters}    Get Binary File    /tmp/onos_volt_prog_meters.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_bp_meters.log    volt-bpmeter-mappings    host=${server_ip}
+    ${onos_volt_bp_meters}    Get Binary File    /tmp/onos_volt_bp_meters.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_dhcpl2.log    dhcpl2relay-allocations    host=${server_ip}
+    ${onos_dhcpl2}    Get Binary File    /tmp/onos_dhcpl2.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_aaa_users.log    aaa-users   host=${server_ip}
+    ${onos_aaa_users}    Get Binary File    /tmp/onos_aaa_users.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_netcfg.log    netcfg   host=${server_ip}
+    ${onos_netcfg}    Get Binary File    /tmp/onos_netcfg.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_groups.log    groups   host=${server_ip}
+    ${onos_groups}    Get Binary File    /tmp/onos_groups.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_ports}
     Log    ${onos_flows}
     Log    ${onos_meters}
+    Log    ${onos_aaa_users}
     Log    ${onos_volt_prog_subscribers}
     Log    ${onos_volt_prog_meters}
+    Log    ${onos_volt_bp_meters}
+    Log    ${onos_dhcpl2}
+    Log    ${onos_netcfg}
+    Log    ${onos_groups}
