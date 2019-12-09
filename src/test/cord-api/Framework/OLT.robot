@@ -96,6 +96,8 @@ Get ONOS Status
     ${onos_netcfg}    Get Binary File    /tmp/onos_netcfg.log
     testCaseUtils.send_command_to_onos_cli    /tmp    onos_groups.log    groups   host=${server_ip}
     ${onos_groups}    Get Binary File    /tmp/onos_groups.log
+    testCaseUtils.send_command_to_onos_cli    /tmp    onos_hosts.log    hosts   host=${server_ip}
+    ${onos_hosts}    Get Binary File    /tmp/onos_hosts.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_ports}
@@ -105,6 +107,7 @@ Get ONOS Status
     Log    ${onos_volt_prog_subscribers}
     Log    ${onos_volt_prog_meters}
     Log    ${onos_volt_bp_meters}
+    Log    ${onos_hosts}
     Log    ${onos_dhcpl2}
     Log    ${onos_netcfg}
     Log    ${onos_groups}
