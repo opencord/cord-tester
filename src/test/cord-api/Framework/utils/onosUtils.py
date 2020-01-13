@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import paramiko
 
-def onos_command_execute(host, portNum, cmd, user='karaf', passwd='karaf'):
+
+def onos_command_execute(host, portNum, cmd, user="karaf", passwd="karaf"):
     """
     :param host: onos-cord or onos-fabric
     :param portNum: 8102 or 8101
@@ -33,6 +36,7 @@ def onos_command_execute(host, portNum, cmd, user='karaf', passwd='karaf'):
                 return stdout.read()
     finally:
         client.close()
+
 
 def get_compute_node_ip(compute_node):
     """
