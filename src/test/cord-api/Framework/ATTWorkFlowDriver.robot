@@ -19,8 +19,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           utils/utils.py
+Library           restApi.py
 
 *** Variable ***
 ${ONU_STATE_VAR}    admin_onu_state

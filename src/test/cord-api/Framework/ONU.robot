@@ -32,7 +32,7 @@ ONU Status Check
     ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    serial_number    ${onu_device}
     ${operational_status}=  Get From Dictionary    ${getJsonDict}   oper_status
     ${admin_status}=  Get From Dictionary    ${getJsonDict}   admin_state
-    [Return]    ${operational_status}    ${admin_status} 
+    [Return]    ${operational_status}    ${admin_status}
 
 Create ONU Device
     [Arguments]    ${device_list}    ${list_index}

@@ -1,4 +1,3 @@
-
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
 
 import sys
+
 
 class readProperties(object):
     def __init__(self, strPropertiesFile):
@@ -22,7 +23,7 @@ class readProperties(object):
 
     @staticmethod
     def parse_line(input):
-        key, value = input.split('=',1)
+        key, value = input.split("=", 1)
         key = key.strip()
         value = value.strip()
         return key, value
@@ -34,8 +35,8 @@ class readProperties(object):
         with open(self.strPropertiesFile) as fp:
             for line in fp:
                 line = line.strip()
-                if not line or line.startswith('#') or line.startswith('import'):
-                   continue
+                if not line or line.startswith("#") or line.startswith("import"):
+                    continue
 
                 key, value = readProperties.parse_line(line)
                 data[key] = value
@@ -47,6 +48,7 @@ class readProperties(object):
         value = datas[key]
         return value
 
-#test
-#test = readProperties("testProperties.py")
-#test.getValueProperties("CORE_INSTANCES")
+
+# test
+# test = readProperties("testProperties.py")
+# test.getValueProperties("CORE_INSTANCES")
