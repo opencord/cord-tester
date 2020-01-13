@@ -15,7 +15,6 @@
 *** Settings ***
 Documentation    Library for various utilities
 Library           SSHLibrary
-Library           HttpLibrary.HTTP
 Library           String
 Library           DateTime
 Library           Process
