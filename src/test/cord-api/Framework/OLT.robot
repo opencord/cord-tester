@@ -19,7 +19,8 @@ Library           Collections
 Library           String
 Library           OperatingSystem
 Library           RequestsLibrary
-Library           utils/utils.py
+Library           libraries/utils.py
+Library           libraries/testCaseUtils.py
 Library           restApi.py
 
 *** Keywords ***
