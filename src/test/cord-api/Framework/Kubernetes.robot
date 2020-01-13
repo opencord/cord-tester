@@ -21,7 +21,7 @@ Library           OperatingSystem
 Library           RequestsLibrary
 Library           utils/utils.py
 Library           restApi.py
-Resource          ../../Framework/utils/utils.robot
+Resource          utils/utils.robot
 
 *** Keywords ***
 Helm Chart is Removed

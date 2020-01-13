@@ -20,6 +20,7 @@ Library           String
 Library           OperatingSystem
 Library           RequestsLibrary
 Library           utils/utils.py
+Library           utils/testCaseUtils.py
 Library           restApi.py
 
 *** Keywords ***
