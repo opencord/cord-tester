@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "4d5c20e5_a07d7c21",
+        "filename": "src/test/cord-api/Framework/utils/utils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 41,
+      "author": {
+        "id": 1000054
+      },
+      "writtenOn": "2020-01-13T23:43:16Z",
+      "side": 1,
+      "message": "Extra ()?",
+      "range": {
+        "startLine": 41,
+        "startChar": 17,
+        "endLine": 41,
+        "endChar": 41
+      },
+      "revId": "e48a87908607bcf4aee36a6675507abf7934fcc7",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
