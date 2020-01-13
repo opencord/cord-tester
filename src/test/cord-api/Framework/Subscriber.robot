@@ -17,7 +17,7 @@ Documentation     Library of functions related to RG (source host)
 Library           OperatingSystem
 Library           SSHLibrary
 Library           restApi.py
-Resource          ../../Framework/utils/utils.robot
+Resource          libraries/utils.robot
 Resource          ../../Framework/DHCP.robot
 
 *** Keywords ***
