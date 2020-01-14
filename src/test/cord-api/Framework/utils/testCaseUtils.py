@@ -57,7 +57,7 @@ def send_command_to_voltha_cli(
     cmd3=None,
     host="localhost",
 ):
-    output = open(log_dir + "/" + log_file1, "w")
+    output = open(log_dir + "/" + log_file1, "wb")
     child = pexpect.spawn(
         "ssh -p 30110 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no voltha@%s"
         % host
@@ -79,7 +79,7 @@ def send_command_to_voltha_cli(
         remove_leading_line(log_dir, log_file1)
     elif i == 1:
         if log_file2 is not None and cmd2 is not None:
-            output = open(log_dir + "/" + log_file2, "w")
+            output = open(log_dir + "/" + log_file2, "wb")
             child.sendline(cmd2)
             child.expect(
                 r"\((\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\x1b\[\d*;?\d+m){1,2}\)"
@@ -88,7 +88,7 @@ def send_command_to_voltha_cli(
             output.close()
             remove_leading_line(log_dir, log_file2)
         if log_file3 is not None and cmd3 is not None:
-            output = open(log_dir + "/" + log_file3, "w")
+            output = open(log_dir + "/" + log_file3, "wb")
             child.sendline(cmd3)
             child.expect(
                 r"\((\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\x1b\[\d*;?\d+m){1,2}\)"
@@ -100,7 +100,7 @@ def send_command_to_voltha_cli(
 
 
 def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost"):
-    output = open(log_dir + "/" + log_file, "w")
+    output = open(log_dir + "/" + log_file, "wb")
     child = pexpect.spawn(
         "ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s"
         % host
