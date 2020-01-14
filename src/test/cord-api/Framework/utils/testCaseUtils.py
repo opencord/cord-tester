@@ -64,13 +64,13 @@ def send_command_to_voltha_cli(
     )
     child.expect(r"[pP]assword:")
     child.sendline("admin")
-    child.expect(r"\((\\x1b\[\d*;?\d+m){1,2}voltha(\\x1b\[\d*;?\d+m){1,2}\)")
+    child.expect(r"\((\x1b\[\d*;?\d+m){1,2}voltha(\x1b\[\d*;?\d+m){1,2}\)")
     time.sleep(10)
     child.sendline(cmd1)
     i = child.expect(
         [
-            r"\((\\x1b\[\d*;?\d+m){1,2}voltha(\\x1b\[\d*;?\d+m){1,2}\)",
-            r"\((\\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\\x1b\[\d*;?\d+m){1,2}\)",
+            r"\((\x1b\[\d*;?\d+m){1,2}voltha(\x1b\[\d*;?\d+m){1,2}\)",
+            r"\((\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\x1b\[\d*;?\d+m){1,2}\)",
         ]
     )
     if i == 0:
@@ -82,7 +82,7 @@ def send_command_to_voltha_cli(
             output = open(log_dir + "/" + log_file2, "w")
             child.sendline(cmd2)
             child.expect(
-                r"\((\\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\\x1b\[\d*;?\d+m){1,2}\)"
+                r"\((\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\x1b\[\d*;?\d+m){1,2}\)"
             )
             output.write(child.before)
             output.close()
@@ -91,7 +91,7 @@ def send_command_to_voltha_cli(
             output = open(log_dir + "/" + log_file3, "w")
             child.sendline(cmd3)
             child.expect(
-                r"\((\\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\\x1b\[\d*;?\d+m){1,2}\)"
+                r"\((\x1b\[\d*;?\d+m){1,2}.*device [0-9a-f]{16}(\x1b\[\d*;?\d+m){1,2}\)"
             )
             output.write(child.before)
             output.close()
@@ -107,9 +107,9 @@ def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost"):
     )
     child.expect(r"[pP]assword:")
     child.sendline("karaf")
-    child.expect(r"(\\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\\x1b\[\d*;?\d+m){1,2}")
+    child.expect(r"(\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\x1b\[\d*;?\d+m){1,2}")
     child.sendline(cmd)
-    child.expect(r"(\\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\\x1b\[\d*;?\d+m){1,2}")
+    child.expect(r"(\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\x1b\[\d*;?\d+m){1,2}")
 
     output.write(child.before)
 
