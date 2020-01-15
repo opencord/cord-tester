@@ -1,4 +1,4 @@
-
+---
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #
 # variables needed to be defined in user's playbook
-#
 #
 # user-configurable defaults
 #
 # default install path
+
 docker_tools_path: '/usr/local/bin'
 docker_tools_pipework_exe_url: https://raw.githubusercontent.com/jpetazzo/pipework/master/pipework
 openvswitch_url: http://openvswitch.org/releases
 openvswitch_version: '2.5.0'
-#docker variables
+
+# docker variables
 docker:
     registry: "{{ docker_registry | default('docker-registry:5000') }}"
     image_version: "{{ docker_image_version | default('latest') }}"

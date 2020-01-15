@@ -22,14 +22,10 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
+Library           CORDRobot
 Library           bbsim_utils.py
-Library           ../../Framework/utils/utils.py
-Library           ../../Framework/restApi.py
-Resource          ../../Framework/Subscriber.robot
-Resource          ../../Framework/ATTWorkFlowDriver.robot
-Resource          ../../Framework/Kubernetes.robot
-Resource          ../../Framework/ONU.robot
-Resource          ../../Framework/DHCP.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***

@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_Users.json
@@ -47,12 +47,12 @@ Test Post Users API
     [Arguments]    ${listIndex}
     ${userList} =    Get Variable Value    ${uList}
     ${userDict}=    utils.listToDict    ${userList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CH_CORE_USERS    ${userDict}
+    ${api_result}=    CORDRobot.ApiPost    CH_CORE_USERS    ${userDict}
     Should Be True    ${api_result}
 
 Test Get Users API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_USERS
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_USERS
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${userList}=    Get Variable Value    ${uList}
@@ -64,7 +64,7 @@ Test Get Users API
 
 Test Delete Users API
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CH_CORE_USERS
+    ${json_getresult}=    CORDRobot.ApiGet    CH_CORE_USERS
     ${json_getresult_list}=    Get From Dictionary    ${json_getresult}    items
     ${userList}=    Get Variable Value    ${uList}
     ${userDict}=    utils.listToDict    ${uList}    ${listIndex}
@@ -74,5 +74,5 @@ Test Delete Users API
     Log    ${getUserDict}
     ${userID}=    utils.getFieldValueFromDict    ${getUserDict}    id
     Log    ${userID}
-    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_USERS    ${userID}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    CH_CORE_USERS    ${userID}
     Should be True    ${test_result}

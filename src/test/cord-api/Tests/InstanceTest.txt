@@ -7,8 +7,9 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
+
 | Variables |     ../Properties/RestApiProperties.py
 
 *** Variables ***
@@ -72,12 +73,12 @@ Test Post Instances
     ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    node    ${node}
     ${creator}=    Get Variable Value    ${creator}
     ${instanceDict}=    utils.setFieldValueInDict    ${instanceDict}    creator    ${creator}
-    ${api_result}=    restApi.ApiPost    CORE_INSTANCES    ${instanceDict}
+    ${api_result}=    CORDRobot.ApiPost    CORE_INSTANCES    ${instanceDict}
     Should Be True    ${api_result}
 
 Test Get Instances
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CORE_INSTANCES
+    ${json_result}=    CORDRobot.ApiGet    CORE_INSTANCES
     Log    ${json_result}
     ${instanceList}=    Get Variable Value    ${iList}
     ${instanceDict}=    utils.listToDict    ${instanceList}    ${listIndex}
@@ -98,7 +99,7 @@ Test Get Instances
 
 Test Delete Instances
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CORE_INSTANCES
+    ${json_getresult}=    CORDRobot.ApiGet    CORE_INSTANCES
     ${instanceList}=    Get Variable Value    ${iList}
     ${instanceDict}=    utils.listToDict    ${iList}    ${listIndex}
     ${instanceName}=    utils.getFieldValueFromDict    ${instanceDict}    name
@@ -107,5 +108,5 @@ Test Delete Instances
     Log    ${getInstanceDict}
     ${instanceID}=    utils.getFieldValueFromDict    ${getInstanceDict}    id
     Log    ${instanceID}
-    ${test_result}=    restApi.ApiDelete    CORE_INSTANCES    ${instanceID}
+    ${test_result}=    CORDRobot.ApiDelete    CORE_INSTANCES    ${instanceID}
     Should be True    ${test_result}
