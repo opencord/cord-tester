@@ -19,9 +19,7 @@ Library           Collections
 Library           String
 Library           OperatingSystem
 Library           RequestsLibrary
-Library           utils/utils.py
-Library           utils/testCaseUtils.py
-Library           restApi.py
+Library           CORDRobot
 
 *** Keywords ***
 Openolt is Up
@@ -57,9 +55,9 @@ Get VOLTHA Status
     \    ${logical_device_id}=    Get From Dictionary    ${value}    of_id
     Set Suite Variable    ${olt_device_id}
     Set Suite Variable    ${logical_device_id}
-    testCaseUtils.send_command_to_voltha_cli    /tmp    voltha_devices.log    devices    host=${server_ip}
-    testCaseUtils.send_command_to_voltha_cli    /tmp    logical_devices.log    logical_device ${logical_device_id}    voltha_logical_ports.log    ports    voltha_logical_flows.log    flow    host=${server_ip}
-    testCaseUtils.send_command_to_voltha_cli    /tmp    devices.log    device ${olt_device_id}    voltha_olt_ports.log    ports    voltha_olt_flows.log    flows    host=${server_ip}
+    testCaseUtils.write_log_of_voltha_cli_comand    /tmp    voltha_devices.log    devices    host=${server_ip}
+    testCaseUtils.write_log_of_voltha_cli_comand    /tmp    logical_devices.log    logical_device ${logical_device_id}    voltha_logical_ports.log    ports    voltha_logical_flows.log    flow    host=${server_ip}
+    testCaseUtils.write_log_of_voltha_cli_comand    /tmp    devices.log    device ${olt_device_id}    voltha_olt_ports.log    ports    voltha_olt_flows.log    flows    host=${server_ip}
     ${voltha_devices_log}=    Get Binary File    /tmp/voltha_devices.log
     ${devices_flows}=    Get Binary File    /tmp/voltha_olt_flows.log
     ${device_ports}=    Get Binary File    /tmp/voltha_olt_ports.log
@@ -73,33 +71,33 @@ Get VOLTHA Status
 
 Get ONOS Status
     [Arguments]    ${server_ip}=${None}
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_apps.log    apps -a -s    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_apps.log    apps -a -s    host=${server_ip}
     ${onos_apps}    Get Binary File    /tmp/onos_apps.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_devices.log    devices    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_devices.log    devices    host=${server_ip}
     ${onos_devices}    Get Binary File    /tmp/onos_devices.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_ports.log    ports   host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_ports.log    ports   host=${server_ip}
     ${onos_ports}    Get Binary File    /tmp/onos_ports.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_flows.log    flows -s    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_flows.log    flows -s    host=${server_ip}
     ${onos_flows}    Get Binary File    /tmp/onos_flows.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_meters.log    meters    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_meters.log    meters    host=${server_ip}
     ${onos_meters}    Get Binary File    /tmp/onos_meters.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_prog_subscribers.log    volt-programmed-subscribers    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_volt_prog_subscribers.log    volt-programmed-subscribers    host=${server_ip}
     ${onos_volt_prog_subscribers}    Get Binary File    /tmp/onos_volt_prog_subscribers.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_prog_meters.log    volt-programmed-meters    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_volt_prog_meters.log    volt-programmed-meters    host=${server_ip}
     ${onos_volt_prog_meters}    Get Binary File    /tmp/onos_volt_prog_meters.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_volt_bp_meters.log    volt-bpmeter-mappings    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_volt_bp_meters.log    volt-bpmeter-mappings    host=${server_ip}
     ${onos_volt_bp_meters}    Get Binary File    /tmp/onos_volt_bp_meters.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_dhcpl2.log    dhcpl2relay-allocations    host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_dhcpl2.log    dhcpl2relay-allocations    host=${server_ip}
     ${onos_dhcpl2}    Get Binary File    /tmp/onos_dhcpl2.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_aaa_users.log    aaa-users   host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_aaa_users.log    aaa-users   host=${server_ip}
     ${onos_aaa_users}    Get Binary File    /tmp/onos_aaa_users.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_netcfg.log    netcfg   host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_netcfg.log    netcfg   host=${server_ip}
     ${onos_netcfg}    Get Binary File    /tmp/onos_netcfg.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_groups.log    groups   host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_groups.log    groups   host=${server_ip}
     ${onos_groups}    Get Binary File    /tmp/onos_groups.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_hosts.log    hosts   host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_hosts.log    hosts   host=${server_ip}
     ${onos_hosts}    Get Binary File    /tmp/onos_hosts.log
-    testCaseUtils.send_command_to_onos_cli    /tmp    onos_links.log    links   host=${server_ip}
+    testCaseUtils.write_log_of_onos_cli_command    /tmp    onos_links.log    links   host=${server_ip}
     ${onos_links}    Get Binary File    /tmp/onos_links.log
     Log    ${onos_apps}
     Log    ${onos_devices}

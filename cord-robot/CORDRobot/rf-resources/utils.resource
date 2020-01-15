@@ -108,13 +108,6 @@ Execute Command Locally
     ${output}=    Run    ${cmd}
     [Return]    ${output}
 
-Execute ONOS Command
-    [Arguments]    ${onos}    ${port}    ${cmd}    ${user}=karaf    ${pass}=karaf
-    ${conn_id}=    SSHLibrary.Open Connection    ${onos}    port=${port}    prompt=onos>    timeout=300s
-    SSHLibrary.Login    ${user}    ${pass}
-    ${output}=    SSHLibrary.Execute Command    ${cmd}
-    SSHLibrary.Close Connection
-    [Return]    ${output}
 
 Get Docker Container ID
     [Arguments]    ${container_name}

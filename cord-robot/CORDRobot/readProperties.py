@@ -14,8 +14,6 @@
 
 from __future__ import absolute_import
 
-import sys
-
 
 class readProperties(object):
     def __init__(self, strPropertiesFile):

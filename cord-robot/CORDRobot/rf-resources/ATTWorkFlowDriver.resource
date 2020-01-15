@@ -19,8 +19,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           utils/utils.py
-Library           restApi.py
+Library           CORDRobot
 
 *** Variable ***
 ${ONU_STATE_VAR}    admin_onu_state

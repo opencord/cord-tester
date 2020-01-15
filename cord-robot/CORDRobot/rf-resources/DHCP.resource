@@ -16,7 +16,7 @@
 Documentation     Library to DHCP Requests from an RG (source host)
 Library           OperatingSystem
 Library           SSHLibrary
-Resource          utils/utils.robot
+Resource          utils.resource
 
 *** Keywords ***
 Send Dhclient Request

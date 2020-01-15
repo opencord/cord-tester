@@ -22,6 +22,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
+Library           CORDRobot
 Library           bbsim_utils.py
 Library           ../../Framework/utils/utils.py
 Library           ../../Framework/restApi.py

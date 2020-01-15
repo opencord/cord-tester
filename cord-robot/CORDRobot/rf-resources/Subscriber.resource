@@ -16,9 +16,9 @@
 Documentation     Library of functions related to RG (source host)
 Library           OperatingSystem
 Library           SSHLibrary
-Library           restApi.py
-Resource          utils/utils.robot
-Resource          DHCP.robot
+Library           CORDRobot
+Resource          utils.resource
+Resource          DHCP.resource
 
 *** Keywords ***
 Subscriber Status Check

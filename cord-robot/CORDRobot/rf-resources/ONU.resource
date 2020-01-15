@@ -19,8 +19,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           utils/utils.py
-Library           restApi.py
+Library           CORDRobot
 
 *** Keywords ***
 ONU Status Check

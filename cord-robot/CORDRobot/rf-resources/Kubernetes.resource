@@ -19,9 +19,8 @@ Library           Collections
 Library           String
 Library           OperatingSystem
 Library           RequestsLibrary
-Library           utils/utils.py
-Library           restApi.py
-Resource          utils/utils.robot
+Library           CORDRobot
+Resource          utils.resource
 
 *** Keywords ***
 Helm Chart is Removed

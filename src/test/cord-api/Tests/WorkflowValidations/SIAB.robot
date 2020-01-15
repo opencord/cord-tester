@@ -23,7 +23,7 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ${VOLTHA_DIR}/tests/atests/common/testCaseUtils.py
+Library           ../../Framework/utils/testCaseUtils.py
 Library           ../../Framework/utils/utils.py
 Resource          ../../Framework/utils/utils.robot
 Library           ../../Framework/restApi.py
@@ -31,7 +31,7 @@ Resource          ../../Framework/Subscriber.robot
 Resource          ../../Framework/ATTWorkFlowDriver.robot
 Resource          ../../Framework/Kubernetes.robot
 Resource          ../../Framework/ONU.robot
-Resource         ../../Framework/OLT.robot
+Resource          ../../Framework/OLT.robot
 Resource          ../../Framework/DHCP.robot
 Variables         ../../Properties/RestApiProperties.py
 
