@@ -47,7 +47,7 @@ def remove_leading_line(log_dir, log_file):
         FILE.close()
 
 
-def send_command_to_voltha_cli(
+def write_log_of_voltha_cli_comand(
     log_dir,
     log_file1,
     cmd1,
@@ -99,7 +99,7 @@ def send_command_to_voltha_cli(
     child.close()
 
 
-def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost"):
+def write_log_of_onos_cli_command(log_dir, log_file, cmd, host="localhost"):
     output = open(log_dir + "/" + log_file, "wb")
     child = pexpect.spawn(
         "ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s"
@@ -236,7 +236,7 @@ def retrieve_authorized_users_device_id_and_port_number(status_line):
 
 
 def add_subscriber_access(self, device_id, port_number):
-    send_command_to_onos_cli(
+    write_log_of_onos_cli_command(
         get_dir(self, "log"),
         "voltha_add_subscriber_access.log",
         "volt-add-subscriber-access %s %s" % (device_id, port_number),

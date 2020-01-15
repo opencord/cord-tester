@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/hippieOSS.json
@@ -21,7 +21,7 @@ Test Get HippieOSS-1
 
 *** Keywords ***
 Read InputFile
-    ${hippieList}=    utils.jsonToList    ${PATHFILE}   hippieOSSInfo 
+    ${hippieList}=    utils.jsonToList    ${PATHFILE}   hippieOSSInfo
     Set Suite Variable    ${slist}    ${hippieList}
     Set Global Variable    ${hippieOSS_Id}    ${EMPTY}
 

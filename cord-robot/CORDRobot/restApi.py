@@ -18,7 +18,7 @@ import requests
 import json
 import os
 
-from utils.readProperties import readProperties
+from .readProperties import readProperties
 
 
 class restApi(object):

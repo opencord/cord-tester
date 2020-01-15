@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_VoltTenant.json
@@ -37,7 +37,7 @@ Test Post volt Tenant API
     ${voltTenantList} =    Get Variable Value    ${vlist}
     ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
-    ${name}=    Get From Dictionary    ${voltDict}   name 
+    ${name}=    Get From Dictionary    ${voltDict}   name
     ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
     # Verifying Get Operation after POST
     ${getVolt_result}=    restApi.ApiGet    VOLT_TENANT

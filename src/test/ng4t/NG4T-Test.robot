@@ -17,8 +17,8 @@ Suite Setup       Suite Setup
 Documentation     Test runner suite for executing NG4T Tests inside the venb vm instance
 Library           OperatingSystem
 Library           SSHLibrary
-Library           ../cord-api/Framework/utils/utils.py
-Resource          ../cord-api/Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${compute_node_user}    ubuntu
