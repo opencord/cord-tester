@@ -18,9 +18,8 @@
 *** Settings ***
 Documentation     Test suite for checking results collected by `make collect-diag` command
 Library           OperatingSystem
-Library           ../cord-api/Framework/utils/onosUtils.py
-Library           ../cord-api/Framework/utils/utils.py
-Resource          ../cord-api/Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${DOCKER_CONTAINERS_FILE}       ${CURDIR}/dockerContainers.json
