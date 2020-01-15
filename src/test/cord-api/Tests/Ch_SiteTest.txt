@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_Site.json
@@ -33,9 +33,9 @@ Test Delete Site-2    DELETE      1
 
 *** Keywords ***
 Read InputFile
-    ${siteList}=    utils.jsonToList    ${PATHFILE}    SiteInfo
+    ${siteList}=    CORDRobot.jsonToList    ${PATHFILE}    SiteInfo
     Set Suite Variable    ${slist}    ${siteList}
-    ${putSiteList}=    utils.jsonToList    ${PATHFILE2}    SiteInfo
+    ${putSiteList}=    CORDRobot.jsonToList    ${PATHFILE2}    SiteInfo
     Set Suite Variable    ${putList}    ${putSiteList}
 
 Verify Site functionality
@@ -48,48 +48,48 @@ Verify Site functionality
 Test Post Site API
     [Arguments]    ${listIndex}
     ${siteList} =    Get Variable Value    ${slist}
-    ${siteDict}=    utils.listToDict    ${siteList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CH_CORE_SITES    ${siteDict}
+    ${siteDict}=    CORDRobot.listToDict    ${siteList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CH_CORE_SITES    ${siteDict}
     Should Be True    ${api_result}
 
 Test Get Site API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_SITES
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_SITES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${siteList}=    Get Variable Value    ${slist}
-    ${siteDict}=    utils.listToDict    ${siteList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${siteDict}    name
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    name    ${name}
-    ${test_result}=    utils.compare_dict    ${siteDict}    ${getJsonDict}
+    ${siteDict}=    CORDRobot.listToDict    ${siteList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${siteDict}    name
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    name    ${name}
+    ${test_result}=    CORDRobot.compare_dict    ${siteDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
 Test Edit Site API
     [Arguments]    ${listIndex}
-    ${get_result}=    restApi.ApiGet    CH_CORE_SITES
+    ${get_result}=    CORDRobot.ApiGet    CH_CORE_SITES
     ${get_result_list}=    Get From Dictionary    ${get_result}    items
     ${putSiteList}=    Get Variable Value    ${putList}
-    ${putSiteDict}=    utils.listToDict    ${putSiteList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${putSiteDict}    name
-    ${siteDict}=    utils.getDictFromListofDict    ${get_result_list}    name    ${name}
-    ${siteID}=    utils.getFieldValueFromDict    ${siteDict}    id
-    ${api_result}=    restApi.ApiChameleonPut    CH_CORE_SITES    ${putSiteDict}    ${siteID}
+    ${putSiteDict}=    CORDRobot.listToDict    ${putSiteList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${putSiteDict}    name
+    ${siteDict}=    CORDRobot.getDictFromListofDict    ${get_result_list}    name    ${name}
+    ${siteID}=    CORDRobot.getFieldValueFromDict    ${siteDict}    id
+    ${api_result}=    CORDRobot.ApiChameleonPut    CH_CORE_SITES    ${putSiteDict}    ${siteID}
     Should Be True    ${api_result}
-    ${getResultAfterPut}=    restApi.ApiChameleonGet    CH_CORE_SITES    ${siteID}
-    ${test_result}=    utils.compare_dict    ${putSiteDict}    ${getResultAfterPut}
+    ${getResultAfterPut}=    CORDRobot.ApiChameleonGet    CH_CORE_SITES    ${siteID}
+    ${test_result}=    CORDRobot.compare_dict    ${putSiteDict}    ${getResultAfterPut}
     Should Be True    ${test_result}
 
 Test Delete Site API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_SITES
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_SITES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     ${siteList}=    Get Variable Value    ${slist}
-    ${siteDict}=    utils.listToDict    ${siteList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${siteDict}    name
+    ${siteDict}=    CORDRobot.listToDict    ${siteList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${siteDict}    name
     Log    ${name}
-    ${siteDict}=    utils.getDictFromListofDict    ${json_result_list}    name    ${name}
+    ${siteDict}=    CORDRobot.getDictFromListofDict    ${json_result_list}    name    ${name}
     Log    ${siteDict}
-    ${siteId}=    utils.getFieldValueFromDict    ${siteDict}    id
+    ${siteId}=    CORDRobot.getFieldValueFromDict    ${siteDict}    id
     Log    ${siteId}
-    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_SITES    ${siteId}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    CH_CORE_SITES    ${siteId}
     Should Be True    ${test_result}

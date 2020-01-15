@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_Deployment.json
@@ -37,9 +37,9 @@ Test Delete Deployment-2
 
 *** Keywords ***
 Read InputFile
-    ${deploymentList}=    utils.jsonToList    ${PATHFILE}    DeploymentInfo
+    ${deploymentList}=    CORDRobot.jsonToList    ${PATHFILE}    DeploymentInfo
     Set Suite Variable    ${dlist}    ${deploymentList}
-    ${putDeploymentList}=    utils.jsonToList    ${PATHFILE2}    DeploymentInfo
+    ${putDeploymentList}=    CORDRobot.jsonToList    ${PATHFILE2}    DeploymentInfo
     Set Suite Variable    ${putList}    ${putDeploymentList}
 
 Verify Deployment functionality
@@ -52,47 +52,47 @@ Verify Deployment functionality
 Test Post Deployment API
     [Arguments]    ${listIndex}
     ${deploymentList} =    Get Variable Value    ${dlist}
-    ${deploymentDict}=    utils.listToDict    ${deploymentList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CH_CORE_DEPLOYMENTS    ${deploymentDict}
+    ${deploymentDict}=    CORDRobot.listToDict    ${deploymentList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CH_CORE_DEPLOYMENTS    ${deploymentDict}
     Should Be True    ${api_result}
 
 Test Get Deployment API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_DEPLOYMENTS
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_DEPLOYMENTS
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${deploymentList}=    Get Variable Value    ${dlist}
-    ${deploymentDict}=    utils.listToDict    ${deploymentList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${deploymentDict}    name
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    name    ${name}
-    ${test_result}=    utils.compare_dict    ${deploymentDict}    ${getJsonDict}
+    ${deploymentDict}=    CORDRobot.listToDict    ${deploymentList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${deploymentDict}    name
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    name    ${name}
+    ${test_result}=    CORDRobot.compare_dict    ${deploymentDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
 Test Edit Deployment API
     [Arguments]    ${listIndex}
-    ${get_result}=    restApi.ApiGet    CH_CORE_DEPLOYMENTS
+    ${get_result}=    CORDRobot.ApiGet    CH_CORE_DEPLOYMENTS
     ${putDeploymentList}=    Get Variable Value    ${putList}
-    ${putDeploymentDict}=    utils.listToDict    ${putDeploymentList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${putDeploymentDict}    name
-    ${deploymentDict}=    utils.getDictFromListofDict    ${get_result}    name    ${name}
-    ${deploymentID}=    utils.getFieldValueFromDict    ${deploymentDict}    id
-    ${api_result}=    restApi.ApiPut    CH_CORE_DEPLOYMENTS    ${putDeploymentDict}    ${deploymentID}
+    ${putDeploymentDict}=    CORDRobot.listToDict    ${putDeploymentList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${putDeploymentDict}    name
+    ${deploymentDict}=    CORDRobot.getDictFromListofDict    ${get_result}    name    ${name}
+    ${deploymentID}=    CORDRobot.getFieldValueFromDict    ${deploymentDict}    id
+    ${api_result}=    CORDRobot.ApiPut    CH_CORE_DEPLOYMENTS    ${putDeploymentDict}    ${deploymentID}
     Should Be True    ${api_result}
-    ${getResultAfterPut}=    restApi.ApiGet    CH_CORE_DEPLOYMENTS    ${deploymentID}
-    ${test_result}=    utils.compare_dict    ${putDeploymentDict}    ${getResultAfterPut}
+    ${getResultAfterPut}=    CORDRobot.ApiGet    CH_CORE_DEPLOYMENTS    ${deploymentID}
+    ${test_result}=    CORDRobot.compare_dict    ${putDeploymentDict}    ${getResultAfterPut}
     Should Be True    ${test_result}
 
 Test Delete Deployment API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_DEPLOYMENTS
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_DEPLOYMENTS
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     ${deploymentList}=    Get Variable Value    ${dlist}
-    ${deploymentDict}=    utils.listToDict    ${deploymentList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${deploymentDict}    name
+    ${deploymentDict}=    CORDRobot.listToDict    ${deploymentList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${deploymentDict}    name
     Log    ${name}
-    ${deploymentDict}=    utils.getDictFromListofDict    ${json_result_list}    name    ${name}
+    ${deploymentDict}=    CORDRobot.getDictFromListofDict    ${json_result_list}    name    ${name}
     Log    ${deploymentDict}
-    ${deploymentId}=    utils.getFieldValueFromDict    ${deploymentDict}    id
+    ${deploymentId}=    CORDRobot.getFieldValueFromDict    ${deploymentDict}    id
     Log    ${deploymentId}
-    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_DEPLOYMENTS    ${deploymentId}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    CH_CORE_DEPLOYMENTS    ${deploymentId}
     Should Be True    ${test_result}

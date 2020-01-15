@@ -1,8 +1,8 @@
 # IDEs artifacts
 .idea
 
-# Virtual envs
-src/test/cord-api/venv-cord-tester/
+# Virtual
+venv_cord
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -28,6 +28,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+cord-robot/CORDRobot/VERSION
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -70,3 +71,9 @@ sub*.db
 
 # Gradle
 .gradle
+
+
+# Robot output
+output.xml
+report.html
+log.html

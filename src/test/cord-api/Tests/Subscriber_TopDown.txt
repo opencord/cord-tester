@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Subscriber_TopDown.json
@@ -21,7 +21,7 @@ Test Get Subscriber-1
 
 *** Keywords ***
 Read InputFile
-    ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
+    ${SubscriberList}=    CORDRobot.jsonToList    ${PATHFILE}   SubscriberInfo
     Set Suite Variable    ${slist}    ${SubscriberList}
     Set Global Variable    ${Subscriber_Id}    ${EMPTY}
 
@@ -33,8 +33,8 @@ Configuring Subscriber Top Down Test
 Post Subscriber
     [Arguments]    ${listIndex}
     ${SubscriberList} =    Get Variable Value    ${slist}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${listIndex}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    VOLT_SUBSCRIBER    ${SubscriberDict}
+    ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    ${listIndex}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    VOLT_SUBSCRIBER    ${SubscriberDict}
     Should Be True    ${api_result_status}
     ${Subscriber_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${Subscriber_Id}
@@ -42,10 +42,10 @@ Post Subscriber
 Get Subscriber
     [Arguments]    ${listIndex}
     Log    ${Subscriber_Id}
-    ${json_result}=    restApi.ApiChameleonGet    VOLT_SUBSCRIBER    ${Subscriber_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    VOLT_SUBSCRIBER    ${Subscriber_Id}
     Log    ${json_result}
     ${SubscriberList} =    Get Variable Value    ${slist}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    ${listIndex}
+    ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    ${listIndex}
     Log    ${SubscriberDict}
-    ${test_result}=    utils.compare_dict    ${SubscriberDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${SubscriberDict}    ${json_result}
     Should Be True    ${test_result}

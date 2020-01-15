@@ -18,9 +18,8 @@
 *** Settings ***
 Documentation     Test suite for checking results collected by `make collect-diag` command
 Library           OperatingSystem
-Library           ../cord-api/Framework/utils/onosUtils.py
-Library           ../cord-api/Framework/utils/utils.py
-Resource          ../cord-api/Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${DOCKER_CONTAINERS_FILE}       ${CURDIR}/dockerContainers.json
@@ -31,14 +30,14 @@ ${CORD_SCENARIO}		cord
 *** Test Cases ***
 Verify Docker Containers
     [Documentation]    Verify expected containers are up and running
-    ${dockerContainersExpected}    utils.jsonToList    ${DOCKER_CONTAINERS_FILE}    docker-containers-${CORD_PROFILE}
+    ${dockerContainersExpected}    CORDRobot.jsonToList    ${DOCKER_CONTAINERS_FILE}    docker-containers-${CORD_PROFILE}
     : FOR    ${container}    IN    @{dockerContainersExpected}
     \    Run Keyword And Continue On Failure    Verify Docker Container    ${container}
 
 Verify Synchronizer Logs
     [Documentation]    Verify synchronizer logs are correct
     ${latestDiag}=    Run    ls -1t /home/cord | head -1
-    ${synchronizerLogs}    utils.readFiles    /home/cord/${latestDiag}/docker/*synchronizer*.logs
+    ${synchronizerLogs}    CORDRobot.readFiles    /home/cord/${latestDiag}/docker/*synchronizer*.logs
     : FOR    ${key}    IN    @{synchronizerLogs.keys()}
     \    @{name}=    Split String    ${key}    -synchronizer
     \    @{name}=    Split String From Right   @{name}[0]    _    1
@@ -57,7 +56,7 @@ Verify Docker Container
 
 Verify Synchronizer Log
     [Arguments]    ${name}    ${log}
-    ${config}    utils.readFile    /opt/cord/orchestration/*/*/xos/synchronizer/@{name}[1]_config.yaml
+    ${config}    CORDRobot.readFile    /opt/cord/orchestration/*/*/xos/synchronizer/@{name}[1]_config.yaml
     ${match1}=    Get Lines Matching Regexp    ${config}    ^steps_dir: ".*"$
     ${match2}=    Get Lines Matching Regexp    ${config}    ^model_policies_dir: ".*"$
     Run Keyword If    '${match1}' != '${EMPTY}'    Should Contain    ${log}    Waiting for event or timeout    msg= "Waiting for event or timeout" not found in @{name}[1] synchronizer log
@@ -77,17 +76,17 @@ Verify ONOS-CORD
 
 Verify ONOS Status
     [Arguments]    ${onosName}
-    ${onosStatus}    utils.readFile    /home/cord/diag-*/${onosName}/nodes
+    ${onosStatus}    CORDRobot.readFile    /home/cord/diag-*/${onosName}/nodes
     Should Contain    ${onosStatus}    READY
 
 Verify ONOS Applications
     [Arguments]    ${onosName}    ${cordProfile}
-    ${onosAppsExpected}    utils.jsonToList    ${ONOS_APPS_FILE}    ${onosName}-${cordProfile}
-    ${onosApps}    utils.readFile    /home/cord/diag-*/${onosName}/apps_-s_-a
+    ${onosAppsExpected}    CORDRobot.jsonToList    ${ONOS_APPS_FILE}    ${onosName}-${cordProfile}
+    ${onosApps}    CORDRobot.readFile    /home/cord/diag-*/${onosName}/apps_-s_-a
     : FOR    ${app}    IN    @{onosAppsExpected}
     \    Should Contain    ${onosApps}    ${app}
 
 Verify ONOS Log
     [Arguments]    ${onosName}
-    ${onosLog}    utils.readFile    /home/cord/diag-*/${onosName}/log_display
+    ${onosLog}    CORDRobot.readFile    /home/cord/diag-*/${onosName}/log_display
     Should Not Contain    ${onosLog}    ERROR

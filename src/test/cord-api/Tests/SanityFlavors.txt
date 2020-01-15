@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -32,7 +32,7 @@ Test Delete Flavor-2
 
 *** Keywords ***
 Read InputFile
-    ${flavorList} =    utils.jsonToList    ${PATHFILE}    flavorsInfo
+    ${flavorList} =    CORDRobot.jsonToList    ${PATHFILE}    flavorsInfo
     Set Suite Variable    ${vList}    ${flavorList}
 
 Verify Flavor API functionality
@@ -44,31 +44,31 @@ Verify Flavor API functionality
 Test Post Flavors
     [Arguments]    ${listIndex}
     ${flavorList} =    Get Variable Value    ${vList}
-    ${flavorDict}=    utils.listToDict    ${flavorList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CORE_FLAVORS    ${flavorDict}
+    ${flavorDict}=    CORDRobot.listToDict    ${flavorList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CORE_FLAVORS    ${flavorDict}
     Should Be True    ${api_result}
 
 Test Get Flavors
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CORE_FLAVORS
+    ${json_result}=    CORDRobot.ApiGet    CORE_FLAVORS
     Log    ${json_result}
     ${flavorList}=    Get Variable Value    ${vList}
-    ${inputDict}=    utils.listToDict    ${flavorList}    ${listIndex}
-    ${flavorName}=    utils.getFieldValueFromDict    ${inputDict}    name
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${flavorName}
-    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    ${inputDict}=    CORDRobot.listToDict    ${flavorList}    ${listIndex}
+    ${flavorName}=    CORDRobot.getFieldValueFromDict    ${inputDict}    name
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result}    name    ${flavorName}
+    ${test_result}=    CORDRobot.compare_dict    ${inputDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
 Test Delete Flavors
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CORE_FLAVORS
+    ${json_getresult}=    CORDRobot.ApiGet    CORE_FLAVORS
     ${flavorList}=    Get Variable Value    ${vList}
-    ${flavorDict}=    utils.listToDict    ${vList}    ${listIndex}
-    ${flavorName}=    utils.getFieldValueFromDict    ${flavorDict}    name
+    ${flavorDict}=    CORDRobot.listToDict    ${vList}    ${listIndex}
+    ${flavorName}=    CORDRobot.getFieldValueFromDict    ${flavorDict}    name
     Log    ${flavorName}
-    ${getFlavorDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${flavorName}
+    ${getFlavorDict}=    CORDRobot.getDictFromListofDict    ${json_getresult}    name    ${flavorName}
     Log    ${getFlavorDict}
-    ${flavorID}=    utils.getFieldValueFromDict    ${getFlavorDict}    id
+    ${flavorID}=    CORDRobot.getFieldValueFromDict    ${getFlavorDict}    id
     Log    ${flavorID}
-    ${test_result}=    restApi.ApiDelete    CORE_FLAVORS    ${flavorID}
+    ${test_result}=    CORDRobot.ApiDelete    CORE_FLAVORS    ${flavorID}
     Should be True    ${test_result}
