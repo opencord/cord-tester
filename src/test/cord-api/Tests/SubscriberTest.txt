@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -46,9 +46,9 @@ Test Edit Subscriber-3
 
 *** Keywords ***
 Read InputFile
-    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    ${subscriberList} =    CORDRobot.jsonToList    ${PATHFILE}    SubscriberInfo
     Set Suite Variable    ${slist}    ${subscriberList}
-    ${putSubscriberList}=    utils.jsonToList    ${PATHFILE2}    SubscriberInfo
+    ${putSubscriberList}=    CORDRobot.jsonToList    ${PATHFILE2}    SubscriberInfo
     Set Suite Variable    ${putList}    ${putSubscriberList}
 
 Verify Subscriber functionality
@@ -61,45 +61,45 @@ Verify Subscriber functionality
 Test Post Subscriber API
     [Arguments]    ${listIndex}
     ${subscriberList} =    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    TENANT_SUBSCRIBER    ${subscriberDict}
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    TENANT_SUBSCRIBER    ${subscriberDict}
     Should Be True    ${api_result}
 
 Test Get Subscriber API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    ${json_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
     Log    ${json_result}
     ${subscriberList}=    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${AccountNum}=    utils.getFieldValueFromDict    ${subscriberDict}    account_num
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    account_num    ${AccountNum}
-    ${test_result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${AccountNum}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    account_num
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result}    account_num    ${AccountNum}
+    ${test_result}=    CORDRobot.compare_dict    ${subscriberDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
 Test Edit Subscriber API
     [Arguments]    ${listIndex}
-    ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    ${get_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
     ${putSubscriberList}=    Get Variable Value    ${putList}
-    ${putSubscriberDict}=    utils.listToDict    ${putSubscriberList}    ${listIndex}
-    ${AcctNum}=    utils.getFieldValueFromDict    ${putSubscriberDict}    account_num
-    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result}    account_num    ${AcctNum}
-    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
-    ${api_result}=    restApi.ApiPut    TENANT_SUBSCRIBER    ${putSubscriberDict}    ${subscriberID}
+    ${putSubscriberDict}=    CORDRobot.listToDict    ${putSubscriberList}    ${listIndex}
+    ${AcctNum}=    CORDRobot.getFieldValueFromDict    ${putSubscriberDict}    account_num
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${get_result}    account_num    ${AcctNum}
+    ${subscriberID}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
+    ${api_result}=    CORDRobot.ApiPut    TENANT_SUBSCRIBER    ${putSubscriberDict}    ${subscriberID}
     Should Be True    ${api_result}
-    ${getResultAfterPut}=    restApi.ApiGet    TENANT_SUBSCRIBER    ${subscriberID}
-    ${test_result}=    utils.compare_dict    ${putSubscriberDict}    ${getResultAfterPut}
+    ${getResultAfterPut}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER    ${subscriberID}
+    ${test_result}=    CORDRobot.compare_dict    ${putSubscriberDict}    ${getResultAfterPut}
     Should Be True    ${test_result}
 
 Test Delete Subscriber API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
+    ${json_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
     ${subscriberList}=    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${AcctNum}=    utils.getFieldValueFromDict    ${subscriberDict}    account_num
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${AcctNum}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    account_num
     Log    ${AcctNum}
-    ${subscriberDict}=    utils.getDictFromListofDict    ${json_result}    account_num    ${AcctNum}
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${json_result}    account_num    ${AcctNum}
     Log    ${subscriberDict}
-    ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    ${subscriberId}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
     Log    ${subscriberId}
-    ${test_result}=    restApi.ApiDelete    TENANT_SUBSCRIBER    ${subscriberId}
+    ${test_result}=    CORDRobot.ApiDelete    TENANT_SUBSCRIBER    ${subscriberId}
     Should Be True    ${test_result}

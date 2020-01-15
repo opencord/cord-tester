@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/RCORDLite_Subscriber.json
@@ -25,7 +25,7 @@ Test Create Subscriber-3
 
 *** Keywords ***
 Read InputFile
-    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    ${subscriberList} =    CORDRobot.jsonToList    ${PATHFILE}    SubscriberInfo
     Set Suite Variable    ${slist}    ${subscriberList}
     @{instanceList}=    Create List
     Set Suite Variable    @{instanceList}
@@ -37,31 +37,31 @@ Service Chain Validation For Subscriber
 Test Post Subscriber Create
     [Arguments]    ${listIndex}
     ${subscriberList} =    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${api_result_status}   ${api_result_json}=    restApi.ApiPostReturnJson    VOLT_SUBSCRIBER    ${subscriberDict}
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result_status}   ${api_result_json}=    CORDRobot.ApiPostReturnJson    VOLT_SUBSCRIBER    ${subscriberDict}
     Sleep    90
     Should Be True    ${api_result_status}
     ${Subscriber_Id}=    Get From Dictionary    ${api_result_json}    id
-    ${json_result}=    restApi.ApiChameleonGet    VOLT_SUBSCRIBER    ${Subscriber_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    VOLT_SUBSCRIBER    ${Subscriber_Id}
     Log    ${json_result}
-    ${result}=    utils.compare_dict    ${subscriberDict}    ${json_result}
+    ${result}=    CORDRobot.compare_dict    ${subscriberDict}    ${json_result}
     Should Be True    ${result}
     ${instanceList}    Create List
     # Retrieve Subscribed_links_id from Posted Subscriber
-    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${json_result}    subscribed_links_ids
+    ${subscribed_links_ids_list}=    CORDRobot.getFieldValueFromDict    ${json_result}    subscribed_links_ids
     ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
     # Retrieve Provided_Service_Instance_Id from "ServiceInstanceLinks"
-    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    ${getServiceLink}=    CORDRobot.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
     ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
     # RETRIEVE VOLT OBJECT USING PROVIDER INSTANCE ID   
-    ${getVoltDict}=    restApi.ApiChameleonGet    VOLT_TENANT    ${provider_service_instance_id}
+    ${getVoltDict}=    CORDRobot.ApiChameleonGet    VOLT_TENANT    ${provider_service_instance_id}
     # RETRIEVE SUBSCRIBED_LINKS_IDS FROM THE VOLT DICTIONARY
-    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getVoltDict}    subscribed_links_ids
+    ${subscribed_links_ids_list}=    CORDRobot.getFieldValueFromDict    ${getVoltDict}    subscribed_links_ids
     ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
     # RETRIEVE PROVIDED_SERVICE_INSTANCE_ID 
-    ${serviceLinkDict}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    ${serviceLinkDict}=    CORDRobot.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
     Log    ${serviceLinkDict}
     ${VSGTenant}=    Get From Dictionary    ${serviceLinkDict}    provider_service_instance_id
     # Retrieve VSGTenant to retrieve instance_id
-    ${getVSG_result}=    restApi.ApiChameleonGet    HWVSG_TENANT    ${VSGTenant}
+    ${getVSG_result}=    CORDRobot.ApiChameleonGet    HWVSG_TENANT    ${VSGTenant}
     Should Be True    ${getVSG_result}

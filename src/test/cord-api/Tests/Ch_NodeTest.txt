@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Variables         ../Properties/RestApiProperties.py
 
 *** Variables ***
@@ -31,7 +31,7 @@ Test Delete Node-2    DELETE      1
 
 *** Keywords ***
 Read InputFile
-    ${nodeList}=    utils.jsonToList    ${PATHFILE}    NodeInfo
+    ${nodeList}=    CORDRobot.jsonToList    ${PATHFILE}    NodeInfo
     Set Suite Variable    ${nlist}    ${nodeList}
     ${siteDeployment}=    Catenate    SEPARATOR=    http://    ${IP}    :    ${PORT}
     ...    /api/core/sitedeployments/1/
@@ -46,34 +46,34 @@ Verify Node API functionality
 Test Post Node API
     [Arguments]    ${listIndex}
     ${nodeList}=    Get Variable Value    ${nlist}
-    ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CH_CORE_NODES    ${nodeDict}
+    ${nodeDict}=    CORDRobot.listToDict    ${nodeList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CH_CORE_NODES    ${nodeDict}
     Should Be True    ${api_result}
 
 Test Get Node API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_NODES
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_NODES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${nodeList}=    Get Variable Value    ${nlist}
-    ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${nodeDict}    name
+    ${nodeDict}=    CORDRobot.listToDict    ${nodeList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${nodeDict}    name
     Log    ${name}
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    name    ${name}
-    ${test_result}=    utils.compare_dict    ${nodeDict}    ${getJsonDict}
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    name    ${name}
+    ${test_result}=    CORDRobot.compare_dict    ${nodeDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
 Test Delete Node API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_NODES
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_NODES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     ${nodeList}=    Get Variable Value    ${nlist}
-    ${nodeDict}=    utils.listToDict    ${nodeList}    ${listIndex}
-    ${name}=    utils.getFieldValueFromDict    ${nodeDict}    name
+    ${nodeDict}=    CORDRobot.listToDict    ${nodeList}    ${listIndex}
+    ${name}=    CORDRobot.getFieldValueFromDict    ${nodeDict}    name
     Log    ${name}
-    ${nodeDict}=    utils.getDictFromListofDict    ${json_result_list}    name    ${name}
+    ${nodeDict}=    CORDRobot.getDictFromListofDict    ${json_result_list}    name    ${name}
     Log    ${nodeDict}
-    ${nodeId}=    utils.getFieldValueFromDict    ${nodeDict}    id
+    ${nodeId}=    CORDRobot.getFieldValueFromDict    ${nodeDict}    id
     Log    ${nodeId}
-    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_NODES    ${nodeId}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    CH_CORE_NODES    ${nodeId}
     Should Be True    ${test_result}

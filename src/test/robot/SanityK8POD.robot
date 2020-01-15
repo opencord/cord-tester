@@ -17,9 +17,8 @@
 Documentation     Test suite to validate K8s in the experimental ControlKube Scenario
 Suite Setup       Setup
 Library           OperatingSystem
-Library           ../cord-api/Framework/utils/onosUtils.py
-Library           ../cord-api/Framework/utils/utils.py
-Resource          ../cord-api/Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${deployment}        physical
@@ -156,37 +155,37 @@ Setup
     @{xos_core_services}=    Create List
     @{onos_fabric_services}=    Create List
     @{voltha_services}=    Create List
-    ${xos-core_containers}    utils.jsonToList    ${resources_file}    xos-core-containers
+    ${xos-core_containers}    CORDRobot.jsonToList    ${resources_file}    xos-core-containers
     : FOR    ${container}    IN    @{xos-core_containers}
     \    Append To List    ${core_containers}    ${container}
-    ${rcord_containers}    utils.jsonToList    ${resources_file}    rcord-lite-containers
+    ${rcord_containers}    CORDRobot.jsonToList    ${resources_file}    rcord-lite-containers
     : FOR    ${container}    IN    @{rcord_containers}
     \    Append To List    ${rcord_lite_containers}    ${container}
-    ${onosfabric_containers}    utils.jsonToList    ${resources_file}    onos-fabric-containers
+    ${onosfabric_containers}    CORDRobot.jsonToList    ${resources_file}    onos-fabric-containers
     : FOR    ${container}    IN    @{onosfabric_containers}
     \    Append To List    ${onos_fabric_containers}    ${container}
-    ${volthaContainers}    utils.jsonToList    ${resources_file}    voltha-containers
+    ${volthaContainers}    CORDRobot.jsonToList    ${resources_file}    voltha-containers
     : FOR    ${container}    IN    @{volthaContainers}
     \    Append To List    ${voltha_containers}    ${container}
-    ${xos-core_deployments}    utils.jsonToList    ${resources_file}    xos-core-deployments
+    ${xos-core_deployments}    CORDRobot.jsonToList    ${resources_file}    xos-core-deployments
     : FOR    ${deployment}    IN    @{xos-core_containers}
     \    Append To List    ${core_deployments}    ${deployment}
-    ${rcord_deployments}    utils.jsonToList    ${resources_file}    rcord-lite-deployments
+    ${rcord_deployments}    CORDRobot.jsonToList    ${resources_file}    rcord-lite-deployments
     : FOR    ${deployment}    IN    @{rcord_deployments}
     \    Append To List    ${rcord_lite_deployments}    ${deployment}
-    ${onosfabric_deployments}    utils.jsonToList    ${resources_file}    onos-fabric-deployments
+    ${onosfabric_deployments}    CORDRobot.jsonToList    ${resources_file}    onos-fabric-deployments
     : FOR    ${deployment}    IN    @{onosfabric_deployments}
     \    Append To List    ${onos_fabric_deployments}    ${deployment}
-    ${volthaDeployments}    utils.jsonToList    ${resources_file}    voltha-deployments
+    ${volthaDeployments}    CORDRobot.jsonToList    ${resources_file}    voltha-deployments
     : FOR    ${deployment}    IN    @{volthaDeployments}
     \    Append To List    ${voltha_deployments}    ${deployment}
-    ${core_services}    utils.jsonToList    ${resources_file}    xos-core-services
+    ${core_services}    CORDRobot.jsonToList    ${resources_file}    xos-core-services
     : FOR    ${service}    IN    @{core_services}
     \    Append To List    ${xos_core_services}    ${service}
-    ${onos_services}    utils.jsonToList    ${resources_file}    onos-fabric-services
+    ${onos_services}    CORDRobot.jsonToList    ${resources_file}    onos-fabric-services
     : FOR    ${service}    IN    @{onos_services}
     \    Append To List    ${onos_fabric_services}    ${service}
-    ${volthaServices}    utils.jsonToList    ${resources_file}    voltha-services
+    ${volthaServices}    CORDRobot.jsonToList    ${resources_file}    voltha-services
     : FOR    ${service}    IN    @{volthaServices}
     \    Append To List    ${voltha_services}    ${service}
     Set Suite Variable    @{core_containers}

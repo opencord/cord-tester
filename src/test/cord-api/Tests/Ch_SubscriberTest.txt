@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_Subscriber.json
@@ -44,9 +44,9 @@ Test Edit Subscriber-3
 
 *** Keywords ***
 Read InputFile
-    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    ${subscriberList} =    CORDRobot.jsonToList    ${PATHFILE}    SubscriberInfo
     Set Suite Variable    ${slist}    ${subscriberList}
-    ${putSubscriberList}=    utils.jsonToList    ${PATHFILE2}    SubscriberInfo
+    ${putSubscriberList}=    CORDRobot.jsonToList    ${PATHFILE2}    SubscriberInfo
     Set Suite Variable    ${putList}    ${putSubscriberList}
 
 Verify Subscriber functionality
@@ -59,53 +59,53 @@ Verify Subscriber functionality
 Test Post Subscriber API
     [Arguments]    ${listIndex}
     ${subscriberList} =    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    VOLT_SUBSCRIBER    ${subscriberDict}
     Should Be True    ${api_result}
 
 Test Get Subscriber API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${json_result}=    CORDRobot.ApiGet    VOLT_SUBSCRIBER
     Log    ${json_result}
     ${subscriberList}=    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${AccountNum}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${AccountNum}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    service_specific_id
     Log    ${AccountNum}
     ${json_result_list}=    Get From dictionary    ${json_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${AccountNum}
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${AccountNum}
     Log    ${getJsonDict}
     Log    ${subscriberDict}
-    ${test_result}=    utils.compare_dict    ${subscriberDict}    ${getJsonDict}
+    ${test_result}=    CORDRobot.compare_dict    ${subscriberDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
 Test Edit Subscriber API
     [Arguments]    ${listIndex}
-    ${get_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${get_result}=    CORDRobot.ApiGet    VOLT_SUBSCRIBER
     ${get_result_list}=    Get From Dictionary    ${get_result}    items
     ${putSubscriberList}=    Get Variable Value    ${putList}
-    ${putSubscriberDict}=    utils.listToDict    ${putSubscriberList}    ${listIndex}
-    ${AcctNum}=    utils.getFieldValueFromDict    ${putSubscriberDict}    service_specific_id
+    ${putSubscriberDict}=    CORDRobot.listToDict    ${putSubscriberList}    ${listIndex}
+    ${AcctNum}=    CORDRobot.getFieldValueFromDict    ${putSubscriberDict}    service_specific_id
     Log    ${AcctNum}
-    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result_list}    service_specific_id    ${AcctNum}
-    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
-    ${api_result}=    restApi.ApiChameleonPut    VOLT_SUBSCRIBER    ${putSubscriberDict}    ${subscriberID}
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${get_result_list}    service_specific_id    ${AcctNum}
+    ${subscriberID}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
+    ${api_result}=    CORDRobot.ApiChameleonPut    VOLT_SUBSCRIBER    ${putSubscriberDict}    ${subscriberID}
     Should Be True    ${api_result}
-    ${getResultAfterPut}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${getResultAfterPut}=    CORDRobot.ApiGet    VOLT_SUBSCRIBER
     ${getResultList_AfterPut}=    Get From Dictionary    ${getResultAfterPut}    items
-    ${getResultDict}=    utils.getDictFromListOfDict    ${getResultList_AfterPut}    service_specific_id    ${AcctNum}
-    ${test_result}=    utils.compare_dict    ${putSubscriberDict}    ${getResultDict}
+    ${getResultDict}=    CORDRobot.getDictFromListOfDict    ${getResultList_AfterPut}    service_specific_id    ${AcctNum}
+    ${test_result}=    CORDRobot.compare_dict    ${putSubscriberDict}    ${getResultDict}
     Should Be True    ${test_result}
 
 Test Delete Subscriber API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${json_result}=    CORDRobot.ApiGet    VOLT_SUBSCRIBER
     ${subscriberList}=    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${AcctNum}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${AcctNum}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    service_specific_id
     Log    ${AcctNum}
-    ${subscriberDict}=    utils.getDictFromListofDict    ${json_result}    service_specific_id    ${AcctNum}
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${json_result}    service_specific_id    ${AcctNum}
     Log    ${subscriberDict}
-    ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    ${subscriberId}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
     Log    ${subscriberId}
-    ${test_result}=    restApi.ApiDelete    VOLT_SUBSCRIBER    ${subscriberId}
+    ${test_result}=    CORDRobot.ApiDelete    VOLT_SUBSCRIBER    ${subscriberId}
     Should Be True    ${test_result}
