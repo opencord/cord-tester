@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -36,8 +36,8 @@ Verify Deletion of Subscriber and volt Tenant functionality
 
 Test Delete Subscriber and voltTenant
     [Arguments]    ${listIndex}
-    ${getSubscriber_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
-    ${getVoltTenant_result}=    restApi.ApiGet    TENANT_VOLT
+    ${getSubscriber_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
+    ${getVoltTenant_result}=    CORDRobot.ApiGet    TENANT_VOLT
     ${voltList}=    Get Variable Value    ${vlist}
     ${voltTenantDict}=    utils.listToDict    ${voltList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
@@ -46,10 +46,10 @@ Test Delete Subscriber and voltTenant
     Log    ${subscriberDict}
     ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
     Log    ${subscriberId}
-    ${subscriber_delete_result}=    restApi.ApiDelete    TENANT_SUBSCRIBER    ${subscriberId}
+    ${subscriber_delete_result}=    CORDRobot.ApiDelete    TENANT_SUBSCRIBER    ${subscriberId}
     Should Be True    ${subscriber_delete_result}
     # Deletion of volt Tenants
     ${getVoltDict}=    utils.getDictFromListOfDict    ${getVoltTenant_result}    subscriber    ${subscriberId}
     ${voltID}=    utils.getFieldValueFromDict    ${getVoltDict}    id
-    ${volt_delete_result}=    restApi.ApiDelete    TENANT_VOLT    ${voltID}
+    ${volt_delete_result}=    CORDRobot.ApiDelete    TENANT_VOLT    ${voltID}
     Should Be True    ${volt_delete_result}
