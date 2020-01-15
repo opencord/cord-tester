@@ -2,17 +2,13 @@
 Documentation     Test suite for VTN Functionality
 Suite Setup       Suite Setup
 Suite Teardown    Suite Teardown
-Variables         ../Framework/restApi.py
 Library           Collections
 Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
-Library           ../Framework/utils/openstackUtils.py
-Variables         ../Properties/RestApiProperties.py
-Resource           ../Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${VM_USER}                         admin
