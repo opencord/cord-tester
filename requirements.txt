@@ -1,0 +1,13 @@
+flake8
+paramiko
+pexpect
+pylint
+pyyaml
+robotframework
+robotframework-databaselibrary
+robotframework-kafkalibrary
+robotframework-lint
+robotframework-requests
+robotframework-sshlibrary
+tinydb
+yamllint

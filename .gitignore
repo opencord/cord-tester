@@ -2,7 +2,7 @@
 .idea
 
 # Virtual envs
-src/test/cord-api/venv-cord-tester/
+cord_venv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
