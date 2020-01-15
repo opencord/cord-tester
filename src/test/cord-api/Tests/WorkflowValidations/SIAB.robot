@@ -23,16 +23,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ${VOLTHA_DIR}/tests/atests/common/testCaseUtils.py
-Library           ../../Framework/utils/utils.py
-Resource          ../../Framework/utils/utils.robot
-Library           ../../Framework/restApi.py
-Resource          ../../Framework/Subscriber.robot
-Resource          ../../Framework/ATTWorkFlowDriver.robot
-Resource          ../../Framework/Kubernetes.robot
-Resource          ../../Framework/ONU.robot
-Resource         ../../Framework/OLT.robot
-Resource          ../../Framework/DHCP.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
@@ -295,22 +287,22 @@ Setup
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
-    ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
     Set Suite Variable    ${AttWhiteListList}
-    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
-    ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
+    ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
+    ${AttWhiteListDict}=    CORDRobot.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
     Log    ${onu_device}
     Set Global Variable    ${onu_device}
     ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
-    ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
     Set Global Variable    ${SubscriberList}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
-    ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
-    ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
-    ${VoltDeviceList}=    utils.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
-    ${VoltDeviceDict}=    utils.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
+    ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
+    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   s_tag
+    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   c_tag
+    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${VoltDeviceDict}=    CORDRobot.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
     Set Global Variable    ${VoltDeviceDict}
     Set Suite Variable    ${s_tag}
@@ -389,9 +381,9 @@ Restart RG Pod
     Run    kubectl wait -n voltha pod/${RG_CONTAINER} --for condition=Ready --timeout=180s
 
 Create Whitelist
-    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
+    ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
     ${resp}=    CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
-    ${whitelist_id}=    Get Json Value    ${resp.content}    /id
+    ${id}=    Get From Dictionary    ${resp.json()}    id
     Set Global Variable    ${whitelist_id}
 
 Remove Whitelist
@@ -399,7 +391,7 @@ Remove Whitelist
     CORD Delete    ${ATT_WHITELIST}    ${whitelist_id}
 
 Create Subscriber
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
+    ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
     CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
 
 Remove Subscriber

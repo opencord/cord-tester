@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -21,7 +21,7 @@ Test Default Images on R-CORD
 
 *** Keywords ***
 Read InputFile
-    ${imageList}=    utils.jsonToList    ${PATHFILE}    imagesInfo
+    ${imageList}=    CORDRobot.jsonToList    ${PATHFILE}    imagesInfo
     Set Suite Variable    ${ilist}    ${imageList}
 
 Verify Image Check
@@ -29,8 +29,8 @@ Verify Image Check
     Run Keyword If    "${type}" == "IMAGE"    Test Image Check
 
 Test Image Check
-    ${json_result}=    restApi.ApiGet    CORE_IMAGES
+    ${json_result}=    CORDRobot.ApiGet    CORE_IMAGES
     Log    ${json_result}
     ${imageList}=    Get Variable Value    ${ilist}
-    ${test_result}=    utils.compare_list_of_dicts    ${imageList}    ${json_result}
+    ${test_result}=    CORDRobot.compare_list_of_dicts    ${imageList}    ${json_result}
     Should Be True    ${test_result}

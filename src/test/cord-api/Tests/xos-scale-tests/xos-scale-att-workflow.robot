@@ -2,7 +2,6 @@
 Documentation    Scale up models in a SEBA deployment with no backends
 Library           KafkaLibrary
 Library           RequestsLibrary
-Library           HttpLibrary.HTTP
 Library           Collections
 Library           String
 Library           OperatingSystem

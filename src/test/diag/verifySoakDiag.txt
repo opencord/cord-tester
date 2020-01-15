@@ -16,8 +16,8 @@
 *** Settings ***
 Documentation     Test suite for checking results collected by various commands on the soak server
 Library           OperatingSystem
-Library           ../cord-api/Framework/utils/onosUtils.py
-Library           ../cord-api/Framework/utils/utils.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${FILE_PATH}       /home/cord/SoakTest_Logs

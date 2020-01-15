@@ -1,4 +1,3 @@
-
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +13,6 @@
 # limitations under the License.
 
 # REST APIs for testing control plane functionalities in MCORD
-
-#!/usr/bin/env python
 
 SERVER_IP = 'clnode103.clemson.cloudlab.us'
 SERVER_PORT = '8080'

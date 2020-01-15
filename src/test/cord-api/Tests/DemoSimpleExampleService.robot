@@ -1,7 +1,6 @@
 *** Settings ***
 Library           KafkaLibrary
 Library           RequestsLibrary
-Library           HttpLibrary.HTTP
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -61,7 +60,7 @@ Obtain SimpleExampleService SI
 
 Get Kubernetes SI Pod IP
     ${resp}=    CORD Get    /xosapi/v1/kubernetes/kubernetesserviceinstances/${k8_si_id}
-    ${k8_pod_ip}=    Get Json Value    ${resp.content}    /pod_ip
+    ${k8_pod_ip}=    Get From Dictionary    ${resp.json()}    pod_ip
     Set Suite Variable    ${k8_pod_ip}
 
 Validate SI Message
@@ -100,7 +99,7 @@ CORD Post
     ${resp}=    Post Request    ${server_ip}    uri=${service}    data=${data}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
-    ${id}=    Get Json Value    ${resp.content}    /id
+    ${id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${id}
     [Return]    ${resp}
 

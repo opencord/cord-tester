@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -22,7 +22,7 @@ Test Get Slice-1      RETRIEVE    0
 
 *** Keywords ***
 Read InputFile
-    ${sliceList} =    utils.jsonToList    ${PATHFILE}    sliceInfo
+    ${sliceList} =    CORDRobot.jsonToList    ${PATHFILE}    sliceInfo
     Set Suite Variable    ${sList}    ${sliceList}
 
 Verify Slice API functionality
@@ -34,31 +34,31 @@ Verify Slice API functionality
 Test Post Slices
     [Arguments]    ${listIndex}
     ${sliceList} =    Get Variable Value    ${sList}
-    ${sliceDict}=    utils.listToDict    ${sliceList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CORE_SANITY_SLICES    ${sliceDict}
+    ${sliceDict}=    CORDRobot.listToDict    ${sliceList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CORE_SANITY_SLICES    ${sliceDict}
     Should Be True    ${api_result}
 
 Test Get Slices
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CORE_SLICES
+    ${json_result}=    CORDRobot.ApiGet    CORE_SLICES
     Log    ${json_result}
     ${sliceList}=    Get Variable Value    ${sList}
-    ${inputDict}=    utils.listToDict    ${sliceList}    ${listIndex}
-    ${ID}=    utils.getFieldValueFromDict    ${inputDict}    id
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    id    ${ID}
-    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    ${inputDict}=    CORDRobot.listToDict    ${sliceList}    ${listIndex}
+    ${ID}=    CORDRobot.getFieldValueFromDict    ${inputDict}    id
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result}    id    ${ID}
+    ${test_result}=    CORDRobot.compare_dict    ${inputDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
 Test Delete Slices
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CORE_SLICES
+    ${json_getresult}=    CORDRobot.ApiGet    CORE_SLICES
     ${sliceList}=    Get Variable Value    ${sList}
-    ${sliceDict}=    utils.listToDict    ${sList}    ${listIndex}
-    ${sliceName}=    utils.getFieldValueFromDict    ${sliceDict}    name
+    ${sliceDict}=    CORDRobot.listToDict    ${sList}    ${listIndex}
+    ${sliceName}=    CORDRobot.getFieldValueFromDict    ${sliceDict}    name
     Log    ${sliceName}
-    ${getSliceDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${sliceName}
+    ${getSliceDict}=    CORDRobot.getDictFromListofDict    ${json_getresult}    name    ${sliceName}
     Log    ${getSliceDict}
-    ${sliceID}=    utils.getFieldValueFromDict    ${getSliceDict}    id
+    ${sliceID}=    CORDRobot.getFieldValueFromDict    ${getSliceDict}    id
     Log    ${sliceID}
-    ${test_result}=    restApi.ApiDelete    CORE_SLICES    ${sliceID}
+    ${test_result}=    CORDRobot.ApiDelete    CORE_SLICES    ${sliceID}
     Should be True    ${test_result}

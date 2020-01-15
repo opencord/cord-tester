@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_VoltTenant.json
@@ -23,9 +23,9 @@ Test volt Tenant-3    CREATE    2
 
 *** Keywords ***
 Read InputFile
-    ${voltList} =    utils.jsonToList    ${PATHFILE}    voltSubscriberInfo
+    ${voltList} =    CORDRobot.jsonToList    ${PATHFILE}    voltSubscriberInfo
     Set Suite Variable    ${vlist}    ${voltList}
-    ${putvoltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
+    ${putvoltList}=    CORDRobot.jsonToList    ${PATHFILE2}    voltSubscriberInfo
     Set Suite Variable    ${putList}    ${putvoltList}
 
 Verify volt Tenant Functionality
@@ -35,13 +35,13 @@ Verify volt Tenant Functionality
 Test Post volt Tenant API
     [Arguments]    ${listIndex}
     ${voltTenantList} =    Get Variable Value    ${vlist}
-    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltTenantDict}=    CORDRobot.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
-    ${name}=    Get From Dictionary    ${voltDict}   name 
-    ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
+    ${name}=    Get From Dictionary    ${voltDict}   name
+    ${postResult}=    CORDRobot.ApiPost    VOLT_TENANT    ${voltDict}
     # Verifying Get Operation after POST
-    ${getVolt_result}=    restApi.ApiGet    VOLT_TENANT
+    ${getVolt_result}=    CORDRobot.ApiGet    VOLT_TENANT
     ${getVolt_result_list}=    Get From Dictionary    ${getVolt_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result_list}    name    ${name}
-    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${getVolt_result_list}    name    ${name}
+    ${test_result}=    CORDRobot.compare_dict    ${voltDict}    ${getJsonDict}
     Should Be True    ${test_result}

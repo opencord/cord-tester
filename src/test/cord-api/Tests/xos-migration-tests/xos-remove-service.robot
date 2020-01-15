@@ -1,15 +1,13 @@
 *** Settings ***
 Documentation     Test remove of a service
 Library           RequestsLibrary
-Library           HttpLibrary.HTTP
 Library           Collections
 Library           String
 Library           OperatingSystem
 Library           DateTime
-Library           ../../Framework/utils/utils.py
 Library           DatabaseLibrary
-Resource          ../../Framework/utils/utils.robot
-Library           ../../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 Suite Setup       Setup
 Suite Teardown    Teardown

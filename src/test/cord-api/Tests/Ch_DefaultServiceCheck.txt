@@ -7,9 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
-Resource          ../Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PROFILE}        mock-rcord
@@ -21,13 +20,13 @@ Test Service Sanity
 
 *** Keywords ***
 Read InputFile
-    ${status}    ${dynamicServiceList}=    Run Keyword And Ignore Error    utils.get_dynamic_resources    ${PROFILE_FILE}    xos_services
+    ${status}    ${dynamicServiceList}=    Run Keyword And Ignore Error    CORDRobot.get_dynamic_resources    ${PROFILE_FILE}    xos_services
     Run Keyword If    '${status}' == 'FAIL'    Fail    No Services in given profile manifest
     Set Suite Variable    ${dynamicServiceList}
     ##need to remove openstack and onos from xos_services list in each manifest as these services arent treated as typical xos synchronizers
-    utils.Remove Value From List    ${dynamicServiceList}    openstack
-    utils.Remove Value From List    ${dynamicServiceList}    onos
-    utils.Remove Value From List    ${dynamicServiceList}    exampleservice
+    CORDRobot.Remove Value From List    ${dynamicServiceList}    openstack
+    CORDRobot.Remove Value From List    ${dynamicServiceList}    onos
+    CORDRobot.Remove Value From List    ${dynamicServiceList}    exampleservice
     Log    ${dynamicServiceList}
 
 Verify Service Sanity
@@ -35,9 +34,9 @@ Verify Service Sanity
     Run Keyword If    "${type}" == "SANITY"    Test Service Sanity
 
 Test Service Sanity
-    ${json_result}=    restApi.ApiGet    CH_CORE_SERVICES
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_SERVICES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${dList}=    Get Variable Value    ${dynamicServiceList}
-    ${test_result}=    utils.compare_list_of_dicts    ${dList}    ${json_result_list}
+    ${test_result}=    CORDRobot.compare_list_of_dicts    ${dList}    ${json_result_list}
     Should Be True    ${test_result}

@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_VoltTenant.json
@@ -24,11 +24,11 @@ Test volt Tenant-3    CREATE    2
 
 *** Keywords ***
 Read InputFile
-    ${subscriberList} =    utils.jsonToList    ${PATHFILE3}    SubscriberInfo
+    ${subscriberList} =    CORDRobot.jsonToList    ${PATHFILE3}    SubscriberInfo
     Set Suite Variable    ${slist}    ${subscriberList}
-    ${voltList} =    utils.jsonToList    ${PATHFILE}    voltSubscriberInfo
+    ${voltList} =    CORDRobot.jsonToList    ${PATHFILE}    voltSubscriberInfo
     Set Suite Variable    ${vlist}    ${voltList}
-    ${putvoltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
+    ${putvoltList}=    CORDRobot.jsonToList    ${PATHFILE2}    voltSubscriberInfo
     Set Suite Variable    ${putList}    ${putvoltList}
 
 Verify volt Tenant Functionality
@@ -38,40 +38,40 @@ Verify volt Tenant Functionality
 Test Post volt Tenant API
     [Arguments]    ${listIndex}
     ${subscriberList} =    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${service_specific_id}=    utils.getFieldValueFromDict    ${subscriberDict}    service_specific_id
-    ${json_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${service_specific_id}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    service_specific_id
+    ${json_result}=    CORDRobot.ApiGet    VOLT_SUBSCRIBER
     Log    ${json_result}
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
-    ${Subscriber_Id}=    utils.getFieldValueFromDict    ${getJsonDict}    id
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    service_specific_id    ${service_specific_id}
+    ${Subscriber_Id}=    CORDRobot.getFieldValueFromDict    ${getJsonDict}    id
     Log    ${Subscriber_Id}
     ${voltTenantList} =    Get Variable Value    ${vlist}
-    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltTenantDict}=    CORDRobot.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
     ${c_tag}=    Get From Dictionary    ${voltDict}    c_tag
-    ${postResult}=    restApi.ApiPost    VOLT_TENANT    ${voltDict}
+    ${postResult}=    CORDRobot.ApiPost    VOLT_TENANT    ${voltDict}
     Sleep    30
     # Verifying GET operation after POST
-    ${get_result}=    restApi.ApiGet    VOLT_TENANT
+    ${get_result}=    CORDRobot.ApiGet    VOLT_TENANT
     ${get_result_list}=    Get From Dictionary    ${get_result}    items
-    ${getJsonDict}=    utils.getDictFromListofDict    ${get_result_list}    c_tag    ${c_tag}
+    ${getJsonDict}=    CORDRobot.getDictFromListofDict    ${get_result_list}    c_tag    ${c_tag}
     Log    ${getJsonDict}
-    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    ${test_result}=    CORDRobot.compare_dict    ${voltDict}    ${getJsonDict}
     Should Be True    ${test_result}
     ${Volt_Id}=    Get From Dictionary    ${getJsonDict}    id
-    ${provided_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    provided_links_ids
+    ${provided_links_ids_list}=    CORDRobot.getFieldValueFromDict    ${getJsonDict}    provided_links_ids
     Log    ${provided_links_ids_list}
     ${provided_links_ids}=    Get From List    ${provided_links_ids_list}    0
     Log    ${provided_links_ids}
     # Get subscribed_links_ids from volttenant
-    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
+    ${subscribed_links_ids_list}=    CORDRobot.getFieldValueFromDict    ${getJsonDict}    subscribed_links_ids
     ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
     # Retrieve service links using provided links ID
-    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${provided_links_ids}
+    ${getServiceLink}=    CORDRobot.ApiChameleonGet    CH_CORE_SERVICELINK    ${provided_links_ids}
     ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
     # Update the subscriber_service_instance_id to the required subscriber_id to establish desired link
     ${serviceDict}=    Create Dictionary    subscriber_service_instance_id=${Subscriber_Id}
-    ${result}=    restApi.ApiChameleonPut    CH_CORE_SERVICELINK    ${serviceDict}    ${provided_links_ids}
+    ${result}=    CORDRobot.ApiChameleonPut    CH_CORE_SERVICELINK    ${serviceDict}    ${provided_links_ids}
     Sleep    30
     Should Be True    ${result}

@@ -1,0 +1,3 @@
+include requirements.txt
+include CORDRobot/VERSION
+include CORDRobot/rf-resources/*.resource

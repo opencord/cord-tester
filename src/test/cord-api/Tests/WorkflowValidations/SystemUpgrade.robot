@@ -22,15 +22,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../../Framework/utils/utils.py
-Resource          ../../Framework/utils/utils.robot
-Library           ../../Framework/restApi.py
-Resource          ../../Framework/Subscriber.robot
-Resource          ../../Framework/ATTWorkFlowDriver.robot
-Resource          ../../Framework/Kubernetes.robot
-Resource          ../../Framework/ONU.robot
-Resource          ../../Framework/OLT.robot
-Resource          ../../Framework/DHCP.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***

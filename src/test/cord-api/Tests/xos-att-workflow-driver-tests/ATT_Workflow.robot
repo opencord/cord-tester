@@ -1,11 +1,11 @@
 *** Settings ***
 Library           KafkaLibrary
 Library           RequestsLibrary
-Library           HttpLibrary.HTTP
 Library           Collections
 Library           String
 Library           OperatingSystem
-Resource          ../../Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Send Event and Verify
@@ -53,7 +53,7 @@ Create New Whitelist Entry
     [Documentation]    Validate that creating a new whitelist entry for the "invalid" onu device will enable the onu
     [Template]    None
     ${resp}=    CORD Post    ${att_whitelist_api}    {"serial_number": "${onu_invalid_sn}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
-    ${whitelist_entry2_id}=    Get Json Value    ${resp.content}    /id
+    ${whitelist_entry2_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${whitelist_entry2_id}
     Wait Until Keyword Succeeds    30s    5s    Validate ONU Device Status    ${onu_invalid_sn}    ENABLED
 
@@ -96,25 +96,25 @@ Create OLT, ONU, Subscribers, and Whitelists
     ${attworkflowservice_id}=    Get From Dictionary    ${attworkflowservice}    id
     Set Suite Variable    ${attworkflowservice_id}
     ${resp}=    CORD Post    ${subscriber_api}    {"onu_device": "${onu_serial_no}", "status": "pre-provisioned", "upstream_bps": 1, "downstream_bps": 1, "tech_profile_id": 1}
-    ${subscriber_id}=    Get Json Value    ${resp.content}    /id
+    ${subscriber_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${subscriber_id}
     ${resp}=    CORD Post    ${olt_api}    {"volt_service_id": ${voltservice_id}, "name": "testoltdevice1", "device_type": "ponism", "host": "172.17.0.1", "port": 50060, "switch_port": "1", "dp_id": "${deviceId}", "outer_tpid": "0x8100", "uplink": "128"}
-    ${oltdevice_id}=    Get Json Value    ${resp.content}    /id
+    ${oltdevice_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${oltdevice_id}
     ${resp}=    CORD Post    ${pon_ports_api}    {"olt_device_id": ${oltdevice_id}, "port_no": "${ponportno}", "name": "testponport1"}
-    ${ponport_id}=    Get Json Value    ${resp.content}    /id
+    ${ponport_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${ponport_id}
     ${resp}=    CORD Post    ${onu_device_api}    {"serial_number": "${onu_serial_no}", "pon_port_id": ${ponport_id}, "vendor": "abcdefg"}
-    ${onu_device1_id}=    Get Json Value    ${resp.content}    /id
+    ${onu_device1_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${onu_device1_id}
     ${resp}=    CORD Post    ${uni_ports_api}    {"onu_device_id": "${onu_device1_id}", "port_no": ${uniportno}, "name": "testuniport"}
-    ${uni_port_id}=    Get Json Value    ${resp.content}    /id
+    ${uni_port_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${uni_port_id}
     ${resp}=    CORD Post    ${onu_device_api}    {"serial_number": "${onu_invalid_sn}", "pon_port_id": ${ponport_id}, "vendor": "abcdefg"}
-    ${onu_device2_id}=    Get Json Value    ${resp.content}    /id
+    ${onu_device2_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${onu_device2_id}
     ${resp}=    CORD Post    ${att_whitelist_api}    {"serial_number": "${onu_serial_no}", "device_id": "${deviceId}", "pon_port_id": ${ponportno}, "owner_id": ${attworkflowservice_id}}
-    ${whitelist_entry_id}=    Get Json Value    ${resp.content}    /id
+    ${whitelist_entry_id}=    Get From Dictionary    ${resp.json()}    id
     Set Suite Variable    ${whitelist_entry_id}
 
 Send Event and Verify

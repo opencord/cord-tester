@@ -2,17 +2,13 @@
 Documentation     Test suite for VTN Functionality
 Suite Setup       Suite Setup
 Suite Teardown    Suite Teardown
-Variables         ../Framework/restApi.py
 Library           Collections
 Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
-Library           ../Framework/utils/openstackUtils.py
-Variables         ../Properties/RestApiProperties.py
-Resource           ../Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${VM_USER}                         admin
@@ -61,8 +57,8 @@ Validate Default Subscriber
 Create New Test Service
     [Documentation]    Creates a generic service that will be used for the new VTN Network
     [Tags]    vtn    pod
-    ${updatedcservList}=    utils.setFieldValueInDict    ${cservlist[0]}    name    CordVTN-Test-Service
-    ${updatedcservList}=    utils.setFieldValueInDict    ${updatedcservList}    description    Test Service for CordVTN Test Suite
+    ${updatedcservList}=    CORDRobot.setFieldValueInDict    ${cservlist[0]}    name    CordVTN-Test-Service
+    ${updatedcservList}=    CORDRobot.setFieldValueInDict    ${updatedcservList}    description    Test Service for CordVTN Test Suite
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SERVICES}    ${updatedcservList}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${name}=    Get Json Value    ${resp.content}    /name
@@ -77,8 +73,8 @@ Create New Test Service
 Create New VTN Service Network
     [Documentation]    Makes a POST Request to XOS to create a new core network
     [Tags]    vtn    pod
-    ${updatedCnList}=    utils.setFieldValueInDict    ${cnlist[0]}    template_id    ${vsg_network_template_id}
-    ${updatedCnList}=    utils.setFieldValueInDict    ${updatedCnList}    owner_id    ${vsg_slice_id}
+    ${updatedCnList}=    CORDRobot.setFieldValueInDict    ${cnlist[0]}    template_id    ${vsg_network_template_id}
+    ${updatedCnList}=    CORDRobot.setFieldValueInDict    ${updatedCnList}    owner_id    ${vsg_slice_id}
     Log    ${updatedCnList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORKS}    ${cnlist[0]}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -96,8 +92,8 @@ Create New VTN Service Network
 Create New Slice with New Test Service
     [Documentation]    Makes a POST Request to XOS to create a new slice and adds new generic test service to that slice
     [Tags]    vtn    pod
-    ${updatedCsList}=    utils.setFieldValueInDict    ${cslist[0]}    service_id    ${generic_service_id}
-    #${updatedCsList}=    utils.setFieldValueInDict    ${cslist[0]}    service_id    12
+    ${updatedCsList}=    CORDRobot.setFieldValueInDict    ${cslist[0]}    service_id    ${generic_service_id}
+    #${updatedCsList}=    CORDRobot.setFieldValueInDict    ${cslist[0]}    service_id    12
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_SLICES}    ${updatedCsList}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -115,10 +111,10 @@ Create New Slice with New Test Service
 Add Networks to New Test Network Slice
     [Documentation]    Creates a new network slice for the new slice and adds mgmt and new network to it
     [Tags]    vsg    pod
-    ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${network_id}
-    #${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    5
-    ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
-    #${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    5
+    ${updatedCsList}=    CORDRobot.setFieldValueInDict    ${cnslist[0]}    network_id    ${network_id}
+    #${updatedCsList}=    CORDRobot.setFieldValueInDict    ${cnslist[0]}    network_id    5
+    ${updatedCsList}=    CORDRobot.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
+    #${updatedCsList}=    CORDRobot.setFieldValueInDict    ${updatedCsList}    slice_id    5
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORK_SLICES}    ${updatedCsList}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -128,9 +124,9 @@ Add Networks to New Test Network Slice
     Should Be Equal As Strings    ${s_id}    ${new_slice_id}
     Should Be Equal As Strings    ${n_id}    ${network_id}
     ##Add mgmt network to this network slice
-    ${updatedCsList}=    utils.setFieldValueInDict    ${cnslist[0]}    network_id    ${mgmt_network_id}
-    ${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
-    #${updatedCsList}=    utils.setFieldValueInDict    ${updatedCsList}    slice_id    5
+    ${updatedCsList}=    CORDRobot.setFieldValueInDict    ${cnslist[0]}    network_id    ${mgmt_network_id}
+    ${updatedCsList}=    CORDRobot.setFieldValueInDict    ${updatedCsList}    slice_id    ${new_slice_id}
+    #${updatedCsList}=    CORDRobot.setFieldValueInDict    ${updatedCsList}    slice_id    5
     Log    ${updatedCsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_NETWORK_SLICES}    ${updatedCsList}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -143,9 +139,9 @@ Add Networks to New Test Network Slice
 Create New Test Instance
     [Documentation]    Creates a new instance for the test service
     [Tags]    vsg    pod
-    ${updatedCiList}=    utils.setFieldValueInDict    ${cilist[0]}    slice_id    ${new_slice_id}
-    #${updatedCiList}=    utils.setFieldValueInDict    ${cilist[0]}    slice_id    5
-    ${updatedCiList}=    utils.setFieldValueInDict    ${updatedCiList}    image_id    ${image_id}
+    ${updatedCiList}=    CORDRobot.setFieldValueInDict    ${cilist[0]}    slice_id    ${new_slice_id}
+    #${updatedCiList}=    CORDRobot.setFieldValueInDict    ${cilist[0]}    slice_id    5
+    ${updatedCiList}=    CORDRobot.setFieldValueInDict    ${updatedCiList}    image_id    ${image_id}
     Log    ${updatedCiList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${updatedCiList}
     #${resp}=    Cord POST    ${SERVER_IP}    ${CH_CORE_INSTANCES}    ${cilist[0]}
@@ -196,7 +192,7 @@ Create New Cord Subscriber
     ${blacklist_sr_ids}=    Get Subscriber Root IDs in Use
     ${ss_id}=    Generate Random Number from Blacklist    ${blacklist_sr_ids}
     Set Suite Variable    ${ss_id}
-    ${updatedcsList}=    utils.setFieldValueInDict    ${csubList[0]}    service_specific_id    ${ss_id}
+    ${updatedcsList}=    CORDRobot.setFieldValueInDict    ${csubList[0]}    service_specific_id    ${ss_id}
     Log    ${updatedcsList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${VOLT_SUBSCRIBER}    ${updatedcsList}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -226,10 +222,10 @@ Create New Volt Tenant for New Cord Subscriber
     ${c_tag}=    Generate Random Number from Blacklist    ${blacklist_tags}    1    4096    True
     Append To List    ${blacklist_tags}    ${c_tag}
     Log    ${blacklist_tags}
-    ${updatedvtList}=    utils.setFieldValueInDict    ${vtList[0]}    service_specific_id    ${subscriber_root_id}
-    #${updatedvtList}=    utils.setFieldValueInDict    ${vtList[0]}    subscriber_root_id    ${subscriber_root_id}
-    ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    s_tag    ${s_tag}
-    ${updatedvtList}=    utils.setFieldValueInDict    ${updatedvtList}    c_tag    ${c_tag}
+    ${updatedvtList}=    CORDRobot.setFieldValueInDict    ${vtList[0]}    service_specific_id    ${subscriber_root_id}
+    #${updatedvtList}=    CORDRobot.setFieldValueInDict    ${vtList[0]}    subscriber_root_id    ${subscriber_root_id}
+    ${updatedvtList}=    CORDRobot.setFieldValueInDict    ${updatedvtList}    s_tag    ${s_tag}
+    ${updatedvtList}=    CORDRobot.setFieldValueInDict    ${updatedvtList}    c_tag    ${c_tag}
     Log    ${updatedvtList}
     ${resp}=    Cord POST    ${SERVER_IP}    ${VOLT_TENANT}    ${vtList[0]}
     Should Be Equal As Strings    ${resp.status_code}    200
@@ -338,19 +334,19 @@ Suite Teardown
     Close All Connections
 
 Read InputFile
-    ${coreServiceList} =    utils.jsonToList    ${CORE_SERVICE_PATHFILE}    ServiceInfo
+    ${coreServiceList} =    CORDRobot.jsonToList    ${CORE_SERVICE_PATHFILE}    ServiceInfo
     Set Suite Variable    ${cservlist}    ${coreServiceList}
-    ${coreNetworkList} =    utils.jsonToList    ${CORE_NETWORK_PATHFILE}    NetworkInfo
+    ${coreNetworkList} =    CORDRobot.jsonToList    ${CORE_NETWORK_PATHFILE}    NetworkInfo
     Set Suite Variable    ${cnlist}    ${coreNetworkList}
-    ${coreSliceList} =    utils.jsonToList    ${CORE_SLICE_PATHFILE}    SliceInfo
+    ${coreSliceList} =    CORDRobot.jsonToList    ${CORE_SLICE_PATHFILE}    SliceInfo
     Set Suite Variable    ${cslist}    ${coreSliceList}
-    ${coreNetworkSliceList} =    utils.jsonToList    ${CORE_NETWORK_SLICE_PATHFILE}    NetworkSliceInfo
+    ${coreNetworkSliceList} =    CORDRobot.jsonToList    ${CORE_NETWORK_SLICE_PATHFILE}    NetworkSliceInfo
     Set Suite Variable    ${cnslist}    ${coreNetworkSliceList}
-    ${coreInstanceList} =    utils.jsonToList    ${CORE_INSTANCE_PATHFILE}    InstanceInfo
+    ${coreInstanceList} =    CORDRobot.jsonToList    ${CORE_INSTANCE_PATHFILE}    InstanceInfo
     Set Suite Variable    ${cilist}    ${coreInstanceList}
-    ${cordSubscriberList} =    utils.jsonToList    ${CORD_SUBSCRIBER_PATHFILE}    CordSubscriberInfo
+    ${cordSubscriberList} =    CORDRobot.jsonToList    ${CORD_SUBSCRIBER_PATHFILE}    CordSubscriberInfo
     Set Suite Variable    ${csubList}    ${cordSubscriberList}
-    ${voltTenantList} =    utils.jsonToList    ${VOLT_TENANT_PATHFILE}    VoltTenantInfo
+    ${voltTenantList} =    CORDRobot.jsonToList    ${VOLT_TENANT_PATHFILE}    VoltTenantInfo
     Set Suite Variable    ${vtList}    ${voltTenantList}
 
 CORD Get

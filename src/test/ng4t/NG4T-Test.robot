@@ -17,8 +17,8 @@ Suite Setup       Suite Setup
 Documentation     Test runner suite for executing NG4T Tests inside the venb vm instance
 Library           OperatingSystem
 Library           SSHLibrary
-Library           ../cord-api/Framework/utils/utils.py
-Resource          ../cord-api/Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${compute_node_user}    ubuntu
@@ -45,7 +45,7 @@ Suite Setup
     ${nova_id}=    Run    . /opt/cord_profile/admin-openrc.sh; nova list --all-tenants | grep venb | awk '{print $2}'
     ${mgmt_ip}=    Run    . /opt/cord_profile/admin-openrc.sh; nova show ${nova_id} | grep management | awk '{print $5}'
     ${compute_hostname}=    Run    . /opt/cord_profile/admin-openrc.sh; nova show ${nova_id} | grep :host | awk '{print $4}'
-    ${ng4t_tests}    utils.jsonToList    ${NG4T_TESTS_FILE}    mcord-ng4t-tests
+    ${ng4t_tests}    CORDRobot.jsonToList    ${NG4T_TESTS_FILE}    mcord-ng4t-tests
     Set Suite Variable    ${compute_hostname}
     Set Suite Variable    ${ng4t_tests}
     Set Suite Variable    ${mgmt_ip}

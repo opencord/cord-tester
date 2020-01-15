@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Variables         ../Properties/RestApiProperties.py
 
 *** Variables ***
@@ -26,7 +26,7 @@ Test Delete Slice-1
 
 *** Keywords ***
 Read InputFile
-    ${sliceList} =    utils.jsonToList    ${PATHFILE}    SliceInfo
+    ${sliceList} =    CORDRobot.jsonToList    ${PATHFILE}    SliceInfo
     Set Suite Variable    ${sList}    ${sliceList}
 
 Verify Slice API functionality
@@ -38,33 +38,33 @@ Verify Slice API functionality
 Test Post Slice API
     [Arguments]    ${listIndex}
     ${sliceList} =    Get Variable Value    ${sList}
-    ${sliceDict}=    utils.listToDict    ${sliceList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CH_CORE_SLICES    ${sliceDict}
+    ${sliceDict}=    CORDRobot.listToDict    ${sliceList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CH_CORE_SLICES    ${sliceDict}
     Should Be True    ${api_result}
 
 Test Get Slice API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_SLICES
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_SLICES
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${sliceList}=    Get Variable Value    ${sList}
-    ${sliceDict}=    utils.listToDict    ${sliceList}    ${listIndex}
+    ${sliceDict}=    CORDRobot.listToDict    ${sliceList}    ${listIndex}
     ${sliceName}=    Get From Dictionary    ${sliceDict}    name
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    name    ${sliceName}
-    ${test_result}=    utils.compare_dict    ${sliceDict}    ${getJsonDict}
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    name    ${sliceName}
+    ${test_result}=    CORDRobot.compare_dict    ${sliceDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
 Test Delete Slice API
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CH_CORE_SLICES
+    ${json_getresult}=    CORDRobot.ApiGet    CH_CORE_SLICES
     ${json_getresult_list}=    Get From Dictionary    ${json_getresult}    items
     ${sliceList}=    Get Variable Value    ${sList}
-    ${sliceDict}=    utils.listToDict    ${sList}    ${listIndex}
-    ${sliceName}=    utils.getFieldValueFromDict    ${sliceDict}    name
+    ${sliceDict}=    CORDRobot.listToDict    ${sList}    ${listIndex}
+    ${sliceName}=    CORDRobot.getFieldValueFromDict    ${sliceDict}    name
     Log    ${sliceName}
-    ${getSliceDict}=    utils.getDictFromListofDict    ${json_getresult_list}    name    ${sliceName}
+    ${getSliceDict}=    CORDRobot.getDictFromListofDict    ${json_getresult_list}    name    ${sliceName}
     Log    ${getSliceDict}
-    ${sliceID}=    utils.getFieldValueFromDict    ${getSliceDict}    id
+    ${sliceID}=    CORDRobot.getFieldValueFromDict    ${getSliceDict}    id
     Log    ${sliceID}
-    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_SLICES    ${sliceID}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    CH_CORE_SLICES    ${sliceID}
     Should be True    ${test_result}

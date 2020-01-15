@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_Users.json
@@ -34,7 +34,7 @@ Test Delete User-3    DELETE      2
 
 *** Keywords ***
 Read InputFile
-    ${userList} =    utils.jsonToList    ${PATHFILE}    UserInfo
+    ${userList} =    CORDRobot.jsonToList    ${PATHFILE}    UserInfo
     Set Suite Variable    ${uList}    ${userList}
 
 Verify User functionality
@@ -46,33 +46,33 @@ Verify User functionality
 Test Post Users API
     [Arguments]    ${listIndex}
     ${userList} =    Get Variable Value    ${uList}
-    ${userDict}=    utils.listToDict    ${userList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CH_CORE_USERS    ${userDict}
+    ${userDict}=    CORDRobot.listToDict    ${userList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CH_CORE_USERS    ${userDict}
     Should Be True    ${api_result}
 
 Test Get Users API
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CH_CORE_USERS
+    ${json_result}=    CORDRobot.ApiGet    CH_CORE_USERS
     ${json_result_list}=    Get From Dictionary    ${json_result}    items
     Log    ${json_result_list}
     ${userList}=    Get Variable Value    ${uList}
-    ${inputDict}=    utils.listToDict    ${userList}    ${listIndex}
-    ${email}=    utils.getFieldValueFromDict    ${inputDict}    email
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result_list}    email    ${email}
-    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    ${inputDict}=    CORDRobot.listToDict    ${userList}    ${listIndex}
+    ${email}=    CORDRobot.getFieldValueFromDict    ${inputDict}    email
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result_list}    email    ${email}
+    ${test_result}=    CORDRobot.compare_dict    ${inputDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
 Test Delete Users API
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CH_CORE_USERS
+    ${json_getresult}=    CORDRobot.ApiGet    CH_CORE_USERS
     ${json_getresult_list}=    Get From Dictionary    ${json_getresult}    items
     ${userList}=    Get Variable Value    ${uList}
-    ${userDict}=    utils.listToDict    ${uList}    ${listIndex}
-    ${email}=    utils.getFieldValueFromDict    ${userDict}    email
+    ${userDict}=    CORDRobot.listToDict    ${uList}    ${listIndex}
+    ${email}=    CORDRobot.getFieldValueFromDict    ${userDict}    email
     Log    ${email}
-    ${getUserDict}=    utils.getDictFromListofDict    ${json_getresult_list}    email    ${email}
+    ${getUserDict}=    CORDRobot.getDictFromListofDict    ${json_getresult_list}    email    ${email}
     Log    ${getUserDict}
-    ${userID}=    utils.getFieldValueFromDict    ${getUserDict}    id
+    ${userID}=    CORDRobot.getFieldValueFromDict    ${getUserDict}    id
     Log    ${userID}
-    ${test_result}=    restApi.ApiChameleonDelete    CH_CORE_USERS    ${userID}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    CH_CORE_USERS    ${userID}
     Should be True    ${test_result}

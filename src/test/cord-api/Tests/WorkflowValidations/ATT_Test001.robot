@@ -23,17 +23,9 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           /home/cord/voltha/tests/atests/common/testCaseUtils.py
-Library           ../../Framework/utils/utils.py
-Resource          ../../Framework/utils/utils.robot
-Library           ../../Framework/restApi.py
-Resource          ../../Framework/Subscriber.robot
-Resource          ../../Framework/ATTWorkFlowDriver.robot
-Resource          ../../Framework/Kubernetes.robot
-Resource          ../../Framework/ONU.robot
-Resource          ../../Framework/OLT.robot
-Resource          ../../Framework/DHCP.robot
-Variables         ../../Properties/RestApiProperties.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
+ariables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${POD_NAME}                 flex-pod1-olt
@@ -314,19 +306,19 @@ Setup Suite
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
-    ${AttWhiteListList}=    utils.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
     Set Suite Variable    ${AttWhiteListList}
-    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
-    ${AttWhiteListDict}=    utils.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
+    ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
+    ${AttWhiteListDict}=    CORDRobot.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
-    ${SubscriberList}=    utils.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
     Set Global Variable    ${SubscriberList}
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
-    ${s_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   s_tag
-    ${c_tag}=    utils.getFieldValueFromDict    ${SubscriberDict}   c_tag
-    ${VoltDeviceList}=    utils.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
-    ${VoltDeviceDict}=    utils.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
+    ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
+    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   s_tag
+    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   c_tag
+    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${VoltDeviceDict}=    CORDRobot.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
     Set Global Variable    ${VoltDeviceDict}
     Set Suite Variable    ${s_tag}
@@ -401,7 +393,7 @@ Clean Up XOS
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
 
 Create Whitelist
-    ${AttWhiteListDict}=    utils.listToDict    ${AttWhiteListList}    0
+    ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
     CORD Post    ${ATT_WHITELIST}    ${AttWhiteListDict}
 
 Remove Whitelist
@@ -417,7 +409,7 @@ Update Whitelist with Correct Location
     CORD Put    ${ATT_WHITELIST}    {"pon_port_id": ${onu_location} }    ${whitelist_id}
 
 Create Subscriber
-    ${SubscriberDict}=    utils.listToDict    ${SubscriberList}    0
+    ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
 
 Remove Subscriber

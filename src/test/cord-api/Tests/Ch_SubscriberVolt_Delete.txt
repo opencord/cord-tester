@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Ch_VoltTenant.json
@@ -25,7 +25,7 @@ Test Delete Subscriber and volt_tenant-3
 
 *** Keywords ***
 Read InputFile
-    ${voltList} =    utils.jsonToList    ${PATHFILE}    voltSubscriberInfo
+    ${voltList} =    CORDRobot.jsonToList    ${PATHFILE}    voltSubscriberInfo
     Set Suite Variable    ${vlist}    ${voltList}
 
 Verify Deletion of Subscriber and volt Tenant functionality
@@ -34,26 +34,26 @@ Verify Deletion of Subscriber and volt Tenant functionality
 
 Test Delete Subscriber and voltTenant
     [Arguments]    ${listIndex}
-    ${getSubscriber_result}=    restApi.ApiGet    VOLT_SUBSCRIBER
+    ${getSubscriber_result}=    CORDRobot.ApiGet    VOLT_SUBSCRIBER
     ${getSubscriber_result_list}=    Get From Dictionary    ${getSubscriber_result}    items
-    ${getVoltTenant_result}=    restApi.ApiGet    VOLT_TENANT
+    ${getVoltTenant_result}=    CORDRobot.ApiGet    VOLT_TENANT
     ${getVoltTenant_result_list}=    Get From Dictionary    ${getVoltTenant_result}    items
     ${voltList}=    Get Variable Value    ${vlist}
-    ${voltTenantDict}=    utils.listToDict    ${voltList}    ${listIndex}
+    ${voltTenantDict}=    CORDRobot.listToDict    ${voltList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
     ${servicespecific_id}=    Get From Dictionary    ${voltTenantDict}    service_specific_id
-    ${subscriberDict}=    utils.getDictFromListofDict    ${getSubscriber_result_list}    service_specific_id    ${servicespecific_id}
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${getSubscriber_result_list}    service_specific_id    ${servicespecific_id}
     Log    ${subscriberDict}
-    ${subscriberId}=    utils.getFieldValueFromDict    ${subscriberDict}    id
+    ${subscriberId}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
     Log    ${subscriberId}
-    ${subscribed_links_ids_list}=    utils.getFieldValueFromDict    ${subscriberDict}    subscribed_links_ids
+    ${subscribed_links_ids_list}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    subscribed_links_ids
     ${subscribed_links_ids}=    Get From List    ${subscribed_links_ids_list}    0
     # Retrieve service links using service links ID
-    ${getServiceLink}=    restApi.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
+    ${getServiceLink}=    CORDRobot.ApiChameleonGet    CH_CORE_SERVICELINK    ${subscribed_links_ids}
     ${provider_service_instance_id}=    Get From Dictionary    ${getServiceLink}    provider_service_instance_id
     # Deletion of volt Tenants
-    ${volt_delete_result}=    restApi.ApiChameleonDelete    VOLT_TENANT    ${provider_service_instance_id}
+    ${volt_delete_result}=    CORDRobot.ApiChameleonDelete    VOLT_TENANT    ${provider_service_instance_id}
     Should Be True    ${volt_delete_result}
     #Deletion of Subscribers
-    ${subscriber_delete_result}=    restApi.ApiChameleonDelete    VOLT_SUBSCRIBER    ${subscriberId}
+    ${subscriber_delete_result}=    CORDRobot.ApiChameleonDelete    VOLT_SUBSCRIBER    ${subscriberId}
     Should Be True    ${subscriber_delete_result}

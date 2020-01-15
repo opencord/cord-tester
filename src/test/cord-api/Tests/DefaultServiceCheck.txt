@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -20,7 +20,7 @@ Test Service Sanity     SANITY
 
 *** Keywords ***
 Read InputFile
-    ${serviceList}=    utils.jsonToList    ${PATHFILE}    ServiceInfo
+    ${serviceList}=    CORDRobot.jsonToList    ${PATHFILE}    ServiceInfo
     Set Suite Variable    ${slist}    ${serviceList}
 
 Verify Service Sanity
@@ -28,8 +28,8 @@ Verify Service Sanity
     Run Keyword If    "${type}" == "SANITY"    Test Service Sanity
 
 Test Service Sanity
-    ${json_result}=    restApi.ApiGet   CORE_SERVICES
+    ${json_result}=    CORDRobot.ApiGet   CORE_SERVICES
     Log    ${json_result}
     ${serviceList}=    Get Variable Value    ${slist}
-    ${test_result}=    utils.compare_list_of_dicts    ${serviceList}    ${json_result}
+    ${test_result}=    CORDRobot.compare_list_of_dicts    ${serviceList}    ${json_result}
     Should Be True    ${test_result}

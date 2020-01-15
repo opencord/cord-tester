@@ -1,0 +1,6 @@
+pexpect
+pyyaml
+requests
+robotframework
+robotframework-requests
+robotframework-sshlibrary

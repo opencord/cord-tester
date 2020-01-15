@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/VOLTDevice.json
@@ -56,13 +56,13 @@ Test Get ONUDevice-3
 
 *** Keywords ***
 Read InputFile
-    ${voltDeviceList}=    utils.jsonToList    ${PATHFILE}    VOLTDeviceInfo
+    ${voltDeviceList}=    CORDRobot.jsonToList    ${PATHFILE}    VOLTDeviceInfo
     Set Suite Variable    ${dlist}    ${voltDeviceList}
     Set Global Variable    ${VOLTDevice_Id}    ${EMPTY}
-    ${PONPortList}=    utils.jsonToList    ${PATHFILE1}    PONPortInfo
+    ${PONPortList}=    CORDRobot.jsonToList    ${PATHFILE1}    PONPortInfo
     Set Suite Variable    ${plist}    ${PONPortList}
     Set Suite Variable    ${PONPort_Id}    ${EMPTY}
-    ${ONUDeviceList}=    utils.jsonToList    ${PATHFILE2}    ONUDeviceInfo
+    ${ONUDeviceList}=    CORDRobot.jsonToList    ${PATHFILE2}    ONUDeviceInfo
     Set Suite Variable    ${nlist}    ${ONUDeviceList}
     Set Suite Variable    ${ONUDevice_Id}    ${EMPTY}
 
@@ -79,14 +79,14 @@ Verify VOLTDevice functionality
 Test Post VOLT Device API
     [Arguments]    ${listIndex}
     ${voltDeviceList} =    Get Variable Value    ${dlist}
-    ${voltDeviceDict}=    utils.listToDict    ${voltDeviceList}    ${listIndex}
-    ${api_getResult}=    restApi.ApiGet    VOLT_SERVICE
+    ${voltDeviceDict}=    CORDRobot.listToDict    ${voltDeviceList}    ${listIndex}
+    ${api_getResult}=    CORDRobot.ApiGet    VOLT_SERVICE
     ${voltServiceList}=    Get From Dictionary    ${api_getResult}    items
-    ${voltServiceDict}=    utils.getDictFromListOfDict    ${voltServiceList}    leaf_model_name    VOLTService
+    ${voltServiceDict}=    CORDRobot.getDictFromListOfDict    ${voltServiceList}    leaf_model_name    VOLTService
     ${VOLTService_Id}=    Get From Dictionary    ${voltServiceDict}    id
-    ${voltDeviceDict}=    utils.setFieldValueInDict    ${voltDeviceDict}    volt_service_id    ${VOLTService_Id}
+    ${voltDeviceDict}=    CORDRobot.setFieldValueInDict    ${voltDeviceDict}    volt_service_id    ${VOLTService_Id}
     Log    ${voltDeviceDict}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    VOLT_DEVICE    ${voltDeviceDict}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    VOLT_DEVICE    ${voltDeviceDict}
     Should Be True    ${api_result_status}
     ${VOLTDevice_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${VOLTDevice_Id}
@@ -94,20 +94,20 @@ Test Post VOLT Device API
 Test Get VOLT Device API
     [Arguments]    ${listIndex}
     Log    ${VOLTDevice_Id}
-    ${json_result}=    restApi.ApiChameleonGet    VOLT_DEVICE    ${VOLTDevice_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    VOLT_DEVICE    ${VOLTDevice_Id}
     Log    ${json_result}
     ${voltDeviceList} =    Get Variable Value    ${dlist}
-    ${voltDeviceDict}=    utils.listToDict    ${voltDeviceList}    ${listIndex}
+    ${voltDeviceDict}=    CORDRobot.listToDict    ${voltDeviceList}    ${listIndex}
     Log    ${voltDeviceDict}
-    ${test_result}=    utils.compare_dict    ${voltDeviceDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${voltDeviceDict}    ${json_result}
     Should Be True    ${test_result}
 
 Test Post PONPort API
     [Arguments]    ${listIndex}
     ${PONPortList} =    Get Variable Value    ${plist}
-    ${PONPortDict}=    utils.listToDict    ${PONPortList}    ${listIndex}
-    ${PONPortDict}=    utils.setFieldValueInDict    ${PONPortDict}    olt_device_id    ${VOLTDevice_Id}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    PON_PORT    ${PONPortDict}
+    ${PONPortDict}=    CORDRobot.listToDict    ${PONPortList}    ${listIndex}
+    ${PONPortDict}=    CORDRobot.setFieldValueInDict    ${PONPortDict}    olt_device_id    ${VOLTDevice_Id}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    PON_PORT    ${PONPortDict}
     Should Be True    ${api_result_status}
     ${PONPort_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${PONPort_Id}
@@ -115,20 +115,20 @@ Test Post PONPort API
 Test Get PONPort API
     [Arguments]    ${listIndex}
     Log    ${PONPort_Id}
-    ${json_result}=    restApi.ApiChameleonGet    PON_PORT    ${PONPort_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    PON_PORT    ${PONPort_Id}
     Log    ${json_result}
     ${PONPortList} =    Get Variable Value    ${plist}
-    ${PONPortDict}=    utils.listToDict    ${PONPortList}    ${listIndex}
+    ${PONPortDict}=    CORDRobot.listToDict    ${PONPortList}    ${listIndex}
     Log    ${PONPortDict}
-    ${test_result}=    utils.compare_dict    ${PONPortDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${PONPortDict}    ${json_result}
     Should Be True    ${test_result}
 
 Test Post ONUDevice API
     [Arguments]    ${listIndex}
     ${ONUDeviceList}=    Get Variable Value    ${nlist}
-    ${ONUDeviceDict}=    utils.listToDict    ${ONUDeviceList}    ${listIndex}
-    ${ONUDeviceDict}=    utils.setFieldValueInDict    ${ONUDeviceDict}    pon_port_id    ${PONPort_Id}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    ONU_DEVICE    ${ONUDeviceDict}
+    ${ONUDeviceDict}=    CORDRobot.listToDict    ${ONUDeviceList}    ${listIndex}
+    ${ONUDeviceDict}=    CORDRobot.setFieldValueInDict    ${ONUDeviceDict}    pon_port_id    ${PONPort_Id}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    ONU_DEVICE    ${ONUDeviceDict}
     Should Be True    ${api_result_status}
     ${ONUDevice_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${ONUDevice_Id}
@@ -136,15 +136,15 @@ Test Post ONUDevice API
 Test Get ONUDevice API
     [Arguments]    ${listIndex}
     Log    ${ONUDevice_Id}
-    ${json_result}=    restApi.ApiChameleonGet    ONU_DEVICE    ${ONUDevice_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    ONU_DEVICE    ${ONUDevice_Id}
     Log    ${json_result}
     ${ONUDeviceList} =    Get Variable Value    ${nlist}
-    ${ONUDeviceDict}=    utils.listToDict    ${ONUDeviceList}    ${listIndex}
+    ${ONUDeviceDict}=    CORDRobot.listToDict    ${ONUDeviceList}    ${listIndex}
     Log    ${ONUDeviceDict}
-    ${test_result}=    utils.compare_dict    ${ONUDeviceDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${ONUDeviceDict}    ${json_result}
     Should Be True    ${test_result}
 
 Test Delete VOLT Device API
     [Arguments]    ${listIndex}
-    ${test_result}=    restApi.ApiChameleonDelete    VOLT_DEVICE    ${VOLTDevice_Id}
+    ${test_result}=    CORDRobot.ApiChameleonDelete    VOLT_DEVICE    ${VOLTDevice_Id}
     Should Be True    ${test_result}

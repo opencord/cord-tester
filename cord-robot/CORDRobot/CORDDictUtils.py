@@ -22,7 +22,7 @@ import glob
 import string
 
 
-class utils(object):
+class CORDDictUtils(object):
     @staticmethod
     def listToDict(alist, intListIndex):
         dictInfo = alist[int(intListIndex)]
@@ -254,7 +254,7 @@ class utils(object):
 
     def getAllFieldValues(self, getJsonDataDictList, fieldName):
         value_list = []
-        uniqValue = ""
+        # uniqValue = ""  - this is unused, commented out
         uniq_list = []
         for data in getJsonDataDictList:
             fieldValue = ""
@@ -262,7 +262,8 @@ class utils(object):
             value_list.append(fieldValue)
         uniq_list = sorted(set(value_list))
         if len(uniq_list) == 1:
-            uniqValue = uniq_list[0]
+            pass  # see above, unused?
+            # uniqValue = uniq_list[0]
         else:
             print("list of values found for ", fieldName, ";", uniq_list)
         return fieldValue

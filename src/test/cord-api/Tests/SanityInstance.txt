@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -36,7 +36,7 @@ Test Delete Instance-2
 
 *** Keywords ***
 Read InputFile
-    ${instanceList} =    utils.jsonToList    ${PATHFILE}    InstanceInfo
+    ${instanceList} =    CORDRobot.jsonToList    ${PATHFILE}    InstanceInfo
     Set Suite Variable    ${iList}    ${instanceList}
 
 Verify Instance API functionality
@@ -48,31 +48,31 @@ Verify Instance API functionality
 Test Post Instances
     [Arguments]    ${listIndex}
     ${instanceList} =    Get Variable Value    ${iList}
-    ${instanceDict}=    utils.listToDict    ${instanceList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    CORE_SANITY_INSTANCES    ${instanceDict}
+    ${instanceDict}=    CORDRobot.listToDict    ${instanceList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    CORE_SANITY_INSTANCES    ${instanceDict}
     Should Be True    ${api_result}
 
 Test Get Instances
     [Arguments]    ${listIndex}
-    ${json_result}=    restApi.ApiGet    CORE_INSTANCES
+    ${json_result}=    CORDRobot.ApiGet    CORE_INSTANCES
     Log    ${json_result}
     ${instanceList}=    Get Variable Value    ${iList}
-    ${inputDict}=    utils.listToDict    ${instanceList}    ${listIndex}
-    ${instanceName}=    utils.getFieldValueFromDict    ${inputDict}    name
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${json_result}    name    ${instanceName}
-    ${test_result}=    utils.compare_dict    ${inputDict}    ${getJsonDict}
+    ${inputDict}=    CORDRobot.listToDict    ${instanceList}    ${listIndex}
+    ${instanceName}=    CORDRobot.getFieldValueFromDict    ${inputDict}    name
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${json_result}    name    ${instanceName}
+    ${test_result}=    CORDRobot.compare_dict    ${inputDict}    ${getJsonDict}
     Should Be True    ${json_result}
 
 Test Delete Instances
     [Arguments]    ${listIndex}
-    ${json_getresult}=    restApi.ApiGet    CORE_INSTANCES
+    ${json_getresult}=    CORDRobot.ApiGet    CORE_INSTANCES
     ${instanceList}=    Get Variable Value    ${iList}
-    ${instanceDict}=    utils.listToDict    ${iList}    ${listIndex}
-    ${instanceName}=    utils.getFieldValueFromDict    ${instanceDict}    name
+    ${instanceDict}=    CORDRobot.listToDict    ${iList}    ${listIndex}
+    ${instanceName}=    CORDRobot.getFieldValueFromDict    ${instanceDict}    name
     Log    ${instanceName}
-    ${getInstanceDict}=    utils.getDictFromListofDict    ${json_getresult}    name    ${instanceName}
+    ${getInstanceDict}=    CORDRobot.getDictFromListofDict    ${json_getresult}    name    ${instanceName}
     Log    ${getInstanceDict}
-    ${instanceID}=    utils.getFieldValueFromDict    ${getInstanceDict}    id
+    ${instanceID}=    CORDRobot.getFieldValueFromDict    ${getInstanceDict}    id
     Log    ${instanceID}
-    ${test_result}=    restApi.ApiDelete    CORE_INSTANCES    ${instanceID}
+    ${test_result}=    CORDRobot.ApiDelete    CORE_INSTANCES    ${instanceID}
     Should be True    ${test_result}

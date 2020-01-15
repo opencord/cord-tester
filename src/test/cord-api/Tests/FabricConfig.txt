@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/FabricSwitch.json
@@ -39,13 +39,13 @@ Test Get FabricPortInterface-2
 
 *** Keywords ***
 Read InputFile
-    ${FabricList}=    utils.jsonToList    ${PATHFILE}   FabricSwitchInfo
+    ${FabricList}=    CORDRobot.jsonToList    ${PATHFILE}   FabricSwitchInfo
     Set Suite Variable    ${dlist}    ${FabricList}
     Set Global Variable    ${Fabric_Id}    ${EMPTY}
-    ${FabricPortList}=    utils.jsonToList    ${PATHFILE1}   FabricSwitchPort
+    ${FabricPortList}=    CORDRobot.jsonToList    ${PATHFILE1}   FabricSwitchPort
     Set Suite Variable    ${plist}    ${FabricPortList}
     Set Global Variable    ${SwitchPort_Id}    ${EMPTY}
-    ${FabricInterfaceList}=    utils.jsonToList    ${PATHFILE2}   FabricPortInterface
+    ${FabricInterfaceList}=    CORDRobot.jsonToList    ${PATHFILE2}   FabricPortInterface
     Set Suite Variable    ${ilist}    ${FabricInterfaceList}
     Set Global Variable    ${FabricInterface_Id}    ${EMPTY}
 
@@ -61,8 +61,8 @@ Verify FabricSwitch functionality
 Test Create Fabric Switch
     [Arguments]    ${listIndex}
     ${FabricList} =    Get Variable Value    ${dlist}
-    ${FabricDict}=    utils.listToDict    ${FabricList}    ${listIndex}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    FABRIC_SWITCH    ${FabricDict}
+    ${FabricDict}=    CORDRobot.listToDict    ${FabricList}    ${listIndex}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    FABRIC_SWITCH    ${FabricDict}
     Should Be True    ${api_result_status}
     ${Fabric_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${Fabric_Id}
@@ -70,20 +70,20 @@ Test Create Fabric Switch
 Test Get Fabric Switch
     [Arguments]    ${listIndex}
     Log    ${Fabric_Id}
-    ${json_result}=    restApi.ApiChameleonGet    FABRIC_SWITCH    ${Fabric_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    FABRIC_SWITCH    ${Fabric_Id}
     Log    ${json_result}
     ${FabricList} =    Get Variable Value    ${dlist}
-    ${FabricDict}=    utils.listToDict    ${FabricList}    ${listIndex}
+    ${FabricDict}=    CORDRobot.listToDict    ${FabricList}    ${listIndex}
     Log    ${FabricDict}
-    ${test_result}=    utils.compare_dict    ${FabricDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${FabricDict}    ${json_result}
     Should Be True    ${test_result}
 
 Test Create Switch Port API
     [Arguments]    ${listIndex}
     ${SwitchPortList} =    Get Variable Value    ${plist}
-    ${SwitchPortDict}=    utils.listToDict    ${SwitchPortList}    ${listIndex}
-    ${SwitchPortDict}=    utils.setFieldValueInDict    ${SwitchPortDict}    switch_id    ${Fabric_Id}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    SWITCH_PORT    ${SwitchPortDict}
+    ${SwitchPortDict}=    CORDRobot.listToDict    ${SwitchPortList}    ${listIndex}
+    ${SwitchPortDict}=    CORDRobot.setFieldValueInDict    ${SwitchPortDict}    switch_id    ${Fabric_Id}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    SWITCH_PORT    ${SwitchPortDict}
     Should Be True    ${api_result_status}
     ${SwitchPort_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${SwitchPort_Id}
@@ -91,20 +91,20 @@ Test Create Switch Port API
 Test Get Switch Port API
     [Arguments]    ${listIndex}
     Log    ${SwitchPort_Id}
-    ${json_result}=    restApi.ApiChameleonGet    SWITCH_PORT    ${SwitchPort_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    SWITCH_PORT    ${SwitchPort_Id}
     Log    ${json_result}
     ${SwitchPortList} =    Get Variable Value    ${plist}
-    ${SwitchPortDict}=    utils.listToDict    ${SwitchPortList}    ${listIndex}
+    ${SwitchPortDict}=    CORDRobot.listToDict    ${SwitchPortList}    ${listIndex}
     Log    ${SwitchPortDict}
-    ${test_result}=    utils.compare_dict    ${SwitchPortDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${SwitchPortDict}    ${json_result}
     Should Be True    ${test_result}
 
 Test Create Fabric Interface
     [Arguments]    ${listIndex}
     ${FabricInterfaceList}=    Get Variable Value    ${ilist}
-    ${FabricInterfaceDict}=    utils.listToDict    ${FabricInterfaceList}    ${listIndex}
-    ${FabricInterfaceDict}=    utils.setFieldValueInDict    ${FabricInterfaceDict}    port_id    ${SwitchPort_Id}
-    ${api_result_status}    ${api_result_json}=    restApi.ApiPostReturnJson    PORT_INTERFACE    ${FabricInterfaceDict}
+    ${FabricInterfaceDict}=    CORDRobot.listToDict    ${FabricInterfaceList}    ${listIndex}
+    ${FabricInterfaceDict}=    CORDRobot.setFieldValueInDict    ${FabricInterfaceDict}    port_id    ${SwitchPort_Id}
+    ${api_result_status}    ${api_result_json}=    CORDRobot.ApiPostReturnJson    PORT_INTERFACE    ${FabricInterfaceDict}
     Should Be True    ${api_result_status}
     ${FabricInterface_Id}=    Get From Dictionary    ${api_result_json}    id
     Set Global Variable    ${FabricInterface_Id}
@@ -112,10 +112,10 @@ Test Create Fabric Interface
 Test Get Fabric Interface
     [Arguments]    ${listIndex}
     Log    ${FabricInterface_Id}
-    ${json_result}=    restApi.ApiChameleonGet    PORT_INTERFACE    ${FabricInterface_Id}
+    ${json_result}=    CORDRobot.ApiChameleonGet    PORT_INTERFACE    ${FabricInterface_Id}
     Log    ${json_result}
     ${FabricInterfaceList} =    Get Variable Value    ${ilist}
-    ${FabricInterfaceDict}=    utils.listToDict    ${FabricInterfaceList}    ${listIndex}
+    ${FabricInterfaceDict}=    CORDRobot.listToDict    ${FabricInterfaceList}    ${listIndex}
     Log    ${FabricInterfaceDict}
-    ${test_result}=    utils.compare_dict    ${FabricInterfaceDict}    ${json_result}
+    ${test_result}=    CORDRobot.compare_dict    ${FabricInterfaceDict}    ${json_result}
     Should Be True    ${test_result}

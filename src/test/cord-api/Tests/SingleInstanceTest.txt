@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -40,9 +40,9 @@ Test Instance creation validation
 
 *** Keywords ***
 Read InputFile
-    ${subscriberList} =    utils.jsonToList    ${PATHFILE}    SubscriberInfo
+    ${subscriberList} =    CORDRobot.jsonToList    ${PATHFILE}    SubscriberInfo
     Set Suite Variable    ${slist}    ${subscriberList}
-    ${voltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
+    ${voltList}=    CORDRobot.jsonToList    ${PATHFILE2}    voltSubscriberInfo
     Set Suite Variable    ${vlist}    ${voltList}
 
 Verify Instance functionality
@@ -54,35 +54,35 @@ Verify Instance functionality
 Test Post Subscriber Create
     [Arguments]    ${listIndex}
     ${subscriberList} =    Get Variable Value    ${slist}
-    ${subscriberDict}=    utils.listToDict    ${subscriberList}    ${listIndex}
-    ${api_result}=    restApi.ApiPost    TENANT_SUBSCRIBER    ${subscriberDict}
+    ${subscriberDict}=    CORDRobot.listToDict    ${subscriberList}    ${listIndex}
+    ${api_result}=    CORDRobot.ApiPost    TENANT_SUBSCRIBER    ${subscriberDict}
     Should Be True    ${api_result}
 
 Test Post volt Tenant Create
     [Arguments]    ${listIndex}
     ${voltTenantList} =    Get Variable Value    ${vlist}
-    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltTenantDict}=    CORDRobot.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
     ${account_num}=    Get From Dictionary    ${voltTenantDict}    account_num
-    ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
-    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result}    account_num    ${account_num}
-    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
-    ${updatedVoltDict}=    utils.setFieldValueInDict    ${voltDict}    subscriber    ${subscriberID}
-    ${api_result}=    restApi.ApiPost    TENANT_VOLT    ${updatedVoltDict}
+    ${get_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${get_result}    account_num    ${account_num}
+    ${subscriberID}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
+    ${updatedVoltDict}=    CORDRobot.setFieldValueInDict    ${voltDict}    subscriber    ${subscriberID}
+    ${api_result}=    CORDRobot.ApiPost    TENANT_VOLT    ${updatedVoltDict}
     Should Be True    ${api_result}
     # Verifying Get operation after POST
-    ${getVolt_result}=    restApi.ApiGet    TENANT_VOLT
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result}    subscriber    ${subscriberID}
-    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    ${getVolt_result}=    CORDRobot.ApiGet    TENANT_VOLT
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${getVolt_result}    subscriber    ${subscriberID}
+    ${test_result}=    CORDRobot.compare_dict    ${voltDict}    ${getJsonDict}
     Should Be True    ${test_result}
 
 Test Instance Validation
     [Arguments]    ${listIndex}
-    ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
-    ${instance_id_fromvolt}=    utils.getAllFieldValues    ${get_result}    instance_id
-    ${instance_name}=    utils.getAllFieldValues    ${get_result}    instance_name
+    ${get_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
+    ${instance_id_fromvolt}=    CORDRobot.getAllFieldValues    ${get_result}    instance_id
+    ${instance_name}=    CORDRobot.getAllFieldValues    ${get_result}    instance_name
     ${instance_id_name}=    Catenate    SEPARATOR=-    ${instance_name}    ${instance_id_fromvolt}
-    ${get_instanceresult}=    restApi.ApiGet    CORE_INSTANCES
-    ${instanceDict}=    utils.getDictFromListofDict    ${get_instanceresult}    instance_name    ${instance_id_name}
-    ${instance_id_fromCore}=    utils.getFieldValueFromDict    ${instanceDict}    id
+    ${get_instanceresult}=    CORDRobot.ApiGet    CORE_INSTANCES
+    ${instanceDict}=    CORDRobot.getDictFromListofDict    ${get_instanceresult}    instance_name    ${instance_id_name}
+    ${instance_id_fromCore}=    CORDRobot.getFieldValueFromDict    ${instanceDict}    id
     Should Be Equal As Strings    ${instance_id_fromvolt}    ${instance_id_fromCore}

@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 from tinydb import TinyDB, Query
-from robot.api import logger
+# from robot.api import logger
+
 
 class devices(object):
 
@@ -119,7 +122,7 @@ class devices(object):
         formatted for the XOS Rest API
         :return: a list of PON Ports
         """
-        return self.pon_ports.all();
+        return self.pon_ports.all()
 
     def update_pon_port_id(self, pon_port, id):
         """
@@ -152,7 +155,7 @@ class devices(object):
         return onus
 
     def get_rest_onus(self):
-        return self.onus.all();
+        return self.onus.all()
 
     def update_onu_id(self, onu, id):
         Onu = Query()
@@ -178,7 +181,7 @@ class devices(object):
         return unis
 
     def get_rest_unis(self):
-        return self.uni_ports.all();
+        return self.uni_ports.all()
 
     def update_uni_id(self, uni, id):
         UniPort = Query()

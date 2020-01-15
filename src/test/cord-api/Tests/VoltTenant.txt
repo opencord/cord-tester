@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${USER}           admin
@@ -25,9 +25,9 @@ Test volt Tenant-3    CREATE    2
 
 *** Keywords ***
 Read InputFile
-    ${voltList} =    utils.jsonToList    ${PATHFILE}    voltSubscriberInfo
+    ${voltList} =    CORDRobot.jsonToList    ${PATHFILE}    voltSubscriberInfo
     Set Suite Variable    ${vlist}    ${voltList}
-    ${putvoltList}=    utils.jsonToList    ${PATHFILE2}    voltSubscriberInfo
+    ${putvoltList}=    CORDRobot.jsonToList    ${PATHFILE2}    voltSubscriberInfo
     Set Suite Variable    ${putList}    ${putvoltList}
 
 Verify volt Tenant Functionality
@@ -37,29 +37,29 @@ Verify volt Tenant Functionality
 Test Post volt Tenant API
     [Arguments]    ${listIndex}
     ${voltTenantList} =    Get Variable Value    ${vlist}
-    ${voltTenantDict}=    utils.listToDict    ${voltTenantList}    ${listIndex}
+    ${voltTenantDict}=    CORDRobot.listToDict    ${voltTenantList}    ${listIndex}
     ${voltDict}=    Get From Dictionary    ${voltTenantDict}    voltTenant
     ${account_num}=    Get From Dictionary    ${voltTenantDict}    account_num
-    ${get_result}=    restApi.ApiGet    TENANT_SUBSCRIBER
-    ${subscriberDict}=    utils.getDictFromListofDict    ${get_result}    account_num    ${account_num}
-    ${subscriberID}=    utils.getFieldValueFromDict    ${subscriberDict}    id
-    ${updatedVoltDict}=    utils.setFieldValueInDict    ${voltDict}    subscriber    ${subscriberID}
-    ${api_result}=    restApi.ApiPost    TENANT_VOLT    ${updatedVoltDict}
+    ${get_result}=    CORDRobot.ApiGet    TENANT_SUBSCRIBER
+    ${subscriberDict}=    CORDRobot.getDictFromListofDict    ${get_result}    account_num    ${account_num}
+    ${subscriberID}=    CORDRobot.getFieldValueFromDict    ${subscriberDict}    id
+    ${updatedVoltDict}=    CORDRobot.setFieldValueInDict    ${voltDict}    subscriber    ${subscriberID}
+    ${api_result}=    CORDRobot.ApiPost    TENANT_VOLT    ${updatedVoltDict}
     Should Be True    ${api_result}
     # Verifying Get operation after POST
-    ${getVolt_result}=    restApi.ApiGet    TENANT_VOLT
-    ${getJsonDict}=    utils.getDictFromListOfDict    ${getVolt_result}    subscriber    ${subscriberID}
-    ${test_result}=    utils.compare_dict    ${voltDict}    ${getJsonDict}
+    ${getVolt_result}=    CORDRobot.ApiGet    TENANT_VOLT
+    ${getJsonDict}=    CORDRobot.getDictFromListOfDict    ${getVolt_result}    subscriber    ${subscriberID}
+    ${test_result}=    CORDRobot.compare_dict    ${voltDict}    ${getJsonDict}
     Should Be True    ${test_result}
     # Verifying PUT operation
     ${putvoltList}=    Get Variable Value    ${putList}
-    ${putVoltDict}=    utils.listToDict    ${putvoltList}    ${listIndex}
+    ${putVoltDict}=    CORDRobot.listToDict    ${putvoltList}    ${listIndex}
     ${putvoltTenantDict}=    Get From Dictionary    ${putVoltDict}    voltTenant
-    ${voltID}=    utils.getFieldValueFromDict    ${getJsonDict}    id
-    ${put_result}=    restApi.ApiPut    TENANT_VOLT    ${putvoltTenantDict}    ${voltID}
+    ${voltID}=    CORDRobot.getFieldValueFromDict    ${getJsonDict}    id
+    ${put_result}=    CORDRobot.ApiPut    TENANT_VOLT    ${putvoltTenantDict}    ${voltID}
     Should Be True    ${put_result}
     # Verifying Get after PUT operation
-    ${getVolt_afterPut}=    restApi.ApiGet    TENANT_VOLT
-    ${getVoltDict}=    utils.getDictFromListofDict    ${getVolt_afterPut}    id    ${voltID}
-    ${result_afterPut}=    utils.compare_dict    ${putvoltTenantDict}    ${getVoltDict}
+    ${getVolt_afterPut}=    CORDRobot.ApiGet    TENANT_VOLT
+    ${getVoltDict}=    CORDRobot.getDictFromListofDict    ${getVolt_afterPut}    id    ${voltID}
+    ${result_afterPut}=    CORDRobot.compare_dict    ${putvoltTenantDict}    ${getVoltDict}
     Should Be True    ${result_afterPut}
