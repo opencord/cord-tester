@@ -9,10 +9,8 @@ Library           Collections
 Library           String
 Library           OperatingSystem
 Library           DateTime
-Library           ../../Framework/utils/utils.py
-Resource          ../../Framework/utils/utils.robot
-Library           ../../Framework/restApi.py
-Variables         ../../Properties/RestApiProperties.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Validate Operation

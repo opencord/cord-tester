@@ -9,9 +9,9 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library		      HttpLibrary.HTTP
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           HttpLibrary.HTTP
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Resource          ${TESTLIBRARY}
 Variables         ../Properties/RestApiProperties.py
 
