@@ -7,8 +7,8 @@ Library           String
 Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
-Library           ../Framework/utils/utils.py
-Library           ../Framework/restApi.py
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${PATHFILE}       ${CURDIR}/data/Subscriber_TopDown.json
@@ -21,7 +21,7 @@ Test Get Subscriber-1
 
 *** Keywords ***
 Read InputFile
-    ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo 
+    ${SubscriberList}=    utils.jsonToList    ${PATHFILE}   SubscriberInfo
     Set Suite Variable    ${slist}    ${SubscriberList}
     Set Global Variable    ${Subscriber_Id}    ${EMPTY}
 

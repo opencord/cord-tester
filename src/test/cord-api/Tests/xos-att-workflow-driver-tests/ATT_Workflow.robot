@@ -5,7 +5,8 @@ Library           HttpLibrary.HTTP
 Library           Collections
 Library           String
 Library           OperatingSystem
-Resource          ../../Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Send Event and Verify

@@ -1,0 +1,16 @@
+docutils
+flake8
+paramiko
+pexpect
+pylint
+pyyaml
+robotframework
+robotframework-databaselibrary
+robotframework-kafkalibrary
+robotframework-lint
+robotframework-requests
+robotframework-sshlibrary
+tinydb
+yamllint
+# replace when upstream fixes their pypi package to include requirements.txt
+git+https://github.com/rasjani/robotframework-importresource@0e0388f3ee2ca21dc2e56bdc88ed88a4ee0443a6

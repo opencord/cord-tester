@@ -17,9 +17,8 @@
 Documentation     Test suite to validate K8s in the experimental ControlKube Scenario
 Suite Setup       Setup
 Library           OperatingSystem
-Library           ../cord-api/Framework/utils/onosUtils.py
-Library           ../cord-api/Framework/utils/utils.py
-Resource          ../cord-api/Framework/utils/utils.robot
+Library           CORDRobot
+Library           ImportResource  resources=CORDRobot
 
 *** Variables ***
 ${deployment}        physical
