@@ -24,7 +24,7 @@ import time
 import subprocess
 import pexpect
 import sys
-
+import os
 
 def config_dirs(self, log_dir, root_dir=None, voltha_dir=None):
     self.dirs["log"] = log_dir
@@ -58,9 +58,13 @@ def send_command_to_voltha_cli(
     host="localhost",
 ):
     output = open(log_dir + "/" + log_file1, "wb")
+    port = os.getenv('VOLTHA_SSH_PORT')
+    if not port:
+        raise Exception("voltha ssh port not known, environment variable 'VOLTHA_SSH_PORT' not set?")
+
     child = pexpect.spawn(
-        "ssh -p 30110 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no voltha@%s"
-        % host
+        "ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no voltha@%s"
+        % (str(port), host)
     )
     child.expect(r"[pP]assword:")
     child.sendline("admin")
@@ -101,9 +105,12 @@ def send_command_to_voltha_cli(
 
 def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost"):
     output = open(log_dir + "/" + log_file, "wb")
+    port = os.getenv('ONOS_SSH_PORT')
+    if not port:
+        raise Exception("onos ssh port not known, environment variable 'ONOS_SSH_PORT' not set?")
     child = pexpect.spawn(
-        "ssh -p 30115 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s"
-        % host
+        "ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s"
+        % (str(port), host)
     )
     child.expect(r"[pP]assword:")
     child.sendline("karaf")
