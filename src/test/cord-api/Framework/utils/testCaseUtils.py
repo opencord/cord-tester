@@ -56,11 +56,12 @@ def send_command_to_voltha_cli(
     log_file3=None,
     cmd3=None,
     host="localhost",
+    port = os.getenv('VOLTHA_SSH_PORT')
 ):
     output = open(log_dir + "/" + log_file1, "wb")
-    port = os.getenv('VOLTHA_SSH_PORT')
     if not port:
-        raise Exception("voltha ssh port not known, environment variable 'VOLTHA_SSH_PORT' not set?")
+        # set default voltha ssh port
+        port = 5022
 
     child = pexpect.spawn(
         "ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no voltha@%s"
@@ -103,11 +104,11 @@ def send_command_to_voltha_cli(
     child.close()
 
 
-def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost"):
+def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost", port = os.getenv('ONOS_SSH_PORT')):
     output = open(log_dir + "/" + log_file, "wb")
-    port = os.getenv('ONOS_SSH_PORT')
     if not port:
-        raise Exception("onos ssh port not known, environment variable 'ONOS_SSH_PORT' not set?")
+        # set default onos ssh port
+        port = 8101
     child = pexpect.spawn(
         "ssh -p %s -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no karaf@%s"
         % (str(port), host)
