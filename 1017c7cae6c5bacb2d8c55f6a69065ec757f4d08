@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0bfab940_3d791496",
+        "filename": "src/test/cord-api/Framework/utils/testCaseUtils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 59,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2020-01-21T23:45:01Z",
+      "side": 1,
+      "message": "How about just \"port \u003d 5022\" and then have the caller pass in a different port if required?",
+      "range": {
+        "startLine": 59,
+        "startChar": 4,
+        "endLine": 59,
+        "endChar": 39
+      },
+      "revId": "1017c7cae6c5bacb2d8c55f6a69065ec757f4d08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9ebaa96c_3d26fd79",
+        "filename": "src/test/cord-api/Framework/utils/testCaseUtils.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 107,
+      "author": {
+        "id": 1000010
+      },
+      "writtenOn": "2020-01-21T23:45:01Z",
+      "side": 1,
+      "message": "See comment above",
+      "range": {
+        "startLine": 107,
+        "startChar": 71,
+        "endLine": 107,
+        "endChar": 105
+      },
+      "revId": "1017c7cae6c5bacb2d8c55f6a69065ec757f4d08",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}
