@@ -107,9 +107,12 @@ def send_command_to_onos_cli(log_dir, log_file, cmd, host="localhost"):
     )
     child.expect(r"[pP]assword:")
     child.sendline("karaf")
-    child.expect(r"(\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\x1b\[\d*;?\d+m){1,2}")
+    # Expected prompt:
+    #  onos>          (ONOS 1.x)
+    #  karaf@root >   (ONOS 2.x)
+    child.expect([r'(\x1b\[\d*;?\d+m){1,2}onos> (\x1b\[\d*;?\d+m){1,2}', r'karaf@root >'])
     child.sendline(cmd)
-    child.expect(r"(\x1b\[\d*;?\d+m){1,2}(onos>|karaf@root >) (\x1b\[\d*;?\d+m){1,2}")
+    child.expect([r'(\x1b\[\d*;?\d+m){1,2}onos> (\x1b\[\d*;?\d+m){1,2}', r'karaf@root >'])
 
     output.write(child.before)
 
