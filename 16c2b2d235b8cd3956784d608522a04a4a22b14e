@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "99e159ce_17e844ac",
+        "filename": "src/test/cord-api/Properties/RestApiProperties.py",
+        "patchSetId": 14
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1000011
+      },
+      "writtenOn": "2020-02-22T02:18:45Z",
+      "side": 1,
+      "message": "Is this still needed?",
+      "revId": "16c2b2d235b8cd3956784d608522a04a4a22b14e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
