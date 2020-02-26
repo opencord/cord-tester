@@ -76,8 +76,9 @@ Send EAPOL Message
     ...    Requested packet should exist on src.
     [Arguments]    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}
     ...    ${container_type}=${None}    ${container_name}=${None}
+    ...    ${wpa_log}='/tmp/wpa.log'
     Login And Run Command On Remote System
-    ...    rm -f /tmp/wpa.log; wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f /tmp/wpa.log
+    ...    rm -f ${wpa_log}; wpa_supplicant -B -i ${iface} -Dwired -c /etc/wpa_supplicant/${conf_file} -f ${wpa_log}
     ...    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Validate Authentication
@@ -85,19 +86,20 @@ Validate Authentication
     ...    auth_pass determines if authentication should pass
     [Arguments]    ${auth_pass}    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}=${None}
     ...    ${container_type}=${None}    ${container_name}=${None}
+    ...    ${wpa_log}='/tmp/wpa.log'
     Send EAPOL Message    ${iface}    ${conf_file}    ${ip}    ${user}    ${pass}
-    ...    ${container_type}    ${container_name}
+    ...    ${container_type}    ${container_name}    ${wpa_log}
     # FIXME: Use an If/Else block, not Three separate checks, bools instead of truthy strings
     Run Keyword If    '${auth_pass}' == 'True'
     ...    Wait Until Keyword Succeeds    120s    2s
     ...    Check Remote File Contents    True
-    ...    /tmp/wpa.log    authentication completed successfully
+    ...    ${wpa_log}    ${iface}.*authentication completed successfully
     ...    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Run Keyword If    '${auth_pass}' == 'False'
     ...    Sleep    20s
     Run Keyword If    '${auth_pass}' == 'False'
     ...    Check Remote File Contents    False
-    ...    /tmp/wpa.log    authentication completed successfully
+    ...    ${wpa_log}    ${iface}.*authentication completed successfully
     ...    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
 
 Run Multicast Client

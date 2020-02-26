@@ -193,18 +193,18 @@ Kill Linux Process
     Should Be Equal As Integers    ${rc}    0
 
 Check Remote File Contents
-    [Documentation]    Check if file on remote system matches a `grep` regex
+    [Documentation]    Check if file on remote system matches a Robot regex
     [Arguments]    ${file_should_exist}    ${file}    ${pattern}
     ...    ${ip}    ${user}    ${pass}=${None}
     ...    ${container_type}=${None}    ${container_name}=${None}    ${prompt}=~$
     ${output}=    Login And Run Command On Remote System
-    ...    cat ${file} | grep '${pattern}'
+    ...    cat ${file}
     ...    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}    ${prompt}
     # FIXME: Comparison against truthy value
     Run Keyword If    '${file_should_exist}' == 'True'
-    ...    Should Contain    ${output}    ${pattern}
+    ...    Should Match Regexp    ${output}    ${pattern}
     ...    ELSE
-    ...    Should Not Contain    ${output}    ${pattern}
+    ...    Should Not Match Regexp    ${output}    ${pattern}
 
 Set Deployment Config Variables
     [Documentation]    Parses through the given deployment config and sets all the "src" and "dst" variables
