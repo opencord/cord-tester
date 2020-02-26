@@ -127,5 +127,5 @@ clean:
 	find . -name output.xml -print
 
 clean-all: clean
-	rm -rf venv_cord gendocs cord-robot/CORDRobot/VERSION
+	rm -rf venv_cord gendocs cord-robot/CORDRobot/VERSION cord-robot/dist/*
 
