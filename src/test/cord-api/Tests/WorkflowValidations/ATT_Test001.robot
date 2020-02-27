@@ -25,7 +25,7 @@ Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
 Library           ImportResource  resources=CORDRobot
-ariables         ../../Properties/RestApiProperties.py
+Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${POD_NAME}                 flex-pod1-olt
