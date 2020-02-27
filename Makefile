@@ -101,22 +101,29 @@ tidy-robot: venv_cord
   python -m robot.tidy --inplace $(ROBOT_FILES);
 
 ## Variables for gendocs
-TEST_SOURCE := $(wildcard tests/*/*.robot)
+TEST_SOURCE := $(wildcard src/test/cord-api/Tests/*/*.robot)
 TEST_BASENAME := $(basename $(TEST_SOURCE))
 TEST_DIRS := $(dir $(TEST_SOURCE))
 
-LIB_SOURCE := $(wildcard libraries/*.robot)
-LIB_BASENAME := $(basename $(LIB_SOURCE))
-LIB_DIRS := $(dir $(LIB_SOURCE))
+PYLIB_SOURCE := $(filter-out cord-robot/CORDRobot/__init__.py, $(wildcard cord-robot/CORDRobot/*.py))
+PYLIB_BASENAME := $(basename $(PYLIB_SOURCE))
+PYLIB_DIRS := $(dir $(PYLIB_SOURCE))
+
+RESOURCE_SOURCE := $(wildcard cord-robot/CORDRobot/rf-resources/*.resource)
+RESOURCE_BASENAME := $(basename $(RESOURCE_SOURCE))
+RESOURCE_DIRS := $(dir $(RESOURCE_SOURCE))
 
 .PHONY: gendocs lint test
-# In future explore use of --docformat REST - integration w/Sphinx?
 gendocs: venv_cord
 	source ./$</bin/activate ; set -u ;\
   mkdir -p $@ ;\
-  for dir in ${LIB_DIRS}; do mkdir -p $@/$$dir; done;\
-  for dir in ${LIB_BASENAME}; do\
-    python -m robot.libdoc --format HTML $$dir.robot $@/$$dir.html ;\
+  for dir in ${PYLIB_DIRS}; do mkdir -p $@/$$dir; done;\
+  for dir in ${PYLIB_BASENAME}; do\
+    python -m robot.libdoc --format HTML $$dir.py $@/$$dir.html ;\
+  done ;\
+  for dir in ${RESOURCE_DIRS}; do mkdir -p $@/$$dir; done;\
+  for dir in ${RESOURCE_BASENAME}; do\
+    python -m robot.libdoc --format HTML $$dir.resource $@/$$dir.html ;\
   done ;\
   for dir in ${TEST_DIRS}; do mkdir -p $@/$$dir; done;\
   for dir in ${TEST_BASENAME}; do\
