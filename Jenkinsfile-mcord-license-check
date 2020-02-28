@@ -12,7 +12,7 @@
 
 repos = params.repos.split(",")
 
-node ("${TestNodeName}") {
+node ("${buildNode}") {
     timeout (100) {
         try {
             stage ("Cleanup") {

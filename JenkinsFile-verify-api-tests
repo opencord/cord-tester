@@ -15,7 +15,7 @@
 PROFILE="null"
 CORE_CONTAINER="null"
 
-node ('ubuntu16.04-basebuild-4c-8g') {
+node ("${buildNode}") {
     stage('Config') {
         sh """
         rm -rf ~/cord/
