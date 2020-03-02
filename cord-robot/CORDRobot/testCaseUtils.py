@@ -26,7 +26,7 @@ import pexpect
 import sys
 
 
-class TestCaseUtils():
+class testCaseUtils():
 
     @staticmethod
     def config_dirs(self, log_dir, root_dir=None, voltha_dir=None):
