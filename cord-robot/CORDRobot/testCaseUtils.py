@@ -26,7 +26,7 @@ import pexpect
 import sys
 
 
-class TestCaseUtils():
+class testCaseUtils():
 
     @staticmethod
     def config_dirs(self, log_dir, root_dir=None, voltha_dir=None):
@@ -78,7 +78,7 @@ class TestCaseUtils():
         if i == 0:
             output.write(child.before)
             output.close()
-            TestCaseUtils.remove_leading_line(log_dir, log_file1)
+            testCaseUtils.remove_leading_line(log_dir, log_file1)
         elif i == 1:
             if log_file2 is not None and cmd2 is not None:
                 output = open(log_dir + "/" + log_file2, "wb")
@@ -88,7 +88,7 @@ class TestCaseUtils():
                 )
                 output.write(child.before)
                 output.close()
-                TestCaseUtils.remove_leading_line(log_dir, log_file2)
+                testCaseUtils.remove_leading_line(log_dir, log_file2)
             if log_file3 is not None and cmd3 is not None:
                 output = open(log_dir + "/" + log_file3, "wb")
                 child.sendline(cmd3)
@@ -97,7 +97,7 @@ class TestCaseUtils():
                 )
                 output.write(child.before)
                 output.close()
-                TestCaseUtils.remove_leading_line(log_dir, log_file3)
+                testCaseUtils.remove_leading_line(log_dir, log_file3)
         child.close()
 
     @staticmethod
@@ -223,11 +223,11 @@ class TestCaseUtils():
 
     @staticmethod
     def discover_rg_pod_name():
-        return TestCaseUtils.extract_pod_name("rg0").strip()
+        return testCaseUtils.extract_pod_name("rg0").strip()
 
     @staticmethod
     def retrieve_authorized_users_device_id_and_port_number(status_line):
-        fields = TestCaseUtils.parse_fields(status_line, ",")
+        fields = testCaseUtils.parse_fields(status_line, ",")
         deviceField = fields[2].strip()
         deviceStr, equal, deviceId = deviceField.partition("=")
         device_Id = deviceId
@@ -237,7 +237,7 @@ class TestCaseUtils():
         return device_Id, portNumber
 
     def add_subscriber_access(self, device_id, port_number):
-        TestCaseUtils.write_log_of_onos_cli_command(
+        testCaseUtils.write_log_of_onos_cli_command(
             self.get_dir("log"),
             "voltha_add_subscriber_access.log",
             "volt-add-subscriber-access %s %s" % (device_id, port_number),

@@ -18,7 +18,7 @@ import os
 
 from .CORDDictUtils import CORDDictUtils
 from .restApi import restApi
-from .testCaseUtils import TestCaseUtils
+from .testCaseUtils import testCaseUtils
 
 
 # return the library version
@@ -28,7 +28,7 @@ def _version_():
 
 
 # Inherit all the other sub-classes
-class CORDRobot(CORDDictUtils, restApi, TestCaseUtils):
+class CORDRobot(CORDDictUtils, restApi, testCaseUtils):
 
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
