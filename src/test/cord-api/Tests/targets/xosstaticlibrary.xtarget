@@ -88,25 +88,27 @@ Generate JSON Data
     ## check if dependent model exists, if not, create it
     ${tmp_{{ f.options.model | lower }}_id}=    Create Dependent Model    {{ f.options.model }}
     #${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    ${json_{{ m.name | lower }}_1}=    Create Dictionary
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}_id=${tmp_{{ f.options.model | lower }}_id}
     {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_float}"
     {% elif f.name == "role" -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_role}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_role}"
     {% elif f.name == "direction" -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_direction}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_direction}"
     {% elif f.name == "flavor" -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_flavor}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_flavor}"
     {% elif f.name == "s_tag" and m.name == "BNGPortMapping" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_vlan_tag}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_vlan_tag}"
     {% else -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_{{ f.type }}}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_{{ f.type }}}"
     {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}="${test_float}"
     {% else -%}
     {% if loop.index0 == 0 -%}
     ${json_{{ m.name | lower}}_amend_key}=    Set Variable    {{ f.name }}
-    ${json_{{ m.name | lower }}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /{{ f.name }}    "${test_{{ f.type }}}"
+    ${json_{{ m.name | lower }}_amend_1}=    Create Dictionary
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    {{ f.name }}="${test_{{ f.type }}}"
     {% endif -%}
     {% endif -%}
     {% endif -%}
@@ -115,9 +117,9 @@ Generate JSON Data
     {% endfor -%}
     {% if  m.name  == "User" -%}
     ${json_{{ m.name | lower}}_email}=    Set Variable    testuser@opencord.org
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    email="${json_{{ m.name | lower }}_email}"
     ${json_{{ m.name | lower}}_email_amend_1}=    Set Variable    testuseramend@opencord.org
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /email    "${json_{{ m.name | lower }}_email_amend_1}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    email="${json_{{ m.name | lower }}_email_amend_1}"
     {% endif %}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
