@@ -101,7 +101,7 @@ class CORDDictUtils(object):
         for dict1 in list1:
             if dict1 == {}:
                 continue
-            key = dict1.keys()[0]
+            key = list(dict1.keys())[0]
             value = dict1[key]
             dict2 = self.getDictFromListOfDict(list2, key, value)
             if dict2 == {}:

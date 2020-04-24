@@ -45,5 +45,6 @@ Verify Data Model
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    Log    ${data}
+    Log    ${list1}
+    Log    ${jsondata['items']}
     ${test_result}=    CORDRobot.compare_list_of_dicts    ${list1}    ${jsondata['items']}
