@@ -76,8 +76,8 @@ Generate JSON Data
     {%- if m.name not in  ['XOSBase'] -%}
     {% autoescape false %}
     {% endautoescape %}
-    ${json_{{ m.name | lower }}_1}=    Set Variable    { }
-    ${json_{{ m.name | lower }}_amend_1}=    Set Variable    { }
+    ${json_{{ m.name | lower }}_1}=    Create Dictionary
+    ${json_{{ m.name | lower }}_amend_1}=    Create Dictionary
     ${json_{{ m.name | lower}}_amend_key}=    Set Variable    null
     Set Suite Variable    ${json_{{ m.name | lower}}_amend_key}
     # set required fields for {{ m.name | lower }} object
@@ -88,25 +88,25 @@ Generate JSON Data
     ## check if dependent model exists, if not, create it
     ${tmp_{{ f.options.model | lower }}_id}=    Create Dependent Model    {{ f.options.model }}
     #${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}_id    ${tmp_{{ f.options.model | lower }}_id}
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}_id=${tmp_{{ f.options.model | lower }}_id}
     {% elif f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_float}
     {% elif f.name == "role" -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_role}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_role}
     {% elif f.name == "direction" -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_direction}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_direction}
     {% elif f.name == "flavor" -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_flavor}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_flavor}
     {% elif f.name == "s_tag" and m.name == "BNGPortMapping" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_vlan_tag}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_vlan_tag}
     {% else -%}
-    ${json_{{ m.name | lower }}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_{{ f.type }}}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_{{ f.type }}}
     {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /{{ f.name }}    "${test_float}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    {{ f.name }}=${test_float}
     {% else -%}
     {% if loop.index0 == 0 -%}
     ${json_{{ m.name | lower}}_amend_key}=    Set Variable    {{ f.name }}
-    ${json_{{ m.name | lower }}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /{{ f.name }}    "${test_{{ f.type }}}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    {{ f.name }}=${test_{{ f.type }}}
     {% endif -%}
     {% endif -%}
     {% endif -%}
@@ -115,68 +115,68 @@ Generate JSON Data
     {% endfor -%}
     {% if  m.name  == "User" -%}
     ${json_{{ m.name | lower}}_email}=    Set Variable    testuser@opencord.org
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /email    "${json_{{ m.name | lower }}_email}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    email=${json_{{ m.name | lower }}_email}
     ${json_{{ m.name | lower}}_email_amend_1}=    Set Variable    testuseramend@opencord.org
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /email    "${json_{{ m.name | lower }}_email_amend_1}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    email=${json_{{ m.name | lower }}_email_amend_1}
     {% endif %}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    login_base=${json_{{ m.name | lower }}_login_base_tmp}
     {% endif %}
     {% if  m.name  == "Flavor" -%}
     ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    flavor=${json_{{ m.name | lower }}_flavor_tmp}
     {% endif %}
     {% if  m.name  == "ServiceGraphConstraint" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /constraints    "${test_string}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    constraints=${test_string}
     {% endif %}
     {% if  m.name  == "Slice" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "testloginbase"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "testloginbase2"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    name=testloginbase
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    name=testloginbase2
     {% endif -%}
     {% if  m.name  == "ProgranServiceInstance" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /name    "${test_string}"
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /CellIndividualOffset    "1"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /name    "${test_string}"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /CellIndividualOffset    "1"
+    Set To Dictionary   ${json_{{ m.name | lower }}_1}    name=${test_string}
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    CellIndividualOffset=1
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    name=${test_string}
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    CellIndividualOffset=1
     {% endif %}
     {% if  m.name  == "RCORDSubscriber" -%}
     ## Create req service owner for rcord subscriber
     Create Dependent Owner Model    /xosapi/v1/rcord/rcordservices    {"name": "testrcordservice", "access": "unknown"}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    owner_id=${id}
     ${rcord_tmp_service_id}=    Set Variable    ${id}
     Set Suite Variable    ${rcord_tmp_service_id}
     {% endif %}
     {% if  m.name  == "HippieOSSServiceInstance" -%}
     ## Create req service owner for hippie oss service instance
     Create Dependent Owner Model    /xosapi/v1/hippie-oss/hippieossservices    {"name": "testhippieservice"}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    owner_id=${id}
     {% endif %}
     {% if  m.name  == "MCordSubscriberInstance" -%}
     ## Create req service owner for hippie oss service instance
     Create Dependent Owner Model    /xosapi/v1/mcord/mcordsubscriberservices    {"name": "testmcordservice"}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /owner_id    ${id}
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    owner_id=${id}
     {% endif %}
     {% if  m.name  == "AddressManagerServiceInstance" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /public_ip    "2.2.2.2"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /public_ip    "3.3.3.3"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    public_ip=2.2.2.2
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    public_ip=3.3.3.3
     {% endif %}
     {% if  m.name  == "RCORDIpAddress" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /ip    "2.2.2.2"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /ip    "3.3.3.3"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    ip=2.2.2.2
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    ip=3.3.3.3
     {% endif %}
     {% if  m.name  == "ONUDevice" -%}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /serial_number    "testserialnumber"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /serial_number    "amendserialnumber"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    serial_number=testserialnumber
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    serial_number=amendserialnumber
     {% endif %}
     {% if  m.name  == "TechnologyProfile" -%}
     ${json_profile}=    Set Variable    {\\\"test\\\":\\\"test\\\"}
     ${json_profile2}=    Set Variable    {\\\"test2\\\":\\\"test2\\\"}
-    ${json_{{ m.name | lower}}_1}=    Set Json Value    ${json_{{ m.name | lower }}_1}    /profile_value    "${json_profile}"
-    ${json_{{ m.name | lower}}_amend_1}=    Set Json Value    ${json_{{ m.name | lower }}_amend_1}    /profile_value    "${json_profile2}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_1}    profile_value=${json_profile}
+    Set To Dictionary    ${json_{{ m.name | lower }}_amend_1}    profile_value=${json_profile2}
     {% endif %}
-    ${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
-    ${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
+    #${json_{{ m.name | lower }}_1}=     To JSON    ${json_{{ m.name | lower }}_1}
+    #${json_{{ m.name | lower }}_amend_1}=     To JSON    ${json_{{ m.name | lower }}_amend_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_1}
     Set Suite Variable    ${json_{{ m.name | lower }}_amend_1}
     {% endif -%}
@@ -196,29 +196,29 @@ Create {{ m.name }}
     ${dependent_{{ f.options.model | lower }}_id}=    Create Dependent Model    {{ f.options.model }}
     #${tmp_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
     #${dependent_{{ f.options.model | lower }}_id}=    Create {{ f.options.model }}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}_id    ${dependent_{{ f.options.model | lower }}_id}
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}_id=${dependent_{{ f.options.model | lower }}_id}
     {% endif -%}
     {% else -%}
     {% if f.modifier == "required" and f.options.blank != "True"-%}
     {% if not f.options.default -%}
     {% if m.name == "User" and f.name == "email" -%}
-    ${json_user_tmp}=   Set Json Value    ${json_user_tmp}   /email    "${test_email}"
+    Set To Dictionary    ${json_user_tmp}   email="${test_email}"
     {% else -%}
     {% if f.name == "created" or f.name == "amend" or f.name =="expires" or f.name =='granted' -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_float}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${test_float}
     {% elif f.name == "name" -%}
     ${json_{{ m.name | lower}}_name_tmp}=   Generate Random Value    {{ f.type }}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${json_{{ m.name | lower}}_name_tmp}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${json_{{ m.name | lower}}_name_tmp}
     {% elif f.name == "role" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_role}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${test_role}
     {% elif f.name == "direction" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_direction}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${test_direction}
     {% elif f.name == "flavor" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_flavor}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${test_flavor}
     {% elif f.name == "s_tag" and m.name == "BNGPortMapping" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_vlan_tag}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${test_vlan_tag}
     {% else -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /{{ f.name }}    "${test_{{ f.type }}}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    {{ f.name }}=${test_{{ f.type }}}
     {% endif -%}
     {% endif -%}
     {% endif -%}
@@ -227,31 +227,31 @@ Create {{ m.name }}
     {% endfor -%}
     {% if  m.name  == "Site" -%}
     ${json_{{ m.name | lower}}_login_base_tmp}=    Set Variable    testloginbase3
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /login_base    "${json_{{ m.name | lower }}_login_base_tmp}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    login_base=${json_{{ m.name | lower }}_login_base_tmp}
     {% endif %}
     {% if  m.name  == "Flavor" -%}
     ${json_{{ m.name | lower}}_flavor_tmp}=    Set Variable    m1.small
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /flavor    "${json_{{ m.name | lower }}_flavor_tmp}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    flavor=${json_{{ m.name | lower }}_flavor_tmp}
     {% endif %}
     {% if  m.name  == "ServiceGraphConstraint" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /contraints    "${test_string}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    contraints=${test_string}
     {% endif %}
     {% if  m.name  == "Slice" -%}
     ${json_{{ m.name | lower}}_name}=    Generate Random Slice Name
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /name    "${json_{{ m.name | lower}}_name}"
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    name=${json_{{ m.name | lower}}_name}
     {% endif -%}
     {% if  m.name  == "Network" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /permit_all_slices    true
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    permit_all_slices=true
     {% endif %}
     {% if  m.name  == "RCORDSubscriber" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /owner_id    ${rcord_tmp_service_id}
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    owner_id=${rcord_tmp_service_id}
     {% endif %}
     {% if  m.name  == "TechnologyProfile" -%}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /profile_value    {'testprofile':'profiletest'}
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    profile_value={'testprofile':'profiletest'}
     {% endif %}
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_policy    true
-    ${json_{{ m.name | lower}}_tmp}=    Set Json Value    ${json_{{ m.name | lower }}_tmp}    /no_sync    true
-    ${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    no_policy=true
+    Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    no_sync=true
+    #${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
     ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get From Dictionary    ${resp.json()}    id
     Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
