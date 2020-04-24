@@ -25,12 +25,12 @@ ${test_ip_address}    2.2.2.2
 *** Keywords ***
 Verify API Functionality
     [Arguments]    ${type}    ${endpoint}    ${data}=${EMPTY}    ${data_id}=${EMPTY}    ${key}=${EMPTY}
-    Run Keyword If    "${type}" == "RETRIEVE"    CORD Get    ${endpoint}    ${data_id}    ${data}    ${key}
-    Run Keyword If    "${type}" == "CREATE"   CORD Post    ${endpoint}    ${data}
-    Run Keyword If    "${type}" == "UPDATE"   CORD Put    ${endpoint}    ${data}    ${data_id}
-    Run Keyword If    "${type}" == "DELETE"    CORD Delete    ${endpoint}    ${data_id}
+    Run Keyword If    "${type}" == "RETRIEVE"    Library CORD Get    ${endpoint}    ${data_id}    ${data}    ${key}
+    Run Keyword If    "${type}" == "CREATE"   Library CORD Post    ${endpoint}    ${data}
+    Run Keyword If    "${type}" == "UPDATE"   Library CORD Put    ${endpoint}    ${data}    ${data_id}
+    Run Keyword If    "${type}" == "DELETE"    Library CORD Delete    ${endpoint}    ${data_id}
 
-CORD Get
+Library CORD Get
     [Documentation]    Make a GET call to the CORD controller
     [Arguments]    ${service}    ${id}    ${value}    ${key}
     ${resp}=    Get Request    ${SERVER_IP}    ${service}/${id}
@@ -41,7 +41,7 @@ CORD Get
     Run Keyword If    '${key}' != 'null'    Should Contain    "${value}"    ${updated_value}
     [Return]    ${resp}
 
-CORD Post
+Library CORD Post
     [Documentation]    Make a POST call to the CORD controller
     [Arguments]    ${service}    ${data}
     ${data}=    Evaluate    json.dumps(${data})    json
@@ -52,7 +52,7 @@ CORD Post
     Set Suite Variable    ${id}
     [Return]    ${resp}
 
-CORD Put
+Library CORD Put
     [Documentation]    Make a PUT call to the CORD controller
     [Arguments]    ${service}    ${data}    ${data_id}
     ${data}=    Evaluate    json.dumps(${data})    json
@@ -63,7 +63,7 @@ CORD Put
     Set Suite Variable    ${id}
     [Return]    ${resp}
 
-CORD Delete
+Library CORD Delete
     [Documentation]    Make a DELETE call to the CORD controller
     [Arguments]    ${service}    ${data_id}
     ${resp}=    Delete Request    ${SERVER_IP}    uri=${service}/${data_id}
@@ -252,7 +252,7 @@ Create {{ m.name }}
     Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    no_policy=true
     Set To Dictionary    ${json_{{ m.name | lower }}_tmp}    no_sync=true
     #${json_{{ m.name | lower }}_tmp}=     To JSON    ${json_{{ m.name | lower }}_tmp}
-    ${resp}=    CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
+    ${resp}=    Library CORD Post    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/{{ xproto_pluralize(m) | lower}}    ${json_{{ m.name | lower }}_tmp}
     ${id_{{ m.name | lower }}_tmp}=    Get From Dictionary    ${resp.json()}    id
     Append To List    ${dependent_{{ m.name | lower }}_ids}    ${id_{{ m.name | lower }}_tmp}
     [Return]    ${id_{{ m.name | lower }}_tmp}
@@ -268,7 +268,7 @@ Create Dependent Model
 Create Dependent Owner Model
     [Arguments]    ${model}    ${data}
     ${condition}    ${modelId}=    Check If Model Exists    ${model}
-    ${resp}=    Run Keyword Unless    ${condition}    CORD Post    ${model}    ${data}
+    ${resp}=    Run Keyword Unless    ${condition}    Library CORD Post    ${model}    ${data}
     ${id}=    Run Keyword Unless    ${condition}    Get From Dictionary    ${resp.json()}    id
     ${model_id}=    Set Variable If    ${condition}    ${modelId}    ${id}
     [Return]    ${model_id}
@@ -307,7 +307,7 @@ Teardown Tests
     {%- if m.name not in  ['XOSBase'] -%}
     ${len}=    Get Length    ${dependent_{{ m.name | lower }}_ids}
     : FOR    ${INDEX}    IN RANGE    1    ${len}
-    \    Run Keyword And Ignore Error    CORD Delete    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/${dependent_{{ m.name | lower }}_ids[0]}    ${dependent_{{ m.name | lower }}_ids[${INDEX}]}
+    \    Run Keyword And Ignore Error    Library CORD Delete    /xosapi/v1/{{ xproto_unquote(m.options.app_label) }}/${dependent_{{ m.name | lower }}_ids[0]}    ${dependent_{{ m.name | lower }}_ids[${INDEX}]}
     {% endif -%}
     {% endfor -%}
     Delete All Sessions
