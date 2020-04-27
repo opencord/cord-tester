@@ -25,10 +25,10 @@ Execute ONOS CLI Command
     SSHLibrary.Login    ${user}    ${pass}
     @{result_values}    SSHLibrary.Execute Command    ${cmd}    return_rc=True
     ...    return_stderr=True    return_stdout=True
-    ${output}    Set Variable    @{result_values}[0]
+    ${output}    Set Variable    ${result_values}[0]
     Log    ${output}
-    Should Be Empty    @{result_values}[1]
-    Should Be Equal As Integers    @{result_values}[2]    0
+    Should Be Empty    ${result_values}[1]
+    Should Be Equal As Integers    ${result_values}[2]    0
     SSHLibrary.Close Connection
     [Return]    ${output}
 
