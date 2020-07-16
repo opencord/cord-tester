@@ -39,13 +39,16 @@ seba-robot: venv_cord
 
 # self-test, lint, and setup targets
 ROBOT_LINT_ARGS ?= --verbose \
-                   --configure LineTooLong:120 -e LineTooLong \
-                   -e TooManyTestSteps \
-                   -e TooManyTestCases \
+                   --configure LineTooLong:120 \
+                   --warning TooManyTestSteps \
+                   --warning TooManyTestCases \
                    --configure TooFewTestSteps:1 \
                    --configure TooFewKeywordSteps:1 \
-                   -e FileTooLong \
-                   -e TrailingWhitespace
+                   --warning FileTooLong \
+                   --warning TrailingWhitespace \
+                   --warning RequireKeywordDocumentation \
+                   --warning RequireTestDocumentation \
+                   --warning DuplicateTestNames
 
 PYTHON_FILES := $(shell find ./src -name *.py -print)
 ROBOT_FILES  := $(shell find ./src -name *.robot -print)
@@ -60,35 +63,40 @@ venv_cord:
   pip install -r requirements.txt ;\
   pip install -e cord-robot
 
-test: cord-robot-test
+# cord-robot is totally deprecated, removing.
+test:
 
-cord-robot-test:
-	cd cord-robot; tox
+# virtualenv for the robot tools
+# VOL-2724 Invoke pip via python3 to avoid pathname too long on QA jobs
+vst_venv:
+	virtualenv -p python3 $@ ;\
+	source ./$@/bin/activate ;\
+	python -m pip install -r requirements.txt
 
-lint: lint-python lint-json lint-yaml # lint-robot lint-jenkins
+lint: lint-robot lint-python lint-yaml lint-json
 
-lint-robot: venv_cord
+lint-robot: vst_venv
 	source ./$</bin/activate ; set -u ;\
-  rflint $(ROBOT_LINT_ARGS) $(ROBOT_FILES)
+	rflint $(ROBOT_LINT_ARGS) $(ROBOT_FILES)
 
 # check deps for format and python3 cleanliness
-lint-python: venv_cord
+lint-python: vst_venv
 	source ./$</bin/activate ; set -u ;\
-  pylint --py3k $(PYTHON_FILES) ;\
-  flake8 --max-line-length=119 --count $(PYTHON_FILES)
+	pylint --py3k $(PYTHON_FILES) ;\
+	flake8 --max-line-length=119 --count $(PYTHON_FILES)
 
-lint-yaml: venv_cord
+lint-yaml: vst_venv
 	source ./$</bin/activate ; set -u ;\
   yamllint \
-    -d "{extends: default, rules: {line-length: {max: 119}}}" \
-    -s $(YAML_FILES)
+  -d "{extends: default, rules: {line-length: {max: 119}}}" \
+  -s $(YAML_FILES)
 
-lint-json: venv_cord
+lint-json: vst_venv
 	source ./$</bin/activate ; set -u ;\
-  for jsonfile in $(JSON_FILES); do \
-    echo "Validating json file: $$jsonfile" ;\
-    python -m json.tool $$jsonfile > /dev/null ;\
-  done
+	for jsonfile in $(JSON_FILES); do \
+		echo "Validating json file: $$jsonfile" ;\
+		python -m json.tool $$jsonfile > /dev/null ;\
+	done
 
 # only works on declarative pipeline Jenkinsfiles
 lint-jenkins:
@@ -96,9 +104,9 @@ lint-jenkins:
 
 # tidy target will be more useful once issue with removing leading comments
 # is resolved: https://github.com/robotframework/robotframework/issues/3263
-tidy-robot: venv_cord
+tidy-robot: vst_venv
 	source ./$</bin/activate ; set -u ;\
-  python -m robot.tidy --inplace $(ROBOT_FILES);
+	python -m robot.tidy --inplace $(ROBOT_FILES);
 
 ## Variables for gendocs
 TEST_SOURCE := $(wildcard src/test/cord-api/Tests/*/*.robot)
