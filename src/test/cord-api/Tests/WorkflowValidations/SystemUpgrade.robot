@@ -23,38 +23,48 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${POD_NAME}                 onlab-pod1-qa
-${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
-${HELM_CHARTS_DIR}          ~/helm-charts
-${KUBERNETES_CONF}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
-${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
-${onos_tag}                 1.13.9
-${voltha_tag}               voltha-1.7
+${POD_NAME}       onlab-pod1-qa
+${KUBERNETES_CONFIGS_DIR}    ~/pod-configs/kubernetes-configs
+${HELM_CHARTS_DIR}    ~/helm-charts
+${KUBERNETES_CONF}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
+${KUBERNETES_YAML}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
+${onos_tag}       1.13.9
+${voltha_tag}     voltha-1.7
 
 *** Test Cases ***
-Restart ATT Workflow    RESTART    att-workflow-driver
+Restart ATT Workflow
+    RESTART    att-workflow-driver
 
-Restart OLT Service    RESTART    seba-services-volt
+Restart OLT Service
+    RESTART    seba-services-volt
 
-Restart RCORD Service    RESTART    rcord
+Restart RCORD Service
+    RESTART    rcord
 
-Restart Fabric-Crossconnect Service    RESTART    fabric-crossconnect
+Restart Fabric-Crossconnect Service
+    RESTART    fabric-crossconnect
 
-Restart ONOS Service    RESTART    onos-service
+Restart ONOS Service
+    RESTART    onos-service
 
-Upgrade RCORD Service    UPGRADE    rcord
+Upgrade RCORD Service
+    UPGRADE    rcord
 
-Upgrade Fabric-Crossconnect   UPGRADE    fabric-crossconnect
+Upgrade Fabric-Crossconnect
+    UPGRADE    fabric-crossconnect
 
-Upgrade ONOS Service    UPGRADE    onos-service
+Upgrade ONOS Service
+    UPGRADE    onos-service
 
-Upgrade ONOS Controller    UPGRADE    ONOS    ONOS
+Upgrade ONOS Controller
+    UPGRADE    ONOS    ONOS
 
-Upgrade VOLTHA    UPGRADE    VOLTHA    VOLTHA
+Upgrade VOLTHA
+    UPGRADE    VOLTHA    VOLTHA
     [Tags]    notready
 
 *** Keywords ***
@@ -87,14 +97,14 @@ Perform Operation and Validate
     ${pod_name}    ${namespace}=    Get Pod Name    ${pod_prefix}
     Wait Until Keyword Succeeds    90s    2s    Subscriber Provisioned    ${server_ip}    ${src0['onu']}    ${src0['s_tag']}
     Wait Until Keyword Succeeds    60s    2s    Subscriber Service Chain Created    ${src0['onu']}    ${src0['s_tag']}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Run Keyword If    '${operation}' == 'RESTART'    Restart Service    ${pod_name}    ${namespace}    ${pod_prefix}
     Run Keyword If    '${operation}' == 'UPGRADE' and '${controller}' == '${NONE}'    Upgrade Service    ${pod_prefix}
-    Run Keyword If    '${operation}' == 'UPGRADE' and '${controller}' == 'ONOS'   Upgrade ONOS
-    Run Keyword If    '${operation}' == 'UPGRADE' and '${controller}' == 'VOLTHA'   Upgrade VOLTHA
+    Run Keyword If    '${operation}' == 'UPGRADE' and '${controller}' == 'ONOS'    Upgrade ONOS
+    Run Keyword If    '${operation}' == 'UPGRADE' and '${controller}' == 'VOLTHA'    Upgrade VOLTHA
     Wait Until Keyword Succeeds    60s    2s    Subscriber Provisioned    ${server_ip}    ${src0['onu']}    ${src0['s_tag']}
     Wait Until Keyword Succeeds    60s    2s    Subscriber Service Chain Created    ${src0['onu']}    ${src0['s_tag']}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
 
 Get Pod Name
     [Arguments]    ${pod_prefix}
@@ -162,4 +172,3 @@ Clean Up Linux
     Run Keyword If    '${dst0['ip']}' != '${None}'    Run Keyword And Ignore Error    Kill Linux Process    [d]hcpd    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
     Delete IP Addresses from Interface on Remote Host    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Run Keyword If    '${dst0['ip']}' != '${None}'    Delete Interface on Remote Host    ${dst0['dp_iface_name']}.${src0['s_tag']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
-

@@ -24,22 +24,22 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${VOLTHA_DIR}              ~/cord/incubator/voltha
-${WHITELIST_FILENAME}      SIABWhitelist
-${SUBSCRIBER_FILENAME}     SIABSubscriber
-${OLT_DEVICE_FILENAME}     SIABOLTDevice
-${WHITELIST_PATHFILE}      ${CURDIR}/data/${WHITELIST_FILENAME}.json
-${SUBSCRIBER_PATHFILE}     ${CURDIR}/data/${SUBSCRIBER_FILENAME}.json
+${VOLTHA_DIR}     ~/cord/incubator/voltha
+${WHITELIST_FILENAME}    SIABWhitelist
+${SUBSCRIBER_FILENAME}    SIABSubscriber
+${OLT_DEVICE_FILENAME}    SIABOLTDevice
+${WHITELIST_PATHFILE}    ${CURDIR}/data/${WHITELIST_FILENAME}.json
+${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/${SUBSCRIBER_FILENAME}.json
 ${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${OLT_DEVICE_FILENAME}.json
-${export_kube_config}      export KUBECONFIG=%{HOME}/.kube/config
-${kube_node_ip}            127.0.0.1
-${dst_host_ip}             172.18.0.10
-${local_user}              %{USER}
-${local_pass}              ${None}
+${export_kube_config}    export KUBECONFIG=%{HOME}/.kube/config
+${kube_node_ip}    127.0.0.1
+${dst_host_ip}    172.18.0.10
+${local_user}     %{USER}
+${local_pass}     ${None}
 
 *** Test Cases ***
 ONU in Correct Location
@@ -49,7 +49,7 @@ ONU in Correct Location
     [Setup]    None
     [Tags]    stable    latest    test1    multicast
     Subscriber Ready to Authenticate
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
@@ -59,7 +59,7 @@ ONU in Correct Location
     Restart RG Pod
     CORD Put    ${VOLT_SUBSCRIBER}    {"status":"awaiting-auth"}    ${subscriber_id}
     # ATTWD SI auth_state is already "APPROVED" here from previous auth... not sure if this matters
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -73,7 +73,7 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     ...    Validate successful authentication/DHCP/E2E ping
     [Tags]    stable    latest    test2
     Subscriber Ready to Authenticate
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Reset SIAB Environment
@@ -81,12 +81,12 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     Wait Until Keyword Succeeds    120s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU not found in whitelist
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     No Subscriber Service Chain
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Reset SIAB Environment
     Subscriber Ready to Authenticate
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -100,7 +100,7 @@ ONU in Correct Location -> ONU in Wrong Location -> ONU in Correct Location
     ...    Validate successful authentication/DHCP/E2E ping
     [Tags]    stable    latest    test3
     Subscriber Ready to Authenticate
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
@@ -108,12 +108,12 @@ ONU in Correct Location -> ONU in Wrong Location -> ONU in Correct Location
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU activated in wrong location
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     No Subscriber Service Chain
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Update Whitelist with Correct Location
     Subscriber Ready to Authenticate
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -127,18 +127,18 @@ ONU in Correct Location -> Remove Subscriber -> Create Subscriber
     ...    Validate successful authentication/DHCP/E2E ping
     [Tags]    stable    latest    test4
     Subscriber Ready to Authenticate
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Remove Subscriber
     No Subscriber Service Chain
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -152,13 +152,13 @@ ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
     Remove Subscriber
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -182,7 +182,7 @@ ONU not in Whitelist
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}    pre-provisioned
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU not found in whitelist
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}    pre-provisioned
     No Subscriber Service Chain
@@ -200,19 +200,19 @@ ONU not in Whitelist (Skip Subscriber Provisioning) -> Add ONU to Whitelist -> P
     [Setup]    Simple Setup
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU not found in whitelist
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Whitelist
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    pre-provisioned    ${onu_device}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -225,7 +225,7 @@ ONU in Wrong Location
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU activated in wrong location
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU activated in wrong location
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
     No Subscriber Service Chain
@@ -245,20 +245,20 @@ ONU in Wrong Location (Skip Subscriber Provisioning) -> ONU in Correct Location 
     Update Whitelist with Wrong Location
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}    ONU activated in wrong location
-    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    False    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    DISABLED    AWAITING    ${onu_device}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Update Whitelist with Correct Location
     Wait Until Keyword Succeeds    60s    15s    Validate ONU States    ACTIVE    ENABLED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Validate DHCP and Ping    False    False    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Restart RG Pod
     Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}    pre-provisioned
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
@@ -274,11 +274,11 @@ Multicast Join Fails -> Authenticate, run DHCP -> Multicast Join Succeeds
     ...    Validate that multicast traffic is flowing E2E
     [Tags]    latest    test11    multicast
     Subscriber Ready to Authenticate
-    Validate Multicast    False    eth0    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
-    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Multicast    False    eth0    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Authentication    True    eth0    wpa_supplicant.conf    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
     Subscriber Service Chain Created
     Validate DHCP and Ping    True    True    eth0    ${s_tag}    ${c_tag}    ${dst_host_ip}    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
-    Validate Multicast    True    eth0    ${kube_node_ip}     ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
+    Validate Multicast    True    eth0    ${kube_node_ip}    ${local_user}    ${local_pass}    K8S    ${RG_CONTAINER}
 
 *** Keywords ***
 Setup
@@ -287,21 +287,21 @@ Setup
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
-    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}    AttWhiteListInfo
     Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    CORDRobot.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
-    ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
+    ${onu_device}=    Get From Dictionary    ${AttWhiteListDict}    serial_number
     Log    ${onu_device}
     Set Global Variable    ${onu_device}
-    ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
+    ${onu_location}=    Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
-    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}    SubscriberInfo
     Set Global Variable    ${SubscriberList}
     ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
-    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   s_tag
-    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   c_tag
-    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    s_tag
+    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    c_tag
+    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}    VOLTDeviceInfo
     ${VoltDeviceDict}=    CORDRobot.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
     Set Global Variable    ${VoltDeviceDict}
@@ -425,7 +425,7 @@ Validate XConnect in ONOS
     [Arguments]    ${exists}=True
     ${rc}=    Run And Return RC    http -a karaf:karaf GET http://127.0.0.1:30120/onos/segmentrouting/xconnect|jq -r '.xconnects[].vlanId'|grep 222
     Run Keyword If    '${exists}' == 'True'    Should Be Equal As Integers    ${rc}    0
-    ...                                           ELSE    Should Be Equal As Integers    ${rc}    1
+    ...    ELSE    Should Be Equal As Integers    ${rc}    1
 
 Setup SSH Keys to Localhost
     Run    yes y 2>/dev/null | ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa

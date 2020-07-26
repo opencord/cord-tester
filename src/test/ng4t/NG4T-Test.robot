@@ -18,27 +18,28 @@ Documentation     Test runner suite for executing NG4T Tests inside the venb vm 
 Library           OperatingSystem
 Library           SSHLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 
 *** Variables ***
 ${compute_node_user}    ubuntu
-${instance_user}        ng4t
-${instance_pass}        ng4t
-${NG4T_TESTS_FILE}       ${CURDIR}/ng4t-tests.json
+${instance_user}    ng4t
+${instance_pass}    ng4t
+${NG4T_TESTS_FILE}    ${CURDIR}/ng4t-tests.json
 
 *** Test Cases ***
 Execute Tests
     [Documentation]    SSHs into venb instance inside the compute node and executes tests
-    : FOR    ${test}    IN    @{ng4t_tests}
-    \     ${conn_id}=    SSHLibrary.Open Connection    ${compute_hostname}    prompt=~$    timeout=300s
-    \    SSHLibrary.Login With Public Key    ubuntu    /home/cord/.ssh/cord_rsa
-    \    SSHLibrary.Read
-    \    SSHLibrary.Write    ssh -q ng40@${mgmt_ip} "./${test}"
-    \    SSHLibrary.Read Until    password:
-    \    SSHLibrary.Write    ng40
-    \    ${result}=    SSHLibrary.Read Until Prompt
-    \    Run Keyword And Continue On Failure    Should Contain    ${result}    VERDICT_PASS
-    \    SSHLibrary.Close Connection
+    FOR    ${test}    IN    @{ng4t_tests}
+        ${conn_id}=    SSHLibrary.Open Connection    ${compute_hostname}    prompt=~$    timeout=300s
+        SSHLibrary.Login With Public Key    ubuntu    /home/cord/.ssh/cord_rsa
+        SSHLibrary.Read
+        SSHLibrary.Write    ssh -q ng40@${mgmt_ip} "./${test}"
+        SSHLibrary.Read Until    password:
+        SSHLibrary.Write    ng40
+        ${result}=    SSHLibrary.Read Until Prompt
+        Run Keyword And Continue On Failure    Should Contain    ${result}    VERDICT_PASS
+        SSHLibrary.Close Connection
+    END
 
 *** Keywords ***
 Suite Setup

@@ -9,27 +9,31 @@ Library           String
 Library           OperatingSystem
 Library           DateTime
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Validate Operation
 
 *** Variables ***
-${timeout}            300s
-${fail_try}           fail_try_models_
-${fail_restore}       fail_before_restore_
-${fail_backup}        fail_before_backup_
+${timeout}        300s
+${fail_try}       fail_try_models_
+${fail_restore}    fail_before_restore_
+${fail_backup}    fail_before_backup_
 ${flavor_original}    one
-${flavor_updated}     two
+${flavor_updated}    two
 
 *** Test Cases ***
-Backup    ${EMPTY}    created    restored    ${flavor_original}
+Backup
+    ${EMPTY}    created    restored    ${flavor_original}
 
-Backup Fail Try    ${fail_try}    created    failed    ${flavor_updated}
+Backup Fail Try
+    ${fail_try}    created    failed    ${flavor_updated}
 
-Backup Fail Before Restore    ${fail_restore}    created    failed    ${flavor_updated}
+Backup Fail Before Restore
+    ${fail_restore}    created    failed    ${flavor_updated}
 
-Backup Fail Before Backup    ${fail_backup}    failed
+Backup Fail Before Backup
+    ${fail_backup}    failed
 
 *** Keywords ***
 Setup
@@ -55,7 +59,7 @@ Create BackupFile
     [Documentation]    Create a backupfile model
     [Arguments]    ${operation}
     ${file_name}=    Generate Random Value    string
-    ${file_uri}=     Catenate    SEPARATOR=    file:///var/run/xos/backup/local/    ${operation}    ${file_name}
+    ${file_uri}=    Catenate    SEPARATOR=    file:///var/run/xos/backup/local/    ${operation}    ${file_name}
     ${data}=    Create Dictionary    name=${file_name}    uri=${file_uri}
     ${data}=    Evaluate    json.dumps(${data})    json
     ${resp}=    CORD Post    /xosapi/v1/core/backupfiles    ${data}
@@ -91,10 +95,10 @@ Modify Test Model
     [Arguments]    ${testmodel_id}
     ${data}=    Create Dictionary    flavor=${flavor_updated}
     ${data}=    Evaluate    json.dumps(${data})    json
-    ${resp}=    CORD Put    /xosapi/v1/core/flavors    ${data}   ${testmodel_id}
+    ${resp}=    CORD Put    /xosapi/v1/core/flavors    ${data}    ${testmodel_id}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    Should Be Equal As Strings   ${jsondata['flavor']}    two
+    Should Be Equal As Strings    ${jsondata['flavor']}    two
 
 Perform Restore
     [Documentation]    Perform Restore
@@ -110,25 +114,25 @@ Perform Restore
 Verify Test Model
     [Documentation]    Verify Test Model has original contents
     [Arguments]    ${testmodel_id}    ${value}
-    ${resp}=    Cord Get   /xosapi/v1/core/flavors/${testmodel_id}
+    ${resp}=    Cord Get    /xosapi/v1/core/flavors/${testmodel_id}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    Should Be Equal As Strings   ${jsondata['flavor']}    ${value}
+    Should Be Equal As Strings    ${jsondata['flavor']}    ${value}
 
 Validate Backup
     [Documentation]    Wait for a backupoperation to be in "created" state
     [Arguments]    ${id}    ${state}
-    ${resp}=   Get Request    ${SERVER_IP}    uri=/xosapi/v1/core/backupoperations/${id}
+    ${resp}=    Get Request    ${SERVER_IP}    uri=/xosapi/v1/core/backupoperations/${id}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    Should Be Equal As Strings     ${jsondata['status']}    ${state}
+    Should Be Equal As Strings    ${jsondata['status']}    ${state}
 
 Validate Restore
     [Documentation]    Validate Backup operation status
     [Arguments]    ${id}    ${state}
-    ${resp}=   Get Request    ${SERVER_IP}    uri=/xosapi/v1/core/backupoperations/${id}
+    ${resp}=    Get Request    ${SERVER_IP}    uri=/xosapi/v1/core/backupoperations/${id}
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    Should Be Equal As Strings     ${jsondata['status']}    ${state}
+    Should Be Equal As Strings    ${jsondata['status']}    ${state}

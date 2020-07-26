@@ -8,11 +8,11 @@ Suite Setup       Setup
 Suite Teardown    Teardown
 
 *** Variables ***
-${cord_kafka}         cord-kafka
-${xos_tosca}          xos-tosca
-${xos_tosca_port}     9102
-${server_ip}          xos-chameleon
-${server_port}        9101
+${cord_kafka}     cord-kafka
+${xos_tosca}      xos-tosca
+${xos_tosca_port}    9102
+${server_ip}      xos-chameleon
+${server_port}    9101
 
 *** Test Cases ***
 Validate Kubernetes Service Instance
@@ -74,7 +74,7 @@ Validate SI Message
 Validate WebService Message
     [Arguments]    ${message}
     ${output}=    Run    http ${k8_pod_ip} | grep ${message}
-    Should Contain    ${output}   Tenant Message: "${message}"
+    Should Contain    ${output}    Tenant Message: "${message}"
 
 Send Kafka Event
     [Documentation]    Send event

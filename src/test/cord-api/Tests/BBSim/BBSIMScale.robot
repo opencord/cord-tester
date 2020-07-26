@@ -16,7 +16,7 @@
 Documentation     Test various E2E conditions for seba-in-a-box
 Suite Setup       Setup
 Suite Teardown    Teardown
-#Test Teardown     Debug Tests
+#Test Teardown    Debug Tests
 Library           Collections
 Library           String
 Library           OperatingSystem
@@ -25,13 +25,13 @@ Library           RequestsLibrary
 Library           CORDRobot
 Library           bbsim_utils.py
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
 ${number_of_onus}    16
-${timeout}           300s
-${olt_sn}            BBSIMOLT000
+${timeout}        300s
+${olt_sn}         BBSIMOLT000
 
 *** Test Cases ***
 Create Subscriber and Whitelist for ONUs
@@ -41,11 +41,13 @@ Create Subscriber and Whitelist for ONUs
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
     ${rcord_service_id}=    Get Service Owner Id    /xosapi/v1/rcord/rcordservices
     @{subscribers}=    Generate Subscribers    ${number_of_onus}    ${rcord_service_id}
-    : FOR    ${subscriber}    IN    @{subscribers}
-    \    CORD Post    ${VOLT_SUBSCRIBER}    ${subscriber}
+    FOR    ${subscriber}    IN    @{subscribers}
+        CORD Post    ${VOLT_SUBSCRIBER}    ${subscriber}
+    END
     @{whitelists}=    Generate Whitelists    ${number_of_onus}    ${att_workflow_service_id}
-    : FOR    ${whitelist}    IN    @{whitelists}
-    \    CORD Post    ${ATT_WHITELIST}    ${whitelist}
+    FOR    ${whitelist}    IN    @{whitelists}
+        CORD Post    ${ATT_WHITELIST}    ${whitelist}
+    END
     CORD Post    ${VOLT_DEVICE}    {'device_type': 'openolt', 'host': 'bbsim.voltha.svc', 'port': 50060, 'switch_datapath_id': 'of:0000000000000002', 'switch_port': '3', 'outer_tpid': '0x8100', 'uplink': '65536', 'nas_id': 'NAS_ID', 'serial_number': '${olt_sn}', 'volt_service_id': ${volt_service_id}}
 
 Validate ONUs in VOLTHA
@@ -67,8 +69,9 @@ Validate ONUs in XOS
 Validate ONU States in XOS
     [Documentation]    Validates All ONU Device states are "enabled" and "active"
     [Tags]    onustates
-    : FOR    ${onu}    IN    @{serial_numbers}
-    \    Wait Until Keyword Succeeds    ${timeout}    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
+    FOR    ${onu}    IN    @{serial_numbers}
+        Wait Until Keyword Succeeds    ${timeout}    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
+    END
 
 Validate Hosts and DHCP Allocations in ONOS
     [Documentation]    Verify number of hosts in ONOS match number of onus and verify number of DHCP allocations
@@ -79,9 +82,10 @@ Validate Hosts and DHCP Allocations in ONOS
 Validate ATT WF Driver SIs
     [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
     [Tags]    serviceinstances
-    : FOR    ${onu}    IN    @{serial_numbers}
-    \    Wait Until Keyword Succeeds    ${timeout}    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
-    \    Wait Until Keyword Succeeds    ${timeout}    5s    Validate ATT Workflow Driver SI DHCP State    DHCPACK    ${onu}
+    FOR    ${onu}    IN    @{serial_numbers}
+        Wait Until Keyword Succeeds    ${timeout}    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
+        Wait Until Keyword Succeeds    ${timeout}    5s    Validate ATT Workflow Driver SI DHCP State    DHCPACK    ${onu}
+    END
 
 *** Keywords ***
 Setup
@@ -126,11 +130,12 @@ Validate ONUs in Response
     Should Not Be Empty    ${jsondata['items']}
     ${length}=    Get Length    ${jsondata['items']}
     @{serial_numbers}=    Create List
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${sn}=    Get From Dictionary    ${value}    serial_number
-    \    ${contains}=    Evaluate    "BBSM" in """${sn}"""
-    \    Run Keyword if    '${contains}' == 'True'    Append To List    ${serial_numbers}    ${sn}
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${sn}=    Get From Dictionary    ${value}    serial_number
+        ${contains}=    Evaluate    "BBSM" in """${sn}"""
+        Run Keyword if    '${contains}' == 'True'    Append To List    ${serial_numbers}    ${sn}
+    END
     Set Suite Variable    ${serial_numbers}
     ${length_of_bbsim_onus}=    Get Length    ${serial_numbers}
     Should Be Equal as Integers    ${length_of_bbsim_onus}    ${expected_onus}
@@ -141,12 +146,13 @@ Validate ONU States in Voltha
     Should Not Be Empty    ${jsondata['items']}
     ${length}=    Get Length    ${jsondata['items']}
     @{serial_numbers}=    Create List
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${admin_state}=    Get From Dictionary    ${value}    admin_state
-    \    ${oper_status}=    Get From Dictionary    ${value}    oper_status
-    \    Should Be Equal As Strings    ${admin_state}    ENABLED
-    \    Should Be Equal As Strings    ${oper_status}    ACTIVE
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${admin_state}=    Get From Dictionary    ${value}    admin_state
+        ${oper_status}=    Get From Dictionary    ${value}    oper_status
+        Should Be Equal As Strings    ${admin_state}    ENABLED
+        Should Be Equal As Strings    ${oper_status}    ACTIVE
+    END
 
 CORD Get
     [Documentation]    Make a GET call to XOS
@@ -194,10 +200,11 @@ OLT Device in ONOS
     Should Not Be Empty    ${jsondata['devices']}
     ${length}=    Get Length    ${jsondata['devices']}
     @{serial_numbers}=    Create List
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['devices']}    ${INDEX}
-    \    ${sn}=    Get From Dictionary    ${value}    serial
-    \    ${dpid}=    Get From Dictionary    ${value}    id
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['devices']}    ${INDEX}
+        ${sn}=    Get From Dictionary    ${value}    serial
+        ${dpid}=    Get From Dictionary    ${value}    id
+    END
     Should Be Equal As Strings    ${dpid}    of:0000626273696d76
     Should Be Equal As Strings    ${sn}    ${olt_sn}
 

@@ -13,40 +13,42 @@
 # limitations under the License.
 
 # NOTE: `make collect-diag` command needs to be executed on the head-node
-#        before running this test
+#                 before running this test
 
 *** Settings ***
 Documentation     Test suite for checking results collected by `make collect-diag` command
 Library           OperatingSystem
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 
 *** Variables ***
-${DOCKER_CONTAINERS_FILE}       ${CURDIR}/dockerContainers.json
-${ONOS_APPS_FILE}       	${CURDIR}/onosApps.json
-${CORD_PROFILE}			rcord
-${CORD_SCENARIO}		cord
+${DOCKER_CONTAINERS_FILE}    ${CURDIR}/dockerContainers.json
+${ONOS_APPS_FILE}    ${CURDIR}/onosApps.json
+${CORD_PROFILE}    rcord
+${CORD_SCENARIO}    cord
 
 *** Test Cases ***
 Verify Docker Containers
     [Documentation]    Verify expected containers are up and running
     ${dockerContainersExpected}    CORDRobot.jsonToList    ${DOCKER_CONTAINERS_FILE}    docker-containers-${CORD_PROFILE}
-    : FOR    ${container}    IN    @{dockerContainersExpected}
-    \    Run Keyword And Continue On Failure    Verify Docker Container    ${container}
+    FOR    ${container}    IN    @{dockerContainersExpected}
+        Run Keyword And Continue On Failure    Verify Docker Container    ${container}
+    END
 
 Verify Synchronizer Logs
     [Documentation]    Verify synchronizer logs are correct
     ${latestDiag}=    Run    ls -1t /home/cord | head -1
     ${synchronizerLogs}    CORDRobot.readFiles    /home/cord/${latestDiag}/docker/*synchronizer*.logs
-    : FOR    ${key}    IN    @{synchronizerLogs.keys()}
-    \    @{name}=    Split String    ${key}    -synchronizer
-    \    @{name}=    Split String From Right   @{name}[0]    _    1
-    \    ${synchronizerLog}=    Get From Dictionary    ${synchronizerLogs}    ${key}
-    \    Run Keyword And Continue On Failure    Verify Synchronizer Log    ${name}    ${synchronizerLog}
+    FOR    ${key}    IN    @{synchronizerLogs.keys()}
+        @{name}=    Split String    ${key}    -synchronizer
+        @{name}=    Split String From Right    @{name}[0]    _    1
+        ${synchronizerLog}=    Get From Dictionary    ${synchronizerLogs}    ${key}
+        Run Keyword And Continue On Failure    Verify Synchronizer Log    ${name}    ${synchronizerLog}
+    END
 
 Verify ONOS
     [Documentation]    Verify ONOS status, applications and logs
-    Run Keyword If    '${CORD_PROFILE}' != 'ecord-global'   Verify ONOS-Fabric    ${CORD_PROFILE}
+    Run Keyword If    '${CORD_PROFILE}' != 'ecord-global'    Verify ONOS-Fabric    ${CORD_PROFILE}
     Verify ONOS-CORD    ${CORD_PROFILE}
 
 *** Keywords ***
@@ -83,8 +85,9 @@ Verify ONOS Applications
     [Arguments]    ${onosName}    ${cordProfile}
     ${onosAppsExpected}    CORDRobot.jsonToList    ${ONOS_APPS_FILE}    ${onosName}-${cordProfile}
     ${onosApps}    CORDRobot.readFile    /home/cord/diag-*/${onosName}/apps_-s_-a
-    : FOR    ${app}    IN    @{onosAppsExpected}
-    \    Should Contain    ${onosApps}    ${app}
+    FOR    ${app}    IN    @{onosAppsExpected}
+        Should Contain    ${onosApps}    ${app}
+    END
 
 Verify ONOS Log
     [Arguments]    ${onosName}
