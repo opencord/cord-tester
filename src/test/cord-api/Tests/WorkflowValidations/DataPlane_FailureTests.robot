@@ -24,22 +24,21 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${POD_NAME}                 flex-pod1-olt
-${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
-${HELM_CHARTS_DIR}          ~/helm-charts
-${WHITELIST_PATHFILE}       ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
-${SUBSCRIBER_PATHFILE}      ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
-${VOLT_DEVICE_PATHFILE}     ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
-${KUBERNETES_CONF}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
-${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
-${VOLTHA_POD_NUM}           8
+${POD_NAME}       flex-pod1-olt
+${KUBERNETES_CONFIGS_DIR}    ~/pod-configs/kubernetes-configs
+${HELM_CHARTS_DIR}    ~/helm-charts
+${WHITELIST_PATHFILE}    ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
+${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
+${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
+${KUBERNETES_CONF}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
+${KUBERNETES_YAML}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
+${VOLTHA_POD_NUM}    8
 
 *** Test Cases ***
-
 OLT Reboot
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
     ...    Configure whitelist with correct ONU location
@@ -57,9 +56,9 @@ OLT Reboot
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${src0['onu']}
     Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${s_tag}    ${c_tag}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
     # Reboot OLT
-    Login And Run Command On Remote System    sudo reboot    ${olt_ip}    ${olt_user}    ${olt_pass}   prompt=#
+    Login And Run Command On Remote System    sudo reboot    ${olt_ip}    ${olt_user}    ${olt_pass}    prompt=#
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${olt_ip}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${olt_ip}
     Wait Until Keyword Succeeds    120s    10s    Openolt is Up    ${olt_ip}    ${olt_user}    ${olt_pass}
     # Validate authentication and successful pings since the OLT is Up
@@ -88,12 +87,12 @@ Fabric Switch Reboot
     # Reboot Fabric Switch
     Login And Run Command On Remote System    sudo reboot    ${fabric_ip}    ${fabric_user}    ${fabric_pass}    prompt=#
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${fabric_ip}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    True    ${fabric_ip}
     # Validate successful pings since Fabric Switch is Up
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    True    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
 
 Subscriber(RG) Reboot
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
@@ -111,11 +110,11 @@ Subscriber(RG) Reboot
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${src0['onu']}
     Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${s_tag}    ${c_tag}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
     # Reboot RG
-    Login And Run Command On Remote System    sudo reboot    ${src_ip}    ${src_user}    ${src_pass}   prompt=$
+    Login And Run Command On Remote System    sudo reboot    ${src_ip}    ${src_user}    ${src_pass}    prompt=$
     Wait Until Keyword Succeeds    120s    10s    Check Remote System Reachability    False    ${fabric_ip}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     Wait Until Keyword Succeeds    150s    10s    Check Remote System Reachability    True    ${src_ip}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}   ${src0['container_type']}    ${src0['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst0['dp_iface_ip_qinq']}    ${src0['dp_iface_name']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}
     # Perform Reauthentication/DHCP and Ping
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    AWAITING    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${onu_device}
@@ -131,18 +130,18 @@ Setup Suite
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
-    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}    AttWhiteListInfo
     Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    CORDRobot.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
-    ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
+    ${onu_location}=    Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
-    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}    SubscriberInfo
     Set Global Variable    ${SubscriberList}
     ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
-    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   s_tag
-    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   c_tag
-    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    s_tag
+    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    c_tag
+    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}    VOLTDeviceInfo
     ${VoltDeviceDict}=    CORDRobot.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
     Set Global Variable    ${VoltDeviceDict}
@@ -167,7 +166,6 @@ Setup Suite
     Set Suite Variable    ${fabric_ip}
     Set Suite Variable    ${fabric_user}
     Set Suite Variable    ${fabric_pass}
-
     @{container_list}=    Create List
     Append To List    ${container_list}    att-workflow-att-workflow-driver
     Append To List    ${container_list}    seba-services-volt

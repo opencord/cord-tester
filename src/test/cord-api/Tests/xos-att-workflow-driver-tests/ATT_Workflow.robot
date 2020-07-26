@@ -5,48 +5,54 @@ Library           Collections
 Library           String
 Library           OperatingSystem
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Template     Send Event and Verify
 
 *** Variables ***
-${server_ip}              xos-chameleon
-${server_port}            30006
-${subscriber_api}         /xosapi/v1/rcord/rcordsubscribers
-${att_wf_api}             /xosapi/v1/att-workflow-driver/attworkflowdriverservices
-${volt_api}               /xosapi/v1/volt/voltservices
-${att_si_api}             /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
-${att_whitelist_api}      /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries
-${onu_device_api}         /xosapi/v1/volt/onudevices
-${olt_api}                /xosapi/v1/volt/oltdevices
-${pon_ports_api}          /xosapi/v1/volt/ponports
-${uni_ports_api}          /xosapi/v1/volt/uniports
-${onu_serial_no}          onudevice123
-${onu_invalid_sn}         invalid_serial_no
-${deviceId}               of:robot_test
-${ponportno}              10
-${uniportno}              100
-${mac_address}            00:AA:00:00:00:01
-${ip_address}             192.168.3.5
+${server_ip}      xos-chameleon
+${server_port}    30006
+${subscriber_api}    /xosapi/v1/rcord/rcordsubscribers
+${att_wf_api}     /xosapi/v1/att-workflow-driver/attworkflowdriverservices
+${volt_api}       /xosapi/v1/volt/voltservices
+${att_si_api}     /xosapi/v1/att-workflow-driver/attworkflowdriverserviceinstances
+${att_whitelist_api}    /xosapi/v1/att-workflow-driver/attworkflowdriverwhitelistentries
+${onu_device_api}    /xosapi/v1/volt/onudevices
+${olt_api}        /xosapi/v1/volt/oltdevices
+${pon_ports_api}    /xosapi/v1/volt/ponports
+${uni_ports_api}    /xosapi/v1/volt/uniports
+${onu_serial_no}    onudevice123
+${onu_invalid_sn}    invalid_serial_no
+${deviceId}       of:robot_test
+${ponportno}      10
+${uniportno}      100
+${mac_address}    00:AA:00:00:00:01
+${ip_address}     192.168.3.5
 
 *** Test Cases ***
-Activate Non-Whitelisted ONU    onu.events    {'status': 'activated', 'serial_number': '${onu_invalid_sn}','uni_port_id': 100, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_invalid_sn}    onu_state=DISABLED
+Activate Non-Whitelisted ONU
+    onu.events    {'status': 'activated', 'serial_number': '${onu_invalid_sn}','uni_port_id': 100, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_invalid_sn}    onu_state=DISABLED
     [Documentation]    Validate that activating an ONU not in whitelist sets onu device to DISABLED
 
-Activate Whitelisted ONU in Wrong Location    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': 52, 'of_dpid': 'wrongofdpid'}    onu_serial_number=${onu_serial_no}    onu_state=DISABLED
+Activate Whitelisted ONU in Wrong Location
+    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': 52, 'of_dpid': 'wrongofdpid'}    onu_serial_number=${onu_serial_no}    onu_state=DISABLED
     [Documentation]    Validate that activating an ONU in the whitelist but in the wrong location DISABLES the onu device
 
-Activate Whitelisted ONU    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': ${uniportno}, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_serial_no}    onu_state=ENABLED
+Activate Whitelisted ONU
+    onu.events    {'status': 'activated', 'serial_number': '${onu_serial_no}','uni_port_id': ${uniportno}, 'of_dpid': '${deviceId}'}    onu_serial_number=${onu_serial_no}    onu_state=ENABLED
     [Documentation]    Validate that activating an ONU in the whitelist creates a attworkflow-driver-serviceinstance
 
-Send Auth Request    authentication.events    {'authenticationState': 'APPROVED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}    onu_serial_number=${onu_serial_no}    subscriber_state=enabled    service_instance_state=APPROVED    service_instance_count=1    service_instance_dhcp_state=AWAITING
+Send Auth Request
+    authentication.events    {'authenticationState': 'APPROVED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}    onu_serial_number=${onu_serial_no}    subscriber_state=enabled    service_instance_state=APPROVED    service_instance_count=1    service_instance_dhcp_state=AWAITING
     [Documentation]    Validate that sending an auth request to the onu will enable the subscriber and create a service chain
 
-Send DHCP Request    dhcp.events    {'macAddress': '${mac_address}','ipAddress': '${ip_address}', 'deviceId': '${deviceId}', 'portNumber': ${uniportno}, 'messageType': 'DHCPACK'}    onu_serial_number=${onu_serial_no}    service_instance_state=APPROVED    service_instance_dhcp_state=DHCPACK
+Send DHCP Request
+    dhcp.events    {'macAddress': '${mac_address}','ipAddress': '${ip_address}', 'deviceId': '${deviceId}', 'portNumber': ${uniportno}, 'messageType': 'DHCPACK'}    onu_serial_number=${onu_serial_no}    service_instance_state=APPROVED    service_instance_dhcp_state=DHCPACK
     [Documentation]    Validate that sending an dhcp request to update the subscriber's mac+ip address
 
-Send Denied Auth Request    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}    onu_serial_number=${onu_serial_no}    subscriber_state=auth-failed    service_instance_state=DENIED    service_instance_dhcp_state=DHCPACK
+Send Denied Auth Request
+    authentication.events    {'authenticationState': 'DENIED', 'deviceId': '${deviceId}','portNumber': ${uniportno}}    onu_serial_number=${onu_serial_no}    subscriber_state=auth-failed    service_instance_state=DENIED    service_instance_dhcp_state=DHCPACK
     [Documentation]    Validate that denied auth request to the onu will disable the subscriber and remove a service chain
 
 Create New Whitelist Entry
@@ -145,13 +151,14 @@ Validate ATT Service Instance
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${id}=    Get From Dictionary    ${value}    id
-    \    ${sn}=    Get From Dictionary    ${value}    serial_number
-    \    ${as}=    Get From Dictionary    ${value}    authentication_state
-    \    ${dp}=    Get From Dictionary    ${value}    dhcp_state
-    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${id}=    Get From Dictionary    ${value}    id
+        ${sn}=    Get From Dictionary    ${value}    serial_number
+        ${as}=    Get From Dictionary    ${value}    authentication_state
+        ${dp}=    Get From Dictionary    ${value}    dhcp_state
+        Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    END
     Should Be Equal    ${dp}    ${dhcp_state}
     Should Be Equal    ${as}    ${auth_state}
 
@@ -161,11 +168,12 @@ Validate Subscriber Status
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${status}=    Get From Dictionary    ${value}    status
-    \    ${sn}=    Get From Dictionary    ${value}    onu_device
-    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${status}=    Get From Dictionary    ${value}    status
+        ${sn}=    Get From Dictionary    ${value}    onu_device
+        Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    END
     Should Be Equal    ${status}    ${expected_status}
 
 Validate Subscriber Service Chain
@@ -174,12 +182,13 @@ Validate Subscriber Service Chain
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${sl}=    Get From Dictionary    ${value}    subscribed_links_ids
-    \    ${result}    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
-    \    ${sn}=    Get From Dictionary    ${value}    onu_device
-    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${sl}=    Get From Dictionary    ${value}    subscribed_links_ids
+        ${result}    ${slinks}=    Run Keyword And Ignore Error    Get From List    ${sl}    0
+        ${sn}=    Get From Dictionary    ${value}    onu_device
+        Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    END
     Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Not Be Equal As Strings    ${result}    FAIL
     Run Keyword If    '${expected_no_sc}' != '${EMPTY}'    Should Not Be Empty    ${result}    ELSE    Should Be Empty    ${sl}
 
@@ -189,11 +198,12 @@ Validate ONU Device Status
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${status}=    Get From Dictionary    ${value}    admin_state
-    \    ${sn}=    Get From Dictionary    ${value}    serial_number
-    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${status}=    Get From Dictionary    ${value}    admin_state
+        ${sn}=    Get From Dictionary    ${value}    serial_number
+        Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    END
     Should Be Equal    ${status}    ${expected_status}
 
 Validate Subscriber Settings
@@ -202,9 +212,10 @@ Validate Subscriber Settings
     ${jsondata}=    To Json    ${resp.content}
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${macAddress}=    Get From Dictionary    ${value}    mac_address
-    \    ${sn}=    Get From Dictionary    ${value}    onu_device
-    \    Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${macAddress}=    Get From Dictionary    ${value}    mac_address
+        ${sn}=    Get From Dictionary    ${value}    onu_device
+        Run Keyword If    '${sn}' == '${serial_no}'    Exit For Loop
+    END
     Should Be Equal    ${macAddress}    ${mac_address}

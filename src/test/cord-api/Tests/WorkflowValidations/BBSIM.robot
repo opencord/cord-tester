@@ -22,7 +22,7 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
@@ -37,15 +37,17 @@ ONUs Discovered
 Validate ONU States
     [Documentation]    Validates All ONU Device states are "enabled" and "active"
     [Tags]    onustates
-    : FOR    ${onu}    IN    @{serial_numbers}
-    \    Wait Until Keyword Succeeds    120s    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
+    FOR    ${onu}    IN    @{serial_numbers}
+        Wait Until Keyword Succeeds    120s    5s    Validate ONU States    ACTIVE    ENABLED    ${onu}
+    END
 
 Validate ATT WF Driver SIs
     [Documentation]    Validates all service instances per onu devices become "approved" and "dhcpdiscovered"
     [Tags]    serviceinstances
-    : FOR    ${onu}    IN    @{serial_numbers}
-    \    Wait Until Keyword Succeeds    180s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
-    \    Wait Until Keyword Succeeds    300s    5s    Validate ATT Workflow Driver SI DHCP State    DHCPACK    ${onu}
+    FOR    ${onu}    IN    @{serial_numbers}
+        Wait Until Keyword Succeeds    180s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu}
+        Wait Until Keyword Succeeds    300s    5s    Validate ATT Workflow Driver SI DHCP State    DHCPACK    ${onu}
+    END
 
 *** Keywords ***
 Setup
@@ -67,11 +69,12 @@ Teardown
     Get Pod Logs
 
 Get Pod Logs
-    : FOR    ${pod}    IN    @{container_list}
-    \    ${full_pod_name}=    Run    kubectl get pods --all-namespaces | grep '${pod}' | head -1 | awk '{print $2}'
-    \    ${namespace}=    Run    kubectl get pods --all-namespaces | grep ' ${pod}' | head -1 | awk '{print $1}'
-    \    ${output}=    Run    kubectl logs --timestamps -n ${namespace} ${full_pod_name}
-    \    Log    ${output}
+    FOR    ${pod}    IN    @{container_list}
+        ${full_pod_name}=    Run    kubectl get pods --all-namespaces | grep '${pod}' | head -1 | awk '{print $2}'
+        ${namespace}=    Run    kubectl get pods --all-namespaces | grep ' ${pod}' | head -1 | awk '{print $1}'
+        ${output}=    Run    kubectl logs --timestamps -n ${namespace} ${full_pod_name}
+        Log    ${output}
+    END
 
 Validate Number of ONU Devices
     [Arguments]    ${expected_onus}
@@ -80,11 +83,12 @@ Validate Number of ONU Devices
     Log    ${jsondata}
     ${length}=    Get Length    ${jsondata['items']}
     @{serial_numbers}=    Create List
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
-    \    ${sn}=    Get From Dictionary    ${value}    serial_number
-    \    ${contains}=    Evaluate    "BBSM" in """${sn}"""
-    \    Run Keyword if    '${contains}' == 'True'    Append To List    ${serial_numbers}    ${sn}
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${value}=    Get From List    ${jsondata['items']}    ${INDEX}
+        ${sn}=    Get From Dictionary    ${value}    serial_number
+        ${contains}=    Evaluate    "BBSM" in """${sn}"""
+        Run Keyword if    '${contains}' == 'True'    Append To List    ${serial_numbers}    ${sn}
+    END
     Set Suite Variable    ${serial_numbers}
     ${length_of_bbsim_onus}=    Get Length    ${serial_numbers}
     Should Be Equal as Integers    ${length_of_bbsim_onus}    ${expected_onus}

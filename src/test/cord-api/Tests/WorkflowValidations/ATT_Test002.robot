@@ -24,19 +24,19 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${POD_NAME}                 onlab-pod1-qa
-${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
-${HELM_CHARTS_DIR}          ~/helm-charts
-${WHITELIST_PATHFILE}       ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
-${SUBSCRIBER_PATHFILE}      ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
-${VOLT_DEVICE_PATHFILE}     ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
-${KUBERNETES_CONF}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
-${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
-${VOLTHA_POD_NUM}           8
+${POD_NAME}       onlab-pod1-qa
+${KUBERNETES_CONFIGS_DIR}    ~/pod-configs/kubernetes-configs
+${HELM_CHARTS_DIR}    ~/helm-charts
+${WHITELIST_PATHFILE}    ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
+${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
+${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
+${KUBERNETES_CONF}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
+${KUBERNETES_YAML}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
+${VOLTHA_POD_NUM}    8
 
 *** Test Cases ***
 ONU in Correct Location with two ONUs
@@ -83,7 +83,7 @@ Deletion of one ONU from the whitelist while other ONU exists
     #Second ONU
     Remove Whitelist    ${src1['onu']}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    awaiting-auth    ${src1['onu']}
-    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst1['dp_iface_ip_qinq']}    ${src1['dp_iface_name']}    ${src1['ip']}    ${src1['user']}    ${src1['pass']}   ${src1['container_type']}    ${src1['container_name']}
+    Wait Until Keyword Succeeds    60s    2s    Check Ping    False    ${dst1['dp_iface_ip_qinq']}    ${src1['dp_iface_name']}    ${src1['ip']}    ${src1['user']}    ${src1['pass']}    ${src1['container_type']}    ${src1['container_name']}
     # Validate that the first ONU can still ping
     Validate DHCP and Ping    True    True    ${src0['dp_iface_name']}    ${src0['s_tag']}    ${src0['c_tag']}    ${dst0['dp_iface_ip_qinq']}    ${src0['ip']}    ${src0['user']}    ${src0['pass']}    ${src0['container_type']}    ${src0['container_name']}    ${dst0['dp_iface_name']}    ${dst0['ip']}    ${dst0['user']}    ${dst0['pass']}    ${dst0['container_type']}    ${dst0['container_name']}
 
@@ -118,19 +118,19 @@ Setup Suite
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
-    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}    AttWhiteListInfo
     Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    CORDRobot.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
     Set Suite Variable    ${att_workflow_service_id}
-    ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
+    ${onu_location}=    Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
-    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}    SubscriberInfo
     Set Global Variable    ${SubscriberList}
     ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
-    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   s_tag
-    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   c_tag
-    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    s_tag
+    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    c_tag
+    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}    VOLTDeviceInfo
     ${VoltDeviceDict}=    CORDRobot.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
     Set Global Variable    ${VoltDeviceDict}
@@ -172,10 +172,10 @@ Setup Test
     Log    Re-creating objects
     ${datetime}=    Get Current Datetime On Kubernetes Node    ${k8s_node_ip}    ${k8s_node_user}    ${k8s_node_pass}
     Set Suite Variable    ${datetime}
-    Create Whitelist   0
-    Create Whitelist   1
-    Create Subscriber   0
-    Create Subscriber   1
+    Create Whitelist    0
+    Create Whitelist    1
+    Create Subscriber    0
+    Create Subscriber    1
     Create VOLT
     Wait Until Keyword Succeeds    200s    15s    Validate OLT States    ACTIVE    ENABLED    ${olt_ip}
 
@@ -235,7 +235,7 @@ Create Subscriber
     Wait Until Keyword Succeeds    120s    15s    CORD Post    ${VOLT_SUBSCRIBER}    ${SubscriberDict}
 
 Remove Subscriber
-    [Arguments]   ${c_tag}
+    [Arguments]    ${c_tag}
     ${subscriber_id}=    Retrieve Subscriber    ${c_tag}
     CORD Delete    ${VOLT_SUBSCRIBER}    ${subscriber_id}
 
@@ -246,4 +246,3 @@ Update ONU AdminState
     [Arguments]    ${onu_device}    ${new_admin_state}
     ${onudevice_id}=    Retrieve ONU Device    ${onu_device}
     CORD Put    ${VOLT_DEVICE}    ${"admin_state": ${new_admin_state} }    ${onudevice_id}
-

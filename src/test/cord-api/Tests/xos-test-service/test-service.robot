@@ -12,14 +12,14 @@ Library           String
 Library           OperatingSystem
 Library           DateTime
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 Suite Setup       Setup
 Suite Teardown    Teardown
 
 *** Variables ***
-${testservice_api}             /xosapi/v1/testservice/testserviceservices
-${testservice_si}              /xosapi/v1/testservice/testserviceserviceinstances
+${testservice_api}    /xosapi/v1/testservice/testserviceservices
+${testservice_si}    /xosapi/v1/testservice/testserviceserviceinstances
 ${testservice_duplicate_si}    /xosapi/v1/testservice/testserviceduplicateserviceinstances
 
 *** Test Cases ***
@@ -28,7 +28,7 @@ Create Test Model with No Duplicate
     [Tags]    create
     ${model_name}=    Generate Random Value    string
     ${data}=    Create Dictionary    name=${model_name}    create_duplicate=${false}
-    ${resp}=    CORD Post    ${testservice_si}     ${data}
+    ${resp}=    CORD Post    ${testservice_si}    ${data}
     ${json_content}=    To Json    ${resp.content}
     ${test_serviceinstance_id}=    Get From Dictionary    ${json_content}    id
     ${default_float}=    Get From Dictionary    ${json_content}    optional_float_with_default
@@ -43,7 +43,7 @@ Create Test Model with No Duplicate
 
 Replicate Model with Duplicate
     [Tags]    replicate
-    CORD Put    ${testservice_si}     {'create_duplicate': ${true}}    ${test_serviceinstance_id}
+    CORD Put    ${testservice_si}    {'create_duplicate': ${true}}    ${test_serviceinstance_id}
     Wait Until Keyword Succeeds    15s    2s    Validate Duplicate Model    true
 
 Update Model Values and Validate on Duplicate
@@ -87,7 +87,7 @@ Update Model Values and Validate on Duplicate
 
 Revert Model
     [Tags]    revert
-    CORD Put    ${testservice_si}     {'create_duplicate': ${false}}    ${test_serviceinstance_id}
+    CORD Put    ${testservice_si}    {'create_duplicate': ${false}}    ${test_serviceinstance_id}
     Wait Until Keyword Succeeds    60s    2s    Validate Duplicate Model    false
 
 *** Keywords ***

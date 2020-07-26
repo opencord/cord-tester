@@ -24,19 +24,19 @@ Library           OperatingSystem
 Library           XML
 Library           RequestsLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 
 *** Variables ***
-${POD_NAME}                 flex-pod1-olt
-${KUBERNETES_CONFIGS_DIR}   ~/pod-configs/kubernetes-configs
-${HELM_CHARTS_DIR}          ~/helm-charts
-${WHITELIST_PATHFILE}       ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
-${SUBSCRIBER_PATHFILE}      ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
-${VOLT_DEVICE_PATHFILE}     ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
-${KUBERNETES_CONF}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
-${KUBERNETES_YAML}          ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
-${VOLTHA_POD_NUM}           8
+${POD_NAME}       flex-pod1-olt
+${KUBERNETES_CONFIGS_DIR}    ~/pod-configs/kubernetes-configs
+${HELM_CHARTS_DIR}    ~/helm-charts
+${WHITELIST_PATHFILE}    ${CURDIR}/data/${POD_NAME}/ATTWhiteList.json
+${SUBSCRIBER_PATHFILE}    ${CURDIR}/data/${POD_NAME}/ATTSubscriber.json
+${VOLT_DEVICE_PATHFILE}    ${CURDIR}/data/${POD_NAME}/RealOLTDevice.json
+${KUBERNETES_CONF}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.conf
+${KUBERNETES_YAML}    ${KUBERNETES_CONFIGS_DIR}/${POD_NAME}.yml
+${VOLTHA_POD_NUM}    8
 
 *** Test Cases ***
 ONU in Correct Location
@@ -67,7 +67,7 @@ ONU in Correct Location -> Remove ONU from Whitelist -> Add ONU to Whitelist
     [Teardown]    None
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
-    # Disable ONU   
+    # Disable ONU
     Clean Up Linux
     Remove Whitelist
     Wait Until Keyword Succeeds    60s    2s    Validate ONU States    UNKNOWN    DISABLED    ${onu_device}
@@ -140,7 +140,6 @@ ONU in Correct Location -> Remove Subscriber -> Create Subscriber
     Wait Until Keyword Succeeds    60s    2s    Validate ATT Workflow Driver SI    ENABLED    APPROVED    ${onu_device}
     Wait Until Keyword Succeeds    60s    2s    Validate Subscriber Status    enabled    ${onu_device}
     Validate DHCP and Ping    True    True    ${src_iface}    ${s_tag}    ${c_tag}    ${dst_dp_ip}    ${src_ip}    ${src_user}    ${src_pass}    ${src_container_type}    ${src_container_name}    ${dst_dp_iface}    ${dst_ip}    ${dst_user}    ${dst_pass}    ${dst_container_type}    ${dst_container_name}
-
 
 ONU in Correct Location (Skip Subscriber Provisioning) -> Provision Subscriber
     [Documentation]    Validates E2E Ping Connectivity and object states for the given scenario:
@@ -280,20 +279,20 @@ Setup Suite
     Create Session    ${server_ip}    http://${server_ip}:${server_port}    auth=${AUTH}    headers=${HEADERS}
     ${att_workflow_service_id}=    Get Service Owner Id    ${ATT_SERVICE}
     ${volt_service_id}=    Get Service Owner Id    ${VOLT_SERVICE}
-    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}   AttWhiteListInfo
+    ${AttWhiteListList}=    CORDRobot.jsonToList    ${WHITELIST_PATHFILE}    AttWhiteListInfo
     Set Suite Variable    ${AttWhiteListList}
     ${AttWhiteListDict}=    CORDRobot.listToDict    ${AttWhiteListList}    0
     ${AttWhiteListDict}=    CORDRobot.setFieldValueInDict    ${AttWhiteListDict}    owner_id    ${att_workflow_service_id}
-    ${onu_device}=   Get From Dictionary    ${AttWhiteListDict}    serial_number
+    ${onu_device}=    Get From Dictionary    ${AttWhiteListDict}    serial_number
     Set Global Variable    ${onu_device}
-    ${onu_location}=   Get From Dictionary    ${AttWhiteListDict}    pon_port_id
+    ${onu_location}=    Get From Dictionary    ${AttWhiteListDict}    pon_port_id
     Set Global Variable    ${onu_location}
-    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}   SubscriberInfo
+    ${SubscriberList}=    CORDRobot.jsonToList    ${SUBSCRIBER_PATHFILE}    SubscriberInfo
     Set Global Variable    ${SubscriberList}
     ${SubscriberDict}=    CORDRobot.listToDict    ${SubscriberList}    0
-    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   s_tag
-    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}   c_tag
-    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}   VOLTDeviceInfo
+    ${s_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    s_tag
+    ${c_tag}=    CORDRobot.getFieldValueFromDict    ${SubscriberDict}    c_tag
+    ${VoltDeviceList}=    CORDRobot.jsonToList    ${VOLT_DEVICE_PATHFILE}    VOLTDeviceInfo
     ${VoltDeviceDict}=    CORDRobot.setFieldValueInDict    ${VoltDeviceList[0]}    volt_service_id    ${volt_service_id}
     Set Global Variable    ${VoltDeviceList}
     Set Global Variable    ${VoltDeviceDict}

@@ -7,18 +7,18 @@ Library           OperatingSystem
 Library           DateTime
 Library           DatabaseLibrary
 Library           CORDRobot
-Library           ImportResource  resources=CORDRobot
+Library           ImportResource    resources=CORDRobot
 Variables         ../../Properties/RestApiProperties.py
 Suite Setup       Setup
 Suite Teardown    Teardown
 
 *** Variables ***
-${timeout}    300s
-${repository}    xosproject/simpleexampleservice-synchronizer
-${migration1}    migration-test1
-${migration2}    migration-test2
-${helm_chart}    ~/cord/helm-charts/xos-services/simpleexampleservice
-${cleanup}       ${true}
+${timeout}        300s
+${repository}     xosproject/simpleexampleservice-synchronizer
+${migration1}     migration-test1
+${migration2}     migration-test2
+${helm_chart}     ~/cord/helm-charts/xos-services/simpleexampleservice
+${cleanup}        ${true}
 
 *** Test Cases ***
 Ensure Clean Environment
@@ -81,7 +81,7 @@ Unload Service Automatic Cleanup
     [Documentation]    Unload the service
     [Tags]    test8
     # May have to do this multiple times to wait for cleanup to complete
-    Wait Until Keyword Succeeds    ${timeout}    5s     Unload With Automatic Cleanup
+    Wait Until Keyword Succeeds    ${timeout}    5s    Unload With Automatic Cleanup
 
 Verify Service Stopped
     [Documentation]    Make sure the core has stopped serving the service
@@ -102,7 +102,6 @@ Verify Migrations Removed
     [Tags]    test11
     Row Count is 0    SELECT * FROM django_migrations where app='simpleexampleservice'
 
-
 *** Keywords ***
 Setup
     ${auth} =    Create List    ${XOS_USER}    ${XOS_PASSWD}
@@ -111,14 +110,10 @@ Setup
     @{model_A_fields}=    Create List    service_message
     @{model_B_fields}=    Create List    service_message    new_field
     @{model_B_only_fields}=    Create List    new_field
-
     ${db_addr}=    Run    kubectl get services | grep -i xos-db | awk '{print $3}'
-    Connect To Database   psycopg2    xos    postgres    password    ${db_addr}    5432
-
+    Connect To Database    psycopg2    xos    postgres    password    ${db_addr}    5432
     Set Suite Variable    @{model_A_fields}
-
     Set Suite Variable    @{model_B_fields}
-
     Set Suite Variable    @{model_B_only_fields}
 
 Teardown
@@ -139,7 +134,7 @@ Validate Service Running
     ${output}=    Run    kubectl get pods | grep simpleexampleservice | grep -i terminating | wc -l
     Should Be Equal As Integers    ${output}    0
     # wait for the endpoint to exist
-    ${resp} =   CORD Get    /xosapi/v1/simpleexampleservice/simpleexampleservices
+    ${resp} =    CORD Get    /xosapi/v1/simpleexampleservice/simpleexampleservices
 
 Validate Service Not Running
     # wait for helm chart to be deployed
@@ -157,7 +152,7 @@ Validate Service Not Served
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    404
     # wait for the core to be up
-    ${resp} =   CORD Get    /xosapi/v1/core/users
+    ${resp} =    CORD Get    /xosapi/v1/core/users
 
 Ensure Service Deleted
     ${output}=    Run    helm ls | grep simpleexampleservice | grep -i deployed | wc -l
@@ -172,14 +167,15 @@ Delete Service
 Ensure Service Unloaded
     [Documentation]    Unload the service if it is loaded.
     Wait Until Keyword Succeeds    200s    2s    CORD Get    /xosapi/v1/core/users
-    ${resp}=   Get Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/load_status
+    ${resp}=    Get Request    ${SERVER_IP}    uri=/xosapi/v1/dynamicload/load_status
     Log    ${resp.content}
     Should Be Equal As Strings    ${resp.status_code}    200
     ${jsondata}=    To Json    ${resp.content}
-    ${length}=    Get Length   ${jsondata['services']}
-    : FOR    ${INDEX}    IN RANGE    0    ${length}
-    \    ${dict}=    Get From List    ${jsondata['services']}    ${INDEX}
-    \    Run Keyword If    "${dict['name']}" == "simpleexampleservice" and "${dict['state']}" == "present"    Unload Service
+    ${length}=    Get Length    ${jsondata['services']}
+    FOR    ${INDEX}    IN RANGE    0    ${length}
+        ${dict}=    Get From List    ${jsondata['services']}    ${INDEX}
+        Run Keyword If    "${dict['name']}" == "simpleexampleservice" and "${dict['state']}" == "present"    Unload Service
+    END
 
 Unload Service
     [Documentation]    Unload the service
