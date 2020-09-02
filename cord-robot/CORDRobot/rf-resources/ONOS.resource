@@ -102,6 +102,18 @@ Get ONOS Status
     ...    onos_links.log    links
     ...    host=${server_ip}    port=${server_port}
     ${onos_links}    Get Binary File    /tmp/onos_links.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_roles.log    roles
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_roles}    Get Binary File    /tmp/onos_roles.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_dhcpl2relay_stats.log    dhcpl2relay-stats
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_dhcpl2relay_stats}    Get Binary File    /tmp/onos_dhcpl2relay_stats.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_aaa_stats.log    aaa-statistics
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_aaa_stats}    Get Binary File    /tmp/onos_aaa_stats.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_ports}
@@ -116,3 +128,6 @@ Get ONOS Status
     Log    ${onos_netcfg}
     Log    ${onos_groups}
     Log    ${onos_links}
+    Log    ${onos_roles}
+    Log    ${onos_dhcpl2relay_stats}
+    Log    ${onos_aaa_stats}
