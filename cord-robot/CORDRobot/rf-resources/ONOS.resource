@@ -114,6 +114,10 @@ Get ONOS Status
     ...    onos_aaa_stats.log    aaa-statistics
     ...    host=${server_ip}    port=${server_port}
     ${onos_aaa_stats}    Get Binary File    /tmp/onos_aaa_stats.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_cfg_settings.log    cfg get
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_cfg_settings}    Get Binary File    /tmp/onos_cfg_settings.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_ports}
@@ -131,3 +135,4 @@ Get ONOS Status
     Log    ${onos_roles}
     Log    ${onos_dhcpl2relay_stats}
     Log    ${onos_aaa_stats}
+    Log    ${onos_cfg_settings}
