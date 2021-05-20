@@ -19,7 +19,7 @@ Library           SSHLibrary
 
 *** Keywords ***
 Execute ONOS CLI Command
-    [Documentation]    Establishes an ssh connection to ONOS contoller and executes a command
+    [Documentation]    *DEPRECATED* Use "Execute ONOS CLI Command on open connection" instead. Establishes an ssh connection to ONOS contoller and executes a command
     [Arguments]    ${host}    ${port}    ${cmd}    ${user}=karaf    ${pass}=karaf
     ${conn_id}=    SSHLibrary.Open Connection    ${host}    port=${port}    timeout=300s
     SSHLibrary.Login    ${user}    ${pass}
