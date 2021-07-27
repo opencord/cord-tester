@@ -22,6 +22,30 @@
       "revId": "44ef9be3bf8f18fd64ea8cf44b5171ca049b9ef9",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": true
+    },
+    {
+      "key": {
+        "uuid": "6403b837_d397c95c",
+        "filename": "cord-robot/CORDRobot/rf-resources/ONOS.resource",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000741
+      },
+      "writtenOn": "2021-07-27T09:52:37Z",
+      "side": 1,
+      "message": "correction: 2 lines",
+      "parentUuid": "56f5918a_a27c8aed",
+      "range": {
+        "startLine": 22,
+        "startChar": 4,
+        "endLine": 22,
+        "endChar": 165
+      },
+      "revId": "44ef9be3bf8f18fd64ea8cf44b5171ca049b9ef9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
     }
   ]
 }
