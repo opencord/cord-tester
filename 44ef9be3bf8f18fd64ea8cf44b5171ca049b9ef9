@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "56f5918a_a27c8aed",
+        "filename": "cord-robot/CORDRobot/rf-resources/ONOS.resource",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1000741
+      },
+      "writtenOn": "2021-07-27T09:51:37Z",
+      "side": 1,
+      "message": "This looks more than 120 chars. Need to split in 2 mines at least. Unit test verification job run should say.",
+      "range": {
+        "startLine": 22,
+        "startChar": 4,
+        "endLine": 22,
+        "endChar": 165
+      },
+      "revId": "44ef9be3bf8f18fd64ea8cf44b5171ca049b9ef9",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": true
+    }
+  ]
+}
