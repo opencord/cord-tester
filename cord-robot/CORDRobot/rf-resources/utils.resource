@@ -160,7 +160,8 @@ Check Ping Result
     Run Keyword If    '${reachable}' == 'True'
     ...    Should Contain    ${result}    64 bytes
     Run Keyword If    '${reachable}' == 'True'
-    ...    Should Contain Any    ${result}    0% packet loss    0.0% packet loss
+    ...    Should Contain Any    ${result}    0% packet loss    0.0% packet loss    1% packet loss
+    ...    2% packet loss    3% packet loss    4% packet loss
     Run Keyword If    '${reachable}' == 'True'
     ...    Should Not Contain Any    ${result}    100% packet loss    100.0% packet loss
     Run Keyword If    '${reachable}' == 'False'
@@ -173,7 +174,7 @@ Check Ping
     [Arguments]    ${ping_should_pass}    ${dst_ip}    ${iface}    ${ip}
     ...    ${user}    ${pass}=${None}    ${container_type}=${None}    ${container_name}=${None}
     ${result}=    Login And Run Command On Remote System
-    ...    ping -I ${iface} -c 3 ${dst_ip}
+    ...    ping -I ${iface} -c 30 ${dst_ip}
     ...    ${ip}    ${user}    ${pass}    ${container_type}    ${container_name}
     Check Ping Result    ${ping_should_pass}    ${result}
 
