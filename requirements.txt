@@ -2,7 +2,7 @@ docutils
 flake8
 paramiko
 pexpect
-pylint
+pylint<=2.10.2
 pyyaml
 robotframework
 robotframework-databaselibrary
