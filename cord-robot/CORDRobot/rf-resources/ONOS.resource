@@ -122,6 +122,14 @@ Get ONOS Status
     ...    onos_xc.log    sr-xconnect
     ...    host=${server_ip}    port=${server_port}
     ${onos_xc}    Get Binary File    /tmp/onos_xc.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_instances.log    nodes
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_instances}    Get Binary File    /tmp/onos_instances.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_masters.log    masters
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_masters}    Get Binary File    /tmp/onos_masters.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_xc}
@@ -141,3 +149,5 @@ Get ONOS Status
     Log    ${onos_dhcpl2relay_stats}
     Log    ${onos_aaa_stats}
     Log    ${onos_cfg_settings}
+    Log    ${onos_instances}
+    Log    ${onos_masters}
