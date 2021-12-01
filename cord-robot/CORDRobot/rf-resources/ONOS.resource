@@ -77,6 +77,10 @@ Get ONOS Status
     CORDRobot.write_log_of_onos_cli_command    /tmp
     ...    onos_volt_bp_meters.log    volt-bpmeter-mappings
     ...    host=${server_ip}    port=${server_port}
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_volt_port_status.log    volt-port-status
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_volt_port_status}    Get Binary File    /tmp/onos_volt_port_status.log
     ${onos_volt_bp_meters}    Get Binary File    /tmp/onos_volt_bp_meters.log
     CORDRobot.write_log_of_onos_cli_command    /tmp
     ...    onos_dhcpl2.log    dhcpl2relay-allocations
@@ -138,6 +142,7 @@ Get ONOS Status
     Log    ${onos_meters}
     Log    ${onos_aaa_users}
     Log    ${onos_volt_prog_subscribers}
+    Log    ${onos_volt_port_status}
     Log    ${onos_volt_prog_meters}
     Log    ${onos_volt_bp_meters}
     Log    ${onos_hosts}
