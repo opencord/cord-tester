@@ -134,6 +134,10 @@ Get ONOS Status
     ...    onos_masters.log    masters
     ...    host=${server_ip}    port=${server_port}
     ${onos_masters}    Get Binary File    /tmp/onos_masters.log
+    CORDRobot.write_log_of_onos_cli_command    /tmp
+    ...    onos_mac_learner_mappings.log    mac-learner-get-mapping
+    ...    host=${server_ip}    port=${server_port}
+    ${onos_mac_learner_mappings}    Get Binary File    /tmp/onos_mac_learner_mappings.log
     Log    ${onos_apps}
     Log    ${onos_devices}
     Log    ${onos_xc}
@@ -156,3 +160,4 @@ Get ONOS Status
     Log    ${onos_cfg_settings}
     Log    ${onos_instances}
     Log    ${onos_masters}
+    Log    ${onos_mac_learner_mappings}
