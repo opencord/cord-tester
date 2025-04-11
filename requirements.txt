@@ -2,15 +2,14 @@ docutils
 flake8
 paramiko
 pexpect
-pylint<=2.10.2
+pylint==3.3.6
 pyyaml
 robotframework
 robotframework-databaselibrary
+robotframework-importresource==0.2.0
 robotframework-kafkalibrary
 robotframework-lint
 robotframework-requests
 robotframework-sshlibrary
 tinydb
 yamllint
-# replace when we can use upstream (needs python 3.6)
-git+https://github.com/zdw/robotframework-importresource@b81b87aabaee0594e966687b41e3674b866f28ee
