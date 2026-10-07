@@ -1,6 +1,7 @@
 docutils
 flake8
 paramiko
+pyenchant
 pexpect
 pylint==3.3.6
 pyyaml
