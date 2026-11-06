@@ -3,7 +3,7 @@ flake8
 paramiko
 pyenchant
 pexpect
-pylint==3.3.6
+pylint==4.0.9
 pyyaml
 robotframework
 robotframework-databaselibrary
